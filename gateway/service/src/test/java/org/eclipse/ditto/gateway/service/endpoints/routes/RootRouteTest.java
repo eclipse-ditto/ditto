@@ -56,6 +56,7 @@ import org.eclipse.ditto.gateway.service.endpoints.routes.status.OverallStatusRo
 import org.eclipse.ditto.gateway.service.endpoints.routes.things.ThingsParameter;
 import org.eclipse.ditto.gateway.service.endpoints.routes.things.ThingsRoute;
 import org.eclipse.ditto.gateway.service.endpoints.routes.thingsearch.ThingSearchRoute;
+import org.eclipse.ditto.gateway.service.endpoints.routes.timeseries.TimeseriesRoute;
 import org.eclipse.ditto.gateway.service.endpoints.routes.websocket.WebSocketRoute;
 import org.eclipse.ditto.gateway.service.endpoints.routes.whoami.WhoamiRoute;
 import org.eclipse.ditto.gateway.service.endpoints.routes.wot.WotDiscoveryThingDirectoryRoute;
@@ -164,6 +165,7 @@ public final class RootRouteTest extends EndpointTestBase {
                         streamingConfig,
                         routeBaseProperties.getProxyActor(), httpHeaderTranslator))
                 .thingsRoute(new ThingsRoute(routeBaseProperties, messageConfig, claimMessageConfig))
+                .timeseriesRoute(new TimeseriesRoute(routeBaseProperties))
                 .thingSearchRoute(new ThingSearchRoute(routeBaseProperties))
                 .whoamiRoute(new WhoamiRoute(routeBaseProperties))
                 .checkPermissionsRoute(new CheckPermissionsRoute(routeBaseProperties))

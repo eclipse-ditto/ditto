@@ -247,14 +247,16 @@ public abstract class PersistenceActorTestBase {
 
     protected ActorRef createPersistenceActorWithPubSubFor(final ThingId thingId) {
         return actorSystem.actorOf(getPropsOfThingPersistenceActor(thingId, Mockito.mock(MongoReadJournal.class),
-                thingsConfig.getThingConfig(), getDistributedPub(), null, policyEnforcerProvider));
+                thingsConfig.getThingConfig(), getDistributedPub(), null, policyEnforcerProvider, null));
     }
 
     private Props getPropsOfThingPersistenceActor(final ThingId thingId, final MongoReadJournal mongoReadJournal,
             final ThingConfig thingConfig,
             final DistributedPub<ThingEvent<?>> pub, @Nullable final ActorRef searchShardRegionProxy,
-            final PolicyEnforcerProvider policyEnforcerProvider) {
-        return ThingPersistenceActor.props(thingId, mongoReadJournal, thingConfig, pub, searchShardRegionProxy, policyEnforcerProvider);
+            final PolicyEnforcerProvider policyEnforcerProvider,
+            @Nullable final ActorRef timeseriesIngestPublisher) {
+        return ThingPersistenceActor.props(thingId, mongoReadJournal, thingConfig, pub, searchShardRegionProxy,
+                policyEnforcerProvider, timeseriesIngestPublisher);
     }
 
     protected ActorRef createSupervisorActorFor(final ThingId thingId) {

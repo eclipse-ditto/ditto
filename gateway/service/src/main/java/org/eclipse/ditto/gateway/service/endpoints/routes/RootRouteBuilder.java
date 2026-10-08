@@ -32,6 +32,7 @@ import org.eclipse.ditto.gateway.service.endpoints.routes.stats.StatsRoute;
 import org.eclipse.ditto.gateway.service.endpoints.routes.status.OverallStatusRoute;
 import org.eclipse.ditto.gateway.service.endpoints.routes.things.ThingsRoute;
 import org.eclipse.ditto.gateway.service.endpoints.routes.thingsearch.ThingSearchRoute;
+import org.eclipse.ditto.gateway.service.endpoints.routes.timeseries.TimeseriesRoute;
 import org.eclipse.ditto.gateway.service.endpoints.routes.websocket.WebSocketRouteBuilder;
 import org.eclipse.ditto.gateway.service.endpoints.routes.whoami.WhoamiRoute;
 import org.eclipse.ditto.gateway.service.endpoints.routes.wot.WotDiscoveryThingDirectoryRoute;
@@ -116,6 +117,15 @@ public interface RootRouteBuilder {
      * @return the Builder to allow method chaining.
      */
     RootRouteBuilder thingsRoute(ThingsRoute route);
+
+    /**
+     * Sets the timeseries sub-route. Exposes timeseries reads as a top-level resource alongside
+     * {@code /things} and {@code /policies}.
+     *
+     * @param route the route to set.
+     * @return the Builder to allow method chaining.
+     */
+    RootRouteBuilder timeseriesRoute(TimeseriesRoute route);
 
     /**
      * Sets the thing search sub-route.

@@ -25,6 +25,8 @@ Examples of valid topic paths:
 * `org.eclipse.ditto/fancy-policy-1/policies/commands/create`
 * `org.eclipse.ditto/fancy-policy-1/policies/commands/delete`
 * `org.eclipse.ditto/fancy-policy-1/policies/announcements/subjectDeletion`
+* `org.eclipse.ditto/fancy-car-1/things/twin/timeseries/retrieve`
+* `org.eclipse.ditto/_/things/twin/timeseries/aggregate`
 
 ## Namespace
 
@@ -91,6 +93,21 @@ For each command it processes, Ditto creates a command response indicating succe
 
 **search** requests work only on the twin channel. They contain a query string that searches across all digital twins. Ditto respects [authorization](basic-auth.html) and returns paginated results.
 
+### Timeseries criterion
+
+**timeseries** requests read recorded history of feature properties and work only on the twin channel, because Ditto serves them from its own timeseries store rather than from the device.
+
+Two shapes exist, distinguished by the [action](#timeseries-criterion-actions):
+
+- a **single-thing** read, addressed like any other thing command:
+  `org.eclipse.ditto/fancy-car-1/things/twin/timeseries/retrieve`
+- a **cross-thing** aggregation, which spans every authorized thing of one namespace and therefore
+  names no single entity. The `{entity-name}` segment carries the `_` placeholder instead:
+  `org.eclipse.ditto/_/things/twin/timeseries/aggregate`
+
+Only properties annotated for ingest in the thing's WoT Thing Model are recorded, and reads require
+the `READ_TS` permission. See [Timeseries](basic-timeseries.html).
+
 ### Messages criterion
 
 **messages** are exchanged only via the live channel. They carry custom payloads and can be answered by correlated response messages.
@@ -143,6 +160,15 @@ Search protocol actions:
 * `created`, `next`, `complete`, `failed` -- Ditto-to-client events
 
 See [Search protocol specification](protocol-specification-things-search.html) for details.
+
+### Timeseries criterion actions
+
+Timeseries protocol actions:
+* `retrieve` -- read one thing's recorded history, for one or more property paths
+* `aggregate` -- aggregate across every authorized thing of one namespace, optionally grouped
+
+`aggregate` always requires `step` and an aggregation, so the response size follows the time range
+rather than the number of things in the namespace. See [Timeseries](basic-timeseries.html).
 
 ### Acknowledgement criterion actions
 

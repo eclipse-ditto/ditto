@@ -60,6 +60,9 @@ import org.eclipse.ditto.things.model.signals.events.ThingEvent;
 import org.eclipse.ditto.thingsearch.api.ThingsSearchConstants;
 import org.eclipse.ditto.thingsearch.api.commands.sudo.ThingSearchSudoCommand;
 import org.eclipse.ditto.thingsearch.model.signals.commands.ThingSearchCommand;
+import org.eclipse.ditto.timeseries.api.TimeseriesMessagingConstants;
+import org.eclipse.ditto.timeseries.model.signals.commands.RetrieveAggregatedTimeseries;
+import org.eclipse.ditto.timeseries.model.signals.commands.RetrieveTimeseries;
 
 import com.typesafe.config.Config;
 
@@ -168,6 +171,8 @@ public class EdgeCommandForwarderActor extends AbstractActor {
                         this::forwardToConnectivity
                 )
                 .match(WotValidationConfigCommand.class, this::forwardToWotValidationConfig)
+                .match(RetrieveTimeseries.class, this::forwardToTimeseries)
+                .match(RetrieveAggregatedTimeseries.class, this::forwardToTimeseriesAggregate)
                 .match(Signal.class, this::handleUnknownSignal)
                 .matchAny(m -> log.warning("Got unknown message: {}", m))
                 .build();
@@ -318,6 +323,22 @@ public class EdgeCommandForwarderActor extends AbstractActor {
         pubSubMediator.tell(DistPubSubAccess.send(ThingsSearchConstants.SEARCH_ACTOR_PATH, command), getSender());
     }
 
+    private void forwardToTimeseries(final RetrieveTimeseries command) {
+        // Same per-Thing shard entity serves the write and read paths, so this routes exactly
+        // like forwardToThings.
+        askWithRetryCommandForwarder.forwardCommand(command,
+                shardRegions.timeseries(),
+                getSender());
+    }
+
+
+    private void forwardToTimeseriesAggregate(final RetrieveAggregatedTimeseries command) {
+        // No thingId to shard on, so address the per-node handler by path, as forwardToThingSearch
+        // does. Not "ask with retry": retrying an expensive aggregation multiplies the load.
+        pubSubMediator.tell(
+                DistPubSubAccess.send(TimeseriesMessagingConstants.AGGREGATE_ACTOR_PATH, command),
+                getSender());
+    }
 
     private void handleUnknownSignal(final Signal<?> signal) {
         applySignalTransformation(signal, sender())
