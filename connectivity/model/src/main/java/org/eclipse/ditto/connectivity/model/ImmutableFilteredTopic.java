@@ -91,8 +91,8 @@ final class ImmutableFilteredTopic implements FilteredTopic {
      * @throws NullPointerException if {@code filteredTopicString} is {@code null}.
      * @throws org.eclipse.ditto.things.model.InvalidThingFieldSelectionException when the given
      * {@code filteredTopicString} contained a field selector with invalid fields.
-     * @throws TopicParseException if the topic is unknown or a query parameter other than {@code fn-filter} is given
-     * more than once.
+     * @throws TopicParseException if the topic is unknown, a query parameter other than {@code fn-filter} is given
+     * more than once or a query parameter is not correctly URL-encoded.
      */
     public static ImmutableFilteredTopic fromString(final String filteredTopicString) {
         checkNotNull(filteredTopicString, "filteredTopicString");
@@ -314,14 +314,15 @@ final class ImmutableFilteredTopic implements FilteredTopic {
                 if (2 != queryParamPair.length) {
                     continue;
                 }
-                final String name = urlDecode(queryParamPair[0]);
+                final String rawName = queryParamPair[0];
+                final String name = urlDecode(rawName, rawName);
                 final List<String> values = queryParameters.computeIfAbsent(name, k -> new ArrayList<>(1));
                 if (!values.isEmpty() && !FN_FILTER_ARG.equals(name)) {
                     // only 'fn-filter' is repeatable
                     throw TopicParseException.newBuilder(filteredTopicString,
                             "The query parameter '" + name + "' must not be given more than once").build();
                 }
-                values.add(urlDecode(queryParamPair[1]));
+                values.add(urlDecode(name, queryParamPair[1]));
             }
             return queryParameters;
         }
@@ -332,11 +333,17 @@ final class ImmutableFilteredTopic implements FilteredTopic {
             return null != values ? values.get(0) : null;
         }
 
-        private static String urlDecode(final String value) {
+        private String urlDecode(final String parameterName, final String value) {
             try {
                 return URLDecoder.decode(value, StandardCharsets.UTF_8.name());
             } catch (final UnsupportedEncodingException e) {
                 return URLDecoder.decode(value);
+            } catch (final IllegalArgumentException e) {
+                throw TopicParseException.newBuilder(filteredTopicString,
+                                "The query parameter '" + parameterName + "' is not correctly URL-encoded: " +
+                                        e.getMessage())
+                        .cause(e)
+                        .build();
             }
         }
 

@@ -453,4 +453,41 @@ public final class ImmutableFilteredTopicTest {
         assertThat(actual.toString()).isEqualTo("_/_/things/twin/events?fn-filter=header:x|fn:filter('eq','a+b|c')");
     }
 
+    @Test
+    public void fromStringRejectsFilterValueWithInvalidUrlEncoding() {
+        // a literal '%' that is not followed by two hex digits cannot be URL-decoded
+        assertInvalidUrlEncodingIsRejected("_/_/things/twin/events?filter=like(attributes/a,\"100%\")", "filter");
+    }
+
+    @Test
+    public void fromStringRejectsFnFilterValueWithInvalidUrlEncoding() {
+        assertInvalidUrlEncodingIsRejected("_/_/things/twin/events?fn-filter=fn:filter(header:x,'eq','100%')",
+                "fn-filter");
+    }
+
+    @Test
+    public void fromStringRejectsFilterValueWithIncompleteTrailingEscape() {
+        assertInvalidUrlEncodingIsRejected("_/_/things/twin/events?filter=like(attributes/a,\"100%2", "filter");
+    }
+
+    @Test
+    public void toStringOfDecodedPercentDoesNotParseAgain() {
+        // '%25' is decoded to '%' on the first parse, toString does not re-encode it, so the stored form cannot be
+        // parsed again. This must fail with a TopicParseException and not with a raw IllegalArgumentException.
+        final ImmutableFilteredTopic parsed = ImmutableFilteredTopic.fromString(
+                "_/_/things/twin/events?fn-filter=fn:filter(header:x,'eq','100%25')");
+
+        assertThat(parsed.getFnFilters()).containsExactly("fn:filter(header:x,'eq','100%')");
+        assertInvalidUrlEncodingIsRejected(parsed.toString(), "fn-filter");
+    }
+
+    private static void assertInvalidUrlEncodingIsRejected(final String topicString, final String paramName) {
+        assertThatExceptionOfType(TopicParseException.class)
+                .isThrownBy(() -> ImmutableFilteredTopic.fromString(topicString))
+                .withMessageContaining(topicString)
+                .withCauseInstanceOf(IllegalArgumentException.class)
+                .satisfies(e -> assertThat(e.getDescription()).hasValueSatisfying(description ->
+                        assertThat(description).contains("'" + paramName + "'").contains("not correctly URL-encoded")));
+    }
+
 }
