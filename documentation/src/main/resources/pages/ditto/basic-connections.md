@@ -281,24 +281,32 @@ A target contains:
 
 You define which message types to publish via the `topics` array. You can filter by
 [namespaces](basic-changenotifications.html#filter-by-namespace),
-[RQL expressions](basic-changenotifications.html#filter-by-rql-expression) and
+[RQL expressions](basic-changenotifications.html#filter-by-rql-expression),
+[changes](basic-changenotifications.html#filter-by-change) and
 [placeholder pipelines](#filtering-with-placeholder-functions):
 
-| Topic | Namespace filter | RQL `filter` | `fn-filter` |
-|-------|:---:|:---:|:---:|
-| `_/_/things/twin/events` | &#10004; | &#10004; | &#10004; |
-| `_/_/things/live/messages` | &#10004; | &#10004; | &#10004; |
-| `_/_/things/live/commands` | &#10004; | &#10060; | &#10004; |
-| `_/_/things/live/events` | &#10004; | &#10004; | &#10004; |
-| `_/_/policies/announcements` | &#10004; | &#10060; | &#10060; |
-| `_/_/connections/announcements` | &#10060; | &#10060; | &#10060; |
+| Topic | Namespace filter | RQL `filter` | RQL `change-filter` | `fn-filter` |
+|-------|:---:|:---:|:---:|:---:|
+| `_/_/things/twin/events` | &#10004; | &#10004; | &#10004; | &#10004; |
+| `_/_/things/live/messages` | &#10004; | &#10004; | &#10060; | &#10004; |
+| `_/_/things/live/commands` | &#10004; | &#10060; | &#10060; | &#10004; |
+| `_/_/things/live/events` | &#10004; | &#10004; | &#10004; | &#10004; |
+| `_/_/policies/announcements` | &#10004; | &#10060; | &#10060; | &#10060; |
+| `_/_/connections/announcements` | &#10060; | &#10060; | &#10060; | &#10060; |
 
 Filter parameters use HTTP query parameter syntax (`?` for the first, `&` for subsequent). A topic may carry
-one `filter` parameter holding an [RQL expression](basic-rql.html) and any number of `fn-filter` parameters,
-each holding a placeholder pipeline expression (see
+one `filter` and one `change-filter` parameter, each holding an [RQL expression](basic-rql.html), and any number
+of `fn-filter` parameters, each holding a placeholder pipeline expression (see
 [filtering with placeholder functions](#filtering-with-placeholder-functions) below). The parameter **name**
-tells the two apart -- `filter` is always RQL, `fn-filter` is always a placeholder pipeline. **All** given
-filters must match for a signal to be published (**AND** semantics).
+determines the meaning -- `filter` and `change-filter` are always RQL, `fn-filter` is always a placeholder
+pipeline. **All** given filters must match for a signal to be published (**AND** semantics). They differ in the
+data they see:
+
+| Parameter | Evaluated against |
+|-----------|-------------------|
+| `change-filter` | the Thing data carried by the signal only (*what changed*) |
+| `filter` | the Thing data carried by the signal merged with the enriched `extraFields` (*current state*) |
+| `fn-filter` | the placeholders of the signal, e.g. headers, topic and resource (*signal metadata*) |
 
 Write the filter expressions as shown in the examples: `|`, `'`, `"`, `,`, `(`, `)`, `:`, `*`, `?` and `=` need
 no URL-encoding. Parameter values are URL-decoded every time a topic string is parsed (e.g. `%7C` becomes a
@@ -323,6 +331,7 @@ Example:
   "topics": [
     "_/_/things/twin/events?namespaces=org.eclipse.ditto&filter=gt(attributes/counter,42)",
     "_/_/things/twin/events?extraFields=attributes/placement&filter=gt(attributes/placement,'Kitchen')",
+    "_/_/things/twin/events?extraFields=features/temperature&change-filter=exists(features/temperature)",
     "_/_/things/live/messages?namespaces=org.eclipse.ditto",
     "_/_/things/live/commands?fn-filter=resource:path|fn:filter('like','/attributes/*')"
   ],
@@ -332,7 +341,7 @@ Example:
 
 If a target's `topics` array lists several topic entries, they are evaluated independently and
 combined with **OR** semantics -- a signal is published (once) as soon as it matches *any one* listed
-topic (each with its own `namespaces`, `filter` and `fn-filter` parameters).
+topic (each with its own `namespaces`, `filter`, `change-filter` and `fn-filter` parameters).
 
 ### Filtering with placeholder functions
 

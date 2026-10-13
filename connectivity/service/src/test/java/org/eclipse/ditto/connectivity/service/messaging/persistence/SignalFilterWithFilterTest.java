@@ -34,11 +34,13 @@ import org.eclipse.ditto.connectivity.model.ConnectionId;
 import org.eclipse.ditto.connectivity.model.ConnectionType;
 import org.eclipse.ditto.connectivity.model.ConnectivityModelFactory;
 import org.eclipse.ditto.connectivity.model.ConnectivityStatus;
+import org.eclipse.ditto.connectivity.model.FilteredTopic;
 import org.eclipse.ditto.connectivity.model.HeaderMapping;
 import org.eclipse.ditto.connectivity.model.Target;
 import org.eclipse.ditto.connectivity.service.messaging.TestConstants;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.ConnectionMonitor;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.ConnectionMonitorRegistry;
+import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.messages.model.Message;
@@ -46,9 +48,14 @@ import org.eclipse.ditto.messages.model.MessageDirection;
 import org.eclipse.ditto.messages.model.MessageHeaders;
 import org.eclipse.ditto.messages.model.signals.commands.SendThingMessage;
 import org.eclipse.ditto.protocol.TopicPath;
+import org.eclipse.ditto.things.model.FeatureDefinition;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingFieldSelector;
 import org.eclipse.ditto.things.model.ThingId;
+import org.eclipse.ditto.things.model.signals.events.FeatureDefinitionCreated;
+import org.eclipse.ditto.things.model.signals.events.FeatureDeleted;
+import org.eclipse.ditto.things.model.signals.events.FeaturePropertyModified;
+import org.eclipse.ditto.things.model.signals.events.ThingMerged;
 import org.eclipse.ditto.things.model.signals.events.ThingModified;
 import org.junit.Test;
 import org.mockito.Mockito;
@@ -1013,5 +1020,128 @@ public final class SignalFilterWithFilterTest {
         assertThat(signalFilter.filter(thingModified)).isEmpty();
         Mockito.verify(filteredMonitor).failure(Mockito.eq(thingModified), Mockito.anyString(),
                 Mockito.eq(fnFilter), Mockito.anyString());
+    }
+
+    // ===== change-filter =====
+
+    @Test
+    public void applySignalFilterWithChangeFilterIgnoresExtraFields() {
+        final ThingFieldSelector extraFields = ThingFieldSelector.fromString("features/specificFeature");
+        final Target changeFilterTarget = newTwinEventsTarget("twin/change",
+                ConnectivityModelFactory.newFilteredTopicBuilder(TWIN_EVENTS)
+                        .withChangeFilter("exists(features/specificFeature)")
+                        .withExtraFields(extraFields)
+                        .build());
+        final Target filterTarget = newTwinEventsTarget("twin/filter",
+                ConnectivityModelFactory.newFilteredTopicBuilder(TWIN_EVENTS)
+                        .withFilter("exists(features/specificFeature)")
+                        .withExtraFields(extraFields)
+                        .build());
+        final SignalFilter signalFilter =
+                new SignalFilter(newConnection(changeFilterTarget, filterTarget), connectionMonitorRegistry);
+
+        // the RQL filter cannot rule the event out before enrichment as its only term is covered by extraFields
+        assertThat(signalFilter.filter(featurePropertyModified("otherFeature"))).containsOnly(filterTarget);
+        assertThat(signalFilter.filter(featurePropertyModified("specificFeature")))
+                .containsOnly(changeFilterTarget, filterTarget);
+    }
+
+    @Test
+    public void applySignalFilterWithChangeFilterOnThingMergedAtRoot() {
+        final Target target = newTwinEventsTarget("twin/change",
+                ConnectivityModelFactory.newFilteredTopicBuilder(TWIN_EVENTS)
+                        .withChangeFilter("exists(features/specificFeature)")
+                        .withExtraFields(ThingFieldSelector.fromString("features/specificFeature"))
+                        .build());
+        final SignalFilter signalFilter = new SignalFilter(newConnection(target), connectionMonitorRegistry);
+
+        assertThat(signalFilter.filter(thingMergedAtRoot("specificFeature"))).containsOnly(target);
+        assertThat(signalFilter.filter(thingMergedAtRoot("otherFeature"))).isEmpty();
+    }
+
+    @Test
+    public void applySignalFilterWithChangeFilterAndFilterRequiresBoth() {
+        final Target target = newTwinEventsTarget("twin/both",
+                ConnectivityModelFactory.newFilteredTopicBuilder(TWIN_EVENTS)
+                        .withChangeFilter("exists(features/specificFeature)")
+                        .withFilter("eq(attributes/location,'Kitchen')")
+                        .withExtraFields(ThingFieldSelector.fromString("attributes/location"))
+                        .build());
+        final SignalFilter signalFilter = new SignalFilter(newConnection(target), connectionMonitorRegistry);
+
+        // the filter on the enriched attribute is decided after enrichment
+        assertThat(signalFilter.filter(featurePropertyModified("specificFeature"))).containsOnly(target);
+        assertThat(signalFilter.filter(featurePropertyModified("otherFeature"))).isEmpty();
+    }
+
+    @Test
+    public void applySignalFilterWithChangeFilterOnDeletion() {
+        final Target existsTarget = newTwinEventsTarget("twin/exists",
+                ConnectivityModelFactory.newFilteredTopicBuilder(TWIN_EVENTS)
+                        .withChangeFilter("exists(features/specificFeature)")
+                        .build());
+        final Target deletionAwareTarget = newTwinEventsTarget("twin/deletion-aware",
+                ConnectivityModelFactory.newFilteredTopicBuilder(TWIN_EVENTS)
+                        .withChangeFilter("or(exists(features/specificFeature),and(eq(topic:action,'deleted')," +
+                                "like(resource:path,'/features/specificFeature*')))")
+                        .build());
+        final SignalFilter signalFilter =
+                new SignalFilter(newConnection(existsTarget, deletionAwareTarget), connectionMonitorRegistry);
+
+        assertThat(signalFilter.filter(FeatureDeleted.of(THING_ID, "specificFeature", 3L, Instant.now(),
+                authorizedHeaders(), null))).containsOnly(deletionAwareTarget);
+        assertThat(signalFilter.filter(FeatureDeleted.of(THING_ID, "otherFeature", 3L, Instant.now(),
+                authorizedHeaders(), null))).isEmpty();
+    }
+
+    @Test
+    public void applySignalFilterWithChangeFilterOnEventWithoutConvertibleThingData() {
+        // a feature definition event is not converted into a thing, so only placeholder terms can match
+        final Target placeholderTarget = newTwinEventsTarget("twin/placeholder",
+                ConnectivityModelFactory.newFilteredTopicBuilder(TWIN_EVENTS)
+                        .withChangeFilter("like(resource:path,'/features/specificFeature*')")
+                        .build());
+        final Target existsTarget = newTwinEventsTarget("twin/exists",
+                ConnectivityModelFactory.newFilteredTopicBuilder(TWIN_EVENTS)
+                        .withChangeFilter("exists(features/specificFeature)")
+                        .build());
+        final SignalFilter signalFilter =
+                new SignalFilter(newConnection(placeholderTarget, existsTarget), connectionMonitorRegistry);
+
+        assertThat(signalFilter.filter(FeatureDefinitionCreated.of(THING_ID, "specificFeature",
+                FeatureDefinition.fromIdentifier("org.acme:temp:1.0.0"), 3L, Instant.now(), authorizedHeaders(),
+                null))).containsOnly(placeholderTarget);
+    }
+
+    private static Target newTwinEventsTarget(final String address, final FilteredTopic topic) {
+        return ConnectivityModelFactory.newTargetBuilder()
+                .address(address)
+                .authorizationContext(newAuthContext(DittoAuthorizationContextType.UNSPECIFIED, AUTHORIZED))
+                .headerMapping(HEADER_MAPPING)
+                .topics(topic)
+                .build();
+    }
+
+    private static Connection newConnection(final Target... targets) {
+        return ConnectivityModelFactory
+                .newConnectionBuilder(CONNECTION_ID, ConnectionType.AMQP_10, ConnectivityStatus.OPEN, URI)
+                .targets(List.of(targets))
+                .build();
+    }
+
+    private static DittoHeaders authorizedHeaders() {
+        return DittoHeaders.newBuilder().readGrantedSubjects(Collections.singletonList(AUTHORIZED)).build();
+    }
+
+    private static FeaturePropertyModified featurePropertyModified(final String featureId) {
+        return FeaturePropertyModified.of(THING_ID, featureId, JsonPointer.of("value"), JsonValue.of(42), 3L,
+                Instant.now(), authorizedHeaders(), null);
+    }
+
+    private static ThingMerged thingMergedAtRoot(final String featureId) {
+        final JsonObject patch = JsonObject.newBuilder()
+                .set(JsonPointer.of("features/" + featureId + "/properties/value"), JsonValue.of(42))
+                .build();
+        return ThingMerged.of(THING_ID, JsonPointer.empty(), patch, 3L, Instant.now(), authorizedHeaders(), null);
     }
 }

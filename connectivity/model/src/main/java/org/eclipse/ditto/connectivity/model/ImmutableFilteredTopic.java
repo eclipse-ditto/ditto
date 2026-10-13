@@ -46,6 +46,7 @@ final class ImmutableFilteredTopic implements FilteredTopic {
     private static final String QUERY_ARG_VALUE_DELIMITER = "=";
 
     private static final String FILTER_ARG = "filter";
+    private static final String CHANGE_FILTER_ARG = "change-filter";
     private static final String FN_FILTER_ARG = "fn-filter";
     private static final String NAMESPACES_ARG = "namespaces";
     private static final String EXTRA_FIELDS_ARG = "extraFields";
@@ -54,6 +55,7 @@ final class ImmutableFilteredTopic implements FilteredTopic {
     private final Topic topic;
     private final List<String> namespaces;
     @Nullable private final String filter;
+    @Nullable private final String changeFilter;
     private final List<String> fnFilters;
     @Nullable private final ThingFieldSelector extraFields;
 
@@ -64,6 +66,7 @@ final class ImmutableFilteredTopic implements FilteredTopic {
                 ? Collections.unmodifiableList(new ArrayList<>(namespacesFromBuilder))
                 : Collections.emptyList();
         filter = Objects.toString(builder.filter, null);
+        changeFilter = Objects.toString(builder.changeFilter, null);
         final Collection<? extends CharSequence> fnFiltersFromBuilder = builder.fnFilters;
         fnFilters = null != fnFiltersFromBuilder
                 ? Collections.unmodifiableList(
@@ -116,6 +119,11 @@ final class ImmutableFilteredTopic implements FilteredTopic {
     }
 
     @Override
+    public Optional<String> getChangeFilter() {
+        return Optional.ofNullable(changeFilter);
+    }
+
+    @Override
     public List<String> getFnFilters() {
         return fnFilters;
     }
@@ -149,6 +157,7 @@ final class ImmutableFilteredTopic implements FilteredTopic {
         return join(QUERY_ARG_DELIMITER,
                 getQueryParameterString(NAMESPACES_ARG, String.join(",", namespaces)),
                 getQueryParameterString(FILTER_ARG, filter),
+                getQueryParameterString(CHANGE_FILTER_ARG, changeFilter),
                 // one 'fn-filter' query parameter per expression
                 join(QUERY_ARG_DELIMITER, fnFilters.stream()
                         .map(fnFilter -> getQueryParameterString(FN_FILTER_ARG, fnFilter))
@@ -190,13 +199,14 @@ final class ImmutableFilteredTopic implements FilteredTopic {
         return topic == that.topic &&
                 namespaces.equals(that.namespaces) &&
                 Objects.equals(filter, that.filter) &&
+                Objects.equals(changeFilter, that.changeFilter) &&
                 Objects.equals(fnFilters, that.fnFilters) &&
                 Objects.equals(extraFields, that.extraFields);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(topic, namespaces, filter, fnFilters, extraFields);
+        return Objects.hash(topic, namespaces, filter, changeFilter, fnFilters, extraFields);
     }
 
     /**
@@ -208,6 +218,7 @@ final class ImmutableFilteredTopic implements FilteredTopic {
         private final Topic topic;
         @Nullable private Collection<String> namespaces;
         @Nullable private CharSequence filter;
+        @Nullable private CharSequence changeFilter;
         @Nullable private Collection<? extends CharSequence> fnFilters;
         @Nullable private ThingFieldSelector extraFields;
 
@@ -215,6 +226,7 @@ final class ImmutableFilteredTopic implements FilteredTopic {
             this.topic = checkNotNull(topic, "topic");
             namespaces = null;
             filter = null;
+            changeFilter = null;
             fnFilters = null;
             extraFields = null;
         }
@@ -231,6 +243,14 @@ final class ImmutableFilteredTopic implements FilteredTopic {
         public ImmutableFilteredTopicBuilder withFilter(@Nullable final CharSequence filter) {
             if (supportsFilters()) {
                 this.filter = filter;
+            }
+            return this;
+        }
+
+        @Override
+        public ImmutableFilteredTopicBuilder withChangeFilter(@Nullable final CharSequence changeFilter) {
+            if (supportsFilters()) {
+                this.changeFilter = changeFilter;
             }
             return this;
         }
@@ -293,6 +313,7 @@ final class ImmutableFilteredTopic implements FilteredTopic {
             return getBuilder(parseTopic(topicName))
                     .withNamespaces(parseNamespaces(getSingleValue(queryParameters, NAMESPACES_ARG)))
                     .withFilter(getSingleValue(queryParameters, FILTER_ARG))
+                    .withChangeFilter(getSingleValue(queryParameters, CHANGE_FILTER_ARG))
                     .withFnFilters(queryParameters.get(FN_FILTER_ARG))
                     .withExtraFields(parseExtraFields(getSingleValue(queryParameters, EXTRA_FIELDS_ARG)))
                     .build();

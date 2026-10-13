@@ -753,7 +753,7 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
         return dittoHeaders.isResponseRequired();
     }
 
-    private Function<SessionedJsonifiable, CompletionStage<Collection<String>>> postprocess(
+    Function<SessionedJsonifiable, CompletionStage<Collection<String>>> postprocess(
             final ProtocolAdapter adapter, @Nullable final SignalEnrichmentFacade facade,
             final ThreadSafeDittoLogger logger) {
 
@@ -769,6 +769,12 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
                     .map(session -> sessionedJsonifiable.getSessionAuthorizationContext()
                             .orElse(sessionedJsonifiable.getDittoHeaders().getAuthorizationContext()))
                     .orElse(null);
+
+            if (!matchesChangeFilter(sessionedJsonifiable)) {
+                issuePotentialWeakAcknowledgements(sessionedJsonifiable);
+                sessionedJsonifiable.finishSpan();
+                return CompletableFuture.completedFuture(Collections.emptyList());
+            }
 
             final Adaptable adaptable = jsonifiableToAdaptable(jsonifiable, adapter, subscriberAuthContext);
 
@@ -893,6 +899,14 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
                     final Signal<?> signal = (Signal<?>) jsonifiable;
                     return session.matchesFilter(session.mergeThingWithExtra(signal, extra), signal);
                 })
+                .orElse(true);
+    }
+
+    private static boolean matchesChangeFilter(final SessionedJsonifiable sessionedJsonifiable) {
+        final Jsonifiable.WithPredicate<JsonObject, JsonField> jsonifiable = sessionedJsonifiable.getJsonifiable();
+        return sessionedJsonifiable.getSession()
+                .filter(session -> jsonifiable instanceof Signal)
+                .map(session -> session.matchesChangeFilter((Signal<?>) jsonifiable))
                 .orElse(true);
     }
 

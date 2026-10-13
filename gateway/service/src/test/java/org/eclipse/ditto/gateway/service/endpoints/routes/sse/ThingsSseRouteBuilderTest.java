@@ -47,6 +47,7 @@ import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.base.model.auth.AuthorizationContext;
 import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
+import org.eclipse.ditto.base.model.signals.commands.streaming.SubscribeForPersistedEvents;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThing;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThingResponse;
@@ -336,6 +337,52 @@ public final class ThingsSseRouteBuilderTest extends EndpointTestBase {
     }
 
     @Test
+    public void getWithAcceptHeaderAndChangeFilterParameterOpensSseConnection() {
+        final String changeFilter = "exists(features/location)";
+        final ThingFieldSelector extraFields = ThingFieldSelector.fromString("features/location");
+
+        final String requestUrl = THINGS_ROUTE + "?change-filter=" + changeFilter + "&extraFields=" + extraFields;
+
+        executeThingsRouteTest(HttpRequest.GET(requestUrl).addHeader(acceptHeader),
+                StartStreaming.getBuilder(StreamingType.EVENTS, connectionCorrelationId,
+                                AuthorizationModelFactory.newAuthContext(DittoAuthorizationContextType.UNSPECIFIED,
+                                        Collections.emptySet()))
+                        .withChangeFilter(changeFilter)
+                        .withExtraFields(extraFields)
+                        .build());
+    }
+
+    @Test
+    public void historicalStreamAndCombinesFilterAndChangeFilter() {
+        assertHistoricalFilter(
+                "?from-historical-revision=1&filter=exists(attributes/a)&change-filter=exists(features/f)",
+                "and(exists(attributes/a),exists(features/f))");
+    }
+
+    @Test
+    public void historicalStreamWithChangeFilterOnlyUsesIt() {
+        assertHistoricalFilter("?from-historical-revision=1&change-filter=exists(features/f)", "exists(features/f)");
+    }
+
+    private void assertHistoricalFilter(final String query, final String expectedFilter) {
+        new TestKit(actorSystem) {{
+            final TestRouteResult routeResult =
+                    underTest.run(HttpRequest.GET(THINGS_ROUTE + "/org.eclipse.ditto:my-thing-1" + query)
+                            .addHeader(acceptHeader));
+            final CompletableFuture<Void> routeTestAssertions = CompletableFuture.runAsync(
+                    () -> routeResult.assertStatusCode(StatusCodes.OK), ASYNC_TEST_EXECUTOR);
+
+            streamingActor.expectMsgClass(Connect.class);
+            streamingActor.reply(streamingActor.ref());
+
+            final SubscribeForPersistedEvents subscribe =
+                    streamingActor.expectMsgClass(SubscribeForPersistedEvents.class);
+            assertThat(subscribe.getFilter()).contains(expectedFilter);
+            routeTestAssertions.cancel(true);
+        }};
+    }
+
+    @Test
     public void filterJsonByPartialAccessPathsFiltersCorrectlyForPartialReader() throws Exception {
         final Thing thing = Thing.newBuilder()
                 .setId(ThingId.of("test:thing"))
@@ -575,6 +622,8 @@ public final class ThingsSseRouteBuilderTest extends EndpointTestBase {
                     .isEqualTo(expectedStartStreaming.getExtraFields());
             assertThat(receivedStartStreaming.getFilter())
                     .isEqualTo(expectedStartStreaming.getFilter());
+            assertThat(receivedStartStreaming.getChangeFilter())
+                    .isEqualTo(expectedStartStreaming.getChangeFilter());
             assertThat(receivedStartStreaming.getNamespaces())
                     .isEqualTo(expectedStartStreaming.getNamespaces());
             assertThat(receivedStartStreaming.getStreamingType())

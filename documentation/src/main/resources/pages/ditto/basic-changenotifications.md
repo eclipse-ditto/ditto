@@ -55,7 +55,8 @@ For more granular control, use an [RQL expression](basic-rql.html) to filter bas
     * `resource:path` -- filter by the affected [resource path](protocol-specification.html#path)
 
 {% include note.html content="The RQL filter applies to the *modified* data by default. Unchanged data is only
-considered when it has been [enriched via extraFields](basic-enrichment.html)." %}
+considered when it has been [enriched via extraFields](basic-enrichment.html). Use the
+[change filter](#filter-by-change) to filter on the modified data regardless of `extraFields`." %}
 
 ### Examples
 
@@ -85,6 +86,35 @@ filter=and(in(topic:action,'created','deleted'),eq(resource:path,'/'))
 ```
 
 See the full [RQL expression reference](basic-rql.html) for the complete query language.
+
+### Filter by change
+
+As soon as a path is selected via [`extraFields`](basic-enrichment.html), a `filter` term on that path no longer
+tells whether it was *changed*, only whether it *exists in the current Thing*. The `change-filter` parameter
+holds a second RQL expression which is always evaluated against the modified data only -- the Thing data carried
+by the event itself -- and never sees enriched fields. Both may be given and must match (AND).
+
+For example, only receive events which actually modified the "temperature" feature, while the Thing is located
+in the kitchen, and get the complete feature with each event:
+
+```text
+change-filter=exists(features/temperature)&filter=eq(attributes/location,"Kitchen")&extraFields=features/temperature,attributes/location
+```
+
+With `filter=exists(features/temperature)` instead, every event of a Thing which has a "temperature" feature
+would be delivered, because the enriched feature always exists.
+
+`change-filter` is supported for twin events by the WebSocket API, SSE and connection target topics, and for
+live events by the WebSocket API and connection target topics. It resolves the same placeholders as `filter`. Without `extraFields` it behaves like `filter`. It is rejected
+for messages and live commands, which carry no Thing data -- use `filter` there.
+Events of `PATCH` requests (`merged`) are matched by the merged payload, so
+`change-filter=exists(features/temperature)` also works where `resource:path` is just `/`.
+
+{% include note.html content="A deletion carries no Thing data: a `deleted` event (e.g. of a feature or a property)
+is not visible to data terms such as `exists(...)`, and a property set to `null` by a merge is not visible on its own
+path (`exists(features/temperature/properties/value)`), only its parent objects are. Changes of a feature's
+definition carry no Thing data either. To also be notified about those, add a placeholder term, e.g.
+`change-filter=or(exists(features/temperature),and(eq(topic:action,'deleted'),like(resource:path,'/features/temperature*')))`." %}
 
 ### Filter by placeholder pipeline (connections only)
 
