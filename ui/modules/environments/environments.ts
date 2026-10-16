@@ -19,6 +19,7 @@ import * as Utils from '../utils.js';
 import * as Authorization from './authorization.js';
 import { fillDevopsUsernamePassword, fillMainUsernamePassword } from './authorization.js';
 import environmentsHTML from './environments.html';
+import { fetchEnvironments, loadUiConfig } from './environmentsUrl.js';
 import defaultTemplates from './environmentTemplates.json';
 
 const OIDC_CALLBACK_STATE = 'state';
@@ -413,11 +414,9 @@ async function loadEnvironmentTemplates() {
   let environmentsURL = urlSearchParams.get(URL_ENVIRONMENTS);
   if (environmentsURL) {
     try {
-      let response = await fetch(environmentsURL);
-      if (!response.ok) {
-        throw new Error(`URL ${environmentsURL} can not be loaded`);
-      }
-      fromURL = await response.json();
+      const uiConfig = await loadUiConfig();
+      fromURL = await fetchEnvironments(environmentsURL, window.location.href,
+          uiConfig.environmentsURL.allowedOrigins);
       validateEnvironments(fromURL);
     } catch (err) {
       fromURL = null;

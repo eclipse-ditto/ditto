@@ -138,7 +138,7 @@ jobs:
         # exceed the repo.eclipse.org upload size limit). Build them here from the tagged
         # sources so the Docker image build can consume them from the local context.
         run: |
-          mvn clean install -T4 --batch-mode --errors -DskipTests -Dmaven.javadoc.skip=true \
+          mvn clean install -T4 --batch-mode --errors -DskipTests -DskipITs -Dmaven.javadoc.skip=true \
             -Drevision=$IMAGE_TAG \
             -pl policies/service,things/service,gateway/service,connectivity/service,thingsearch/service -am
       -

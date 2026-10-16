@@ -77,7 +77,7 @@ jobs:
         # sources so the Docker image build can consume them from the local context.
         # The version stays at the master 'revision' default: 0-SNAPSHOT.
         run: |
-          mvn clean install -T4 --batch-mode --errors -DskipTests -Dmaven.javadoc.skip=true \
+          mvn clean install -T4 --batch-mode --errors -DskipTests -DskipITs -Dmaven.javadoc.skip=true \
             -pl policies/service,things/service,gateway/service,connectivity/service,thingsearch/service -am
       -
         name: Stage allinone jars for the Docker build context

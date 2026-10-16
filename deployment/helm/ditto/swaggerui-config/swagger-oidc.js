@@ -19,6 +19,88 @@
     const OIDC_DISCOVERY_PLACEHOLDER = "__OIDC_DISCOVERY_URL__";
     const DITTO_UI_STORAGE_KEY = "ditto-ui-env";
 
+    // Restricts where environments may be loaded from - they contain the OIDC provider configuration, so loading them
+    // from an arbitrary URL would let a crafted link hijack the user's login.
+    // Same rules as the Ditto UI (ui/modules/environments/environmentsUrl.ts) - keep both in sync.
+    const UI_CONFIG_PATH = "ui-config.json";
+    const ANY_ORIGIN = "*";
+    const BLOCKED_PATH_SEGMENTS = ["api", "ws"];
+
+    async function loadAllowedOrigins() {
+        try {
+            const response = await fetch(UI_CONFIG_PATH, { mode: "same-origin", cache: "no-cache" });
+            if (!response.ok) {
+                return [];
+            }
+            const json = await response.json();
+            const allowedOrigins = json && json.environmentsURL && json.environmentsURL.allowedOrigins;
+            if (allowedOrigins === undefined) {
+                return [];
+            }
+            if (!Array.isArray(allowedOrigins) || !allowedOrigins.every((o) => typeof o === "string")) {
+                throw new Error("\"environmentsURL.allowedOrigins\" must be an array of strings");
+            }
+            return allowedOrigins;
+        } catch (e) {
+            console.warn("SwaggerOidc: Invalid or unavailable UI configuration in", UI_CONFIG_PATH, "- using defaults", e);
+            return [];
+        }
+    }
+
+    function normalizeOrigin(origin) {
+        try {
+            return new URL(origin).origin;
+        } catch (e) {
+            console.warn("SwaggerOidc: Ignoring invalid origin in \"environmentsURL.allowedOrigins\":", origin);
+            return null;
+        }
+    }
+
+    function containsBlockedPathSegment(pathname) {
+        let decoded;
+        try {
+            decoded = decodeURIComponent(pathname);
+        } catch (e) {
+            return true;
+        }
+        return decoded.toLowerCase()
+            .split(/[/\\]+/)
+            .some((segment) => BLOCKED_PATH_SEGMENTS.includes(segment));
+    }
+
+    function resolveEnvironmentsUrl(rawUrl, pageUrl, allowedOrigins) {
+        let url;
+        try {
+            url = new URL(rawUrl, pageUrl);
+        } catch (e) {
+            throw new Error(`Environments URL "${rawUrl}" is not a valid URL`);
+        }
+        if (url.protocol !== "https:" && url.protocol !== "http:") {
+            throw new Error(`Environments URL "${rawUrl}" must use http or https`);
+        }
+        const ownOrigin = new URL(pageUrl).origin;
+        const originAllowed = url.origin === ownOrigin || (allowedOrigins || []).some((allowed) =>
+            allowed === ANY_ORIGIN || normalizeOrigin(allowed) === url.origin);
+        if (!originAllowed) {
+            throw new Error(`Loading environments from origin "${url.origin}" is not allowed`);
+        }
+        if (containsBlockedPathSegment(url.pathname)) {
+            throw new Error(`Loading environments from path "${url.pathname}" is not allowed`);
+        }
+        return url;
+    }
+
+    async function fetchEnvironments(rawUrl, pageUrl, allowedOrigins, signal) {
+        const url = resolveEnvironmentsUrl(rawUrl, pageUrl, allowedOrigins);
+        const sameOrigin = url.origin === new URL(pageUrl).origin;
+        // 'same-origin' mode additionally rejects redirects to other origins
+        const response = await fetch(url.href, { signal: signal, mode: sameOrigin ? "same-origin" : "cors" });
+        if (response.redirected) {
+            resolveEnvironmentsUrl(response.url, pageUrl, allowedOrigins);
+        }
+        return response;
+    }
+
     function scopesToObject(scopes) {
         if (Array.isArray(scopes)) {
             return scopes.reduce((acc, scope) => {
@@ -119,7 +201,9 @@
             const controller = new AbortController();
             const timeoutId = setTimeout(() => controller.abort(), 5000);
             try {
-                const response = await fetch(environmentsURL, { signal: controller.signal });
+                const allowedOrigins = await loadAllowedOrigins();
+                const response = await fetchEnvironments(environmentsURL, global.location.href, allowedOrigins,
+                    controller.signal);
                 clearTimeout(timeoutId);
                 if (response.ok) {
                     const contentType = response.headers.get("content-type") || "";
@@ -259,6 +343,7 @@
     }
 
     global.SwaggerOidc = {
-        initSwaggerUiWithOidc
+        initSwaggerUiWithOidc,
+        resolveEnvironmentsUrl
     };
 })(window);

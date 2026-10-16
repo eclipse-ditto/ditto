@@ -217,6 +217,10 @@ services:
         limits:
           memory: 32m
     restart: always
+    # optionally provide a "ui-config.json" to allow loading environments via "environmentsURL" from other origins,
+    # e.g. {"environmentsURL": {"allowedOrigins": ["https://config.example.com"]}} - see Ditto UI documentation
+    # volumes:
+    #   - ./ui-config.json:/usr/share/nginx/html/ui-config.json:ro
     logging:
       options:
         max-size: 10m
@@ -235,6 +239,8 @@ services:
        - ../../documentation/src/main/resources/images:/usr/share/nginx/html/images:ro
        - ./swagger3-index.html:/usr/share/nginx/html/index.html:ro
        - ../helm/ditto/swaggerui-config/swagger-oidc.js:/usr/share/nginx/html/swagger-oidc.js:ro
+       # optionally provide the same "ui-config.json" as for the Ditto UI:
+       # - ./ui-config.json:/usr/share/nginx/html/ui-config.json:ro
     command: nginx -g 'daemon off;'  
     logging:
       options:
