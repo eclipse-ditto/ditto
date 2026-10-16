@@ -301,20 +301,10 @@ tells the two apart -- `filter` is always RQL, `fn-filter` is always a placehold
 filters must match for a signal to be published (**AND** semantics).
 
 Write the filter expressions as shown in the examples: `|`, `'`, `"`, `,`, `(`, `)`, `:`, `*`, `?` and `=` need
-no URL-encoding. Parameter values are URL-decoded every time a topic string is parsed (e.g. `%7C` becomes a
-literal `|`), but they are **not** re-encoded when the connection is stored, so a stored topic is decoded once
-more whenever the connection is loaded again. Three characters can therefore not be used at all in the filter
-values of a connection target topic -- neither in an RQL value or `like` pattern nor in the compared value of
-an `fn-filter`:
-
-* `&` -- a raw `&` ends the parameter. `%26` is decoded to `&` on the first parse, so the connection is
-  accepted, but that `&` cuts the expression off when the stored topic is parsed again; an `fn-filter`
-  truncated that way suppresses every signal. (For WebSocket and SSE filters, which are not stored, `%26`
-  works.)
-* `+` -- is decoded to a space. `%2B` is decoded to `+` on the first parse and to a space on the next one.
-* `%` -- `%25` is decoded to `%` on the first parse. When the stored topic is parsed again, that `%` is either
-  rejected as not correctly URL-encoded (a `connectivity:topic.invalid` error) or is silently decoded together
-  with the two characters following it.
+no URL-encoding. Parameter values are URL-decoded when a topic string is parsed (e.g. `%7C` becomes a literal
+`|`). Three characters have to be encoded when they are part of a filter value: `&` as `%26` (a raw `&` ends the
+parameter), `+` as `%2B` (a raw `+` is decoded to a space) and `%` as `%25` (a raw `%` starts an escape sequence).
+They are stored in this encoded form, so the filter stays the same when the connection is loaded again.
 
 Example:
 

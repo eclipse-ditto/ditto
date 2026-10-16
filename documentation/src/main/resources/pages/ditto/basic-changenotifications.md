@@ -31,9 +31,8 @@ support filtering by placeholder pipeline.
 
 {% include note.html content="All filters are specified in URL query format, so their values should be URL-encoded.
 The equal sign (=) and ampersand (&) must be encoded in any RQL filter. The target topics of
-[connections](basic-connections.html#target-topics-and-filtering) are an exception: there the decoded value is
-what gets stored, so write the filter expressions unencoded -- `&`, `+` and `%` cannot be used in filter values
-of a target topic at all, an encoded `&` (`%26`) does not survive the stored form." %}
+[connections](basic-connections.html#target-topics-and-filtering) are an exception: there only `&`, `+` and `%`
+have to be encoded." %}
 
 ### Filter by namespace
 
@@ -71,8 +70,7 @@ Only emit events for Things starting with "myThing" when the "lamp" feature chan
 filter=and(like(thingId,"org.eclipse.ditto:myThing*"),exists(features/lamp))
 ```
 
-Only emit events when `manufacturer` starts with "ACME & Sons" (note the encoded `&`; not usable in a
-connection target topic, see the note above):
+Only emit events when `manufacturer` starts with "ACME & Sons" (note the encoded `&`):
 
 ```text
 filter=like(attributes/manufacturer,"ACME %26 Sons*")

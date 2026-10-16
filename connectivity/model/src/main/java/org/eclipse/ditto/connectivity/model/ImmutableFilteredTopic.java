@@ -14,7 +14,6 @@ package org.eclipse.ditto.connectivity.model;
 
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
-import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -160,10 +159,22 @@ final class ImmutableFilteredTopic implements FilteredTopic {
         if (null != parameterValue) {
             final String parameterValueAsString = parameterValue.toString();
             if (!parameterValueAsString.isEmpty()) {
-                return parameterName + QUERY_ARG_VALUE_DELIMITER + parameterValueAsString;
+                return parameterName + QUERY_ARG_VALUE_DELIMITER + encodeReservedCharacters(parameterValueAsString);
             }
         }
         return "";
+    }
+
+    /**
+     * Encodes the characters which would not survive URL-decoding when the string is parsed again: '%' starts an
+     * escape sequence, '&' separates query parameters and '+' is decoded to a space. All other characters are kept
+     * as they are, so that filter expressions stay readable.
+     */
+    private static String encodeReservedCharacters(final String value) {
+        // '%' must be encoded first, otherwise the escapes of '&' and '+' would be encoded again
+        return value.replace("%", "%25")
+                .replace("&", "%26")
+                .replace("+", "%2B");
     }
 
     private static String join(final String delimiter, final String... elements) {
@@ -335,13 +346,11 @@ final class ImmutableFilteredTopic implements FilteredTopic {
 
         private String urlDecode(final String parameterName, final String value) {
             try {
-                return URLDecoder.decode(value, StandardCharsets.UTF_8.name());
-            } catch (final UnsupportedEncodingException e) {
-                return URLDecoder.decode(value);
+                return URLDecoder.decode(value, StandardCharsets.UTF_8);
             } catch (final IllegalArgumentException e) {
                 throw TopicParseException.newBuilder(filteredTopicString,
-                                "The query parameter '" + parameterName + "' is not correctly URL-encoded: " +
-                                        e.getMessage())
+                                "The query parameter '" + parameterName +
+                                        "' contains a '%' which is not followed by two hex digits")
                         .cause(e)
                         .build();
             }
