@@ -20,7 +20,9 @@ import java.util.concurrent.CompletionStage;
 import org.eclipse.ditto.base.model.entity.id.EntityId;
 import org.eclipse.ditto.base.model.entity.id.WithEntityId;
 import org.eclipse.ditto.base.model.exceptions.DittoInternalErrorException;
+import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
+import org.eclipse.ditto.base.model.signals.FeatureToggle;
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.model.signals.UnsupportedSignalException;
 import org.eclipse.ditto.base.model.signals.commands.Command;
@@ -224,7 +226,13 @@ final class LiveSignalEnforcement
         } else {
             LOGGER.withCorrelationId(liveSignal)
                     .info("Live Event was NOT authorized: <{}>", liveSignal);
-            throw EventSendNotAllowedException.newBuilder(((ThingEvent<?>) liveSignal).getEntityId())
+            final ThingId thingId = ((ThingEvent<?>) liveSignal).getEntityId();
+            if (ThingCommandEnforcement.isThingExistenceToBeHidden(policyEnforcer.getEnforcer(),
+                    liveSignal.getDittoHeaders().getAuthorizationContext(),
+                    FeatureToggle.isHideInaccessibleEntityExistenceEnabled())) {
+                throw ThingCommandEnforcement.thingNotAccessible(thingId, liveSignal.getDittoHeaders());
+            }
+            throw EventSendNotAllowedException.newBuilder(thingId)
                     .dittoHeaders(liveSignal.getDittoHeaders())
                     .build();
         }
@@ -234,7 +242,7 @@ final class LiveSignalEnforcement
         if (isAuthorized(command, enforcer)) {
             return publishMessageCommand(command, enforcer);
         } else {
-            throw rejectMessageCommand(command);
+            throw rejectMessageCommand(command, enforcer);
         }
     }
 
@@ -250,11 +258,17 @@ final class LiveSignalEnforcement
         return command.setDittoHeaders(headersWithReadSubjects);
     }
 
-    private MessageSendNotAllowedException rejectMessageCommand(final MessageCommand<?, ?> command) {
-        final MessageSendNotAllowedException error =
-                MessageSendNotAllowedException.newBuilder(command.getEntityId())
-                        .dittoHeaders(command.getDittoHeaders())
-                        .build();
+    private DittoRuntimeException rejectMessageCommand(final MessageCommand<?, ?> command, final Enforcer enforcer) {
+        final DittoRuntimeException error;
+        if (ThingCommandEnforcement.isThingExistenceToBeHidden(enforcer,
+                command.getDittoHeaders().getAuthorizationContext(),
+                FeatureToggle.isHideInaccessibleEntityExistenceEnabled())) {
+            error = ThingCommandEnforcement.thingNotAccessible(command.getEntityId(), command.getDittoHeaders());
+        } else {
+            error = MessageSendNotAllowedException.newBuilder(command.getEntityId())
+                    .dittoHeaders(command.getDittoHeaders())
+                    .build();
+        }
 
         LOGGER.withCorrelationId(command).info(
                 "The command <{}> was not forwarded due to insufficient rights {}: {} - AuthorizationContext: {}",

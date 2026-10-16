@@ -39,6 +39,7 @@ import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.contenttype.ContentType;
 import org.eclipse.ditto.base.model.namespaces.NamespaceBlockedException;
+import org.eclipse.ditto.base.model.signals.FeatureToggle;
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
 import org.eclipse.ditto.base.service.config.supervision.LocalAskTimeoutConfig;
@@ -203,6 +204,12 @@ public final class ThingEnforcerActor
     private CompletionStage<DittoRuntimeException> getDreForMissingPolicyEnforcer(final ThingCommand<?> thingCommand,
             final PolicyId policyId) {
 
+        if (FeatureToggle.isHideInaccessibleEntityExistenceEnabled()) {
+            // without a policy, no requester has any permission - so the existence of the thing must be hidden:
+            return CompletableFuture.completedFuture(ThingNotAccessibleException.newBuilder(entityId)
+                    .dittoHeaders(thingCommand.getDittoHeaders())
+                    .build());
+        }
         return doesThingExist().thenApply(thingExists -> {
             if (Boolean.TRUE.equals(thingExists)) {
                 return errorForExistingThingWithDeletedPolicy(thingCommand, policyId);

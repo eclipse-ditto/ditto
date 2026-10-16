@@ -15,6 +15,15 @@ sections: `Added`, `Changed`, `Deprecated`, `Removed`, `Fixed`, `Security`.
 
 ## [Unreleased]
 
+## [4.9.0]
+
+### Added
+- New `global.featureFlags.hideInaccessibleEntityExistenceEnabled` (default `true`), passed to the things and
+  policies services. When enabled, requesters without any permission on a thing or policy get the same "not found"
+  error for every rejected request, regardless of whether the entity exists. Set it to `false` to restore the
+  previous, resource-specific errors (e.g. `403 things:thing.notmodifiable`) which allow to determine whether an
+  entity exists.
+
 ## [4.8.0]
 
 Bumped Ditto `appVersion` to `3.9.8`. Also contains the fix planned for the never released chart version `4.7.1`.

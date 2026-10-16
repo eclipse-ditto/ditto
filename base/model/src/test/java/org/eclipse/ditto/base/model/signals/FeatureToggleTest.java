@@ -46,4 +46,15 @@ public final class FeatureToggleTest {
                 .isEqualTo("ditto.devops.feature.policy-lockout-prevention-enabled");
     }
 
+    @Test
+    public void hideInaccessibleEntityExistenceToggleDefaultsToTrue() {
+        assertThat(FeatureToggle.isHideInaccessibleEntityExistenceEnabled()).isTrue();
+    }
+
+    @Test
+    public void hideInaccessibleEntityExistencePropertyNameIsStable() {
+        assertThat(FeatureToggle.HIDE_INACCESSIBLE_ENTITY_EXISTENCE_ENABLED)
+                .isEqualTo("ditto.devops.feature.hide-inaccessible-entity-existence-enabled");
+    }
+
 }

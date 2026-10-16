@@ -43,6 +43,19 @@ Ditto uses these prefixes for its error codes:
 | `gateway:` | [Gateway](architecture-services-gateway.html) service |
 | `connectivity:` | [Connectivity](architecture-services-connectivity.html) service |
 
+### Errors for inaccessible things and policies
+
+Since Ditto 4.0.0, Ditto doesn't reveal whether a thing or a policy exists to a requester without any permission on it.
+For every rejected request, such a requester gets the same error as for a nonexistent entity:
+status `404` with error code `things:thing.notfound` or `policies:policy.notfound`, even for a write request.
+
+A requester with at least one permission on the entity gets a more specific error instead, for example
+status `404` with error code `things:attributes.notfound`, or status `403` with error code `things:thing.notmodifiable`.
+
+Operators can restore the previous behavior, which returns the specific errors to every requester, by setting the
+environment variable `DITTO_DEVOPS_FEATURE_HIDE_INACCESSIBLE_ENTITY_EXISTENCE_ENABLED` of the things and policies
+services to `false`.
+
 ### Message
 
 The `message` field contains a short, human-readable description of the problem.

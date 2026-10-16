@@ -119,6 +119,22 @@ public final class FeatureToggle {
             "ditto.devops.feature.policy-lockout-prevention-enabled";
 
     /**
+     * System property name of the property defining whether the existence of a thing or policy is hidden from
+     * requesters which were not granted any permission on it. When enabled (default), such a requester receives the
+     * same "not found" error (e.g. {@code things:thing.notfound} / {@code policies:policy.notfound}) for every
+     * rejected command, query or message, regardless of whether the entity exists. Otherwise, the resource-specific
+     * errors (e.g. {@code things:attributes.notfound}) and the "not modifiable" errors with HTTP status 403 would
+     * allow to determine whether an entity exists.
+     * <p>
+     * Requesters with at least one permission on the entity still receive the resource-specific errors.
+     * When disabled, the resource-specific errors are returned to all requesters (legacy behavior).
+     *
+     * @since 4.0.0
+     */
+    public static final String HIDE_INACCESSIBLE_ENTITY_EXISTENCE_ENABLED =
+            "ditto.devops.feature.hide-inaccessible-entity-existence-enabled";
+
+    /**
      * Resolves the system property {@value MERGE_THINGS_ENABLED}.
      */
     private static final boolean IS_MERGE_THINGS_ENABLED = resolveProperty(MERGE_THINGS_ENABLED);
@@ -171,6 +187,12 @@ public final class FeatureToggle {
      */
     private static final boolean IS_POLICY_LOCKOUT_PREVENTION_ENABLED =
             resolveProperty(POLICY_LOCKOUT_PREVENTION_ENABLED);
+
+    /**
+     * Resolves the system property {@value HIDE_INACCESSIBLE_ENTITY_EXISTENCE_ENABLED}.
+     */
+    private static final boolean IS_HIDE_INACCESSIBLE_ENTITY_EXISTENCE_ENABLED =
+            resolveProperty(HIDE_INACCESSIBLE_ENTITY_EXISTENCE_ENABLED);
 
     private static boolean resolveProperty(final String propertyName) {
         final String propertyValue = System.getProperty(propertyName, Boolean.TRUE.toString());
@@ -338,5 +360,16 @@ public final class FeatureToggle {
      */
     public static boolean isPolicyLockoutPreventionEnabled() {
         return IS_POLICY_LOCKOUT_PREVENTION_ENABLED;
+    }
+
+    /**
+     * Returns whether the existence of things and policies is hidden from requesters without any permission on them,
+     * based on the system property {@value HIDE_INACCESSIBLE_ENTITY_EXISTENCE_ENABLED}.
+     *
+     * @return whether the existence of inaccessible entities is hidden.
+     * @since 4.0.0
+     */
+    public static boolean isHideInaccessibleEntityExistenceEnabled() {
+        return IS_HIDE_INACCESSIBLE_ENTITY_EXISTENCE_ENABLED;
     }
 }
