@@ -14,7 +14,6 @@ package org.eclipse.ditto.connectivity.model;
 
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
-import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -91,8 +90,8 @@ final class ImmutableFilteredTopic implements FilteredTopic {
      * @throws NullPointerException if {@code filteredTopicString} is {@code null}.
      * @throws org.eclipse.ditto.things.model.InvalidThingFieldSelectionException when the given
      * {@code filteredTopicString} contained a field selector with invalid fields.
-     * @throws TopicParseException if the topic is unknown or a query parameter other than {@code fn-filter} is given
-     * more than once.
+     * @throws TopicParseException if the topic is unknown, a query parameter other than {@code fn-filter} is given
+     * more than once or a query parameter is not correctly URL-encoded.
      */
     public static ImmutableFilteredTopic fromString(final String filteredTopicString) {
         checkNotNull(filteredTopicString, "filteredTopicString");
@@ -160,10 +159,22 @@ final class ImmutableFilteredTopic implements FilteredTopic {
         if (null != parameterValue) {
             final String parameterValueAsString = parameterValue.toString();
             if (!parameterValueAsString.isEmpty()) {
-                return parameterName + QUERY_ARG_VALUE_DELIMITER + parameterValueAsString;
+                return parameterName + QUERY_ARG_VALUE_DELIMITER + encodeReservedCharacters(parameterValueAsString);
             }
         }
         return "";
+    }
+
+    /**
+     * Encodes the characters which would not survive URL-decoding when the string is parsed again: '%' starts an
+     * escape sequence, '&' separates query parameters and '+' is decoded to a space. All other characters are kept
+     * as they are, so that filter expressions stay readable.
+     */
+    private static String encodeReservedCharacters(final String value) {
+        // '%' must be encoded first, otherwise the escapes of '&' and '+' would be encoded again
+        return value.replace("%", "%25")
+                .replace("&", "%26")
+                .replace("+", "%2B");
     }
 
     private static String join(final String delimiter, final String... elements) {
@@ -314,14 +325,15 @@ final class ImmutableFilteredTopic implements FilteredTopic {
                 if (2 != queryParamPair.length) {
                     continue;
                 }
-                final String name = urlDecode(queryParamPair[0]);
+                final String rawName = queryParamPair[0];
+                final String name = urlDecode(rawName, rawName);
                 final List<String> values = queryParameters.computeIfAbsent(name, k -> new ArrayList<>(1));
                 if (!values.isEmpty() && !FN_FILTER_ARG.equals(name)) {
                     // only 'fn-filter' is repeatable
                     throw TopicParseException.newBuilder(filteredTopicString,
                             "The query parameter '" + name + "' must not be given more than once").build();
                 }
-                values.add(urlDecode(queryParamPair[1]));
+                values.add(urlDecode(name, queryParamPair[1]));
             }
             return queryParameters;
         }
@@ -332,11 +344,15 @@ final class ImmutableFilteredTopic implements FilteredTopic {
             return null != values ? values.get(0) : null;
         }
 
-        private static String urlDecode(final String value) {
+        private String urlDecode(final String parameterName, final String value) {
             try {
-                return URLDecoder.decode(value, StandardCharsets.UTF_8.name());
-            } catch (final UnsupportedEncodingException e) {
-                return URLDecoder.decode(value);
+                return URLDecoder.decode(value, StandardCharsets.UTF_8);
+            } catch (final IllegalArgumentException e) {
+                throw TopicParseException.newBuilder(filteredTopicString,
+                                "The query parameter '" + parameterName +
+                                        "' contains a '%' which is not followed by two hex digits")
+                        .cause(e)
+                        .build();
             }
         }
 

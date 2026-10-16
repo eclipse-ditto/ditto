@@ -443,14 +443,87 @@ public final class ImmutableFilteredTopicTest {
     @Test
     public void fromStringUrlDecodesFnFilterValue() {
         // topic strings are URL-decoded when parsed (%2B -> '+', %7C -> '|') and the decoded expression is what gets
-        // stored and evaluated. A '|' never needs encoding (the query parser only splits on '?', '&' and '='); a '+'
-        // does not survive the stored form: toString does not re-encode, so it decodes to a space on the next parse
+        // stored and evaluated. A '|' never needs encoding (the query parser only splits on '?', '&' and '=')
         final ImmutableFilteredTopic actual = ImmutableFilteredTopic.fromString(
                 "_/_/things/twin/events?fn-filter=header:x%7Cfn:filter('eq','a%2Bb%7Cc')");
 
         assertThat(actual.getFnFilters()).containsExactly("header:x|fn:filter('eq','a+b|c')");
-        // toString does not re-encode: the string carries the decoded value
-        assertThat(actual.toString()).isEqualTo("_/_/things/twin/events?fn-filter=header:x|fn:filter('eq','a+b|c')");
+        // toString re-encodes only '%', '&' and '+', so the '+' survives the next parse
+        assertThat(actual.toString()).isEqualTo("_/_/things/twin/events?fn-filter=header:x|fn:filter('eq','a%2Bb|c')");
+        assertThat(ImmutableFilteredTopic.fromString(actual.toString())).isEqualTo(actual);
+    }
+
+    @Test
+    public void fromStringRejectsFilterValueWithInvalidUrlEncoding() {
+        // a literal '%' that is not followed by two hex digits cannot be URL-decoded
+        assertInvalidUrlEncodingIsRejected("_/_/things/twin/events?filter=like(attributes/a,\"100%\")", "filter");
+    }
+
+    @Test
+    public void fromStringRejectsFnFilterValueWithInvalidUrlEncoding() {
+        assertInvalidUrlEncodingIsRejected("_/_/things/twin/events?fn-filter=fn:filter(header:x,'eq','100%')",
+                "fn-filter");
+    }
+
+    @Test
+    public void fromStringRejectsFilterValueWithIncompleteTrailingEscape() {
+        assertInvalidUrlEncodingIsRejected("_/_/things/twin/events?filter=like(attributes/a,\"100%2", "filter");
+    }
+
+    @Test
+    public void toStringRoundTripsEncodedPercent() {
+        final ImmutableFilteredTopic parsed = ImmutableFilteredTopic.fromString(
+                "_/_/things/twin/events?fn-filter=fn:filter(header:x,'eq','100%25')");
+
+        assertThat(parsed.getFnFilters()).containsExactly("fn:filter(header:x,'eq','100%')");
+        assertThat(ImmutableFilteredTopic.fromString(parsed.toString())).isEqualTo(parsed);
+    }
+
+    @Test
+    public void toStringRoundTripsEncodedAmpersand() {
+        final ImmutableFilteredTopic parsed = ImmutableFilteredTopic.fromString(
+                "_/_/things/twin/events?fn-filter=fn:filter(header:x,'eq','a%26b')");
+
+        assertThat(parsed.getFnFilters()).containsExactly("fn:filter(header:x,'eq','a&b')");
+        assertThat(ImmutableFilteredTopic.fromString(parsed.toString())).isEqualTo(parsed);
+    }
+
+    @Test
+    public void toStringRoundTripsEncodedPlus() {
+        final ImmutableFilteredTopic parsed = ImmutableFilteredTopic.fromString(
+                "_/_/things/twin/events?fn-filter=fn:filter(header:x,'eq','a%2Bb')");
+
+        assertThat(parsed.getFnFilters()).containsExactly("fn:filter(header:x,'eq','a+b')");
+        assertThat(ImmutableFilteredTopic.fromString(parsed.toString())).isEqualTo(parsed);
+    }
+
+    @Test
+    public void toStringRoundTripsRqlFilterWithReservedCharacters() {
+        final ImmutableFilteredTopic parsed = ImmutableFilteredTopic.fromString(
+                "_/_/things/twin/events?filter=like(attributes/a,\"100%25 a%26b a%2Bb*\")");
+
+        assertThat(parsed.getFilter()).contains("like(attributes/a,\"100% a&b a+b*\")");
+        assertThat(ImmutableFilteredTopic.fromString(parsed.toString())).isEqualTo(parsed);
+    }
+
+    @Test
+    public void toStringRoundTripsTopicBuiltWithReservedCharacters() {
+        final ImmutableFilteredTopic topic = ImmutableFilteredTopic.getBuilder(Topic.TWIN_EVENTS)
+                .withFilter("like(attributes/a,\"100% a&b a+b\")")
+                .withFnFilters(List.of("fn:filter(header:x,'eq','%25&+')"))
+                .build();
+
+        assertThat(ImmutableFilteredTopic.fromString(topic.toString())).isEqualTo(topic);
+    }
+
+    private static void assertInvalidUrlEncodingIsRejected(final String topicString, final String paramName) {
+        assertThatExceptionOfType(TopicParseException.class)
+                .isThrownBy(() -> ImmutableFilteredTopic.fromString(topicString))
+                .withMessageContaining(topicString)
+                .withCauseInstanceOf(IllegalArgumentException.class)
+                .satisfies(e -> assertThat(e.getDescription()).hasValueSatisfying(description ->
+                        assertThat(description).contains("'" + paramName + "'")
+                                .contains("contains a '%' which is not followed by two hex digits")));
     }
 
 }
