@@ -23,6 +23,7 @@ import java.util.concurrent.CompletionStage;
 import java.util.concurrent.Executor;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.apache.pekko.Done;
 import org.apache.pekko.actor.ActorRef;
@@ -68,6 +69,7 @@ import org.eclipse.ditto.rql.parser.RqlPredicateParser;
 import org.eclipse.ditto.rql.query.things.FieldNamesPredicateVisitor;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingConstants;
+import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.commands.ThingCommand;
 import org.eclipse.ditto.things.model.signals.commands.ThingCommandResponse;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.LiveChannelConditionNotAllowedException;
@@ -387,6 +389,13 @@ final class ThingCommandEnforcement
             commandAuthorized = enforcer.hasPartialPermissions(thingResourceKey, authorizationContext, Permission.READ);
         }
 
+        // checked before evaluating the conditions, as their errors would reveal the thing's existence as well:
+        if (!commandAuthorized && !(command instanceof CreateThing) &&
+                isThingExistenceToBeHidden(enforcer, authorizationContext,
+                        FeatureToggle.isHideInaccessibleEntityExistenceEnabled())) {
+            throw thingNotAccessible(command.getEntityId(), dittoHeaders);
+        }
+
         final var condition = dittoHeaders.getCondition();
         if (!(command instanceof CreateThing) && condition.isPresent()) {
             enforceReadPermissionOnCondition(condition.get(), enforcer, dittoHeaders,
@@ -409,6 +418,45 @@ final class ThingCommandEnforcement
         } else {
             throw errorForThingCommand(command);
         }
+    }
+
+    /**
+     * Determines whether the existence of a thing must be hidden from a requester whose signal was rejected, which is
+     * the case if the requester was not granted any permission on the thing or on its messages.
+     * Such a requester must get the same error as for a nonexistent thing, otherwise the error could be used to
+     * enumerate existing thing IDs.
+     *
+     * @param enforcer the enforcer of the existing thing.
+     * @param authorizationContext the authorization context of the requester.
+     * @param hidingEnabled whether hiding the existence of inaccessible entities is enabled at all.
+     * @return {@code true} if the thing's existence must be hidden from the requester.
+     */
+    static boolean isThingExistenceToBeHidden(final Enforcer enforcer,
+            final AuthorizationContext authorizationContext,
+            final boolean hidingEnabled) {
+
+        if (!hidingEnabled) {
+            return false;
+        }
+        final var thingRoot = PoliciesResourceType.thingResource(JsonPointer.empty());
+        final var messageRoot = PoliciesResourceType.messageResource(JsonPointer.empty());
+        return Stream.of(thingRoot, messageRoot)
+                .noneMatch(resourceKey ->
+                        enforcer.hasPartialPermissions(resourceKey, authorizationContext, Permission.READ) ||
+                                enforcer.hasPartialPermissions(resourceKey, authorizationContext, Permission.WRITE));
+    }
+
+    /**
+     * Creates the error which is also returned for signals addressing a nonexistent thing.
+     *
+     * @param thingId the ID of the thing.
+     * @param dittoHeaders the headers of the rejected signal.
+     * @return the error.
+     */
+    static ThingNotAccessibleException thingNotAccessible(final ThingId thingId, final DittoHeaders dittoHeaders) {
+        return ThingNotAccessibleException.newBuilder(thingId)
+                .dittoHeaders(dittoHeaders)
+                .build();
     }
 
     private CompletionStage<Done> handleFailedCreateThing(

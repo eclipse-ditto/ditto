@@ -20,6 +20,7 @@ import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Function;
+import java.util.stream.Stream;
 
 import org.eclipse.ditto.base.model.auth.AuthorizationContext;
 import org.eclipse.ditto.base.model.entity.id.WithEntityId;
@@ -29,6 +30,7 @@ import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
+import org.eclipse.ditto.base.model.signals.FeatureToggle;
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.base.model.signals.commands.CommandToExceptionRegistry;
@@ -38,6 +40,7 @@ import org.eclipse.ditto.json.JsonKey;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonParseOptions;
+import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.policies.api.Permission;
 import org.eclipse.ditto.policies.enforcement.AbstractEnforcementReloaded;
@@ -114,12 +117,12 @@ public final class PolicyCommandEnforcement
             authorizedCommand = authorizeCreatePolicy(enforcer, createPolicy, policyResourceKey, authorizationContext);
         } else if (signal instanceof PolicyActionCommand) {
             authorizedCommand = authorizeActionCommand(policyEnforcer, signal, policyResourceKey,
-                    authorizationContext).orElseThrow(() -> errorForPolicyCommand(signal));
+                    authorizationContext).orElseThrow(() -> errorForUnauthorizedPolicySignal(signal, enforcer));
         } else if (signal instanceof PolicyModifyCommand) {
             if (hasUnrestrictedWritePermission(enforcer, policyResourceKey, authorizationContext)) {
                 authorizedCommand = signal;
             } else {
-                throw errorForPolicyCommand(signal);
+                throw errorForUnauthorizedPolicySignal(signal, enforcer);
             }
         } else {
             final String permission = Permission.READ;
@@ -128,7 +131,7 @@ public final class PolicyCommandEnforcement
                     permission)) {
                 authorizedCommand = stripConditionalHeadersForResolvedView(signal);
             } else {
-                throw errorForPolicyCommand(signal);
+                throw errorForUnauthorizedPolicySignal(signal, enforcer);
             }
         }
 
@@ -470,6 +473,50 @@ public final class PolicyCommandEnforcement
 
         return enforcer.buildJsonView(resourceKey, responseEntity, authorizationContext,
                 POLICY_QUERY_COMMAND_RESPONSE_ALLOWLIST, Permissions.newInstance(Permission.READ));
+    }
+
+    /**
+     * Creates the error for a policy signal the requester is not authorized for. If the existence of the policy must be
+     * hidden from the requester, this is the same error as for a nonexistent policy.
+     *
+     * @param policySignal the unauthorized signal.
+     * @param enforcer the enforcer of the existing policy.
+     * @return the error.
+     */
+    private static DittoRuntimeException errorForUnauthorizedPolicySignal(final Signal<?> policySignal,
+            final Enforcer enforcer) {
+
+        if (policySignal instanceof WithEntityId withEntityId &&
+                isPolicyExistenceToBeHidden(enforcer, policySignal.getDittoHeaders().getAuthorizationContext(),
+                        FeatureToggle.isHideInaccessibleEntityExistenceEnabled())) {
+            return PolicyNotAccessibleException.newBuilder(PolicyId.of(withEntityId.getEntityId()))
+                    .dittoHeaders(policySignal.getDittoHeaders())
+                    .build();
+        }
+        return errorForPolicyCommand(policySignal);
+    }
+
+    /**
+     * Determines whether the existence of a policy must be hidden from a requester whose signal was rejected, which is
+     * the case if the requester was not granted any permission on the policy.
+     * Such a requester must get the same error as for a nonexistent policy, otherwise the error could be used to
+     * enumerate existing policy IDs.
+     *
+     * @param enforcer the enforcer of the existing policy.
+     * @param authorizationContext the authorization context of the requester.
+     * @param hidingEnabled whether hiding the existence of inaccessible entities is enabled at all.
+     * @return {@code true} if the policy's existence must be hidden from the requester.
+     */
+    static boolean isPolicyExistenceToBeHidden(final Enforcer enforcer,
+            final AuthorizationContext authorizationContext,
+            final boolean hidingEnabled) {
+
+        if (!hidingEnabled) {
+            return false;
+        }
+        final var policyRoot = PoliciesResourceType.policyResource(JsonPointer.empty());
+        return Stream.of(Permission.READ, Permission.WRITE, Permission.EXECUTE)
+                .noneMatch(permission -> enforcer.hasPartialPermissions(policyRoot, authorizationContext, permission));
     }
 
     /**

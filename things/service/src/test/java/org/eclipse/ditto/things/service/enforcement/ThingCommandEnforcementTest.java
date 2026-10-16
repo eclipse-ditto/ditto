@@ -59,6 +59,7 @@ import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.policies.model.PolicyIdInvalidException;
 import org.eclipse.ditto.policies.model.Subject;
 import org.eclipse.ditto.policies.model.SubjectId;
+import org.eclipse.ditto.policies.model.enforcers.Enforcer;
 import org.eclipse.ditto.policies.model.signals.commands.exceptions.PolicyNotAccessibleException;
 import org.eclipse.ditto.policies.model.signals.commands.modify.CreatePolicy;
 import org.eclipse.ditto.policies.model.signals.commands.modify.CreatePolicyResponse;
@@ -68,11 +69,13 @@ import org.eclipse.ditto.policies.model.signals.commands.query.RetrievePolicy;
 import org.eclipse.ditto.policies.model.signals.commands.query.RetrievePolicyResponse;
 import org.eclipse.ditto.things.api.Permission;
 import org.eclipse.ditto.things.api.commands.sudo.SudoRetrieveThingResponse;
+import org.eclipse.ditto.things.model.Attributes;
 import org.eclipse.ditto.things.model.Feature;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingBuilder;
 import org.eclipse.ditto.things.model.ThingsModelFactory;
 import org.eclipse.ditto.things.model.signals.commands.ThingCommand;
+import org.eclipse.ditto.things.model.signals.commands.exceptions.AttributesNotAccessibleException;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.FeatureNotModifiableException;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.LiveChannelConditionNotAllowedException;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.PolicyInvalidException;
@@ -83,6 +86,7 @@ import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingNotCreata
 import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingNotModifiableException;
 import org.eclipse.ditto.things.model.signals.commands.modify.CreateThing;
 import org.eclipse.ditto.things.model.signals.commands.modify.CreateThingResponse;
+import org.eclipse.ditto.things.model.signals.commands.modify.MergeThing;
 import org.eclipse.ditto.things.model.signals.commands.modify.ModifyAttribute;
 import org.eclipse.ditto.things.model.signals.commands.modify.ModifyAttributeResponse;
 import org.eclipse.ditto.things.model.signals.commands.modify.ModifyFeature;
@@ -91,6 +95,7 @@ import org.eclipse.ditto.things.model.signals.commands.modify.ModifyPolicyId;
 import org.eclipse.ditto.things.model.signals.commands.modify.ModifyPolicyIdResponse;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveAttribute;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveAttributeResponse;
+import org.eclipse.ditto.things.model.signals.commands.query.RetrieveAttributes;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThing;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThingResponse;
 import org.junit.ClassRule;
@@ -134,10 +139,180 @@ public final class ThingCommandEnforcementTest extends AbstractThingEnforcementT
 
             TestSetup.fishForMsgClass(this, ThingNotAccessibleException.class);
 
+            // the requester has no permission at all, so the existence of the thing must not be revealed:
             supervisor.tell(getModifyCommand(), getRef());
 
-            expectMsgClass(FeatureNotModifiableException.class);
+            expectMsgClass(ThingNotAccessibleException.class);
         }};
+    }
+
+    @Test
+    public void rejectRetrieveAndMergeAttributesWithoutAnyPermissionLikeForNonexistentThing() {
+        final PolicyId policyId = PolicyId.of("empty:policy");
+        final Policy emptyPolicy = PoliciesModelFactory.newPolicyBuilder(policyId)
+                .setRevision(1L)
+                .build();
+        final SudoRetrieveThingResponse sudoRetrieveThingResponse =
+                SudoRetrieveThingResponse.of(newThingWithAttributeWithPolicyId(policyId), DittoHeaders.empty());
+        when(policyEnforcerProvider.getPolicyEnforcer(policyId))
+                .thenReturn(CompletableFuture.completedFuture(Optional.of(PolicyEnforcer.of(emptyPolicy))));
+
+        new TestKit(system) {{
+            supervisor.tell(RetrieveAttributes.of(THING_ID, headers()), getRef());
+            expectAndAnswerSudoRetrieveThing(sudoRetrieveThingResponse);
+            final ThingNotAccessibleException retrieveError = expectMsgClass(ThingNotAccessibleException.class);
+            assertThat(retrieveError.getHttpStatus()).isEqualTo(HttpStatus.NOT_FOUND);
+
+            supervisor.tell(getMergeAttributesCommand(headers()), getRef());
+            final ThingNotAccessibleException mergeError = expectMsgClass(ThingNotAccessibleException.class);
+            assertThat(mergeError.getHttpStatus()).isEqualTo(HttpStatus.NOT_FOUND);
+
+            thingPersistenceActorProbe.expectNoMessage();
+        }};
+    }
+
+    @Test
+    public void rejectModifyWithConditionWithoutAnyPermissionLikeForNonexistentThing() {
+        final PolicyId policyId = PolicyId.of("empty:policy");
+        final Policy emptyPolicy = PoliciesModelFactory.newPolicyBuilder(policyId)
+                .setRevision(1L)
+                .build();
+        final SudoRetrieveThingResponse sudoRetrieveThingResponse =
+                SudoRetrieveThingResponse.of(newThingWithAttributeWithPolicyId(policyId), DittoHeaders.empty());
+        when(policyEnforcerProvider.getPolicyEnforcer(policyId))
+                .thenReturn(CompletableFuture.completedFuture(Optional.of(PolicyEnforcer.of(emptyPolicy))));
+
+        new TestKit(system) {{
+            final DittoHeaders dittoHeaders = headers().toBuilder()
+                    .condition("eq(attributes/testAttr,\"testString\")")
+                    .build();
+            supervisor.tell(getModifyCommand(dittoHeaders), getRef());
+            expectAndAnswerSudoRetrieveThing(sudoRetrieveThingResponse);
+
+            // not a ThingConditionFailedException, which would reveal the existence of the thing:
+            expectMsgClass(ThingNotAccessibleException.class);
+            thingPersistenceActorProbe.expectNoMessage();
+        }};
+    }
+
+    @Test
+    public void rejectModifyWithReadPermissionWithSpecificError() {
+        final PolicyId policyId = PolicyId.of("policy:id");
+        final Policy policy = PoliciesModelFactory.newPolicyBuilder(policyId)
+                .setRevision(1L)
+                .forLabel("read-only")
+                .setSubject(GOOGLE, TestSetup.SUBJECT_ID)
+                .setGrantedPermissions(PoliciesResourceType.thingResource(JsonPointer.empty()),
+                        Permissions.newInstance(Permission.READ))
+                .build();
+        final SudoRetrieveThingResponse sudoRetrieveThingResponse =
+                SudoRetrieveThingResponse.of(newThingWithAttributeWithPolicyId(policyId), DittoHeaders.empty());
+        when(policyEnforcerProvider.getPolicyEnforcer(policyId))
+                .thenReturn(CompletableFuture.completedFuture(Optional.of(PolicyEnforcer.of(policy))));
+
+        new TestKit(system) {{
+            supervisor.tell(getModifyCommand(), getRef());
+            expectAndAnswerSudoRetrieveThing(sudoRetrieveThingResponse);
+            expectMsgClass(FeatureNotModifiableException.class);
+
+            supervisor.tell(getMergeAttributesCommand(headers()), getRef());
+            final ThingNotModifiableException mergeError = expectMsgClass(ThingNotModifiableException.class);
+            assertThat(mergeError.getHttpStatus()).isEqualTo(HttpStatus.FORBIDDEN);
+
+            thingPersistenceActorProbe.expectNoMessage();
+        }};
+    }
+
+    @Test
+    public void rejectRetrieveAttributesWithPartialReadPermissionWithSpecificError() {
+        final PolicyId policyId = PolicyId.of("policy:id");
+        final Policy policy = PoliciesModelFactory.newPolicyBuilder(policyId)
+                .setRevision(1L)
+                .forLabel("features-reader")
+                .setSubject(GOOGLE, TestSetup.SUBJECT_ID)
+                .setGrantedPermissions(PoliciesResourceType.thingResource(JsonPointer.of("/features")),
+                        Permissions.newInstance(Permission.READ))
+                .build();
+        final SudoRetrieveThingResponse sudoRetrieveThingResponse =
+                SudoRetrieveThingResponse.of(newThingWithAttributeWithPolicyId(policyId), DittoHeaders.empty());
+        when(policyEnforcerProvider.getPolicyEnforcer(policyId))
+                .thenReturn(CompletableFuture.completedFuture(Optional.of(PolicyEnforcer.of(policy))));
+
+        new TestKit(system) {{
+            supervisor.tell(RetrieveAttributes.of(THING_ID, headers()), getRef());
+            expectAndAnswerSudoRetrieveThing(sudoRetrieveThingResponse);
+            expectMsgClass(AttributesNotAccessibleException.class);
+            thingPersistenceActorProbe.expectNoMessage();
+        }};
+    }
+
+    @Test
+    public void rejectModifyWithOnlyMessagePermissionWithSpecificError() {
+        final PolicyId policyId = PolicyId.of("policy:id");
+        final Policy policy = PoliciesModelFactory.newPolicyBuilder(policyId)
+                .setRevision(1L)
+                .forLabel("message-sender")
+                .setSubject(GOOGLE, TestSetup.SUBJECT_ID)
+                .setGrantedPermissions(PoliciesResourceType.messageResource(JsonPointer.empty()),
+                        Permissions.newInstance(Permission.WRITE))
+                .build();
+        final SudoRetrieveThingResponse sudoRetrieveThingResponse =
+                SudoRetrieveThingResponse.of(newThingWithAttributeWithPolicyId(policyId), DittoHeaders.empty());
+        when(policyEnforcerProvider.getPolicyEnforcer(policyId))
+                .thenReturn(CompletableFuture.completedFuture(Optional.of(PolicyEnforcer.of(policy))));
+
+        new TestKit(system) {{
+            supervisor.tell(getModifyCommand(), getRef());
+            expectAndAnswerSudoRetrieveThing(sudoRetrieveThingResponse);
+            expectMsgClass(FeatureNotModifiableException.class);
+            thingPersistenceActorProbe.expectNoMessage();
+        }};
+    }
+
+    @Test
+    public void thingExistenceIsHiddenOnlyWithoutAnyPermissionAndWhenEnabled() {
+        final PolicyId policyId = PolicyId.of("policy:id");
+        final AuthorizationContext authorizationContext = headers().getAuthorizationContext();
+        final Enforcer withoutPermission = PolicyEnforcer.of(PoliciesModelFactory.newPolicyBuilder(policyId)
+                .forLabel("other")
+                .setSubject(GOOGLE, "other-subject")
+                .setGrantedPermissions(PoliciesResourceType.thingResource(JsonPointer.empty()),
+                        Permissions.newInstance(Permission.READ, Permission.WRITE))
+                .build()).getEnforcer();
+        final Enforcer withRevokedPermission = PolicyEnforcer.of(PoliciesModelFactory.newPolicyBuilder(policyId)
+                .forLabel("revoked")
+                .setSubject(GOOGLE, TestSetup.SUBJECT_ID)
+                .setRevokedPermissions(PoliciesResourceType.thingResource(JsonPointer.empty()),
+                        Permissions.newInstance(Permission.READ, Permission.WRITE))
+                .build()).getEnforcer();
+        final Enforcer withWritePermissionOnAttribute =
+                PolicyEnforcer.of(PoliciesModelFactory.newPolicyBuilder(policyId)
+                        .forLabel("attribute-writer")
+                        .setSubject(GOOGLE, TestSetup.SUBJECT_ID)
+                        .setGrantedPermissions(PoliciesResourceType.thingResource(JsonPointer.of("/attributes/a")),
+                                Permissions.newInstance(Permission.WRITE))
+                        .build()).getEnforcer();
+        final Enforcer withReadPermissionOnMessages = PolicyEnforcer.of(PoliciesModelFactory.newPolicyBuilder(policyId)
+                .forLabel("message-reader")
+                .setSubject(GOOGLE, TestSetup.SUBJECT_ID)
+                .setGrantedPermissions(PoliciesResourceType.messageResource(JsonPointer.of("/inbox")),
+                        Permissions.newInstance(Permission.READ))
+                .build()).getEnforcer();
+
+        assertThat(ThingCommandEnforcement.isThingExistenceToBeHidden(withoutPermission, authorizationContext, true))
+                .isTrue();
+        assertThat(ThingCommandEnforcement.isThingExistenceToBeHidden(withRevokedPermission, authorizationContext,
+                true)).isTrue();
+        assertThat(ThingCommandEnforcement.isThingExistenceToBeHidden(withWritePermissionOnAttribute,
+                authorizationContext, true)).isFalse();
+        assertThat(ThingCommandEnforcement.isThingExistenceToBeHidden(withReadPermissionOnMessages,
+                authorizationContext, true)).isFalse();
+
+        // legacy behavior when the feature toggle is disabled:
+        assertThat(ThingCommandEnforcement.isThingExistenceToBeHidden(withoutPermission, authorizationContext, false))
+                .isFalse();
+        assertThat(ThingCommandEnforcement.isThingExistenceToBeHidden(withRevokedPermission, authorizationContext,
+                false)).isFalse();
     }
 
     @Test
@@ -206,9 +381,9 @@ public final class ThingCommandEnforcementTest extends AbstractThingEnforcementT
         new TestKit(system) {{
             supervisor.tell(getReadCommand(), getRef());
             expectAndAnswerSudoRetrieveThing(sudoRetrieveThingResponse);
-            expectAndAnswerSudoRetrieveThing(sudoRetrieveThingResponse);
+            // as no requester has any permission without a policy, the existence of the thing must not be revealed:
             final DittoRuntimeException error = TestSetup.fishForMsgClass(this, ThingNotAccessibleException.class);
-            assertThat(error.getMessage()).contains(THING_ID);
+            assertThat(error.getMessage()).contains(THING_ID).doesNotContain(policyId);
         }};
     }
 
@@ -223,10 +398,10 @@ public final class ThingCommandEnforcementTest extends AbstractThingEnforcementT
             supervisor.tell(getModifyCommand(), getRef());
 
             expectAndAnswerSudoRetrieveThing(sudoRetrieveThingResponse);
-            expectAndAnswerSudoRetrieveThing(sudoRetrieveThingResponse);
 
-            final DittoRuntimeException error = TestSetup.fishForMsgClass(this, ThingNotModifiableException.class);
-            assertThat(error.getMessage()).contains(THING_ID);
+            // as no requester has any permission without a policy, the existence of the thing must not be revealed:
+            final DittoRuntimeException error = TestSetup.fishForMsgClass(this, ThingNotAccessibleException.class);
+            assertThat(error.getMessage()).contains(THING_ID).doesNotContain(policyId);
         }};
     }
 
@@ -907,6 +1082,12 @@ public final class ThingCommandEnforcementTest extends AbstractThingEnforcementT
 
     private static ThingCommand<?> getModifyCommand(final DittoHeaders dittoHeaders) {
         return ModifyFeature.of(THING_ID, Feature.newBuilder().withId("x").build(), dittoHeaders);
+    }
+
+    private static MergeThing getMergeAttributesCommand(final DittoHeaders dittoHeaders) {
+        return MergeThing.withAttributes(THING_ID,
+                Attributes.newBuilder().set("type", "PENTEST_PROBE").build(),
+                dittoHeaders);
     }
 
     private RetrieveThing getRetrieveThing(final Consumer<DittoHeadersBuilder<?, ?>> headerModifier) {
