@@ -13,6 +13,7 @@
 package org.eclipse.ditto.connectivity.model;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 
 import java.text.MessageFormat;
 import java.util.Collections;
@@ -258,13 +259,32 @@ public final class ImmutableFilteredTopicTest {
         assertInvalidUrlEncodingIsRejected("_/_/things/twin/events?filter=like(attributes/a,\"100%2", "filter");
     }
 
+    @Test
+    public void toStringRoundTripsRqlFilterWithReservedCharacters() {
+        final ImmutableFilteredTopic parsed = ImmutableFilteredTopic.fromString(
+                "_/_/things/twin/events?filter=like(attributes/a,\"100%25 a%26b a%2Bb*\")");
+
+        assertThat(parsed.getFilter()).contains("like(attributes/a,\"100% a&b a+b*\")");
+        assertThat(ImmutableFilteredTopic.fromString(parsed.toString())).isEqualTo(parsed);
+    }
+
+    @Test
+    public void toStringRoundTripsTopicBuiltWithReservedCharacters() {
+        final ImmutableFilteredTopic topic = ImmutableFilteredTopic.getBuilder(Topic.TWIN_EVENTS)
+                .withFilter("like(attributes/a,\"100% a&b a+b\")")
+                .build();
+
+        assertThat(ImmutableFilteredTopic.fromString(topic.toString())).isEqualTo(topic);
+    }
+
     private static void assertInvalidUrlEncodingIsRejected(final String topicString, final String paramName) {
         assertThatExceptionOfType(TopicParseException.class)
                 .isThrownBy(() -> ImmutableFilteredTopic.fromString(topicString))
                 .withMessageContaining(topicString)
                 .withCauseInstanceOf(IllegalArgumentException.class)
                 .satisfies(e -> assertThat(e.getDescription()).hasValueSatisfying(description ->
-                        assertThat(description).contains("'" + paramName + "'").contains("not correctly URL-encoded")));
+                        assertThat(description).contains("'" + paramName + "'")
+                                .contains("contains a '%' which is not followed by two hex digits")));
     }
 
 }
