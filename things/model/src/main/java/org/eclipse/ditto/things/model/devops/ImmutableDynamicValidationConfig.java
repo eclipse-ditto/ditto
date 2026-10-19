@@ -67,11 +67,21 @@ final class ImmutableDynamicValidationConfig implements DynamicValidationConfig 
      * @param configOverrides the configuration overrides to apply when the validation context matches
      * @return a new instance with the specified values
      * @throws NullPointerException if {@code scopeId} is {@code null}
+     * @throws WotValidationConfigInvalidException if {@code configOverrides} contains alternative thing definitions
+     * but {@code validationContext} contains no thing definition patterns
      */
     public static ImmutableDynamicValidationConfig of(
             final String scopeId,
             @Nullable final ValidationContext validationContext,
             @Nullable final ConfigOverrides configOverrides) {
+        final boolean hasAlternativeThingDefinitions = configOverrides != null &&
+                !configOverrides.getAlternativeThingDefinitions().isEmpty();
+        final boolean hasThingDefinitionPatterns = validationContext != null &&
+                !validationContext.getThingDefinitionPatterns().isEmpty();
+        if (hasAlternativeThingDefinitions && !hasThingDefinitionPatterns) {
+            throw WotValidationConfigInvalidException.newBuilder("The dynamic config section <" + scopeId +
+                    "> defines alternative-thing-definitions but no thing-definition-patterns.").build();
+        }
         return new ImmutableDynamicValidationConfig(scopeId, validationContext, configOverrides);
     }
 

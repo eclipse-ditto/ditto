@@ -21,6 +21,10 @@ sections: `Added`, `Changed`, `Deprecated`, `Removed`, `Fixed`, `Security`.
   error for every rejected request, regardless of whether the entity exists. Set it to `false` to restore the
   previous, resource-specific errors (e.g. `403 things:thing.notmodifiable`) which allow to determine whether an
   entity exists ([#2596](https://github.com/eclipse-ditto/ditto/pull/2596))
+- `things.config.wot.tmValidation.dynamicConfig[].configOverrides` now renders list values as HOCON lists, which
+  enables `alternative-thing-definitions`: writes failing WoT validation against the Thing's definition are
+  accepted if they pass one of the listed alternative Thing definitions
+  ([#2598](https://github.com/eclipse-ditto/ditto/pull/2598))
 
 ## [4.10.1]
 

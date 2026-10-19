@@ -29,6 +29,7 @@ import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.internal.utils.config.ScopedConfig;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.things.model.ThingDefinition;
 import org.eclipse.ditto.things.model.devops.ConfigOverrides;
 import org.eclipse.ditto.things.model.devops.DynamicValidationConfig;
 import org.eclipse.ditto.wot.validation.ValidationContext;
@@ -61,6 +62,7 @@ public final class DefaultTmValidationConfig implements TmValidationConfig {
     private final boolean jsonSchemaCacheEnabled;
     private final CacheConfig jsonSchemaCacheConfig;
     private final boolean enforceContextPrefixes;
+    private final List<ThingDefinition> alternativeThingDefinitions;
 
 
     private DefaultTmValidationConfig(final ScopedConfig scopedConfig,
@@ -70,10 +72,19 @@ public final class DefaultTmValidationConfig implements TmValidationConfig {
         this.scopedConfig = scopedConfig;
         this.dynamicTmValidationConfigurations = dynamicTmValidationConfigurations;
 
-        final Config effectiveConfig = dynamicTmValidationConfigurations.stream()
-                .flatMap(dynamicConfig -> dynamicConfig.calculateDynamicTmValidationConfigOverrides(context).stream())
+        final List<InternalDynamicTmValidationConfiguration> matchingDynamicConfigurations =
+                dynamicTmValidationConfigurations.stream()
+                        .filter(dynamicConfig -> dynamicConfig.matches(context))
+                        .toList();
+        final Config effectiveConfig = matchingDynamicConfigurations.stream()
+                .map(InternalDynamicTmValidationConfiguration::configOverrides)
                 .reduce(ConfigFactory.empty(), (a, b) -> b.withFallback(a))
                 .withFallback(scopedConfig.resolve());
+        // HOCON withFallback replaces lists, so the alternatives of all matching sections are joined explicitly
+        alternativeThingDefinitions = matchingDynamicConfigurations.stream()
+                .flatMap(dynamicConfig -> dynamicConfig.getAlternativeThingDefinitions().stream())
+                .distinct()
+                .toList();
         enabled = effectiveConfig.getBoolean(ConfigValue.ENABLED.getConfigPath());
         logWarningInsteadOfFailingApiCalls = effectiveConfig.getBoolean(ConfigValue.LOG_WARNING_INSTEAD_OF_FAILING_API_CALLS.getConfigPath());
 
@@ -139,6 +150,11 @@ public final class DefaultTmValidationConfig implements TmValidationConfig {
         return enforceContextPrefixes;
     }
 
+    @Override
+    public List<ThingDefinition> getAlternativeThingDefinitions() {
+        return alternativeThingDefinitions;
+    }
+
     /**
      * Returns the list of dynamic validation configurations for specific contexts.
      *
@@ -201,7 +217,8 @@ public final class DefaultTmValidationConfig implements TmValidationConfig {
                             enabled,
                             logWarning,
                             thingConfig,
-                            featureConfig
+                            featureConfig,
+                            internal.getAlternativeThingDefinitions()
                     );
 
                     return DynamicValidationConfig.of(
@@ -246,14 +263,15 @@ public final class DefaultTmValidationConfig implements TmValidationConfig {
                 Objects.equals(scopedConfig, that.scopedConfig) &&
                 jsonSchemaCacheEnabled == that.jsonSchemaCacheEnabled &&
                 Objects.equals(jsonSchemaCacheConfig, that.jsonSchemaCacheConfig) &&
-                enforceContextPrefixes == that.enforceContextPrefixes;
+                enforceContextPrefixes == that.enforceContextPrefixes &&
+                Objects.equals(alternativeThingDefinitions, that.alternativeThingDefinitions);
     }
 
     @Override
     public int hashCode() {
         return Objects.hash(dynamicTmValidationConfigurations, enabled, logWarningInsteadOfFailingApiCalls,
                 thingValidationConfig, featureValidationConfig, scopedConfig, jsonSchemaCacheEnabled,
-                jsonSchemaCacheConfig, enforceContextPrefixes);
+                jsonSchemaCacheConfig, enforceContextPrefixes, alternativeThingDefinitions);
     }
 
     @Override
@@ -268,6 +286,7 @@ public final class DefaultTmValidationConfig implements TmValidationConfig {
                 ", jsonSchemaCacheEnabled=" + jsonSchemaCacheEnabled +
                 ", jsonSchemaCacheConfig=" + jsonSchemaCacheConfig +
                 ", enforceContextPrefixes=" + enforceContextPrefixes +
+                ", alternativeThingDefinitions=" + alternativeThingDefinitions +
                 "]";
     }
 

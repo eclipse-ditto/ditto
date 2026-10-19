@@ -180,7 +180,13 @@ ditto {
             }
             config-overrides {
             {{- range $configOverridesKey, $configOverridesValue := $dynamicWotTmValidationConfig.configOverrides }}
-            {{- if or (eq (kindOf $configOverridesValue) "map") (eq (kindOf $configOverridesValue) "slice") }}
+            {{- if eq (kindOf $configOverridesValue) "slice" }}
+              {{$configOverridesKey}} = [
+              {{- range $configOverridesListValue := $configOverridesValue }}
+                "{{$configOverridesListValue}}"
+              {{- end }}
+              ]
+            {{- else if eq (kindOf $configOverridesValue) "map" }}
               {{$configOverridesKey}} {
               {{- range $nested1ConfigOverridesKey, $nested1ConfigOverridesValue := $configOverridesValue }}
               {{- if or (eq (kindOf $nested1ConfigOverridesValue) "map") (eq (kindOf $nested1ConfigOverridesValue) "slice") }}

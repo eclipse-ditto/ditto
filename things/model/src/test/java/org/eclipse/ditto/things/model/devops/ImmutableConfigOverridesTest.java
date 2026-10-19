@@ -14,8 +14,15 @@ package org.eclipse.ditto.things.model.devops;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.List;
+
+import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.things.model.ThingsModelFactory;
+import org.eclipse.ditto.things.model.devops.exceptions.WotValidationConfigInvalidException;
 import org.junit.jupiter.api.Test;
 
 class ImmutableConfigOverridesTest {
@@ -77,4 +84,33 @@ class ImmutableConfigOverridesTest {
         assertEquals(thingConfig, config.getThingConfig().orElse(null));
         assertEquals(featureConfig, config.getFeatureConfig().orElse(null));
     }
-} 
+
+    @Test
+    void testAlternativeThingDefinitionsRoundtrip() {
+        ImmutableConfigOverrides config = ImmutableConfigOverrides.of(null, null, null, null,
+                List.of(ThingsModelFactory.newDefinition("https://models.example.org/gateway-9.0.0.tm.jsonld")));
+        JsonObject json = config.toJson();
+        assertEquals(JsonArray.of("[\"https://models.example.org/gateway-9.0.0.tm.jsonld\"]"),
+                json.getValue("alternative-thing-definitions").orElseThrow());
+        assertEquals(config, ImmutableConfigOverrides.fromJson(json));
+    }
+
+    @Test
+    void testAlternativeThingDefinitionsAreOmittedWhenEmpty() {
+        ImmutableConfigOverrides config = ImmutableConfigOverrides.of(true, null, null, null);
+        assertTrue(config.getAlternativeThingDefinitions().isEmpty());
+        assertFalse(config.toJson().contains("alternative-thing-definitions"));
+    }
+
+    @Test
+    void testAlternativeThingDefinitionWhichIsNoUrlIsRejected() {
+        JsonObject json = JsonObject.of("{\"alternative-thing-definitions\":[\"org.example:gateway:9.0.0\"]}");
+        assertThrows(WotValidationConfigInvalidException.class, () -> ImmutableConfigOverrides.fromJson(json));
+    }
+
+    @Test
+    void testAlternativeThingDefinitionWhichIsNoStringIsRejected() {
+        JsonObject json = JsonObject.of("{\"alternative-thing-definitions\":[42]}");
+        assertThrows(WotValidationConfigInvalidException.class, () -> ImmutableConfigOverrides.fromJson(json));
+    }
+}
