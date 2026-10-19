@@ -17,13 +17,19 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.time.Instant;
 import java.util.Collections;
+import java.util.List;
 
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.things.model.ThingsModelFactory;
+import org.eclipse.ditto.things.model.devops.ConfigOverrides;
+import org.eclipse.ditto.things.model.devops.DynamicValidationConfig;
 import org.eclipse.ditto.things.model.devops.FeatureValidationConfig;
 import org.eclipse.ditto.things.model.devops.FeatureValidationEnforceConfig;
 import org.eclipse.ditto.things.model.devops.FeatureValidationForbidConfig;
 import org.eclipse.ditto.things.model.devops.ThingValidationConfig;
 import org.eclipse.ditto.things.model.devops.ThingValidationEnforceConfig;
 import org.eclipse.ditto.things.model.devops.ThingValidationForbidConfig;
+import org.eclipse.ditto.things.model.devops.ValidationContext;
 import org.eclipse.ditto.things.model.devops.WotValidationConfig;
 import org.eclipse.ditto.things.model.devops.WotValidationConfigId;
 import org.eclipse.ditto.things.model.devops.WotValidationConfigRevision;
@@ -159,5 +165,44 @@ public class WotValidationConfigUtilsTest {
     @Test
     public void mergeConfigs_throwsOnNullStaticConfig() {
         assertThatThrownBy(() -> WotValidationConfigUtils.mergeConfigs(null, null)).isInstanceOf(NullPointerException.class);
+    }
+
+    @Test
+    public void mergeConfigsToTmValidationConfig_keepsAlternativeThingDefinitionsOfStaticAndEntityConfig() {
+        final String v8 = "https://models.example.org/gateway-8.0.0.tm.jsonld";
+        final String v9 = "https://models.example.org/gateway-9.0.0.tm.jsonld";
+        final String v91 = "https://models.example.org/gateway-9.1.0.tm.jsonld";
+        final String v8Pattern = "^https://models\\.example\\.org/gateway-8\\.0\\.0\\.tm\\.jsonld$";
+        final TmValidationConfig staticConfig = DefaultTmValidationConfig.of(
+                com.typesafe.config.ConfigFactory.parseString("tm-model-validation.dynamic-configuration = [{\n" +
+                        "  scope-id = static-8\n" +
+                        "  validation-context.thing-definition-patterns = [\"" +
+                        v8Pattern.replace("\\", "\\\\") + "\"]\n" +
+                        "  config-overrides.alternative-thing-definitions = [\"" + v9 + "\"]\n" +
+                        "}]"));
+        final WotValidationConfig entity = WotValidationConfig.of(
+                WotValidationConfigId.of("test:1"),
+                null,
+                null,
+                null,
+                null,
+                List.of(DynamicValidationConfig.of("entity-8",
+                        ValidationContext.of(List.of(), List.of(v8Pattern), List.of()),
+                        ConfigOverrides.of(null, null, null, null,
+                                List.of(ThingsModelFactory.newDefinition(v91))))),
+                WotValidationConfigRevision.of(1L),
+                Instant.now(),
+                Instant.now(),
+                false,
+                null
+        );
+
+        final TmValidationConfig merged = WotValidationConfigUtils.mergeConfigsToTmValidationConfig(entity,
+                staticConfig);
+
+        assertThat(merged.withValidationContext(org.eclipse.ditto.wot.validation.ValidationContext
+                        .buildValidationContext(DittoHeaders.empty(), ThingsModelFactory.newDefinition(v8)))
+                .getAlternativeThingDefinitions())
+                .containsExactly(ThingsModelFactory.newDefinition(v9), ThingsModelFactory.newDefinition(v91));
     }
 }

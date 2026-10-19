@@ -19,6 +19,7 @@ import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.internal.utils.cache.config.CacheConfig;
 import org.eclipse.ditto.internal.utils.config.KnownConfigValue;
+import org.eclipse.ditto.things.model.ThingDefinition;
 import org.eclipse.ditto.things.model.devops.DynamicValidationConfig;
 import org.eclipse.ditto.wot.validation.ValidationContext;
 
@@ -83,6 +84,15 @@ public interface TmValidationConfig {
      * @since 3.9.0
      */
     boolean isEnforceContextPrefixes();
+
+    /**
+     * Returns the alternative Thing definitions of all dynamic config sections matching the validation context.
+     * A write failing validation against the Thing's own definition is accepted if it passes one of them.
+     *
+     * @return the alternative Thing definitions, empty if no matching section configures any.
+     * @since 3.10.0
+     */
+    List<ThingDefinition> getAlternativeThingDefinitions();
 
 
     /**
