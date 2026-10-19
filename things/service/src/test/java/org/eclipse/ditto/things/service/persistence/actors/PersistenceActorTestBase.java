@@ -257,39 +257,40 @@ public abstract class PersistenceActorTestBase {
         return ThingPersistenceActor.props(thingId, mongoReadJournal, thingConfig, pub, searchShardRegionProxy, policyEnforcerProvider);
     }
 
-    protected ActorRef createSupervisorActorFor(final ThingId thingId) {
+    protected Props supervisorPropsFor(final ThingId thingId) {
         final LiveSignalPub liveSignalPub = new TestSetup.DummyLiveSignalPub(pubSubMediator);
-        final Props props =
-                ThingSupervisorActor.props(pubSubMediator,
-                        thingsConfig,
-                        enforcementConfig,
-                        policiesShardRegion,
-                        new DistributedPub<>() {
+        return ThingSupervisorActor.props(pubSubMediator,
+                thingsConfig,
+                enforcementConfig,
+                policiesShardRegion,
+                new DistributedPub<>() {
 
-                            @Override
-                            public ActorRef getPublisher() {
-                                return pubSubMediator;
-                            }
+                    @Override
+                    public ActorRef getPublisher() {
+                        return pubSubMediator;
+                    }
 
-                            @Override
-                            public Object wrapForPublication(final ThingEvent<?> message,
-                                    final CharSequence groupIndexKey) {
-                                return message;
-                            }
+                    @Override
+                    public Object wrapForPublication(final ThingEvent<?> message,
+                            final CharSequence groupIndexKey) {
+                        return message;
+                    }
 
-                            @Override
-                            public <S extends ThingEvent<?>> Object wrapForPublicationWithAcks(final S message,
-                                    final CharSequence groupIndexKey, final AckExtractor<S> ackExtractor) {
-                                return wrapForPublication(message, groupIndexKey);
-                            }
-                        },
-                        liveSignalPub,
-                        this::getPropsOfThingPersistenceActor,
-                        null,
-                        policyEnforcerProvider,
-                        Mockito.mock(MongoReadJournal.class));
+                    @Override
+                    public <S extends ThingEvent<?>> Object wrapForPublicationWithAcks(final S message,
+                            final CharSequence groupIndexKey, final AckExtractor<S> ackExtractor) {
+                        return wrapForPublication(message, groupIndexKey);
+                    }
+                },
+                liveSignalPub,
+                this::getPropsOfThingPersistenceActor,
+                null,
+                policyEnforcerProvider,
+                Mockito.mock(MongoReadJournal.class));
+    }
 
-        return actorSystem.actorOf(props, thingId.toString());
+    protected ActorRef createSupervisorActorFor(final ThingId thingId) {
+        return actorSystem.actorOf(supervisorPropsFor(thingId), thingId.toString());
     }
 
     /**
