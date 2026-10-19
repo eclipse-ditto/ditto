@@ -31,6 +31,7 @@ import org.apache.pekko.actor.ActorSelection;
 import org.apache.pekko.actor.PoisonPill;
 import org.apache.pekko.actor.Props;
 import org.apache.pekko.cluster.pubsub.DistributedPubSubMediator;
+import org.apache.pekko.cluster.sharding.ShardRegion;
 import org.apache.pekko.japi.pf.ReceiveBuilder;
 import org.apache.pekko.testkit.TestActorRef;
 import org.apache.pekko.testkit.TestProbe;
@@ -45,6 +46,7 @@ import org.eclipse.ditto.base.model.auth.DittoAuthorizationContextType;
 import org.eclipse.ditto.base.model.entity.Revision;
 import org.eclipse.ditto.base.model.entity.metadata.Metadata;
 import org.eclipse.ditto.base.model.entity.metadata.MetadataModelFactory;
+import org.eclipse.ditto.base.model.exceptions.DittoInternalErrorException;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
@@ -57,6 +59,7 @@ import org.eclipse.ditto.base.model.signals.events.Event;
 import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.internal.utils.persistence.mongo.streaming.MongoReadJournal;
+import org.eclipse.ditto.internal.utils.persistentactors.AbstractPersistenceSupervisor;
 import org.eclipse.ditto.internal.utils.pubsub.DistributedPub;
 import org.eclipse.ditto.internal.utils.pubsub.extractors.AckExtractor;
 import org.eclipse.ditto.internal.utils.pubsubthings.LiveSignalPub;
@@ -256,6 +259,96 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
                 expectMsgClass(ThingUnavailableException.class);
             }
         };
+    }
+
+    // See: https://github.com/eclipse-ditto/ditto/issues/2599
+    @Test
+    public void passivateDuringOngoingOpsShouldNotShutdownActor() {
+        final Policy inlinePolicy = PoliciesModelFactory.newPolicyBuilder(POLICY_ID)
+                .setRevision(1L)
+                .forLabel("authorize-self")
+                .setSubject(SubjectIssuer.newInstance("test"), AUTH_SUBJECT)
+                .setGrantedPermissions(PoliciesResourceType.thingResource(JsonPointer.empty()),
+                        Permissions.newInstance(Permission.READ, Permission.WRITE))
+                .setGrantedPermissions(PoliciesResourceType.policyResource(JsonPointer.empty()),
+                        Permissions.newInstance(Permission.READ, Permission.WRITE))
+                .build();
+        final CreatePolicyResponse createPolicyResponse =
+                CreatePolicyResponse.of(POLICY_ID, inlinePolicy, DittoHeaders.empty());
+        when(policyEnforcerProvider.getPolicyEnforcer(POLICY_ID))
+                .thenReturn(CompletableFuture.completedFuture(Optional.of(PolicyEnforcer.of(inlinePolicy))));
+
+        new TestKit(actorSystem) {{
+            final Thing thing = createThingV2WithRandomId();
+            final ThingId thingId = getIdOrThrow(thing);
+            final ActorRef underTest = watch(childActorOf(supervisorPropsFor(thingId), thingId.toString()));
+
+            final CreateThing createThing =
+                    CreateThing.of(thing, inlinePolicy.toJson(FieldType.all()), dittoHeadersV2);
+            underTest.tell(createThing, getRef());
+            policiesShardRegionTestProbe.expectMsgClass(CreatePolicy.class);
+            policiesShardRegionTestProbe.reply(createPolicyResponse);
+            expectMsgClass(CreateThingResponse.class);
+
+            // timeout to mimic the race
+            final long policyDelayMillis = 1000L;
+            when(policyEnforcerProvider.getPolicyEnforcer(POLICY_ID))
+                    .thenReturn(CompletableFuture.supplyAsync(() -> {
+                        try {
+                            Thread.sleep(policyDelayMillis);
+                        } catch (final InterruptedException e) {
+                            Thread.currentThread().interrupt();
+                        }
+                        return Optional.of(PolicyEnforcer.of(inlinePolicy));
+                    }));
+
+            final RetrieveThing retrieveThing = RetrieveThing.of(thingId, dittoHeadersV2);
+            underTest.tell(retrieveThing, getRef());
+            try {
+                Thread.sleep(100L);
+            } catch (final InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+            underTest.tell(AbstractPersistenceSupervisor.Control.PASSIVATE, ActorRef.noSender());
+
+            final scala.concurrent.duration.Duration responseTimeout =
+                    scala.concurrent.duration.Duration.create(policyDelayMillis + 3_000L, TimeUnit.MILLISECONDS);
+            final Object received = receiveOne(responseTimeout);
+
+            Assertions.assertThat(received)
+                    .as("expected RetrieveThingResponse — guard should defer passivation while enforcement in-flight")
+                    .isInstanceOf(RetrieveThingResponse.class);
+            Assertions.assertThat(underTest.isTerminated())
+                    .as("supervisor must still be alive — PASSIVATE must be ignored while opCounter > 0")
+                    .isFalse();
+        }};
+    }
+
+    /**
+     * Verifies the {@code childActorOf(supervisorPropsFor(...))} test wiring exercises the real
+     * ShardRegion contract: when the supervisor is idle and receives
+     * {@link AbstractPersistenceSupervisor.Control#PASSIVATE}, it forwards
+     * {@code ShardRegion.Passivate(PoisonPill)} to its parent. Under {@code childActorOf} the
+     * TestKit itself is that parent, so the message lands in this test's inbox. Replying by
+     * sending the carried stop message back to the supervisor completes the ShardRegion
+     * round-trip and the supervisor terminates. This confirms the fixture is suitable for
+     * testing the passivation-race flow.
+     */
+    @Test
+    public void passivateIsForwardedToShardRegionParentWhenIdle() {
+        new TestKit(actorSystem) {{
+            final Thing thing = createThingV2WithRandomId();
+            final ThingId thingId = getIdOrThrow(thing);
+            final ActorRef underTest = watch(childActorOf(supervisorPropsFor(thingId), thingId.toString()));
+
+            underTest.tell(AbstractPersistenceSupervisor.Control.PASSIVATE, ActorRef.noSender());
+
+            final ShardRegion.Passivate passivate = expectMsgClass(ShardRegion.Passivate.class);
+            Assertions.assertThat(passivate.stopMessage()).isInstanceOf(PoisonPill.class);
+
+            underTest.tell(passivate.stopMessage(), ActorRef.noSender());
+            expectTerminated(underTest);
+        }};
     }
 
     @Test
