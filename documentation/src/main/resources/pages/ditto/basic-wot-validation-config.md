@@ -120,6 +120,51 @@ Dynamic config sections match API calls based on three criteria (all must match 
 | `thing-definition-patterns` | Match the Thing's WoT Thing Model URL (OR-combined) |
 | `feature-definition-patterns` | Match the Feature's WoT Thing Model URL (OR-combined) |
 
+### Accept writes matching an alternative Thing model during a migration
+
+Relaxing validation with `log-warning-instead-of-failing-api-calls` accepts *any* payload. To instead accept only
+payloads which fully match another published Thing model, list it in `alternative-thing-definitions`.
+This example lets Things still on version `8.0.0` already accept writes shaped like version `9.1.0`:
+
+```http
+PUT /devops/wot/config/dynamicConfigs/lora-gateway-8.0.0
+Content-Type: application/json
+
+{
+  "scope-id": "lora-gateway-8.0.0",
+  "validation-context": {
+    "thing-definition-patterns": [
+      "^https://models\\.example\\.com/gateway/lora-gateway-8\\.0\\.0\\.tm\\.jsonld$"
+    ]
+  },
+  "config-overrides": {
+    "alternative-thing-definitions": [
+      "https://models.example.com/gateway/lora-gateway-9.1.0.tm.jsonld"
+    ]
+  }
+}
+```
+
+A write is first validated against the Thing's own definition. Only if that fails with a payload validation error,
+it is validated against each alternative in turn and accepted as soon as one of them fully passes.
+If all of them fail, the error of the Thing's own definition is returned.
+
+* **Exact source version** -- a section must define `thing-definition-patterns`. Use one section per source version,
+  so that each entry can be removed as soon as no Thing uses that version anymore.
+* **No chaining** -- alternatives are only looked up for the Thing's own definition: `8.0.0 → 9.0.0` and
+  `9.0.0 → 9.1.0` do not let a Thing on `8.0.0` accept `9.1.0`.
+* **Forward only** -- a Thing already migrated to `9.1.0` does not accept `8.0.0`-shaped writes unless a section
+  for `9.1.0` lists `8.0.0` as alternative.
+* **Combined** -- if several sections match, their alternatives are combined.
+* **Features** -- Feature-level writes are validated against the alternative Thing model's submodel whose instance
+  name equals the Feature ID. If the alternative does not model that Feature, it does not accept the write.
+* **Merge (PATCH)** -- against an alternative, only the attributes and Feature properties changed by the patch are
+  validated, not the complete merged Thing.
+* Failures to resolve a model are not retried against alternatives.
+
+Every write accepted via an alternative is logged at `INFO` with its correlation ID and counted in the metric
+`wot_validation_accepted_by_alternative`, tagged with `thing_definition` and `alternative_thing_definition`.
+
 ## Technical details
 
 ### Distributed state and recovery

@@ -20,6 +20,15 @@ properties:
     $ref: 'thingValidationConfig.yml'
   feature:
     $ref: 'featureValidationConfig.yml'
+  alternative-thing-definitions:
+    type: array
+    description: |-
+      URLs of alternative WoT Thing Models. A write which fails validation against the Thing's own definition
+      is accepted if it passes validation against one of them. Requires `thing-definition-patterns` in the
+      `validation-context`. The alternatives of all matching dynamic config sections are combined.
+    items:
+      type: string
+      format: uri
 required:
   - enabled
   - thing

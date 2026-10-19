@@ -14,6 +14,7 @@ package org.eclipse.ditto.things.model.devops;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -22,6 +23,8 @@ import java.util.List;
 import java.util.Map;
 
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.things.model.ThingsModelFactory;
+import org.eclipse.ditto.things.model.devops.exceptions.WotValidationConfigInvalidException;
 import org.junit.jupiter.api.Test;
 
 class ImmutableDynamicValidationConfigTest {
@@ -97,4 +100,28 @@ class ImmutableDynamicValidationConfigTest {
         assertEquals(validationContext, config.getValidationContext().orElse(null));
         assertEquals(configOverrides, config.getConfigOverrides().orElse(null));
     }
-} 
+
+    @Test
+    void testAlternativeThingDefinitionsWithoutThingDefinitionPatternsAreRejected() {
+        ImmutableValidationContext validationContext = ImmutableValidationContext.of(
+                List.of(Map.of("ditto-originator", "^pre:ditto$")), Collections.emptyList(), Collections.emptyList()
+        );
+        ImmutableConfigOverrides configOverrides = ImmutableConfigOverrides.of(null, null, null, null,
+                List.of(ThingsModelFactory.newDefinition("https://models.example.org/gateway-9.0.0.tm.jsonld")));
+        assertThrows(WotValidationConfigInvalidException.class,
+                () -> ImmutableDynamicValidationConfig.of("scope1", validationContext, configOverrides));
+    }
+
+    @Test
+    void testAlternativeThingDefinitionsWithThingDefinitionPatterns() {
+        ImmutableValidationContext validationContext = ImmutableValidationContext.of(
+                Collections.emptyList(), List.of("^https://models\\.example\\.org/gateway-8\\.0\\.0\\.tm\\.jsonld$"),
+                Collections.emptyList()
+        );
+        ImmutableConfigOverrides configOverrides = ImmutableConfigOverrides.of(null, null, null, null,
+                List.of(ThingsModelFactory.newDefinition("https://models.example.org/gateway-9.0.0.tm.jsonld")));
+        ImmutableDynamicValidationConfig config =
+                ImmutableDynamicValidationConfig.of("scope1", validationContext, configOverrides);
+        assertEquals(config, ImmutableDynamicValidationConfig.fromJson(config.toJson()));
+    }
+}

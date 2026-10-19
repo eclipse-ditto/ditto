@@ -1404,6 +1404,10 @@ things:
           #     feature:
           #       enforce:
           #         feature-description-modification: false
+          #     # writes failing validation against the Thing's definition are accepted if they pass one of these
+          #     # (requires thingDefinitionPatterns; lists of all matching sections are joined)
+          #     alternative-thing-definitions:
+          #       - "https://some.domain/some-model-2.0.0.tm.jsonld"
         ]
     # dispatchers contains tuning for the WoT-related Pekko dispatchers in the things service.
     # Defaults below are the in-jar HOCON defaults and only need overriding under sustained load.

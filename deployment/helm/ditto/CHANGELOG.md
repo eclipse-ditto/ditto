@@ -15,6 +15,13 @@ sections: `Added`, `Changed`, `Deprecated`, `Removed`, `Fixed`, `Security`.
 
 ## [Unreleased]
 
+## [4.9.0]
+
+### Added
+- `things.config.wot.tmValidation.dynamicConfig[].configOverrides` now renders list values as HOCON lists, which
+  enables `alternative-thing-definitions`: writes failing WoT validation against the Thing's definition are
+  accepted if they pass one of the listed alternative Thing definitions
+
 ## [4.8.0]
 
 Bumped Ditto `appVersion` to `3.9.8`. Also contains the fix planned for the never released chart version `4.7.1`.
