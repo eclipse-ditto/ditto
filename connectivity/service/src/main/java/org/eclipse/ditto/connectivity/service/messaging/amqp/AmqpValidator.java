@@ -59,7 +59,8 @@ public final class AmqpValidator extends AbstractProtocolValidator {
             final Supplier<String> sourceDescription) {
 
         source.getEnforcement().ifPresent(enforcement -> {
-            validateTemplate(enforcement.getInput(), dittoHeaders, newHeadersPlaceholder(), newSourceAddressPlaceholder());
+            validateTemplate(enforcement.getInput(), dittoHeaders,
+                    newHeadersPlaceholder(), newSourceAddressPlaceholder());
             enforcement.getFilters().forEach(filterTemplate ->
                     validateTemplate(filterTemplate, dittoHeaders, newThingPlaceholder(), newPolicyPlaceholder(),
                             newEntityPlaceholder(), newFeaturePlaceholder()));

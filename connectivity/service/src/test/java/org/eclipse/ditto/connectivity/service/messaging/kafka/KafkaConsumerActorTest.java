@@ -59,8 +59,6 @@ import org.eclipse.ditto.connectivity.service.config.ConnectivityConfig;
 import org.eclipse.ditto.connectivity.service.messaging.AbstractConsumerActorTest;
 import org.eclipse.ditto.connectivity.service.messaging.ConnectivityStatusResolver;
 import org.eclipse.ditto.connectivity.service.messaging.TestConstants;
-import org.eclipse.ditto.connectivity.service.messaging.rabbitmq.RabbitMQConsumerActor;
-import org.eclipse.ditto.connectivity.service.util.SourceEnforcementFilterFactory;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -80,9 +78,6 @@ public final class KafkaConsumerActorTest extends AbstractConsumerActorTest<Cons
     private BoundedSourceQueue<ConsumerRecord<String, ByteBuffer>> sourceQueue;
     private Source<ConsumerRecord<String, ByteBuffer>, Consumer.Control> source;
     private Consumer.Control control;
-
-    // used for resolving to the source:address placeholder with the topic
-    private String recordTopic = TOPIC;
 
     @Before
     public void initKafka() {
@@ -174,7 +169,6 @@ public final class KafkaConsumerActorTest extends AbstractConsumerActorTest<Cons
                         .getConnectionConfig().getKafkaConfig().getConsumerConfig().getThrottlingConfig(),
                         sourceSupplier,
                         null,
-                        SourceEnforcementFilterFactory.of(consumerData.getSource()),
                         consumerData, false);
         final ConnectivityConfig connectivityConfig = ConnectivityConfig.of(actorSystem.settings().config());
         return KafkaConsumerActor.props(CONNECTION,
@@ -188,7 +182,6 @@ public final class KafkaConsumerActorTest extends AbstractConsumerActorTest<Cons
     @Override
     protected Props getConsumerActorPropsWithEnforcement(final Sink<Object, NotUsed> inboundMappingSink,
             final Enforcement enforcement, final String address) {
-        recordTopic = address;
         final org.eclipse.ditto.connectivity.model.Source connectionSource = ConnectivityModelFactory.newSourceBuilder()
                 .address(address)
                 .authorizationContext(TestConstants.Authorization.AUTHORIZATION_CONTEXT)
@@ -208,7 +201,6 @@ public final class KafkaConsumerActorTest extends AbstractConsumerActorTest<Cons
                         .getConnectionConfig().getKafkaConfig().getConsumerConfig().getThrottlingConfig(),
                         sourceSupplier,
                         null,
-                        SourceEnforcementFilterFactory.of(consumerData.getSource()),
                         consumerData, false);
         final ConnectivityConfig connectivityConfig = ConnectivityConfig.of(actorSystem.settings().config());
         return KafkaConsumerActor.props(CONNECTION,
@@ -231,7 +223,7 @@ public final class KafkaConsumerActorTest extends AbstractConsumerActorTest<Cons
         final Headers headers = new RecordHeaders()
                 .add(toRecordHeader(header))
                 .add(toRecordHeader(REPLY_TO_HEADER));
-        return new ConsumerRecord<>(recordTopic, 1, 1, TIMESTAMP, TimestampType.LOG_APPEND_TIME,
+        return new ConsumerRecord<>(TOPIC, 1, 1, TIMESTAMP, TimestampType.LOG_APPEND_TIME,
                 NULL_SIZE, NULL_SIZE, KEY, ByteBufferUtils.fromUtf8String(payload), headers, Optional.empty());
     }
 

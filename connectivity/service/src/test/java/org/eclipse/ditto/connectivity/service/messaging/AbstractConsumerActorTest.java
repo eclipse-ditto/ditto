@@ -194,7 +194,8 @@ public abstract class AbstractConsumerActorTest<M> {
         testEnforcement(null, "other.address", true);
     }
 
-    private void testEnforcement(@Nullable final Enforcement enforcement, final String address, final boolean expectForwarded) {
+    private void testEnforcement(@Nullable final Enforcement enforcement, final String address,
+            final boolean expectForwarded) {
         new TestKit(actorSystem) {{
             final TestProbe sender = TestProbe.apply(actorSystem);
             final TestProbe proxyActor = TestProbe.apply(actorSystem);

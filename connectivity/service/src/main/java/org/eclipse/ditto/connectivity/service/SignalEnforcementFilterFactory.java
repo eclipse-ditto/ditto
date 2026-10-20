@@ -21,42 +21,48 @@ import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.connectivity.model.Enforcement;
 import org.eclipse.ditto.connectivity.model.EnforcementFilter;
 import org.eclipse.ditto.connectivity.model.EnforcementFilterFactory;
+import org.eclipse.ditto.connectivity.service.placeholders.ConnectivityPlaceholders;
+import org.eclipse.ditto.placeholders.ExpressionResolver;
 import org.eclipse.ditto.placeholders.Placeholder;
-import org.eclipse.ditto.placeholders.PlaceholderFactory;
 import org.eclipse.ditto.placeholders.PlaceholderFilter;
 
 /**
  * Factory that creates instances of EnforcementFilterFactory.
  *
- * @param <I> the type required to resolve the placeholders in the input
  */
 @Immutable
-final class SignalEnforcementFilterFactory<I> implements EnforcementFilterFactory<I, Signal<?>> {
+final class SignalEnforcementFilterFactory implements EnforcementFilterFactory<ExpressionResolver, Signal<?>> {
+
+    private static final List<Placeholder<EntityId>> FILTER_PLACEHOLDERS = List.of(
+            ConnectivityPlaceholders.newThingPlaceholder(),
+            ConnectivityPlaceholders.newPolicyPlaceholder(),
+            ConnectivityPlaceholders.newEntityPlaceholder());
 
     private final Enforcement enforcement;
-    private final Placeholder<I> inputPlaceholder;
-    private final List<Placeholder<EntityId>> filterPlaceholder;
 
     /**
      * Instantiates a new {@link SignalEnforcementFilterFactory}.
      *
      * @param enforcement the enforcement configuration, contains the input and filters templates
-     * @param inputPlaceholder the input placeholder used to resolve the values in the input template
-     * @param filterPlaceholder the filters placeholder used to resolve the values in the filters template
      */
-    SignalEnforcementFilterFactory(final Enforcement enforcement,
-            final Placeholder<I> inputPlaceholder,
-            final List<Placeholder<EntityId>> filterPlaceholder) {
+    SignalEnforcementFilterFactory(final Enforcement enforcement) {
         this.enforcement = enforcement;
-        this.inputPlaceholder = inputPlaceholder;
-        this.filterPlaceholder = filterPlaceholder;
     }
 
+    /**
+     * Creates a new {@link EnforcementFilter} for the enforcement's input template, resolved with the given
+     * expression resolver.
+     *
+     * @param inputResolver resolves the placeholders in the enforcement input, e.g. {@code {{ header:<name> }}}
+     * or {@code {{ source:address }}}.
+     * @return a new {@link EnforcementFilter} which holds the resolved input value.
+     * @throws org.eclipse.ditto.placeholders.UnresolvedPlaceholderException if a placeholder in the enforcement
+     * input cannot be resolved.
+     */
     @Override
-    public EnforcementFilter<Signal<?>> getFilter(final I input) {
-        final String inputResolved = PlaceholderFilter.apply(enforcement.getInput(),
-                PlaceholderFactory.newExpressionResolver(inputPlaceholder, input));
-        return new SignalEnforcementFilter(enforcement, filterPlaceholder, inputResolved);
+    public EnforcementFilter<Signal<?>> getFilter(final ExpressionResolver inputResolver) {
+        final String inputResolved = PlaceholderFilter.apply(enforcement.getInput(), inputResolver);
+        return new SignalEnforcementFilter(enforcement, FILTER_PLACEHOLDERS, inputResolved);
     }
 
 }

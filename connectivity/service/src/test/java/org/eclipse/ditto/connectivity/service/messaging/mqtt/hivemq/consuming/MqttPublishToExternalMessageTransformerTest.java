@@ -13,6 +13,8 @@
 package org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.consuming;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 
 import java.nio.ByteBuffer;
 import java.util.List;
@@ -27,7 +29,9 @@ import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
 import org.eclipse.ditto.base.model.auth.DittoAuthorizationContextType;
 import org.eclipse.ditto.base.model.common.ByteBufferUtils;
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.connectivity.api.ExternalMessageFactory;
+import org.eclipse.ditto.connectivity.model.ConnectionSignalIdEnforcementFailedException;
 import org.eclipse.ditto.connectivity.model.ConnectivityModelFactory;
 import org.eclipse.ditto.connectivity.model.HeaderMapping;
 import org.eclipse.ditto.connectivity.model.PayloadMapping;
@@ -40,6 +44,8 @@ import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.message.publ
 import org.eclipse.ditto.connectivity.service.placeholders.ConnectivityPlaceholders;
 import org.eclipse.ditto.placeholders.PlaceholderFactory;
 import org.eclipse.ditto.placeholders.UnresolvedPlaceholderException;
+import org.eclipse.ditto.things.model.ThingId;
+import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThing;
 import org.junit.Test;
 import org.mockito.Mockito;
 
@@ -310,6 +316,61 @@ public final class MqttPublishToExternalMessageTransformerTest {
                         .withHeaderMapping(HEADER_MAPPING)
                         .withPayloadMapping(PAYLOAD_MAPPING)
                         .build());
+    }
+
+    @Test
+    public void transformMqtt3PublishWithClientHeaderEnforcementReturnsTransformationFailure() {
+        final var input = "{{ header:device_id }}";
+        final var enforcement = ConnectivityModelFactory.newEnforcement(input, MQTT_TOPIC.toString());
+        final var underTest = MqttPublishToExternalMessageTransformer.newInstance(SOURCE_ADDRESS,
+                ConnectivityModelFactory.newSourceBuilder(SOURCE_WITHOUT_ENFORCEMENT)
+                        .enforcement(enforcement)
+                        .build());
+
+        final var transformationResult = underTest.transform(GenericMqttPublish.ofMqtt3Publish(Mqtt3Publish.builder()
+                .topic(MQTT_TOPIC)
+                .qos(MQTT_QOS)
+                .retain(RETAIN)
+                .payload(PAYLOAD)
+                .build()));
+
+        assertThat(transformationResult.isFailure()).as("transformation failed").isTrue();
+        assertThat(transformationResult.getErrorOrThrow())
+                .as("expected transformation failure")
+                .isInstanceOf(MqttPublishTransformationException.class)
+                .hasMessageContaining(input)
+                .hasCauseInstanceOf(UnresolvedPlaceholderException.class);
+    }
+
+    @Test
+    public void transformMqtt5PublishWithHeaderAndTopicEnforcementReturnsMatchingEnforcementFilter() {
+        final var enforcement = ConnectivityModelFactory.newEnforcement(
+                "{{ header:device_id }}@{{ source:address }}",
+                "{{ thing:name }}@" + MQTT_TOPIC.toString());
+        final var underTest = MqttPublishToExternalMessageTransformer.newInstance(SOURCE_ADDRESS,
+                ConnectivityModelFactory.newSourceBuilder(SOURCE_WITHOUT_ENFORCEMENT)
+                        .enforcement(enforcement)
+                        .build());
+
+        final var transformationResult = underTest.transform(GenericMqttPublish.ofMqtt5Publish(Mqtt5Publish.builder()
+                .topic(MQTT_TOPIC)
+                .qos(MQTT_QOS)
+                .retain(RETAIN)
+                .userProperties(Mqtt5UserProperties.of(Mqtt5UserProperty.of("device_id", "sensor")))
+                .payload(PAYLOAD)
+                .build()));
+
+        final var enforcementFilter = transformationResult.getSuccessValueOrThrow()
+                .getEnforcementFilter()
+                .orElseThrow();
+        assertThatCode(() -> enforcementFilter.match(
+                RetrieveThing.of(ThingId.of("org.eclipse.ditto:sensor"), DittoHeaders.empty())))
+                .as("signal for thing of device_id header and topic is accepted")
+                .doesNotThrowAnyException();
+        assertThatExceptionOfType(ConnectionSignalIdEnforcementFailedException.class)
+                .as("signal for other thing is rejected")
+                .isThrownBy(() -> enforcementFilter.match(
+                        RetrieveThing.of(ThingId.of("org.eclipse.ditto:other"), DittoHeaders.empty())));
     }
 
     @Test

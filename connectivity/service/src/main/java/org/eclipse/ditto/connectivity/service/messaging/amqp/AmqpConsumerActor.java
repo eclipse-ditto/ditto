@@ -55,6 +55,7 @@ import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.ConnectivityModelFactory;
 import org.eclipse.ditto.connectivity.model.ConnectivityStatus;
 import org.eclipse.ditto.connectivity.model.ResourceStatus;
+import org.eclipse.ditto.connectivity.service.SourceEnforcementFilterFactory;
 import org.eclipse.ditto.connectivity.service.config.Amqp10Config;
 import org.eclipse.ditto.connectivity.service.config.ConnectionConfig;
 import org.eclipse.ditto.connectivity.service.config.ConnectivityConfig;
@@ -65,7 +66,6 @@ import org.eclipse.ditto.connectivity.service.messaging.backoff.BackOffActor;
 import org.eclipse.ditto.connectivity.service.messaging.internal.ConnectionFailure;
 import org.eclipse.ditto.connectivity.service.messaging.internal.RetrieveAddressStatus;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.logs.InfoProviderFactory;
-import org.eclipse.ditto.connectivity.service.util.SourceEnforcementFilterFactory;
 import org.eclipse.ditto.internal.utils.config.InstanceIdentifierSupplier;
 import org.eclipse.ditto.internal.utils.pekko.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.internal.utils.tracing.DittoTracing;
@@ -123,7 +123,7 @@ final class AmqpConsumerActor extends LegacyBaseConsumerActor
         messageRateLimiter = initMessageRateLimiter(amqp10Config);
         backOffActor = getContext().actorOf(BackOffActor.props(amqp10Config.getBackOffConfig()));
 
-        sourceEnforcementFilterFactory = SourceEnforcementFilterFactory.of(consumerData.getSource());
+        sourceEnforcementFilterFactory = SourceEnforcementFilterFactory.of(consumerData.getSource(), sourceAddress);
     }
 
     /**
@@ -361,7 +361,7 @@ final class AmqpConsumerActor extends LegacyBaseConsumerActor
             final ExternalMessageBuilder builder = ExternalMessageFactory.newExternalMessageBuilder(headers);
             final ExternalMessage externalMessage = extractPayloadFromMessage(message, builder)
                     .withAuthorizationContext(source.getAuthorizationContext())
-                    .withEnforcement(sourceEnforcementFilterFactory.getFilter(headers, sourceAddress).orElse(null))
+                    .withEnforcement(sourceEnforcementFilterFactory.getFilter(headers))
                     .withHeaderMapping(source.getHeaderMapping())
                     .withSourceAddress(sourceAddress)
                     .withPayloadMapping(consumerData.getSource().getPayloadMapping())
@@ -540,4 +540,5 @@ final class AmqpConsumerActor extends LegacyBaseConsumerActor
          */
         STOP_CONSUMER
     }
+
 }
