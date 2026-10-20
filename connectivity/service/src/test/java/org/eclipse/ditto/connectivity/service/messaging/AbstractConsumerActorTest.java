@@ -64,6 +64,8 @@ import org.apache.pekko.testkit.TestProbe;
 import org.apache.pekko.testkit.javadsl.TestKit;
 import scala.concurrent.duration.FiniteDuration;
 
+import javax.annotation.Nullable;
+
 public abstract class AbstractConsumerActorTest<M> {
 
     @ClassRule
@@ -76,6 +78,9 @@ public abstract class AbstractConsumerActorTest<M> {
     private static final FiniteDuration ONE_SECOND = FiniteDuration.apply(1, TimeUnit.SECONDS);
     protected static final Map.Entry<String, String> REPLY_TO_HEADER =
             TestConstants.header("reply-to", "reply-to-address");
+    private static final String SOURCE_ADDRESS = TestConstants.Things.NAMESPACE + "." + TestConstants.Things.ID;
+    private static final Enforcement SOURCE_ADDRESS_ENFORCEMENT =
+            ConnectivityModelFactory.newEnforcement("{{ source:address }}", "{{ thing:namespace }}.{{ thing:name }}");
     protected static final Enforcement ENFORCEMENT =
             ConnectivityModelFactory.newEnforcement("{{ header:device_id }}", "{{ thing:id }}");
 
@@ -169,6 +174,57 @@ public abstract class AbstractConsumerActorTest<M> {
                             .contains("{{ header:device_id }}");
                 }
         );
+    }
+
+    protected abstract Props getConsumerActorPropsWithEnforcement(Sink<Object, NotUsed> inboundMappingSink,
+            Enforcement enforcement, String address);
+
+    @Test
+    public void testSuccessfulSourceAddressEnforcement() {
+        testEnforcement(SOURCE_ADDRESS_ENFORCEMENT, SOURCE_ADDRESS, true);
+    }
+
+    @Test
+    public void testFailingSourceAddressEnforcement() {
+        testEnforcement(SOURCE_ADDRESS_ENFORCEMENT, "other.address", false);
+    }
+
+    @Test
+    public void testNullSourceAddressEnforcement() {
+        testEnforcement(null, "other.address", true);
+    }
+
+    private void testEnforcement(@Nullable final Enforcement enforcement, final String address, final boolean expectForwarded) {
+        new TestKit(actorSystem) {{
+            final TestProbe sender = TestProbe.apply(actorSystem);
+            final TestProbe proxyActor = TestProbe.apply(actorSystem);
+            final TestProbe clientActor = TestProbe.apply(actorSystem);
+
+            final Sink<Object, NotUsed> inboundMappingSink =
+                    setupInboundMappingSink(clientActor.ref(), proxyActor.ref());
+            final ActorRef underTest = actorSystem.actorOf(
+                    getConsumerActorPropsWithEnforcement(inboundMappingSink, enforcement, address));
+
+            consumeMessage(underTest, getInboundMessage(TestConstants.modifyThing(),
+                    TestConstants.header("some", "header")), sender.ref());
+
+            if (expectForwarded) {
+                final ModifyThing modifyThing = proxyActor.expectMsgClass(ModifyThing.class);
+                assertThat((CharSequence) modifyThing.getEntityId()).isEqualTo(TestConstants.Things.THING_ID);
+            } else {
+                proxyActor.expectNoMessage(ONE_SECOND);
+                final BaseClientActor.PublishMappedMessage publishMappedMessage =
+                        clientActor.expectMsgClass(BaseClientActor.PublishMappedMessage.class);
+                final ConnectionSignalIdEnforcementFailedException exception =
+                        ConnectionSignalIdEnforcementFailedException.fromMessage(
+                                publishMappedMessage.getOutboundSignal().first().getExternalMessage()
+                                        .getTextPayload().orElse(""),
+                                DittoHeaders.empty());
+                assertThat(exception.getErrorCode()).isEqualTo(ConnectionSignalIdEnforcementFailedException.ERROR_CODE);
+            }
+
+            stopConsumerActor(underTest);
+        }};
     }
 
     protected abstract Props getConsumerActorProps(final Sink<Object, NotUsed> inboundMappingSink,

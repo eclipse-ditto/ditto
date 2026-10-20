@@ -88,6 +88,29 @@ public final class RabbitMQValidatorTest {
     }
 
     @Test
+    public void testValidationOfSourceAddressEnforcement() {
+        final Source source = newSourceBuilder()
+                .enforcement(ConnectivityModelFactory.newEnforcement(
+                        "{{ source:address }}", "{{ thing:namespace }}", "{{ thing:name }}"))
+                .build();
+
+        UNDER_TEST.validateSource(source, DittoHeaders.empty(), () -> "testSource");
+    }
+
+    @Test
+    public void testInvalidSourceAddressEnforcementThrowsException() {
+        final Source source = newSourceBuilder()
+                .enforcement(ConnectivityModelFactory.newEnforcement(
+                        // misspelled source
+                        "{{ sorce:address }}", "{{ thing:namespace }}", "{{ thing:name }}"))
+                .build();
+
+        Assertions.assertThatExceptionOfType(ConnectionConfigurationInvalidException.class)
+                .isThrownBy(() -> UNDER_TEST.validateSource(source, DittoHeaders.empty(), () -> "testSource"))
+                .withCauseInstanceOf(UnresolvedPlaceholderException.class);
+    }
+
+    @Test
     public void testValidHeaderMapping() {
         final Source source = newSourceBuilder()
                 .headerMapping(TestConstants.HEADER_MAPPING)

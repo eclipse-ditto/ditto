@@ -62,6 +62,7 @@ import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.ConnectionId;
 import org.eclipse.ditto.connectivity.model.ConnectivityModelFactory;
 import org.eclipse.ditto.connectivity.model.ConnectivityStatus;
+import org.eclipse.ditto.connectivity.model.Enforcement;
 import org.eclipse.ditto.connectivity.model.MappingContext;
 import org.eclipse.ditto.connectivity.model.PayloadMapping;
 import org.eclipse.ditto.connectivity.model.ReplyTarget;
@@ -162,6 +163,27 @@ public final class AmqpConsumerActorTest extends AbstractConsumerActorWithAcknow
                                 .expectedResponseTypes(ResponseType.ERROR, ResponseType.RESPONSE, ResponseType.NACK)
                                 .build())
                         .build());
+        return AmqpConsumerActor.props(CONNECTION, mockConsumerData, inboundMappingSink,
+                TestProbe.apply(actorSystem).testActor(), mock(ConnectivityStatusResolver.class),
+                CONNECTIVITY_CONFIG);
+    }
+
+    @Override
+    protected Props getConsumerActorPropsWithEnforcement(final Sink<Object, NotUsed> inboundMappingSink,
+            final Enforcement enforcement, final String address) {
+        final MessageConsumer messageConsumer = mock(MessageConsumer.class);
+        final ConsumerData mockConsumerData =
+                consumerData(address, messageConsumer, ConnectivityModelFactory.newSourceBuilder()
+                .address(address)
+                .authorizationContext(TestConstants.Authorization.AUTHORIZATION_CONTEXT)
+                .enforcement(enforcement)
+                .headerMapping(TestConstants.HEADER_MAPPING)
+                .payloadMapping(ConnectivityModelFactory.emptyPayloadMapping())
+                .replyTarget(ReplyTarget.newBuilder()
+                        .address("foo")
+                        .expectedResponseTypes(ResponseType.ERROR, ResponseType.RESPONSE, ResponseType.NACK)
+                        .build())
+                .build());
         return AmqpConsumerActor.props(CONNECTION, mockConsumerData, inboundMappingSink,
                 TestProbe.apply(actorSystem).testActor(), mock(ConnectivityStatusResolver.class),
                 CONNECTIVITY_CONFIG);
@@ -284,7 +306,6 @@ public final class AmqpConsumerActorTest extends AbstractConsumerActorWithAcknow
             assertThat(((ModifyAttribute) command).getAttributeValue()).isEqualTo(JsonValue.of(plainPayload));
         }};
     }
-
 
     @Test
     public void plainStringMappingMultipleTest() {
@@ -583,7 +604,6 @@ public final class AmqpConsumerActorTest extends AbstractConsumerActorWithAcknow
         }};
 
     }
-
 
     private ConsumerData consumerData(final String address, final MessageConsumer messageConsumer,
             final Source source) {

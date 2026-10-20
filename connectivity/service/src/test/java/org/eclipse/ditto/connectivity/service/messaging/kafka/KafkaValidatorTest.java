@@ -29,6 +29,7 @@ import org.eclipse.ditto.connectivity.model.ConnectionId;
 import org.eclipse.ditto.connectivity.model.ConnectionType;
 import org.eclipse.ditto.connectivity.model.ConnectivityModelFactory;
 import org.eclipse.ditto.connectivity.model.ConnectivityStatus;
+import org.eclipse.ditto.connectivity.model.Enforcement;
 import org.eclipse.ditto.connectivity.model.Topic;
 import org.eclipse.ditto.connectivity.service.config.ConnectivityConfig;
 import org.eclipse.ditto.connectivity.service.messaging.TestConstants;
@@ -156,6 +157,22 @@ public final class KafkaValidatorTest {
         verifyConnectionConfigurationInvalidExceptionIsThrown(getConnectionWithBootstrapServers("http://foo:123"));
     }
 
+    @Test
+    public void testValidSourceAddressEnforcement() {
+        final DittoHeaders emptyDittoHeaders = DittoHeaders.empty();
+        final Enforcement enforcement = ConnectivityModelFactory.newEnforcement("{{ source:address }}",
+                "{{ thing:namespace }}.{{ thing:name }}");
+        underTest.validate(getConnectionWithSourceAddressEnforcement(enforcement), emptyDittoHeaders, actorSystem,
+                connectivityConfig);
+    }
+
+    @Test
+    public void testInvalidEnforcement() {                                              // misspelled source
+        final Enforcement enforcement = ConnectivityModelFactory.newEnforcement("{{ sorce:address }}",
+                "{{ thing:namespace }}.{{ thing:name }}");
+        verifyConnectionConfigurationInvalidExceptionIsThrown(getConnectionWithSourceAddressEnforcement(enforcement));
+    }
+
     private static Connection getConnectionWithTarget(final String target) {
         return ConnectivityModelFactory.newConnectionBuilder(CONNECTION_ID, ConnectionType.KAFKA,
                         ConnectivityStatus.OPEN, "tcp://localhost:1883")
@@ -193,6 +210,19 @@ public final class KafkaValidatorTest {
                         .topics(Topic.LIVE_EVENTS)
                         .build()))
                 .specificConfig(specificConfig)
+                .build();
+    }
+
+    private static Connection getConnectionWithSourceAddressEnforcement(final Enforcement enforcement) {
+        return ConnectivityModelFactory.newConnectionBuilder(CONNECTION_ID, ConnectionType.KAFKA,
+                        ConnectivityStatus.OPEN, "tcp://localhost:1883")
+                .sources(singletonList(ConnectivityModelFactory.newSourceBuilder()
+                        .address("events")
+                        .authorizationContext(AUTHORIZATION_CONTEXT)
+                        .enforcement(ConnectivityModelFactory.newEnforcement(enforcement))
+                        .qos(0)
+                        .build()))
+                .specificConfig(defaultSpecificConfig)
                 .build();
     }
 
