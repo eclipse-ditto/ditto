@@ -34,9 +34,11 @@ import org.eclipse.ditto.connectivity.model.Target;
 import org.eclipse.ditto.connectivity.service.config.ConnectivityConfig;
 import org.eclipse.ditto.connectivity.service.messaging.validation.AbstractProtocolValidator;
 import org.eclipse.ditto.connectivity.service.placeholders.ConnectivityPlaceholders;
-import org.eclipse.ditto.placeholders.PlaceholderFactory;
 
 import org.apache.pekko.actor.ActorSystem;
+
+import static org.eclipse.ditto.connectivity.service.placeholders.ConnectivityPlaceholders.newSourceAddressPlaceholder;
+import static org.eclipse.ditto.placeholders.PlaceholderFactory.newHeadersPlaceholder;
 
 @Immutable
 public final class HonoValidator extends AbstractProtocolValidator {
@@ -96,7 +98,8 @@ public final class HonoValidator extends AbstractProtocolValidator {
         final Consumer<String> validateInputTemplate =
                 inputTemplate -> validateTemplate(inputTemplate,
                         dittoHeaders,
-                        PlaceholderFactory.newHeadersPlaceholder());
+                        newHeadersPlaceholder(),
+                        newSourceAddressPlaceholder());
 
         final Consumer<Set<String>> validateFilterTemplates =
                 filters -> filters.forEach(
