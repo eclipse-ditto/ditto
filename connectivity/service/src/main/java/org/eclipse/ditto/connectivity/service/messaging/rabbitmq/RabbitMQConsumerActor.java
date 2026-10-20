@@ -31,31 +31,27 @@ import org.eclipse.ditto.base.model.common.CharsetDeterminer;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.connectivity.api.ExternalMessage;
 import org.eclipse.ditto.connectivity.api.ExternalMessageBuilder;
 import org.eclipse.ditto.connectivity.api.ExternalMessageFactory;
 import org.eclipse.ditto.connectivity.model.Connection;
-import org.eclipse.ditto.connectivity.model.EnforcementFilterFactory;
 import org.eclipse.ditto.connectivity.model.PayloadMapping;
 import org.eclipse.ditto.connectivity.model.ResourceStatus;
 import org.eclipse.ditto.connectivity.model.Source;
-import org.eclipse.ditto.connectivity.service.EnforcementFactoryFactory;
 import org.eclipse.ditto.connectivity.service.config.ConnectivityConfig;
 import org.eclipse.ditto.connectivity.service.messaging.ConnectivityStatusResolver;
 import org.eclipse.ditto.connectivity.service.messaging.LegacyBaseConsumerActor;
 import org.eclipse.ditto.connectivity.service.messaging.internal.RetrieveAddressStatus;
+import org.eclipse.ditto.connectivity.service.util.SourceEnforcementFilterFactory;
 import org.eclipse.ditto.internal.utils.pekko.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.internal.utils.tracing.DittoTracing;
 import org.eclipse.ditto.internal.utils.tracing.span.SpanOperationName;
 import org.eclipse.ditto.internal.utils.tracing.span.TracingSpans;
-import org.eclipse.ditto.placeholders.PlaceholderFactory;
 
 import com.rabbitmq.client.BasicProperties;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Delivery;
 import com.rabbitmq.client.Envelope;
-
 
 /**
  * Actor which receives message from an RabbitMQ source and forwards them to a {@code MessageMappingProcessorActor}.
@@ -65,8 +61,7 @@ public final class RabbitMQConsumerActor extends LegacyBaseConsumerActor {
     private static final String MESSAGE_ID_HEADER = "messageId";
     private static final String CONTENT_TYPE_APPLICATION_OCTET_STREAM = "application/octet-stream";
 
-    @Nullable
-    private final EnforcementFilterFactory<Map<String, String>, Signal<?>> headerEnforcementFilterFactory;
+    private final SourceEnforcementFilterFactory sourceEnforcementFilterFactory;
     private final PayloadMapping payloadMapping;
     private final Channel channel;
 
@@ -76,12 +71,7 @@ public final class RabbitMQConsumerActor extends LegacyBaseConsumerActor {
             final ConnectivityStatusResolver connectivityStatusResolver, final ConnectivityConfig connectivityConfig) {
         super(connection, sourceAddress, inboundMappingSink, source, connectivityStatusResolver, connectivityConfig);
 
-        headerEnforcementFilterFactory =
-                source.getEnforcement()
-                        .map(value ->
-                                EnforcementFactoryFactory.newEnforcementFilterFactory(value,
-                                        PlaceholderFactory.newHeadersPlaceholder()))
-                        .orElse(null);
+        this.sourceEnforcementFilterFactory = SourceEnforcementFilterFactory.of(source);
         this.payloadMapping = source.getPayloadMapping();
         this.channel = channel;
     }
@@ -163,9 +153,7 @@ public final class RabbitMQConsumerActor extends LegacyBaseConsumerActor {
                 externalMessageBuilder.withTextAndBytes(text, body);
             }
             externalMessageBuilder.withAuthorizationContext(source.getAuthorizationContext());
-            if (headerEnforcementFilterFactory != null) {
-                externalMessageBuilder.withEnforcement(headerEnforcementFilterFactory.getFilter(headers));
-            }
+            externalMessageBuilder.withEnforcement(sourceEnforcementFilterFactory.getFilter(headers, sourceAddress).orElse(null));
             externalMessageBuilder.withHeaderMapping(source.getHeaderMapping());
             externalMessageBuilder.withSourceAddress(sourceAddress);
             externalMessageBuilder.withPayloadMapping(payloadMapping);
