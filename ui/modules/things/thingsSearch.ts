@@ -23,6 +23,7 @@ import * as Environments from '../environments/environments.js';
 import * as Utils from '../utils.js';
 import { sanitizeHTML } from '../utils.js';
 import * as Fields from './fields.js';
+import * as SearchNamespaces from './searchNamespaces.js';
 import * as Things from './things.js';
 import * as ThingsSSE from './thingsSSE.js';
 
@@ -155,17 +156,24 @@ function resetAndClearViews(retainThing = false) {
   }
 }
 
+export function activeSearchNamespaces(): string[] {
+  return SearchNamespaces.activeNamespaces(
+      SearchNamespaces.parseNamespaces(Environments.current().searchNamespaces),
+      Environments.current().selectedSearchNamespaces);
+}
+
 /**
  * Calls Ditto search API to perform a count and adds the count to the UI.
  * @param {string} filter Ditto search filter (rql)
  */
 function countThings(filter: string) {
   dom.searchFilterCount.textContent = '';
-  const namespaces = Environments.current().searchNamespaces
+  const queryParameters = [
+    (filter && filter !== '') ? 'filter=' + encodeURIComponent(filter) : '',
+    SearchNamespaces.namespacesQueryParameter(activeSearchNamespaces()),
+  ].filter((parameter) => parameter !== '');
   API.callDittoREST('GET',
-    '/search/things/count' +
-    ((filter && filter !== '') ? '?filter=' + encodeURIComponent(filter) : '') +
-    ((namespaces && namespaces !== '') ? '&namespaces=' + namespaces : ''), null, null
+    '/search/things/count' + (queryParameters.length > 0 ? '?' + queryParameters.join('&') : ''), null, null
   ).then((countResult) => {
     dom.searchFilterCount.textContent = '#: ' + countResult;
   }).catch((error) => {
@@ -181,12 +189,12 @@ function countThings(filter: string) {
 function searchThings(filter: string, isMore = false) {
   document.body.style.cursor = 'progress';
 
-  const namespaces = Environments.current().searchNamespaces;
+  const namespacesQueryParameter = SearchNamespaces.namespacesQueryParameter(activeSearchNamespaces());
   const fieldsQueryParameter = Fields.getQueryParameter();
   API.callDittoREST('GET',
       '/search/things?' + fieldsQueryParameter +
       ((filter && filter !== '') ? '&filter=' + encodeURIComponent(filter) : '') +
-      ((namespaces && namespaces !== '') ? '&namespaces=' + namespaces : '') +
+      (namespacesQueryParameter !== '' ? '&' + namespacesQueryParameter : '') +
       '&option=sort(%2BthingId)' +
       // ',size(3)' +
       (isMore ? ',cursor(' + theSearchCursor + ')' : ''), null, null

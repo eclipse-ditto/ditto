@@ -21,6 +21,28 @@
                             <i id="favIcon" class="bi bi-star"></i>
                         </button>
                     </div>
+                    <div class="btn-group">
+                        <button type="button" id="searchNamespacesToggle" class="btn btn-outline-secondary btn-sm"
+                            data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
+                            <span data-bs-toggle="tooltip" title="Namespaces to search in">
+                                <i class="bi bi-collection"></i>
+                                <span id="searchNamespacesCount"></span>
+                            </span>
+                        </button>
+                        <div class="dropdown-menu p-2" style="min-width: 18rem;">
+                            <h6 class="dropdown-header px-0">Search in namespaces</h6>
+                            <div id="searchNamespacesList"></div>
+                            <div class="input-group input-group-sm has-validation mt-2">
+                                <input type="text" id="searchNamespaceAdd" class="form-control form-control-sm"
+                                    placeholder="Add namespace..." spellcheck="false" autocomplete="off">
+                                <button type="button" id="searchNamespaceAddButton" class="btn btn-outline-secondary btn-sm"
+                                    data-bs-toggle="tooltip" title="Add namespace and search in it">
+                                    <i class="bi bi-plus-lg"></i>
+                                </button>
+                                <div class="invalid-feedback"></div>
+                            </div>
+                        </div>
+                    </div>
                     <input autocomplete="false" name="hidden" type="text" style="display:none;">
                     <input type="search" class="form-control form-control-sm" id="searchFilterEdit" name="search"
                            spellcheck=false autocomplete="off" />

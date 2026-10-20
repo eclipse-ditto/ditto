@@ -120,8 +120,10 @@ type Environment = {
   disableOperations?: boolean,
   /** The authorization settings for the UI */
   authSettings?: AuthSettings,
-  /** A comma separated list of namespaces to perform Thing searches in */
+  /** A comma separated list of namespaces available for selection in the Things search */
   searchNamespaces?: string,
+  /** The namespaces selected in the Things search, all of `searchNamespaces` if absent */
+  selectedSearchNamespaces?: string[],
   /** Holds templates for well known (feature) messages */
   messageTemplates?: any,
   /** Contains a list of fields to be shown as additional columns in the Things search result table */
