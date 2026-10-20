@@ -38,6 +38,8 @@ import org.eclipse.ditto.thingsearch.model.signals.commands.subscription.CreateS
 import org.eclipse.ditto.things.model.devops.commands.RetrieveMergedWotValidationConfig;
 import org.eclipse.ditto.things.model.devops.commands.RetrieveWotValidationConfig;
 import org.eclipse.ditto.things.model.devops.commands.ModifyWotValidationConfig;
+import org.eclipse.ditto.timeseries.api.commands.IngestDataPoints;
+import org.eclipse.ditto.timeseries.model.signals.commands.RetrieveTimeseries;
 
 public final class ThingsServiceGlobalCommandRegistryTest extends GlobalCommandRegistryTestCases {
 
@@ -68,7 +70,9 @@ public final class ThingsServiceGlobalCommandRegistryTest extends GlobalCommandR
                 RetrieveMergedWotValidationConfig.class,
                 RetrieveWotValidationConfig.class,
                 ModifyWotValidationConfig.class,
-                CheckPermissions.class
+                CheckPermissions.class,
+                IngestDataPoints.class,
+                RetrieveTimeseries.class
         );
     }
 

@@ -5,6 +5,7 @@
     <toRun name="GatewayService" type="Application" />
     <toRun name="ConnectivityService" type="Application" />
     <toRun name="SearchService" type="Application" />
+    <toRun name="TimeseriesService" type="Application" />
     <method v="2" />
   </configuration>
 </component>

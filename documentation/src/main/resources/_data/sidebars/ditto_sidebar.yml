@@ -99,6 +99,9 @@ entries:
                   - title: Search
                     url: /basic-search.html
                     output: web
+                  - title: Timeseries
+                    url: /basic-timeseries.html
+                    output: web
                   - title: RQL Expressions
                     url: /basic-rql.html
                     output: web

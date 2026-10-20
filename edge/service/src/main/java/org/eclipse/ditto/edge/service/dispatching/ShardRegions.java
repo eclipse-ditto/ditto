@@ -35,12 +35,16 @@ public final class ShardRegions {
     private static final String CONNECTIVITY_CLUSTER_ROLE = "connectivity";
     private static final String CONNECTIVITY_SHARD_REGION = "connection";
 
+    private static final String TIMESERIES_CLUSTER_ROLE = "timeseries";
+    private static final String TIMESERIES_SHARD_REGION = "timeseries-ingest";
+
     private final ShardRegionProxyActorFactory shardRegionProxyActorFactory;
     private final ActorRef policies;
     private final ActorRef things;
     private final ActorRef wotValidationConfig;
     private final ActorRef connections;
     private final ActorRef search;
+    private final ActorRef timeseries;
 
     private ShardRegions(final ShardRegionProxyActorFactory shardRegionProxyActorFactory) {
         this.shardRegionProxyActorFactory = shardRegionProxyActorFactory;
@@ -49,6 +53,7 @@ public final class ShardRegions {
         wotValidationConfig = startShardRegionProxy(THINGS_CLUSTER_ROLE, WOT_VALIDATION_CONFIG_SHARD_REGION);
         connections = startShardRegionProxy(CONNECTIVITY_CLUSTER_ROLE, CONNECTIVITY_SHARD_REGION);
         search = startShardRegionProxy(SEARCH_CLUSTER_ROLE, SEARCH_SHARD_REGION);
+        timeseries = startShardRegionProxy(TIMESERIES_CLUSTER_ROLE, TIMESERIES_SHARD_REGION);
     }
 
     private ActorRef startShardRegionProxy(final CharSequence clusterRole, final CharSequence shardRegionName) {
@@ -110,6 +115,17 @@ public final class ShardRegions {
      */
     public ActorRef search() {
         return search;
+    }
+
+    /**
+     * Return the timeseries shard region proxy. The same per-Thing sharded entity handles both
+     * the {@code IngestDataPoints} write path and the {@code RetrieveTimeseries} read path —
+     * mirroring how {@code ThingPersistenceActor} services every command for its Thing.
+     *
+     * @return timeseries shard region proxy.
+     */
+    public ActorRef timeseries() {
+        return timeseries;
     }
 
 }
