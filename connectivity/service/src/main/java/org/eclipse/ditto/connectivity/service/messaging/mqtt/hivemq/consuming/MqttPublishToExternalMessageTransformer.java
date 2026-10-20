@@ -19,36 +19,25 @@ import java.text.MessageFormat;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
-import java.util.OptionalLong;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 
 import org.eclipse.ditto.base.model.common.ByteBufferUtils;
 import org.eclipse.ditto.base.model.common.ConditionChecker;
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
-import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.connectivity.api.ExternalMessage;
 import org.eclipse.ditto.connectivity.api.ExternalMessageFactory;
-import org.eclipse.ditto.connectivity.model.ConnectivityModelFactory;
-import org.eclipse.ditto.connectivity.model.EnforcementFilter;
-import org.eclipse.ditto.connectivity.model.EnforcementFilterFactory;
 import org.eclipse.ditto.connectivity.model.Source;
-import org.eclipse.ditto.connectivity.service.EnforcementFactoryFactory;
+import org.eclipse.ditto.connectivity.service.SourceEnforcementFilterFactory;
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.MqttHeader;
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.message.publish.GenericMqttPublish;
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.message.publish.MqttPublishTransformationException;
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.message.publish.TransformationFailure;
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.message.publish.TransformationResult;
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.message.publish.TransformationSuccess;
-import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.message.publish.UserProperty;
-import org.eclipse.ditto.connectivity.service.placeholders.ConnectivityPlaceholders;
-import org.eclipse.ditto.placeholders.PlaceholderFactory;
-
-import com.hivemq.client.mqtt.MqttVersion;
 
 /**
  * Transforms a {@link GenericMqttPublish} to an {@link ExternalMessage}.
@@ -66,18 +55,12 @@ final class MqttPublishToExternalMessageTransformer {
 
     private final String sourceAddress;
     private final Source connectionSource;
-    @Nullable private final EnforcementFilterFactory<Map<String, String>, Signal<?>> headerEnforcementFilterFactory;
-    @Nullable private final EnforcementFilterFactory<String, Signal<?>> topicEnforcementFilterFactory;
+    private final SourceEnforcementFilterFactory sourceEnforcementFilterFactory;
 
-    private MqttPublishToExternalMessageTransformer(final String sourceAddress,
-            final Source connectionSource,
-            @Nullable final EnforcementFilterFactory<Map<String, String>, Signal<?>> headerEnforcementFilterFactory,
-            @Nullable final EnforcementFilterFactory<String, Signal<?>> topicEnforcementFilterFactory) {
-
+    private MqttPublishToExternalMessageTransformer(final String sourceAddress, final Source connectionSource) {
         this.sourceAddress = sourceAddress;
         this.connectionSource = connectionSource;
-        this.headerEnforcementFilterFactory = headerEnforcementFilterFactory;
-        this.topicEnforcementFilterFactory = topicEnforcementFilterFactory;
+        this.sourceEnforcementFilterFactory = SourceEnforcementFilterFactory.of(connectionSource);
     }
 
     /**
@@ -98,41 +81,7 @@ final class MqttPublishToExternalMessageTransformer {
                 ConditionChecker.checkArgument(checkNotNull(sourceAddress, "sourceAddress"),
                         s -> !s.isBlank(),
                         () -> "The sourceAddress must not be blank."),
-                checkNotNull(connectionSource, "connectionSource"),
-                getHeaderEnforcementFilterFactoryOrNull(connectionSource),
-                getTopicEnforcementFilterFactoryOrNull(connectionSource)
-        );
-    }
-
-    @Nullable
-    private static EnforcementFilterFactory<Map<String, String>, Signal<?>> getHeaderEnforcementFilterFactoryOrNull(
-            final Source connectionSource
-    ) {
-        final EnforcementFilterFactory<Map<String, String>, Signal<?>> result;
-        final var enforcementOptional = connectionSource.getEnforcement();
-        if (enforcementOptional.isPresent()) {
-            final var enforcement = enforcementOptional.get();
-            final var enforcementInput = enforcement.getInput();
-            if (enforcementInput.contains(ConnectivityModelFactory.SOURCE_ADDRESS_ENFORCEMENT)) {
-                result = null;
-            } else {
-                result = EnforcementFactoryFactory.newEnforcementFilterFactory(enforcement,
-                        PlaceholderFactory.newHeadersPlaceholder());
-            }
-        } else {
-            result = headers -> null;
-        }
-        return result;
-    }
-
-    @Nullable
-    private static EnforcementFilterFactory<String, Signal<?>> getTopicEnforcementFilterFactoryOrNull(
-            final Source connectionSource
-    ) {
-        return connectionSource.getEnforcement()
-                .map(enforcement -> EnforcementFactoryFactory.newEnforcementFilterFactory(enforcement,
-                        ConnectivityPlaceholders.newSourceAddressPlaceholder()))
-                .orElse(null);
+                checkNotNull(connectionSource, "connectionSource"));
     }
 
     /**
@@ -220,11 +169,7 @@ final class MqttPublishToExternalMessageTransformer {
                 .withTextAndBytes(ByteBufferUtils.toUtf8String(publishPayload), publishPayload)
                 .withAuthorizationContext(connectionSource.getAuthorizationContext())
                 .withEnforcement(
-                        getEnforcementFilter(
-                                genericMqttPublish.isMqttVersion(MqttVersion.MQTT_5_0),
-                                headers,
-                                getTopicAsString(genericMqttPublish)
-                        ).orElse(null)
+                        sourceEnforcementFilterFactory.getFilter(headers, getTopicAsString(genericMqttPublish))
                 )
                 .withSourceAddress(sourceAddress)
                 .withPayloadMapping(connectionSource.getPayloadMapping())
@@ -236,39 +181,6 @@ final class MqttPublishToExternalMessageTransformer {
         return genericMqttPublish.getPayload()
                 .map(ByteBuffer::asReadOnlyBuffer)
                 .orElseGet(ByteBufferUtils::empty);
-    }
-
-    private Optional<EnforcementFilter<Signal<?>>> getEnforcementFilter(final boolean mqttVersion5,
-            final Map<String, String> headers,
-            final String topic) {
-
-        final Optional<EnforcementFilter<Signal<?>>> result;
-        if (mqttVersion5) {
-            result = getHeaderEnforcementFilter(headers).or(() -> getTopicEnforcementFilter(topic));
-        } else {
-            result = getTopicEnforcementFilter(topic);
-        }
-        return result;
-    }
-
-    private Optional<EnforcementFilter<Signal<?>>> getHeaderEnforcementFilter(final Map<String, String> headers) {
-        final Optional<EnforcementFilter<Signal<?>>> result;
-        if (null != headerEnforcementFilterFactory) {
-            result = Optional.ofNullable(headerEnforcementFilterFactory.getFilter(headers));
-        } else {
-            result = Optional.empty();
-        }
-        return result;
-    }
-
-    private Optional<EnforcementFilter<Signal<?>>> getTopicEnforcementFilter(final String topic) {
-        final Optional<EnforcementFilter<Signal<?>>> result;
-        if (null != topicEnforcementFilterFactory) {
-            result = Optional.ofNullable(topicEnforcementFilterFactory.getFilter(topic));
-        } else {
-            result = Optional.empty();
-        }
-        return result;
     }
 
 }

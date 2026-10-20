@@ -59,8 +59,6 @@ import org.eclipse.ditto.connectivity.service.config.ConnectivityConfig;
 import org.eclipse.ditto.connectivity.service.messaging.AbstractConsumerActorTest;
 import org.eclipse.ditto.connectivity.service.messaging.ConnectivityStatusResolver;
 import org.eclipse.ditto.connectivity.service.messaging.TestConstants;
-import org.eclipse.ditto.connectivity.service.messaging.rabbitmq.RabbitMQConsumerActor;
-import org.eclipse.ditto.connectivity.service.util.SourceEnforcementFilterFactory;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -174,7 +172,6 @@ public final class KafkaConsumerActorTest extends AbstractConsumerActorTest<Cons
                         .getConnectionConfig().getKafkaConfig().getConsumerConfig().getThrottlingConfig(),
                         sourceSupplier,
                         null,
-                        SourceEnforcementFilterFactory.of(consumerData.getSource()),
                         consumerData, false);
         final ConnectivityConfig connectivityConfig = ConnectivityConfig.of(actorSystem.settings().config());
         return KafkaConsumerActor.props(CONNECTION,
@@ -208,7 +205,6 @@ public final class KafkaConsumerActorTest extends AbstractConsumerActorTest<Cons
                         .getConnectionConfig().getKafkaConfig().getConsumerConfig().getThrottlingConfig(),
                         sourceSupplier,
                         null,
-                        SourceEnforcementFilterFactory.of(consumerData.getSource()),
                         consumerData, false);
         final ConnectivityConfig connectivityConfig = ConnectivityConfig.of(actorSystem.settings().config());
         return KafkaConsumerActor.props(CONNECTION,

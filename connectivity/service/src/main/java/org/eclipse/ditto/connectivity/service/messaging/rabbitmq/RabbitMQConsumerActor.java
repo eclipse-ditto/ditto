@@ -42,7 +42,7 @@ import org.eclipse.ditto.connectivity.service.config.ConnectivityConfig;
 import org.eclipse.ditto.connectivity.service.messaging.ConnectivityStatusResolver;
 import org.eclipse.ditto.connectivity.service.messaging.LegacyBaseConsumerActor;
 import org.eclipse.ditto.connectivity.service.messaging.internal.RetrieveAddressStatus;
-import org.eclipse.ditto.connectivity.service.util.SourceEnforcementFilterFactory;
+import org.eclipse.ditto.connectivity.service.SourceEnforcementFilterFactory;
 import org.eclipse.ditto.internal.utils.pekko.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.internal.utils.tracing.DittoTracing;
 import org.eclipse.ditto.internal.utils.tracing.span.SpanOperationName;
@@ -153,7 +153,7 @@ public final class RabbitMQConsumerActor extends LegacyBaseConsumerActor {
                 externalMessageBuilder.withTextAndBytes(text, body);
             }
             externalMessageBuilder.withAuthorizationContext(source.getAuthorizationContext());
-            externalMessageBuilder.withEnforcement(sourceEnforcementFilterFactory.getFilter(headers, sourceAddress).orElse(null));
+            externalMessageBuilder.withEnforcement(sourceEnforcementFilterFactory.getFilter(headers, sourceAddress));
             externalMessageBuilder.withHeaderMapping(source.getHeaderMapping());
             externalMessageBuilder.withSourceAddress(sourceAddress);
             externalMessageBuilder.withPayloadMapping(payloadMapping);

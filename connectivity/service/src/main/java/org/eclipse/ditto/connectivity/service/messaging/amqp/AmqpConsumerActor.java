@@ -65,7 +65,7 @@ import org.eclipse.ditto.connectivity.service.messaging.backoff.BackOffActor;
 import org.eclipse.ditto.connectivity.service.messaging.internal.ConnectionFailure;
 import org.eclipse.ditto.connectivity.service.messaging.internal.RetrieveAddressStatus;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.logs.InfoProviderFactory;
-import org.eclipse.ditto.connectivity.service.util.SourceEnforcementFilterFactory;
+import org.eclipse.ditto.connectivity.service.SourceEnforcementFilterFactory;
 import org.eclipse.ditto.internal.utils.config.InstanceIdentifierSupplier;
 import org.eclipse.ditto.internal.utils.pekko.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.internal.utils.tracing.DittoTracing;
@@ -361,7 +361,7 @@ final class AmqpConsumerActor extends LegacyBaseConsumerActor
             final ExternalMessageBuilder builder = ExternalMessageFactory.newExternalMessageBuilder(headers);
             final ExternalMessage externalMessage = extractPayloadFromMessage(message, builder)
                     .withAuthorizationContext(source.getAuthorizationContext())
-                    .withEnforcement(sourceEnforcementFilterFactory.getFilter(headers, sourceAddress).orElse(null))
+                    .withEnforcement(sourceEnforcementFilterFactory.getFilter(headers, sourceAddress))
                     .withHeaderMapping(source.getHeaderMapping())
                     .withSourceAddress(sourceAddress)
                     .withPayloadMapping(consumerData.getSource().getPayloadMapping())

@@ -35,7 +35,7 @@ import org.eclipse.ditto.connectivity.api.ExternalMessageFactory;
 import org.eclipse.ditto.connectivity.model.ConnectionId;
 import org.eclipse.ditto.connectivity.model.Source;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.ConnectionMonitor;
-import org.eclipse.ditto.connectivity.service.util.SourceEnforcementFilterFactory;
+import org.eclipse.ditto.connectivity.service.SourceEnforcementFilterFactory;
 import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.pekko.logging.ThreadSafeDittoLogger;
 import org.eclipse.ditto.internal.utils.tracing.DittoTracing;
@@ -130,7 +130,7 @@ final class KafkaMessageTransformer {
             final ExternalMessage externalMessage = ExternalMessageFactory.newExternalMessageBuilder(messageHeaders)
                     .withTextAndBytes(ByteBufferUtils.toString(value, charset), value)
                     .withAuthorizationContext(source.getAuthorizationContext())
-                    .withEnforcement(sourceEnforcementFilterFactory.getFilter(messageHeaders, consumerRecord.topic()).orElse(null))
+                    .withEnforcement(sourceEnforcementFilterFactory.getFilter(messageHeaders, sourceAddress))
                     .withHeaderMapping(source.getHeaderMapping())
                     .withSourceAddress(sourceAddress)
                     .withPayloadMapping(source.getPayloadMapping())

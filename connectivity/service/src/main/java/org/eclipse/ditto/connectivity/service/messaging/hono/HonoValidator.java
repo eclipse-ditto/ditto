@@ -12,6 +12,8 @@
  */
 package org.eclipse.ditto.connectivity.service.messaging.hono;
 
+import static org.eclipse.ditto.placeholders.PlaceholderFactory.newHeadersPlaceholder;
+
 import java.text.MessageFormat;
 import java.util.LinkedHashSet;
 import java.util.Objects;
@@ -36,9 +38,6 @@ import org.eclipse.ditto.connectivity.service.messaging.validation.AbstractProto
 import org.eclipse.ditto.connectivity.service.placeholders.ConnectivityPlaceholders;
 
 import org.apache.pekko.actor.ActorSystem;
-
-import static org.eclipse.ditto.connectivity.service.placeholders.ConnectivityPlaceholders.newSourceAddressPlaceholder;
-import static org.eclipse.ditto.placeholders.PlaceholderFactory.newHeadersPlaceholder;
 
 @Immutable
 public final class HonoValidator extends AbstractProtocolValidator {
@@ -98,8 +97,7 @@ public final class HonoValidator extends AbstractProtocolValidator {
         final Consumer<String> validateInputTemplate =
                 inputTemplate -> validateTemplate(inputTemplate,
                         dittoHeaders,
-                        newHeadersPlaceholder(),
-                        newSourceAddressPlaceholder());
+                        newHeadersPlaceholder());
 
         final Consumer<Set<String>> validateFilterTemplates =
                 filters -> filters.forEach(

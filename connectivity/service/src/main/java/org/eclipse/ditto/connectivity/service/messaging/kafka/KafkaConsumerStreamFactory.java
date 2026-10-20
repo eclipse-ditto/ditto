@@ -22,7 +22,7 @@ import org.eclipse.ditto.connectivity.service.messaging.monitoring.ConnectionMon
 import org.apache.pekko.NotUsed;
 import org.apache.pekko.stream.Materializer;
 import org.apache.pekko.stream.javadsl.Sink;
-import org.eclipse.ditto.connectivity.service.util.SourceEnforcementFilterFactory;
+import org.eclipse.ditto.connectivity.service.SourceEnforcementFilterFactory;
 
 /**
  * A factory for building different {@link KafkaConsumerStream} implementations, e.g. for different quality of services.
@@ -65,7 +65,6 @@ final class KafkaConsumerStreamFactory {
     KafkaConsumerStreamFactory(final ConnectionThrottlingConfig throttlingConfig,
             final AtMostOnceKafkaConsumerSourceSupplier atMostOnceKafkaConsumerSourceSupplier,
             final AtLeastOnceKafkaConsumerSourceSupplier atLeastOnceKafkaConsumerSourceSupplier,
-            final SourceEnforcementFilterFactory sourceEnforcementFilterFactory,
             final ConsumerData consumerData,
             final boolean dryRun) {
 
@@ -75,7 +74,7 @@ final class KafkaConsumerStreamFactory {
         this.throttlingConfig = throttlingConfig;
         this.atMostOnceKafkaConsumerSourceSupplier = atMostOnceKafkaConsumerSourceSupplier;
         this.atLeastOnceKafkaConsumerSourceSupplier = atLeastOnceKafkaConsumerSourceSupplier;
-        this.sourceEnforcementFilterFactory = sourceEnforcementFilterFactory;
+        this.sourceEnforcementFilterFactory = SourceEnforcementFilterFactory.of(consumerData.getSource());
     }
 
     KafkaConsumerStream newAtMostOnceConsumerStream(
