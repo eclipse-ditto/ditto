@@ -22,7 +22,6 @@ import org.eclipse.ditto.connectivity.service.messaging.monitoring.ConnectionMon
 import org.apache.pekko.NotUsed;
 import org.apache.pekko.stream.Materializer;
 import org.apache.pekko.stream.javadsl.Sink;
-import org.eclipse.ditto.connectivity.service.util.SourceEnforcementFilterFactory;
 
 /**
  * A factory for building different {@link KafkaConsumerStream} implementations, e.g. for different quality of services.
@@ -35,7 +34,6 @@ final class KafkaConsumerStreamFactory {
     private final AtMostOnceKafkaConsumerSourceSupplier atMostOnceKafkaConsumerSourceSupplier;
     private final AtLeastOnceKafkaConsumerSourceSupplier atLeastOnceKafkaConsumerSourceSupplier;
     private final ConnectionThrottlingConfig throttlingConfig;
-    private final SourceEnforcementFilterFactory sourceEnforcementFilterFactory;
 
     KafkaConsumerStreamFactory(final ConnectionThrottlingConfig throttlingConfig,
             final PropertiesFactory propertiesFactory,
@@ -50,7 +48,6 @@ final class KafkaConsumerStreamFactory {
                 new AtMostOnceKafkaConsumerSourceSupplier(propertiesFactory, consumerData.getAddress(), dryRun);
         atLeastOnceKafkaConsumerSourceSupplier =
                 new AtLeastOnceKafkaConsumerSourceSupplier(propertiesFactory, consumerData.getAddress(), dryRun);
-        sourceEnforcementFilterFactory = SourceEnforcementFilterFactory.of(consumerData.getSource());
     }
 
     /**
@@ -65,7 +62,6 @@ final class KafkaConsumerStreamFactory {
     KafkaConsumerStreamFactory(final ConnectionThrottlingConfig throttlingConfig,
             final AtMostOnceKafkaConsumerSourceSupplier atMostOnceKafkaConsumerSourceSupplier,
             final AtLeastOnceKafkaConsumerSourceSupplier atLeastOnceKafkaConsumerSourceSupplier,
-            final SourceEnforcementFilterFactory sourceEnforcementFilterFactory,
             final ConsumerData consumerData,
             final boolean dryRun) {
 
@@ -75,7 +71,6 @@ final class KafkaConsumerStreamFactory {
         this.throttlingConfig = throttlingConfig;
         this.atMostOnceKafkaConsumerSourceSupplier = atMostOnceKafkaConsumerSourceSupplier;
         this.atLeastOnceKafkaConsumerSourceSupplier = atLeastOnceKafkaConsumerSourceSupplier;
-        this.sourceEnforcementFilterFactory = sourceEnforcementFilterFactory;
     }
 
     KafkaConsumerStream newAtMostOnceConsumerStream(
@@ -130,7 +125,6 @@ final class KafkaConsumerStreamFactory {
         final Source source = consumerData.getSource();
         final String address = consumerData.getAddress();
         return new KafkaMessageTransformer(connectionId, source, address,
-                sourceEnforcementFilterFactory,
                 inboundMonitor);
     }
 

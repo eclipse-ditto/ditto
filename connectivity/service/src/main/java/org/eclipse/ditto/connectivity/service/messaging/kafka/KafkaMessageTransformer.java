@@ -35,7 +35,7 @@ import org.eclipse.ditto.connectivity.api.ExternalMessageFactory;
 import org.eclipse.ditto.connectivity.model.ConnectionId;
 import org.eclipse.ditto.connectivity.model.Source;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.ConnectionMonitor;
-import org.eclipse.ditto.connectivity.service.util.SourceEnforcementFilterFactory;
+import org.eclipse.ditto.connectivity.service.SourceEnforcementFilterFactory;
 import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.pekko.logging.ThreadSafeDittoLogger;
 import org.eclipse.ditto.internal.utils.tracing.DittoTracing;
@@ -58,12 +58,11 @@ final class KafkaMessageTransformer {
     private final ConnectionMonitor inboundMonitor;
 
     KafkaMessageTransformer(final ConnectionId connectionId, final Source source, final String sourceAddress,
-            final SourceEnforcementFilterFactory sourceEnforcementFilterFactory,
             final ConnectionMonitor inboundMonitor) {
         this.connectionId = connectionId;
         this.source = source;
         this.sourceAddress = sourceAddress;
-        this.sourceEnforcementFilterFactory = sourceEnforcementFilterFactory;
+        this.sourceEnforcementFilterFactory = SourceEnforcementFilterFactory.of(source, sourceAddress);
         this.inboundMonitor = inboundMonitor;
     }
 
@@ -130,7 +129,7 @@ final class KafkaMessageTransformer {
             final ExternalMessage externalMessage = ExternalMessageFactory.newExternalMessageBuilder(messageHeaders)
                     .withTextAndBytes(ByteBufferUtils.toString(value, charset), value)
                     .withAuthorizationContext(source.getAuthorizationContext())
-                    .withEnforcement(sourceEnforcementFilterFactory.getFilter(messageHeaders, consumerRecord.topic()).orElse(null))
+                    .withEnforcement(sourceEnforcementFilterFactory.getFilter(messageHeaders))
                     .withHeaderMapping(source.getHeaderMapping())
                     .withSourceAddress(sourceAddress)
                     .withPayloadMapping(source.getPayloadMapping())
