@@ -83,6 +83,35 @@ public final class HonoValidatorTest {
     }
 
     @Test
+    public void validateWithValidSourceAddressEnforcementThrowsNoException() {
+        assertThatCode(
+                () -> underTest.validate(getConnectionWithSourceEnforcement(
+                                ConnectivityModelFactory.newEnforcement("{{ source:address }}",
+                                        "{{ thing:namespace }}.{{ thing:name }}")
+                        ),
+                        getDittoHeadersWithCorrelationId(),
+                        ACTOR_SYSTEM_RESOURCE.getActorSystem(),
+                        CONNECTIVITY_CONFIG)
+        ).doesNotThrowAnyException();
+    }
+
+    @Test
+    public void validateWithInvalidSourceAddressEnforcementThrowsException() {
+        final var dittoHeaders = getDittoHeadersWithCorrelationId();
+
+        assertThatExceptionOfType(ConnectionConfigurationInvalidException.class)
+                .isThrownBy(() -> underTest.validate(getConnectionWithSourceEnforcement(
+                                ConnectivityModelFactory.newEnforcement("{{ sorce:address }}", //misspelled source
+                                        "{{ thing:namespace }}.{{ thing:name }}")
+                        ),
+                        dittoHeaders,
+                        ACTOR_SYSTEM_RESOURCE.getActorSystem(),
+                        CONNECTIVITY_CONFIG))
+                .withCauseInstanceOf(UnresolvedPlaceholderException.class)
+                .satisfies(exception -> assertThat(exception.getDittoHeaders()).isEqualTo(dittoHeaders));
+    }
+
+    @Test
     public void validateWithInvalidMatcherThrowsException() {
         final var dittoHeaders = getDittoHeadersWithCorrelationId();
 
