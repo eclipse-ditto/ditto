@@ -360,7 +360,12 @@ final class PolicyTrie {
 
         final Set<JsonPointer> paths = getAccessiblePaths(jsonObject, subjectIds, permissions, currentPath);
         if (grantRevokeIndex.hasPermissions(subjectIds, permissions)) {
-            paths.add(currentPath);
+            if (paths.isEmpty()) {
+                return Collections.singleton(currentPath);
+            }
+            final Set<JsonPointer> pathsWithCurrent = new HashSet<>(paths);
+            pathsWithCurrent.add(currentPath);
+            return pathsWithCurrent;
         }
         return paths;
     }
