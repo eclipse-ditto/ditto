@@ -81,6 +81,34 @@ public class TrieBasedPolicyEnforcerTest {
                 .doesNotContain(someRevokedSubject);
     }
 
+    @Test
+    public void getAccessiblePathsHandlesGrantedNullObject() {
+        final AuthorizationSubject subject = AuthorizationSubject.newInstance("dummy:partial");
+        final Policy policy = Policy.newBuilder(PolicyId.of("namespace", "id"))
+                .forLabel("partial")
+                .setSubject(subject.getId(), SubjectType.GENERATED)
+                .setGrantedPermissions(
+                        PoliciesResourceType.thingResource("/features/TestFeature"),
+                        Permissions.newInstance("READ"))
+                .build();
+        final TrieBasedPolicyEnforcer underTest = TrieBasedPolicyEnforcer.newInstance(policy);
+        final JsonObject thingJson = JsonFactory.newObjectBuilder()
+                .set("features", JsonFactory.newObjectBuilder()
+                        .set("TestFeature", JsonFactory.nullObject())
+                        .build())
+                .build();
+        final AuthorizationContext authorizationContext = AuthorizationContext.newInstance(
+                DittoAuthorizationContextType.UNSPECIFIED, subject);
+
+        final Set<JsonPointer> accessiblePaths = underTest.getAccessiblePaths(
+                ResourceKey.newInstance("thing", "/"),
+                thingJson,
+                authorizationContext,
+                Permissions.newInstance("READ"));
+
+        assertThat(accessiblePaths).contains(JsonPointer.of("/features/TestFeature"));
+    }
+
     private static Policy defaultPolicy(final PolicyId policyId) {
         final Permissions permissions = Permissions.newInstance("READ", "WRITE");
         return PoliciesModelFactory.newPolicyBuilder(policyId)
