@@ -14,6 +14,7 @@ package org.eclipse.ditto.connectivity.model;
 
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
+import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -346,7 +347,9 @@ final class ImmutableFilteredTopic implements FilteredTopic {
 
         private String urlDecode(final String parameterName, final String value) {
             try {
-                return URLDecoder.decode(value, StandardCharsets.UTF_8);
+                return URLDecoder.decode(value, StandardCharsets.UTF_8.name());
+            } catch (final UnsupportedEncodingException e) {
+                return URLDecoder.decode(value);
             } catch (final IllegalArgumentException e) {
                 throw TopicParseException.newBuilder(filteredTopicString,
                                 "The query parameter '" + parameterName +
