@@ -892,10 +892,10 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
             final DittoHeaders dittoHeaders) {
         if (streamingType != StreamingType.EVENTS && streamingType != StreamingType.LIVE_EVENTS) {
             throw InvalidRqlExpressionException.newBuilder()
-                    .message("The 'change-filter' parameter is not supported when subscribing for messages " +
-                            "or live commands.")
+                    .message("The 'change-filter' parameter is only supported when subscribing for twin or " +
+                            "live events.")
                     .description("Messages and live commands carry no thing data to filter on - use 'filter' " +
-                            "instead. 'change-filter' is supported for twin and live events.")
+                            "instead.")
                     .dittoHeaders(dittoHeaders)
                     .build();
         }

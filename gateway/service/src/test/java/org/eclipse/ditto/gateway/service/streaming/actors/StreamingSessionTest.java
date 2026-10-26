@@ -29,6 +29,7 @@ import org.eclipse.ditto.protocol.placeholders.ResourcePlaceholder;
 import org.eclipse.ditto.rql.parser.RqlPredicateParser;
 import org.eclipse.ditto.rql.query.criteria.Criteria;
 import org.eclipse.ditto.rql.query.filter.QueryFilterCriteriaFactory;
+import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingFieldSelector;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.events.FeaturePropertyModified;
@@ -52,7 +53,7 @@ public final class StreamingSessionTest {
         final StreamingSession underTest = session(sameExpression, sameExpression);
         final FeaturePropertyModified event = featurePropertyModified("otherFeature");
 
-        assertThat(underTest.matchesChangeFilter(event)).isFalse();
+        assertThat(underTest.matchChangeFilter(event)).isEmpty();
         assertThat(underTest.matchesFilter(underTest.mergeThingWithExtra(event, EXTRA), event)).isTrue();
     }
 
@@ -60,16 +61,16 @@ public final class StreamingSessionTest {
     public void changeFilterMatchesWhenTheChangeContainsThePath() {
         final StreamingSession underTest = session(null, criteria("exists(features/specificFeature)"));
 
-        assertThat(underTest.matchesChangeFilter(featurePropertyModified("specificFeature"))).isTrue();
-        assertThat(underTest.matchesChangeFilter(featurePropertyModified("otherFeature"))).isFalse();
+        assertThat(underTest.matchChangeFilter(featurePropertyModified("specificFeature"))).isPresent();
+        assertThat(underTest.matchChangeFilter(featurePropertyModified("otherFeature"))).isEmpty();
     }
 
     @Test
     public void changeFilterMatchesThingMergedAtRootByItsPayload() {
         final StreamingSession underTest = session(null, criteria("exists(features/specificFeature)"));
 
-        assertThat(underTest.matchesChangeFilter(thingMergedAtRoot("specificFeature"))).isTrue();
-        assertThat(underTest.matchesChangeFilter(thingMergedAtRoot("otherFeature"))).isFalse();
+        assertThat(underTest.matchChangeFilter(thingMergedAtRoot("specificFeature"))).isPresent();
+        assertThat(underTest.matchChangeFilter(thingMergedAtRoot("otherFeature"))).isEmpty();
     }
 
     @Test
@@ -78,13 +79,37 @@ public final class StreamingSessionTest {
                 criteria("exists(features/otherFeature)"));
         final FeaturePropertyModified event = featurePropertyModified("otherFeature");
 
-        assertThat(underTest.matchesChangeFilter(event)).isTrue();
-        assertThat(underTest.matchesFilter(underTest.mergeThingWithExtra(event, EXTRA), event)).isTrue();
+        final Thing changedThing = underTest.matchChangeFilter(event).orElseThrow();
+        assertThat(underTest.matchesFilter(underTest.mergeThingWithExtra(event, changedThing, EXTRA), event))
+                .isTrue();
+    }
+
+    @Test
+    public void mergingTheChangedThingEqualsMergingTheSignal() {
+        final StreamingSession underTest = session(null, criteria("exists(features/otherFeature)"));
+        final FeaturePropertyModified event = featurePropertyModified("otherFeature");
+
+        final Thing changedThing = underTest.matchChangeFilter(event).orElseThrow();
+
+        assertThat(underTest.mergeThingWithExtra(event, changedThing, EXTRA))
+                .isEqualTo(underTest.mergeThingWithExtra(event, EXTRA));
+        assertThat(underTest.mergeThingWithExtra(event, null, EXTRA))
+                .isEqualTo(underTest.mergeThingWithExtra(event, EXTRA));
+    }
+
+    @Test
+    public void failingChangeFilterEvaluationIsTreatedAsNonMatch() {
+        final Criteria failingCriteria = Mockito.mock(Criteria.class);
+        Mockito.when(failingCriteria.accept(Mockito.any())).thenThrow(new IllegalStateException("boom"));
+        final StreamingSession underTest = StreamingSession.of(List.of(), null, failingCriteria, EXTRA_FIELDS,
+                ActorRef.noSender(), Mockito.mock(ThreadSafeDittoLoggingAdapter.class, Mockito.RETURNS_SELF));
+
+        assertThat(underTest.matchChangeFilter(featurePropertyModified("otherFeature"))).isEmpty();
     }
 
     @Test
     public void absentChangeFilterMatchesEverything() {
-        assertThat(session(null, null).matchesChangeFilter(featurePropertyModified("otherFeature"))).isTrue();
+        assertThat(session(null, null).matchChangeFilter(featurePropertyModified("otherFeature"))).isPresent();
     }
 
     private static StreamingSession session(@Nullable final Criteria filter,

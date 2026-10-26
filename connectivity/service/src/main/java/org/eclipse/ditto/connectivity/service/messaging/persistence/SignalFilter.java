@@ -194,8 +194,9 @@ public final class SignalFilter {
             return true;
         }
         final List<PlaceholderResolver<?>> placeholderResolvers = getPlaceholderResolvers(signal);
-        if (changeFilterOptional.isPresent() &&
-                !matchesChangeFilter(changeFilterOptional.get(), signal, placeholderResolvers)) {
+        final Optional<Thing> thingFromSignal = thingFromSignal(signal);
+        if (changeFilterOptional.isPresent() && !matchesChangeFilter(changeFilterOptional.get(), signal,
+                thingFromSignal.orElseGet(() -> Thing.newBuilder().build()), placeholderResolvers)) {
             return false;
         }
         if (filterOptional.isEmpty()) {
@@ -203,37 +204,42 @@ public final class SignalFilter {
         }
 
         // match the RQL filter ignoring "extraFields"
-        final Optional<Thing> thingToMatch = thingFromSignal(signal);
-        if (thingToMatch.isEmpty()) {
+        if (thingFromSignal.isEmpty()) {
             return false;
         }
+        final Thing thingToMatch = thingFromSignal.get();
         final Set<JsonPointer> extraFields = filteredTopic.getExtraFields()
                 .map(JsonFieldSelector::getPointers)
                 .orElse(Collections.emptySet());
         final Criteria criteria = parseCriteria(filterOptional.get(), signal.getDittoHeaders(), placeholderResolvers);
-        return Thing3ValuePredicateVisitor.couldBeTrue(criteria, extraFields, thingToMatch.get(),
+        return Thing3ValuePredicateVisitor.couldBeTrue(criteria, extraFields, thingToMatch,
                 placeholderResolvers);
     }
 
     /**
      * Evaluates an RQL {@code change-filter} against the thing data carried by the signal only, never against
-     * {@code extraFields}. A signal without convertible thing data is evaluated against an empty thing, so that
-     * terms on placeholders still apply.
+     * {@code extraFields}.
      *
      * @param changeFilter the RQL expression of the change filter.
      * @param signal the signal to evaluate the change filter for.
+     * @param changedThing the thing data carried by the signal, see {@link #getChangedThing(Signal)}.
+     * @param placeholderResolvers the placeholder resolvers of the signal, see {@link #getPlaceholderResolvers(Signal)}.
      * @return whether the signal matches the change filter.
      * @throws org.eclipse.ditto.base.model.exceptions.InvalidRqlExpressionException if the change filter is invalid
      */
-    public static boolean matchesChangeFilter(final String changeFilter, final Signal<?> signal) {
-        return matchesChangeFilter(changeFilter, signal, getPlaceholderResolvers(signal));
+    public static boolean matchesChangeFilter(final String changeFilter, final Signal<?> signal,
+            final Thing changedThing, final List<PlaceholderResolver<?>> placeholderResolvers) {
+        final Criteria criteria = parseCriteria(changeFilter, signal.getDittoHeaders(), placeholderResolvers);
+        return ThingPredicateVisitor.apply(criteria, placeholderResolvers).test(changedThing);
     }
 
-    private static boolean matchesChangeFilter(final String changeFilter, final Signal<?> signal,
-            final List<PlaceholderResolver<?>> placeholderResolvers) {
-        final Thing thingToMatch = thingFromSignal(signal).orElseGet(() -> Thing.newBuilder().build());
-        final Criteria criteria = parseCriteria(changeFilter, signal.getDittoHeaders(), placeholderResolvers);
-        return ThingPredicateVisitor.apply(criteria, placeholderResolvers).test(thingToMatch);
+    /**
+     * @param signal the signal.
+     * @return the thing data carried by the signal, or an empty thing if it carries none, so that terms on
+     * placeholders still apply.
+     */
+    public static Thing getChangedThing(final Signal<?> signal) {
+        return thingFromSignal(signal).orElseGet(() -> Thing.newBuilder().build());
     }
 
     private static Optional<Thing> thingFromSignal(final Signal<?> signal) {
@@ -243,7 +249,12 @@ public final class SignalFilter {
         return Optional.of(Thing.newBuilder().build());
     }
 
-    private static List<PlaceholderResolver<?>> getPlaceholderResolvers(final Signal<?> signal) {
+    /**
+     * @param signal the signal.
+     * @return the placeholder resolvers available to the RQL {@code filter} and {@code change-filter} of a target
+     * topic, without {@code thing-json}, which needs the enriched thing.
+     */
+    public static List<PlaceholderResolver<?>> getPlaceholderResolvers(final Signal<?> signal) {
         @Nullable final EntityId entityId = signal instanceof WithEntityId withEntityId
                 ? withEntityId.getEntityId()
                 : null;

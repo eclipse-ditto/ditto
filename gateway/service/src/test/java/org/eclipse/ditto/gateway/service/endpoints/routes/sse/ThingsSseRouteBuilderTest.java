@@ -101,6 +101,7 @@ public final class ThingsSseRouteBuilderTest extends EndpointTestBase {
     private CharSequence connectionCorrelationId;
     private TestProbe streamingActor;
     private TestRoute underTest;
+    private TestRoute underTestWithExceptionHandling;
     private TestProbe proxyActor;
 
     @BeforeClass
@@ -130,6 +131,7 @@ public final class ThingsSseRouteBuilderTest extends EndpointTestBase {
         sseRouteBuilder.withProxyActor(proxyActor.ref());
         final Route sseRoute = extractRequestContext(ctx -> sseRouteBuilder.build(ctx, dittoHeadersSupplier));
         underTest = testRoute(sseRoute);
+        underTestWithExceptionHandling = testRoute(handleExceptions(() -> sseRoute));
     }
 
     @Test
@@ -362,6 +364,17 @@ public final class ThingsSseRouteBuilderTest extends EndpointTestBase {
     @Test
     public void historicalStreamWithChangeFilterOnlyUsesIt() {
         assertHistoricalFilter("?from-historical-revision=1&change-filter=exists(features/f)", "exists(features/f)");
+    }
+
+    @Test
+    public void historicalStreamRejectsPlaceholderTerms() {
+        for (final String query : List.of(
+                "?from-historical-revision=1&change-filter=eq(topic:action,'deleted')",
+                "?from-historical-timestamp=2026-10-26T00:00:00Z&filter=like(resource:path,'/features/f*')")) {
+            underTestWithExceptionHandling.run(HttpRequest.GET(THINGS_ROUTE + "/org.eclipse.ditto:my-thing-1" + query)
+                            .addHeader(acceptHeader))
+                    .assertStatusCode(StatusCodes.BAD_REQUEST);
+        }
     }
 
     private void assertHistoricalFilter(final String query, final String expectedFilter) {
