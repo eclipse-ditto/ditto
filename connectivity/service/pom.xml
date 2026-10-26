@@ -338,6 +338,8 @@ jmh-generator-annprocess). jmh-generator-annprocess overwrites the whole META-IN
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
                 <configuration>
+                    <!-- 'release' does not allow exporting packages of system modules, so fall back to source/target -->
+                    <release combine.self="override"/>
                     <compilerArgs>
                         <!-- needed for HostnameChecker -->
                         <arg>--add-exports</arg>

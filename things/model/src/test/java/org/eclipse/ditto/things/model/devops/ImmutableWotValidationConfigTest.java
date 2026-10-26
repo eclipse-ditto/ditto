@@ -395,15 +395,15 @@ class ImmutableWotValidationConfigTest {
                 WotValidationConfigRevision.of(529L), created, modified, false, null
         );
 
-        assertEquals(created, config.getCreated().orElseThrow());
-        assertEquals(modified, config.getModified().orElseThrow());
+        assertEquals(created, config.getCreated().get());
+        assertEquals(modified, config.getModified().get());
 
         final JsonObject json = config.toJson();
-        assertEquals(created.toString(), json.getValue("_created").orElseThrow().asString());
-        assertEquals(modified.toString(), json.getValue("_modified").orElseThrow().asString());
+        assertEquals(created.toString(), json.getValue("_created").get().asString());
+        assertEquals(modified.toString(), json.getValue("_modified").get().asString());
 
         final ImmutableWotValidationConfig parsed = ImmutableWotValidationConfig.fromJson(json);
-        assertEquals(created, parsed.getCreated().orElseThrow());
-        assertEquals(modified, parsed.getModified().orElseThrow());
+        assertEquals(created, parsed.getCreated().get());
+        assertEquals(modified, parsed.getModified().get());
     }
 }
