@@ -32,7 +32,7 @@
     "ace-diff": "4.0.0",
     "bootstrap": "^5.3.8",
     "bootstrap-icons": "^1.13.1",
-    "dompurify": "^3.4.15",
+    "dompurify": "^3.4.16",
     "event-source-polyfill": "^1.0.31",
     "jsonpath-plus": "^10.4.0",
     "oidc-client-ts": "^3.5.0",
