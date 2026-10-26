@@ -189,6 +189,9 @@
                     <configuration>
                         <source>${javac.source}</source>
                         <target>${javac.target}</target>
+                        <!-- 'release' also restricts the usable JDK API to the target version, so e.g. a Java 10 API
+                             used in a Java 8 module fails the build instead of failing at runtime on a Java 8 JVM -->
+                        <release>${javac.target}</release>
                         <encoding>${project.build.sourceEncoding}</encoding>
                         <!-- Explicit annotation processor configuration required for JDK 23+
                              (JDK-8321319 disabled automatic discovery for security reasons) -->
@@ -928,6 +931,7 @@
                         <configuration>
                             <source>${javac.source}</source>
                             <target>${javac.target}</target>
+                            <release>${javac.target}</release>
                             <encoding>${project.build.sourceEncoding}</encoding>
                             <showDeprecation>true</showDeprecation>
                             <!-- Explicit annotation processor configuration required for JDK 23+
