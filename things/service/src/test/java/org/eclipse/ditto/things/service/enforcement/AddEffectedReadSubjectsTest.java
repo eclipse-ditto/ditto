@@ -67,8 +67,9 @@ public final class AddEffectedReadSubjectsTest {
         final PolicyEnforcer policyEnforcer = PolicyEnforcer.of(policy());
         final AttributeModified event = attributeModified("x");
 
-        final Set<AuthorizationSubject> actual = readGrantedSubjects(
-                ThingCommandEnforcement.addEffectedReadSubjectsToThingSignal(event, policyEnforcer, true));
+        final AttributeModified enriched =
+                ThingCommandEnforcement.addEffectedReadSubjectsToThingSignal(event, policyEnforcer, true);
+        final Set<AuthorizationSubject> actual = readGrantedSubjects(enriched);
 
         assertThat(actual).isEqualTo(legacyReadSubjects(policyEnforcer.getEnforcer(), event, true));
         // sanity: at /attributes/x the unrestricted readers are alice+bob; carol is only a partial (root) reader
@@ -83,8 +84,9 @@ public final class AddEffectedReadSubjectsTest {
         final PolicyEnforcer policyEnforcer = PolicyEnforcer.of(policy());
         final AttributeModified event = attributeModified("x");
 
-        final Set<AuthorizationSubject> actual = readGrantedSubjects(
-                ThingCommandEnforcement.addEffectedReadSubjectsToThingSignal(event, policyEnforcer, false));
+        final AttributeModified enriched =
+                ThingCommandEnforcement.addEffectedReadSubjectsToThingSignal(event, policyEnforcer, false);
+        final Set<AuthorizationSubject> actual = readGrantedSubjects(enriched);
 
         assertThat(actual).isEqualTo(legacyReadSubjects(policyEnforcer.getEnforcer(), event, false));
         // without partial subjects only root-unrestricted readers (alice) are granted

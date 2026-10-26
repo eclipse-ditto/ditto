@@ -118,7 +118,12 @@ public final class ThingEventEnricher {
             final T withDittoHeaders
     ) {
         // Cache thing.toJson() once to avoid redundant serialization across all enrichment steps
-        final JsonObject thingJson = thing != null ? thing.toJson() : null;
+        final JsonObject thingJson;
+        try {
+            thingJson = thing != null ? thing.toJson() : null;
+        } catch (final RuntimeException e) {
+            return CompletableFuture.failedFuture(e);
+        }
 
         final CompletionStage<T> partialAccessPathsStage =
                 enrichWithPartialAccessPathsIfNecessary(withDittoHeaders, thing, policyId, thingJson);
@@ -310,10 +315,7 @@ public final class ThingEventEnricher {
         final JsonObject effectiveThingJson = thingJson != null ? thingJson : thing.toJson();
         return getPolicyEnforcerSafely(policyId).thenApply(policyEnforcerOpt -> {
                     if (policyEnforcerOpt.isEmpty()) {
-                        LOGGER.withCorrelationId(dittoHeaders)
-                                .warn("No policy enforcer found for policyId: {}, returning empty partial access paths",
-                                        policyId);
-                        return createEmptyPartialAccessPathsJson();
+                        throw new IllegalStateException("No policy enforcer found for policyId: " + policyId);
                     }
                     final PolicyEnforcer policyEnforcer = policyEnforcerOpt.get();
 
