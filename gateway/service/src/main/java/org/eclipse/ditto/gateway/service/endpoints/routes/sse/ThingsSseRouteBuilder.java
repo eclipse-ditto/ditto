@@ -67,6 +67,7 @@ import org.apache.pekko.stream.javadsl.Source;
 import org.eclipse.ditto.base.model.auth.AuthorizationContext;
 import org.eclipse.ditto.base.model.exceptions.DittoJsonException;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.base.model.exceptions.InvalidRqlExpressionException;
 import org.eclipse.ditto.base.model.exceptions.SignalEnrichmentFailedException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.translator.HeaderTranslator;
@@ -143,6 +144,9 @@ public final class ThingsSseRouteBuilder extends RouteDirectives implements SseR
 
     private static final String STREAMING_TYPE_SSE = "SSE";
     private static final String LAST_EVENT_ID_HEADER = "Last-Event-ID";
+
+    private static final QueryFilterCriteriaFactory HISTORICAL_QUERY_FILTER_CRITERIA_FACTORY =
+            QueryFilterCriteriaFactory.modelBased(RqlPredicateParser.getInstance());
 
     private static final String PARAM_FILTER = "filter";
     private static final String PARAM_CHANGE_FILTER = "change-filter";
@@ -422,6 +426,10 @@ public final class ThingsSseRouteBuilder extends RouteDirectives implements SseR
                         // historical events are never enriched, so both filters see the same data
                         @Nullable final String historicalFilterString =
                                 andFilters(filterString, changeFilterString);
+                        if (historicalFilterString != null &&
+                                (null != fromHistoricalRevision || null != fromHistoricalTimestamp)) {
+                            validateHistoricalFilter(historicalFilterString, dittoHeaders);
+                        }
 
                         final String connectionCorrelationId = dittoHeaders.getCorrelationId()
                                 .orElseThrow(() -> new IllegalStateException(
@@ -736,7 +744,6 @@ public final class ThingsSseRouteBuilder extends RouteDirectives implements SseR
                     targetThingIdMatches(event, targetThingIds)) {
                 sessionStatistics.signalTargeted();
                 return jsonifiable.getSession()
-                        .filter(session -> session.matchesChangeFilter(event))
                         .map(session -> {
                             final AuthorizationContext subscriberAuthContext = jsonifiable.getSessionAuthorizationContext()
                                     .orElse(null);
@@ -749,9 +756,19 @@ public final class ThingsSseRouteBuilder extends RouteDirectives implements SseR
                             }
                             final ReadableSignalView view = readableView.get();
                             final ThingEvent<?> readable = (ThingEvent<?>) view.getSignal();
+                            @Nullable final Thing changedThing;
+                            if (session.hasChangeFilter()) {
+                                changedThing = session.matchChangeFilter(readable).orElse(null);
+                                if (changedThing == null) {
+                                    sessionStatistics.signalFilteredOut();
+                                    return emptySupplier.get();
+                                }
+                            } else {
+                                changedThing = null;
+                            }
                             return jsonifiable.retrieveExtraFields(facade, readable)
-                                    .thenApply(extra -> Optional.of(
-                                                    session.mergeThingWithExtra(readable, view.filterThingJson(extra)))
+                                    .thenApply(extra -> Optional.of(session.mergeThingWithExtra(readable, changedThing,
+                                                    view.filterThingJson(extra)))
                                             .filter(thing -> {
                                                 final boolean matches = session.matchesFilter(thing, readable);
                                                 if (!matches) {
@@ -782,6 +799,24 @@ public final class ThingsSseRouteBuilder extends RouteDirectives implements SseR
             }
         }
         return emptySupplier.get();
+    }
+
+    /**
+     * The things service evaluates the filter of historical events without placeholders and drops every event if it
+     * cannot be parsed, so a term on a placeholder is rejected here.
+     */
+    private static void validateHistoricalFilter(final String historicalFilter, final DittoHeaders dittoHeaders) {
+        try {
+            HISTORICAL_QUERY_FILTER_CRITERIA_FACTORY.filterCriteria(historicalFilter, dittoHeaders);
+        } catch (final InvalidRqlExpressionException e) {
+            throw InvalidRqlExpressionException.newBuilder()
+                    .message(e.getMessage())
+                    .description("Filtering historical events only supports terms on Thing data, not on " +
+                            "placeholders such as 'topic:action' or 'resource:path'.")
+                    .cause(e)
+                    .dittoHeaders(dittoHeaders)
+                    .build();
+        }
     }
 
     @Nullable

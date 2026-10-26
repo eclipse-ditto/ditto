@@ -132,7 +132,7 @@ curl --http2 -u ditto:ditto -H 'Accept:text/event-stream' -N \
 
 A [`change-filter`](basic-changenotifications.html#filter-by-change) may be given as well; historical events are not
 enriched, so it is combined with `filter` (AND). Both only support terms on Thing data here -- a term on a
-placeholder such as `topic:action` or `resource:path` matches no historical event.
+placeholder such as `topic:action` or `resource:path` is rejected with status `400`.
 
 ### Streaming via Ditto Protocol
 

@@ -103,8 +103,11 @@ With `filter=exists(features/temperature)` instead, every event of a Thing which
 would be delivered, because the enriched feature always exists.
 
 `change-filter` is supported for twin events by the WebSocket API, SSE and connection target topics, and for
-live events by the WebSocket API and connection target topics. It resolves the same placeholders as `filter`. Without `extraFields` it behaves like `filter`. It is rejected
-for messages and live commands, which carry no Thing data -- use `filter` there.
+live events by the WebSocket API and connection target topics. It resolves the same placeholders as `filter`.
+Without `extraFields` it sees the same Thing data as `filter`, except for events which carry no Thing data (see
+below): `change-filter` evaluates them against an empty Thing, so that placeholder terms still apply, while the
+`filter` of a connection target drops them. It is rejected for messages and live commands, which carry no Thing
+data -- use `filter` there.
 Events of `PATCH` requests (`merged`) are matched by the merged payload, so
 `change-filter=exists(features/temperature)` also works where `resource:path` is just `/`.
 
@@ -112,7 +115,9 @@ Events of `PATCH` requests (`merged`) are matched by the merged payload, so
 is not visible to data terms such as `exists(...)`, and a property set to `null` by a merge is not visible on its own
 path (`exists(features/temperature/properties/value)`), only its parent objects are. Changes of a feature's
 definition carry no Thing data either. To also be notified about those, add a placeholder term, e.g.
-`change-filter=or(exists(features/temperature),and(eq(topic:action,'deleted'),like(resource:path,'/features/temperature*')))`." %}
+`change-filter=or(exists(features/temperature),and(eq(topic:action,'deleted'),like(resource:path,'/features/temperature*')))`.
+This does not cover a feature removed by a merge on a higher level, e.g. `PATCH /things/{thingId}` with
+`{\"features\":{\"temperature\":null}}`: its `merged` event at `resource:path` `/` matches none of the terms." %}
 
 ### Filter by placeholder pipeline (connections only)
 

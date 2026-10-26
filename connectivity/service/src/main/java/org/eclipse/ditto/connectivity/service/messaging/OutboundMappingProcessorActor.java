@@ -60,7 +60,6 @@ import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.base.model.signals.Signal;
-import org.eclipse.ditto.base.model.signals.WithResource;
 import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
 import org.eclipse.ditto.base.model.signals.acks.Acknowledgements;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
@@ -90,10 +89,7 @@ import org.eclipse.ditto.connectivity.service.messaging.persistence.SignalFilter
 import org.eclipse.ditto.connectivity.service.messaging.validation.ConnectionValidator;
 import org.eclipse.ditto.connectivity.service.util.ConnectivityMdcEntryKey;
 import org.eclipse.ditto.edge.service.headers.DittoHeadersValidator;
-import org.eclipse.ditto.edge.service.placeholders.EntityIdPlaceholder;
-import org.eclipse.ditto.edge.service.placeholders.FeaturePlaceholder;
 import org.eclipse.ditto.edge.service.placeholders.ThingJsonPlaceholder;
-import org.eclipse.ditto.edge.service.placeholders.ThingPlaceholder;
 import org.eclipse.ditto.internal.models.signalenrichment.SignalEnrichmentFacade;
 import org.eclipse.ditto.internal.utils.config.ScopedConfig;
 import org.eclipse.ditto.internal.utils.pekko.controlflow.AbstractGraphActor;
@@ -110,11 +106,7 @@ import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.placeholders.ExpressionResolver;
 import org.eclipse.ditto.placeholders.PlaceholderFactory;
 import org.eclipse.ditto.placeholders.PlaceholderResolver;
-import org.eclipse.ditto.placeholders.TimePlaceholder;
 import org.eclipse.ditto.protocol.TopicPath;
-import org.eclipse.ditto.protocol.adapter.DittoProtocolAdapter;
-import org.eclipse.ditto.protocol.placeholders.ResourcePlaceholder;
-import org.eclipse.ditto.protocol.placeholders.TopicPathPlaceholder;
 import org.eclipse.ditto.rql.parser.RqlPredicateParser;
 import org.eclipse.ditto.rql.query.criteria.Criteria;
 import org.eclipse.ditto.rql.query.filter.QueryFilterCriteriaFactory;
@@ -145,13 +137,6 @@ public final class OutboundMappingProcessorActor
      */
     private static final String MESSAGE_MAPPING_PROCESSOR_DISPATCHER = "message-mapping-processor-dispatcher";
 
-    private static final DittoProtocolAdapter DITTO_PROTOCOL_ADAPTER = DittoProtocolAdapter.newInstance();
-    private static final TopicPathPlaceholder TOPIC_PATH_PLACEHOLDER = TopicPathPlaceholder.getInstance();
-    private static final EntityIdPlaceholder ENTITY_ID_PLACEHOLDER = EntityIdPlaceholder.getInstance();
-    private static final ThingPlaceholder THING_PLACEHOLDER = ThingPlaceholder.getInstance();
-    private static final FeaturePlaceholder FEATURE_PLACEHOLDER = FeaturePlaceholder.getInstance();
-    private static final ResourcePlaceholder RESOURCE_PLACEHOLDER = ResourcePlaceholder.getInstance();
-    private static final TimePlaceholder TIME_PLACEHOLDER = TimePlaceholder.getInstance();
     private static final ThingJsonPlaceholder THING_JSON_PLACEHOLDER = ThingJsonPlaceholder.getInstance();
 
     private final ActorRef clientActor;
@@ -504,6 +489,12 @@ public final class OutboundMappingProcessorActor
                             final Thing enrichedThing = ThingEventToThingConverter.mergeThingWithExtraFields(
                                             readableSource, allExtraFieldsOptional.get(), readableExtra)
                                     .orElse(null);
+                            final List<PlaceholderResolver<?>> placeholderResolvers =
+                                    SignalFilter.getPlaceholderResolvers(readableSource);
+                            @Nullable final Thing changedThing =
+                                    topics.stream().anyMatch(t -> t.getChangeFilter().isPresent())
+                                            ? SignalFilter.getChangedThing(readableSource)
+                                            : null;
                             return topics.stream()
                                     .sorted(Comparator.comparing((FilteredTopic t) -> t.getExtraFields().isEmpty())
                                             .thenComparing(t ->
@@ -511,7 +502,7 @@ public final class OutboundMappingProcessorActor
                                             .thenComparing(FilteredTopic::toString))
                                     .filter(_ -> enrichedThing != null || topicWithoutThingFilterExists)
                                     .flatMap(topic -> applyFilter(outboundSignal, readableSource, enrichedThing,
-                                            topic)
+                                            changedThing, placeholderResolvers, topic)
                                             .map(signal -> enrichWithNeededExtra(signal, topic, expressionResolver,
                                                     readableExtra))
                                             .stream())
@@ -866,9 +857,10 @@ public final class OutboundMappingProcessorActor
     private Optional<OutboundSignalWithSender> applyFilter(final OutboundSignalWithSender outboundSignal,
             final Signal<?> signal,
             @Nullable final Thing thing,
+            @Nullable final Thing changedThing,
+            final List<PlaceholderResolver<?>> placeholderResolvers,
             final FilteredTopic topic) {
 
-        final TopicPath topicPath = DITTO_PROTOCOL_ADAPTER.toTopicPath(signal);
 
         // all fn-filters of the topic must match (AND); the first non-match or failure decides
         for (final String fnFilter : topic.getFnFilters()) {
@@ -878,7 +870,8 @@ public final class OutboundMappingProcessorActor
         }
         // a target passes SignalFilter if any of its topics matches, so the change-filter is re-evaluated per topic
         final Optional<String> changeFilter = topic.getChangeFilter();
-        if (changeFilter.isPresent() && !SignalFilter.matchesChangeFilter(changeFilter.get(), signal)) {
+        if (changeFilter.isPresent() && null != changedThing &&
+                !SignalFilter.matchesChangeFilter(changeFilter.get(), signal, changedThing, placeholderResolvers)) {
             return Optional.empty();
         }
 
@@ -892,34 +885,13 @@ public final class OutboundMappingProcessorActor
             return Optional.empty();
         }
         // evaluate the RQL filter criteria again since signal enrichment is involved.
-        final PlaceholderResolver<TopicPath> topicPathPlaceholderResolver = PlaceholderFactory
-                .newPlaceholderResolver(TOPIC_PATH_PLACEHOLDER, topicPath);
-        final PlaceholderResolver<EntityId> entityIdPlaceholderResolver = PlaceholderFactory
-                .newPlaceholderResolver(ENTITY_ID_PLACEHOLDER,
-                        (signal instanceof WithEntityId withEntityId) ? withEntityId.getEntityId() : null);
-        final PlaceholderResolver<EntityId> thingPlaceholderResolver = PlaceholderFactory
-                .newPlaceholderResolver(THING_PLACEHOLDER,
-                        (signal instanceof WithEntityId withEntityId) ? withEntityId.getEntityId() : null);
-        final PlaceholderResolver<Signal<?>> featurePlaceholderResolver = PlaceholderFactory
-                .newPlaceholderResolver(FEATURE_PLACEHOLDER, signal);
-        final PlaceholderResolver<WithResource> resourcePlaceholderResolver = PlaceholderFactory
-                .newPlaceholderResolver(RESOURCE_PLACEHOLDER, signal);
-        final PlaceholderResolver<Object> timePlaceholderResolver = PlaceholderFactory
-                .newPlaceholderResolver(TIME_PLACEHOLDER, new Object());
-        final DittoHeaders dittoHeaders = signal.getDittoHeaders();
         final Criteria criteria = QueryFilterCriteriaFactory.modelBased(RqlPredicateParser.getInstance(),
-                topicPathPlaceholderResolver, entityIdPlaceholderResolver, thingPlaceholderResolver,
-                featurePlaceholderResolver, resourcePlaceholderResolver, timePlaceholderResolver
-        ).filterCriteria(filter.get(), dittoHeaders);
-        final PlaceholderResolver<Thing> thingJsonPlaceholderResolver = PlaceholderFactory
-                .newPlaceholderResolver(THING_JSON_PLACEHOLDER, thing);
+                placeholderResolvers.toArray(PlaceholderResolver<?>[]::new)
+        ).filterCriteria(filter.get(), signal.getDittoHeaders());
+        final List<PlaceholderResolver<?>> resolversWithThingJson = new ArrayList<>(placeholderResolvers);
+        resolversWithThingJson.add(PlaceholderFactory.newPlaceholderResolver(THING_JSON_PLACEHOLDER, thing));
         return Optional.of(outboundSignal)
-                .filter(_ -> ThingPredicateVisitor
-                        .apply(criteria, topicPathPlaceholderResolver,
-                                entityIdPlaceholderResolver, thingPlaceholderResolver,
-                                featurePlaceholderResolver, resourcePlaceholderResolver,
-                                timePlaceholderResolver, thingJsonPlaceholderResolver)
-                        .test(thing));
+                .filter(_ -> ThingPredicateVisitor.apply(criteria, resolversWithThingJson).test(thing));
     }
 
     private static boolean topicMatchesTopicPath(final TopicPath topicPath, final Topic topic) {

@@ -35,6 +35,7 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.protocol.adapter.DittoProtocolAdapter;
+import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.events.FeaturePropertyModified;
 import org.junit.Test;
@@ -95,7 +96,9 @@ public final class WebSocketRouteChangeFilterTest extends EndpointTestBase {
     private static SessionedJsonifiable sessioned(final FeaturePropertyModified event,
             final boolean matchesChangeFilter, final TestKit sessionActor) {
         final StreamingSession session = Mockito.mock(StreamingSession.class);
-        Mockito.when(session.matchesChangeFilter(event)).thenReturn(matchesChangeFilter);
+        Mockito.when(session.hasChangeFilter()).thenReturn(true);
+        Mockito.when(session.matchChangeFilter(event))
+                .thenReturn(matchesChangeFilter ? Optional.of(Thing.newBuilder().build()) : Optional.empty());
         Mockito.when(session.getStreamingSessionActor()).thenReturn(sessionActor.getRef());
         final SessionedJsonifiable sessionedJsonifiable = Mockito.mock(SessionedJsonifiable.class);
         Mockito.when(sessionedJsonifiable.getJsonifiable()).thenReturn(event);

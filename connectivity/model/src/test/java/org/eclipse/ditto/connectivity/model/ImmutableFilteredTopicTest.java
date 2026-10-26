@@ -454,7 +454,7 @@ public final class ImmutableFilteredTopicTest {
                 .withNamespaces(NAMESPACES)
                 .withFilter(FILTER_EXAMPLE)
                 .withChangeFilter(CHANGE_FILTER_EXAMPLE)
-                .withFnFilters(List.of(FN_FILTER_EXAMPLE))
+                .withFnFilters(Collections.singletonList(FN_FILTER_EXAMPLE))
                 .withExtraFields(EXTRA_FIELDS)
                 .build();
 
