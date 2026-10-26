@@ -251,12 +251,12 @@ final class PolicyTrie {
         return outputObjectBuilder.build();
     }
 
-    Set<JsonPointer> getAccessiblePaths(final Iterable<JsonField> jsonFields,
+    HashSet<JsonPointer> getAccessiblePaths(final Iterable<JsonField> jsonFields,
             final Collection<String> subjectIds, final Permissions permissions, final JsonPointer basePath) {
 
         final PolicyTrie defaultPolicyTrie = new PolicyTrie(grantRevokeIndex, Collections.emptyMap());
 
-        final Set<JsonPointer> accessiblePaths = new HashSet<>();
+        final HashSet<JsonPointer> accessiblePaths = new HashSet<>();
         for (final JsonField field : jsonFields) {
             final JsonPointer fieldPath = basePath.isEmpty()
                     ? JsonPointer.of("/" + field.getKey())
@@ -354,8 +354,7 @@ final class PolicyTrie {
     private Set<JsonPointer> getPathsForJsonObjectOrEmpty(final Iterable<JsonField> jsonObject,
             final Collection<String> subjectIds, final Permissions permissions, final JsonPointer currentPath) {
 
-        final Set<JsonPointer> paths = new HashSet<>(
-                getAccessiblePaths(jsonObject, subjectIds, permissions, currentPath));
+        final HashSet<JsonPointer> paths = getAccessiblePaths(jsonObject, subjectIds, permissions, currentPath);
         if (!jsonObject.iterator().hasNext() && grantRevokeIndex.hasPermissions(subjectIds, permissions)) {
             paths.add(currentPath);
         }
