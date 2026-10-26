@@ -105,6 +105,37 @@ public class TrieBasedPolicyEnforcerTest {
     }
 
     @Test
+    public void getAccessiblePathsExcludesGrantedParentWithRevokedChild() {
+        final AuthorizationSubject subject = AuthorizationSubject.newInstance("dummy:partial");
+        final Policy policy = Policy.newBuilder(PolicyId.of("namespace", "id"))
+                .forLabel("partial")
+                .setSubject(subject.getId(), SubjectType.GENERATED)
+                .setGrantedPermissions(PoliciesResourceType.thingResource("/features/f1"),
+                        Permissions.newInstance("READ"))
+                .setRevokedPermissions(PoliciesResourceType.thingResource("/features/f1/properties/secret"),
+                        Permissions.newInstance("READ"))
+                .build();
+        final JsonObject thingJson = JsonFactory.newObjectBuilder()
+                .set("features", JsonFactory.newObjectBuilder()
+                        .set("f1", JsonFactory.newObjectBuilder()
+                                .set("properties", JsonFactory.newObjectBuilder()
+                                        .set("secret", JsonFactory.newValue("secret-value"))
+                                        .set("ok", JsonFactory.newValue("ok-value"))
+                                        .build())
+                                .build())
+                        .build())
+                .build();
+        final ResourceKey resourceKey = ResourceKey.newInstance("thing", "/");
+        final Set<JsonPointer> triePaths = accessiblePaths(
+                PolicyEnforcers.throughputOptimizedEvaluator(policy), resourceKey, thingJson, subject);
+        final Set<JsonPointer> treePaths = accessiblePaths(
+                PolicyEnforcers.memoryOptimizedEvaluator(policy), resourceKey, thingJson, subject);
+
+        assertThat(triePaths).containsExactly(JsonPointer.of("/features/f1/properties/ok"));
+        assertThat(triePaths).isEqualTo(treePaths);
+    }
+
+    @Test
     public void getAccessiblePathsReturnsNoPathForNullObjectWithoutGrant() {
         final AuthorizationSubject subject = AuthorizationSubject.newInstance("dummy:partial");
         final Policy policy = Policy.newBuilder(PolicyId.of("namespace", "id")).build();
