@@ -295,7 +295,12 @@ public final class ThingPersistenceActor
         stage.whenComplete((modifiedEvent, ex) -> {
             final ThingEvent<?> eventToPublish;
             if (ex != null) {
-                eventToPublish = event;
+                log.withCorrelationId(event).error(ex,
+                        "Failed to enrich Thing event <{}> for Thing <{}>; denying publication to all READ subjects",
+                        event.getType(), entityId);
+                eventToPublish = event.setDittoHeaders(event.getDittoHeaders().toBuilder()
+                        .readGrantedSubjects(JsonFactory.newArray())
+                        .build());
             } else {
                 eventToPublish = modifiedEvent;
             }
