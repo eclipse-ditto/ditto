@@ -12,8 +12,10 @@ The things that are wrong-by-default or invisible in the code:
 
 **Public API modules compile at Java 8** despite the Java 25 default: `json`, `json-cbor`,
 `protocol`, `placeholders`, `utils/jsr305`, `rql/*`, and every `*/model` module. No `var`,
-records, text blocks, arrow-switch, pattern matching, or `Stream.toList()` there. They are
-also published artifacts guarded by japicmp, so changes must be additive (default methods,
+records, text blocks, arrow-switch, pattern matching, and no Java 9+ API (`List.of`,
+`Set.copyOf`, `Optional.orElseThrow()`, `Stream.toList()`, …) — in tests too. Since #2610 the
+build enforces this via `javac --release 8` (so those poms say `8`, not `1.8`); before it,
+newer APIs compiled fine and only broke on a Java 8 JVM. They are also published artifacts guarded by japicmp, so changes must be additive (default methods,
 new optional fields) — never alter a signature or a JSON serialization format. Use
 `-Djapicmp.skip=true` only when a break is deliberate.
 
