@@ -72,6 +72,7 @@ import org.eclipse.ditto.policies.model.ResourceKey;
 import org.eclipse.ditto.policies.model.Subject;
 import org.eclipse.ditto.policies.model.SubjectId;
 import org.eclipse.ditto.policies.model.SubjectIssuer;
+import org.eclipse.ditto.policies.model.enforcers.Enforcer;
 import org.eclipse.ditto.policies.model.signals.commands.PolicyCommand;
 import org.eclipse.ditto.policies.model.signals.commands.actions.ActivateTokenIntegration;
 import org.eclipse.ditto.policies.model.signals.commands.actions.DeactivateTokenIntegration;
@@ -241,6 +242,86 @@ public final class PolicyCommandEnforcementTest {
             expectMsgClass(PolicyNotModifiableException.class);
             verify(policyEnforcerProvider, times(1)).getPolicyEnforcer(POLICY_ID);
         }};
+    }
+
+    @Test
+    public void modifyPolicyWithoutAnyPermissionFailsLikeForNonexistentPolicy() {
+        new TestKit(system) {{
+            mockPolicyEnforcerResponseWithoutAnyPermission();
+
+            supervisor.tell(ModifyPolicy.of(POLICY_ID, POLICY, DITTO_HEADERS), getRef());
+
+            expectMsgClass(PolicyNotAccessibleException.class);
+            policyPersistenceActorProbe.expectNoMessage();
+        }};
+    }
+
+    @Test
+    public void modifyPolicyEntriesWithoutAnyPermissionFailsLikeForNonexistentPolicy() {
+        new TestKit(system) {{
+            mockPolicyEnforcerResponseWithoutAnyPermission();
+
+            supervisor.tell(ModifyPolicyEntries.of(POLICY_ID, Collections.singleton(POLICY_ENTRY), DITTO_HEADERS),
+                    getRef());
+
+            expectMsgClass(PolicyNotAccessibleException.class);
+            policyPersistenceActorProbe.expectNoMessage();
+        }};
+    }
+
+    @Test
+    public void retrievePolicyEntriesWithoutAnyPermissionFailsLikeForNonexistentPolicy() {
+        new TestKit(system) {{
+            mockPolicyEnforcerResponseWithoutAnyPermission();
+
+            supervisor.tell(RetrievePolicyEntries.of(POLICY_ID, DITTO_HEADERS), getRef());
+
+            expectMsgClass(PolicyNotAccessibleException.class);
+            policyPersistenceActorProbe.expectNoMessage();
+        }};
+    }
+
+    @Test
+    public void activateTokenIntegrationWithoutAnyPermissionFailsLikeForNonexistentPolicy() {
+        new TestKit(system) {{
+            mockPolicyEnforcerResponseWithoutAnyPermission();
+            final SubjectId subjectId = SubjectId.newInstance("issuer:{{policy-entry:label}}:subject");
+            final ActivateTokenIntegration command = ActivateTokenIntegration.of(POLICY_ID,
+                    POLICY_ENTRY.getLabel(), Collections.singleton(subjectId), Instant.now(), DITTO_HEADERS);
+
+            supervisor.tell(command, getRef());
+
+            expectMsgClass(PolicyNotAccessibleException.class);
+            policyPersistenceActorProbe.expectNoMessage();
+        }};
+    }
+
+    @Test
+    public void policyExistenceIsHiddenOnlyWithoutAnyPermissionAndWhenEnabled() {
+        final AuthorizationContext authorizationContext = DITTO_HEADERS.getAuthorizationContext();
+        final Enforcer withoutPermission = PolicyEnforcer.of(policyWithoutAnyPermission()).getEnforcer();
+        final Enforcer withExecutePermissionOnAction = PolicyEnforcer.of(Policy.newBuilder(POLICY_ID)
+                .set(PolicyEntry.newInstance("execute", List.of(AUTH_SUBJECT),
+                        Set.of(Resource.newInstance(
+                                PoliciesResourceType.policyResource("/entries/x/actions/activateTokenIntegration"),
+                                EffectedPermissions.newInstance(Set.of(Permission.EXECUTE), Set.of())))))
+                .build()).getEnforcer();
+        final Enforcer withReadPermissionOnEntries = PolicyEnforcer.of(Policy.newBuilder(POLICY_ID)
+                .set(PolicyEntry.newInstance("read", List.of(AUTH_SUBJECT),
+                        Set.of(Resource.newInstance(POLICIES_ENTRIES_RESOURCE_KEY,
+                                EffectedPermissions.newInstance(Set.of(Permission.READ), Set.of())))))
+                .build()).getEnforcer();
+
+        assertThat(PolicyCommandEnforcement.isPolicyExistenceToBeHidden(withoutPermission, authorizationContext,
+                true)).isTrue();
+        assertThat(PolicyCommandEnforcement.isPolicyExistenceToBeHidden(withExecutePermissionOnAction,
+                authorizationContext, true)).isFalse();
+        assertThat(PolicyCommandEnforcement.isPolicyExistenceToBeHidden(withReadPermissionOnEntries,
+                authorizationContext, true)).isFalse();
+
+        // legacy behavior when the feature toggle is disabled:
+        assertThat(PolicyCommandEnforcement.isPolicyExistenceToBeHidden(withoutPermission, authorizationContext,
+                false)).isFalse();
     }
 
     @Test
@@ -661,6 +742,24 @@ public final class PolicyCommandEnforcementTest {
     private void mockDefaultPolicyEnforcerResponse() {
         when(policyEnforcerProvider.getPolicyEnforcer(POLICY_ID))
                 .thenReturn(CompletableFuture.completedFuture(Optional.of(PolicyEnforcer.of(POLICY))));
+    }
+
+    private static Policy policyWithoutAnyPermission() {
+        final PolicyEntry adminEntry = PolicyEntry.newInstance("admin",
+                List.of(AUTH_SUBJECT_2),
+                Set.of(Resource.newInstance(POLICIES_ROOT_RESOURCE_KEY,
+                        EffectedPermissions.newInstance(Permission.DEFAULT_POLICY_PERMISSIONS, Set.of()))));
+        return Policy.newBuilder(POLICY_ID)
+                .setRevision(POLICY_REVISION)
+                .set(adminEntry)
+                .set(PolicyEntry.newInstance(POLICY_ENTRY.getLabel(), List.of(), Set.of()))
+                .build();
+    }
+
+    private void mockPolicyEnforcerResponseWithoutAnyPermission() {
+        when(policyEnforcerProvider.getPolicyEnforcer(POLICY_ID))
+                .thenReturn(CompletableFuture.completedFuture(
+                        Optional.of(PolicyEnforcer.of(policyWithoutAnyPermission()))));
     }
 
     private void mockPolicyEnforcerResponseWithoutRead() {

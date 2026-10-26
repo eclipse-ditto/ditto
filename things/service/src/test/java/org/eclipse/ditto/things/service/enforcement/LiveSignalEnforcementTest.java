@@ -96,6 +96,22 @@ public final class LiveSignalEnforcementTest extends AbstractThingEnforcementTes
             supervisor.tell(thingMessageCommand("abc"), getRef());
             expectAndAnswerSudoRetrieveThingWithSpecificTimeout(sudoRetrieveThingResponse, FiniteDuration.apply(15,
                     TimeUnit.SECONDS));
+            // the requester has no permission at all, so the existence of the thing must not be revealed:
+            TestSetup.fishForMsgClass(this, ThingNotAccessibleException.class);
+        }};
+    }
+
+    @Test
+    public void rejectMessageCommandByPolicyWithReadPermissionWithSpecificError() {
+        final PolicyId policyId = PolicyId.of("read:policy");
+        when(policyEnforcerProvider.getPolicyEnforcer(policyId))
+                .thenReturn(CompletableFuture.completedFuture(Optional.of(PolicyEnforcer.of(readOnlyPolicy(policyId)))));
+
+        new TestKit(system) {{
+            supervisor.tell(thingMessageCommand("abc"), getRef());
+            expectAndAnswerSudoRetrieveThingWithSpecificTimeout(
+                    SudoRetrieveThingResponse.of(TestSetup.newThingWithPolicyId(policyId), DittoHeaders.empty()),
+                    FiniteDuration.apply(15, TimeUnit.SECONDS));
             TestSetup.fishForMsgClass(this, MessageSendNotAllowedException.class);
         }};
     }
@@ -117,8 +133,23 @@ public final class LiveSignalEnforcementTest extends AbstractThingEnforcementTes
             expectAndAnswerSudoRetrieveThing(sudoRetrieveThingResponse);
             TestSetup.fishForMsgClass(this, ThingNotAccessibleException.class);
 
+            // the requester has no permission at all, so the existence of the thing must not be revealed:
             supervisor.tell(getModifyFeatureCommand(liveHeaders()), getRef());
-            expectMsgClass(FeatureNotModifiableException.class);
+            expectMsgClass(ThingNotAccessibleException.class);
+        }};
+    }
+
+    @Test
+    public void rejectLiveThingCommandByPolicyWithReadPermissionWithSpecificError() {
+        final PolicyId policyId = PolicyId.of("read", "policy");
+        when(policyEnforcerProvider.getPolicyEnforcer(policyId))
+                .thenReturn(CompletableFuture.completedFuture(Optional.of(PolicyEnforcer.of(readOnlyPolicy(policyId)))));
+
+        new TestKit(system) {{
+            supervisor.tell(getModifyFeatureCommand(liveHeaders()), getRef());
+            expectAndAnswerSudoRetrieveThing(
+                    SudoRetrieveThingResponse.of(TestSetup.newThingWithPolicyId(policyId), DittoHeaders.empty()));
+            TestSetup.fishForMsgClass(this, FeatureNotModifiableException.class);
         }};
     }
 
@@ -389,8 +420,33 @@ public final class LiveSignalEnforcementTest extends AbstractThingEnforcementTes
         new TestKit(system) {{
             supervisor.tell(liveEventGranted(), getRef());
             expectAndAnswerSudoRetrieveThing(sudoRetrieveThingResponse);
+            // the requester has no permission at all, so the existence of the thing must not be revealed:
+            TestSetup.fishForMsgClass(this, ThingNotAccessibleException.class);
+        }};
+    }
+
+    @Test
+    public void rejectLiveEventByPolicyWithReadPermissionWithSpecificError() {
+        final PolicyId policyId = PolicyId.of("read:policy");
+        when(policyEnforcerProvider.getPolicyEnforcer(policyId))
+                .thenReturn(CompletableFuture.completedFuture(Optional.of(PolicyEnforcer.of(readOnlyPolicy(policyId)))));
+
+        new TestKit(system) {{
+            supervisor.tell(liveEventGranted(), getRef());
+            expectAndAnswerSudoRetrieveThing(
+                    SudoRetrieveThingResponse.of(TestSetup.newThingWithPolicyId(policyId), DittoHeaders.empty()));
             TestSetup.fishForMsgClass(this, EventSendNotAllowedException.class);
         }};
+    }
+
+    private static Policy readOnlyPolicy(final PolicyId policyId) {
+        return PoliciesModelFactory.newPolicyBuilder(policyId)
+                .setRevision(1L)
+                .forLabel("read-only")
+                .setSubject(GOOGLE, TestSetup.SUBJECT_ID)
+                .setGrantedPermissions(PoliciesResourceType.thingResource(JsonPointer.empty()),
+                        Permissions.newInstance(Permission.READ))
+                .build();
     }
 
     @Test

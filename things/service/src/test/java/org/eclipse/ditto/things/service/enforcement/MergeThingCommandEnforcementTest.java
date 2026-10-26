@@ -41,6 +41,7 @@ import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.policies.enforcement.PolicyEnforcer;
 import org.eclipse.ditto.policies.model.enforcers.trie.TrieBasedPolicyEnforcer;
 import org.eclipse.ditto.things.api.Permission;
+import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingNotAccessibleException;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingNotModifiableException;
 import org.eclipse.ditto.things.model.signals.commands.modify.MergeThing;
 import org.junit.jupiter.api.Test;
@@ -124,6 +125,15 @@ final class MergeThingCommandEnforcementTest {
                 () -> ThingCommandEnforcement.authorizeByPolicyOrThrow(policyEnforcer, arg.getMergeThing(), true));
     }
 
+    @ParameterizedTest
+    @ArgumentsSource(RootRevokedProvider.class)
+    void rejectByPolicyWithoutAnyPermissionLikeForNonexistentThing(final TestArgument arg) {
+        final PolicyEnforcer policyEnforcer =
+                PolicyEnforcer.of(arg.getPolicy(), TrieBasedPolicyEnforcer.newInstance(arg.getPolicy()));
+        assertThatExceptionOfType(ThingNotAccessibleException.class).isThrownBy(
+                () -> ThingCommandEnforcement.authorizeByPolicyOrThrow(policyEnforcer, arg.getMergeThing(), true));
+    }
+
     @Test
     void acceptUsingRegexInPolicy() {
         final TestArgument testArgument = TestArgument.of("/",
@@ -187,9 +197,24 @@ final class MergeThingCommandEnforcementTest {
         public Stream<? extends Arguments> provideArguments(ExtensionContext context) {
             return PATHS.stream()
                     .flatMap(path -> RESOURCES.stream()
+                            .filter(resources -> !resources.contains("/"))
                             .map(resources -> Arguments.of(
                                     TestArgument.of(path, Collections.emptySet(), resources)
                                             .withAdditionalPermission("/", GRANT))));
+        }
+    }
+
+    /**
+     * WRITE is revoked on the root resource, so the requester has no permission at all on the thing.
+     */
+    static class RootRevokedProvider implements ArgumentsProvider {
+
+        @Override
+        public Stream<? extends Arguments> provideArguments(final ExtensionContext context) {
+            return PATHS.stream()
+                    .map(path -> Arguments.of(
+                            TestArgument.of(path, Collections.emptySet(), Set.of("/"))
+                                    .withAdditionalPermission("/", GRANT)));
         }
     }
 

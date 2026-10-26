@@ -225,6 +225,13 @@ global:
     #  policy can supply the required permission. The enforcement-side authorize-create-policy check already
     #  considers namespace-scoped root policies and is unaffected by this toggle.
     policyLockoutPreventionEnabled: true
+    # hideInaccessibleEntityExistenceEnabled controls whether the existence of things and policies is hidden from
+    #  requesters which were not granted any permission on them. When enabled (default), such requesters get the same
+    #  "not found" error (e.g. things:thing.notfound) for every rejected request, regardless of whether the entity
+    #  exists - so the error can't be used to enumerate entity IDs. Requesters with at least one permission on the
+    #  entity still get resource-specific errors (e.g. things:attributes.notfound, things:thing.notmodifiable with 403).
+    #  Set this to false to restore the legacy behaviour where all requesters get the resource-specific errors.
+    hideInaccessibleEntityExistenceEnabled: true
   # logging the logging configuration for Ditto
   logging:
     # sysout holds the logging to SYSOUT config
