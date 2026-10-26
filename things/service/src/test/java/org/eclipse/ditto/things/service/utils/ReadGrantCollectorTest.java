@@ -25,12 +25,15 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.policies.enforcement.PolicyEnforcer;
+import org.eclipse.ditto.policies.model.Permissions;
 import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.policies.model.PolicyId;
+import org.eclipse.ditto.policies.model.PoliciesResourceType;
 import org.eclipse.ditto.policies.model.ResourceKey;
 import org.eclipse.ditto.policies.model.Subject;
 import org.eclipse.ditto.policies.model.SubjectId;
 import org.eclipse.ditto.policies.model.SubjectType;
+import org.eclipse.ditto.policies.model.enforcers.trie.TrieBasedPolicyEnforcer;
 import org.eclipse.ditto.things.model.FeatureProperties;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingId;
@@ -110,6 +113,36 @@ public final class ReadGrantCollectorTest {
         assertThat(result.pointerToSubjects().get(JsonPointer.of("/attributes/folder/public")))
                 .contains(SUBJECT_PARTIAL_ATTRIBUTES);
         assertThat(result.pointerToSubjects()).doesNotContainKey(JsonPointer.of("/attributes/folder/private"));
+    }
+
+    @Test
+    public void collectsOnlyAccessiblePathsForGrantedFeatureWithRevokedChild() {
+        final String subjectId = "test:partial-revoked-child";
+        final Thing thing = ThingsModelFactory.newThingBuilder()
+                .setId(KNOWN_THING_ID)
+                .setFeature(ThingsModelFactory.newFeature("f1", null,
+                        FeatureProperties.newBuilder()
+                                .set("secret", JsonFactory.newValue("secret-value"))
+                                .set("ok", JsonFactory.newValue("ok-value"))
+                                .build()))
+                .build();
+        final Policy policy = Policy.newBuilder(KNOWN_POLICY_ID)
+                .forLabel("partial")
+                .setSubject(subjectId, SubjectType.GENERATED)
+                .setGrantedPermissions(PoliciesResourceType.thingResource("/features/f1"),
+                        Permissions.newInstance("READ"))
+                .setRevokedPermissions(PoliciesResourceType.thingResource("/features/f1/properties/secret"),
+                        Permissions.newInstance("READ"))
+                .build();
+        final PolicyEnforcer enforcer = PolicyEnforcer.of(policy, TrieBasedPolicyEnforcer.newInstance(policy));
+        final JsonFieldSelector fields = JsonFactory.newFieldSelector("/features/f1");
+        final JsonPointer accessiblePath = JsonPointer.of("/features/f1/properties/ok");
+
+        final ReadGrant result = ReadGrantCollector.collect(fields, thing, enforcer);
+
+        assertThat(result.pointerToSubjects())
+                .containsOnlyKeys(accessiblePath)
+                .containsEntry(accessiblePath, Set.of(subjectId));
     }
 
     @Test
