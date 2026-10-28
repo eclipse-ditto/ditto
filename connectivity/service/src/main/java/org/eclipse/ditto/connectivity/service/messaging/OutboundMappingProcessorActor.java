@@ -103,10 +103,8 @@ import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonKey;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.placeholders.ExpressionResolver;
-import org.eclipse.ditto.placeholders.PipelineElement;
 import org.eclipse.ditto.placeholders.PlaceholderFactory;
 import org.eclipse.ditto.placeholders.PlaceholderResolver;
 import org.eclipse.ditto.placeholders.TimePlaceholder;
@@ -542,11 +540,7 @@ public final class OutboundMappingProcessorActor
 
         return Optional.of(
                 extraFieldsSelectors.stream()
-                .flatMap(selector -> selector.getPointers().stream())
-                .map(JsonPointer::toString)
-                .map(expressionResolver::resolve)
-                .flatMap(PipelineElement::toStream)
-                .map(JsonPointer::of)
+                .flatMap(selector -> Resolvers.resolveExtraFields(expressionResolver, selector))
                 .toList())
                 .filter(jsonPointers -> !jsonPointers.isEmpty())
                 .map(JsonFactory::newFieldSelector)
