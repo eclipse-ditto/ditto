@@ -157,6 +157,36 @@ public final class SignalFilterTest {
                         .build())
                 .build();
 
+        final Target enrichedFeatureProperty = ConnectivityModelFactory.newTargetBuilder(twinAuthd)
+                .topics(ConnectivityModelFactory.newFilteredTopicBuilder(TWIN_EVENTS)
+                        .withExtraFields(ThingFieldSelector.fromString("features/f/properties/p"))
+                        .withFilter("and(eq(attributes/x,5),eq(features/f/properties/p,5))")
+                        .build())
+                .build();
+        final Target enrichedFeatureDesiredProperty = ConnectivityModelFactory.newTargetBuilder(twinAuthd)
+                .topics(ConnectivityModelFactory.newFilteredTopicBuilder(TWIN_EVENTS)
+                        .withExtraFields(ThingFieldSelector.fromString("features/f/desiredProperties/p"))
+                        .withFilter("eq(features/f/desiredProperties/p,5)")
+                        .build())
+                .build();
+        final Target enrichedWholeFeature = ConnectivityModelFactory.newTargetBuilder(twinAuthd)
+                .topics(ConnectivityModelFactory.newFilteredTopicBuilder(TWIN_EVENTS)
+                        .withExtraFields(ThingFieldSelector.fromString("features/f"))
+                        .withFilter("eq(features/f/properties/p,5)")
+                        .build())
+                .build();
+        final Target enrichedOtherFeatureProperty = ConnectivityModelFactory.newTargetBuilder(twinAuthd)
+                .topics(ConnectivityModelFactory.newFilteredTopicBuilder(TWIN_EVENTS)
+                        .withExtraFields(ThingFieldSelector.fromString("features/f/properties/q"))
+                        .withFilter("eq(features/f/properties/p,5)")
+                        .build())
+                .build();
+        final Target enrichedFeaturePropertyNotFiltered = ConnectivityModelFactory.newTargetBuilder(twinAuthd)
+                .topics(ConnectivityModelFactory.newFilteredTopicBuilder(TWIN_EVENTS)
+                        .withExtraFields(ThingFieldSelector.fromString("features/f/properties/p"))
+                        .withFilter("and(ne(attributes/x,5),eq(features/f/properties/p,5))")
+                        .build())
+                .build();
         final Target filteredEventTopicPath1 = ConnectivityModelFactory.newTargetBuilder(twinAuthd)
                 .topics(ConnectivityModelFactory.newFilteredTopicBuilder(TWIN_EVENTS)
                         .withFilter("and(in(topic:action,'created','modified'),eq(resource:path,'/'))")
@@ -205,6 +235,10 @@ public final class SignalFilterTest {
         params.add(new Object[]{TWIN_EVENTS, readSubjects,
                 Lists.list(enrichedFiltered, enrichedNotFiltered1, enrichedNotFiltered2),
                 Lists.list(enrichedFiltered)});
+        params.add(new Object[]{TWIN_EVENTS, readSubjects,
+                Lists.list(enrichedFeatureProperty, enrichedFeatureDesiredProperty, enrichedWholeFeature,
+                        enrichedOtherFeatureProperty, enrichedFeaturePropertyNotFiltered),
+                Lists.list(enrichedFeatureProperty, enrichedFeatureDesiredProperty, enrichedWholeFeature)});
         params.add(new Object[]{TWIN_EVENTS, readSubjects,
                 Lists.list(filteredEventTopicPath1, filteredEventTopicPath2, notFilteredEventTopicPath1, notFilteredEventTopicPath2),
                 Lists.list(filteredEventTopicPath1, filteredEventTopicPath2)});
