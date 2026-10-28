@@ -92,8 +92,9 @@ public final class ThingPersistenceActor
 
     private static final AckExtractor<ThingEvent<?>> ACK_EXTRACTOR =
             AckExtractor.of(ThingEvent::getEntityId, ThingEvent::getDittoHeaders);
-    private static final ThreadSafeDittoLogger LOGGER = 
-        DittoLoggerFactory.getThreadSafeLogger(ThingPersistenceActor.class);
+
+    private static final ThreadSafeDittoLogger LOGGER =
+            DittoLoggerFactory.getThreadSafeLogger(ThingPersistenceActor.class);
 
     private final ThingConfig thingConfig;
     private final NamespaceActivityCheckConfigProvider activityCheckConfigProvider;
