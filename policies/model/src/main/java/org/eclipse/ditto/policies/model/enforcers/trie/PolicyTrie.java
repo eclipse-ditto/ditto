@@ -363,7 +363,7 @@ final class PolicyTrie {
     private Set<JsonPointer> getPathsForJsonObjectOrEmpty(final Iterable<JsonField> jsonObject,
             final Collection<String> subjectIds, final Permissions permissions, final JsonPointer currentPath) {
 
-        final HashSet<JsonPointer> paths = getAccessiblePaths(jsonObject, subjectIds, permissions, currentPath);
+        final Set<JsonPointer> paths = getAccessiblePaths(jsonObject, subjectIds, permissions, currentPath);
         if (!jsonObject.iterator().hasNext() && grantRevokeIndex.hasPermissions(subjectIds, permissions)) {
             paths.add(currentPath);
         }
