@@ -187,6 +187,18 @@ public final class SignalFilterTest {
                         .withFilter("and(ne(attributes/x,5),eq(features/f/properties/p,5))")
                         .build())
                 .build();
+        final Target enrichedFeaturePropertyPrefixCollision = ConnectivityModelFactory.newTargetBuilder(twinAuthd)
+                .topics(ConnectivityModelFactory.newFilteredTopicBuilder(TWIN_EVENTS)
+                        .withExtraFields(ThingFieldSelector.fromString("features/f/properties/p"))
+                        .withFilter("eq(features/f/properties/pressure,5)")
+                        .build())
+                .build();
+        final Target enrichedFeatureIdPrefixCollision = ConnectivityModelFactory.newTargetBuilder(twinAuthd)
+                .topics(ConnectivityModelFactory.newFilteredTopicBuilder(TWIN_EVENTS)
+                        .withExtraFields(ThingFieldSelector.fromString("features/f"))
+                        .withFilter("eq(features/foo/properties/p,5)")
+                        .build())
+                .build();
         final Target filteredEventTopicPath1 = ConnectivityModelFactory.newTargetBuilder(twinAuthd)
                 .topics(ConnectivityModelFactory.newFilteredTopicBuilder(TWIN_EVENTS)
                         .withFilter("and(in(topic:action,'created','modified'),eq(resource:path,'/'))")
@@ -237,7 +249,8 @@ public final class SignalFilterTest {
                 Lists.list(enrichedFiltered)});
         params.add(new Object[]{TWIN_EVENTS, readSubjects,
                 Lists.list(enrichedFeatureProperty, enrichedFeatureDesiredProperty, enrichedWholeFeature,
-                        enrichedOtherFeatureProperty, enrichedFeaturePropertyNotFiltered),
+                        enrichedOtherFeatureProperty, enrichedFeaturePropertyNotFiltered,
+                        enrichedFeaturePropertyPrefixCollision, enrichedFeatureIdPrefixCollision),
                 Lists.list(enrichedFeatureProperty, enrichedFeatureDesiredProperty, enrichedWholeFeature)});
         params.add(new Object[]{TWIN_EVENTS, readSubjects,
                 Lists.list(filteredEventTopicPath1, filteredEventTopicPath2, notFilteredEventTopicPath1, notFilteredEventTopicPath2),
