@@ -301,8 +301,8 @@ public final class ThingPersistenceActor
             final ThingEvent<?> eventToPublish;
             if (ex != null) {
                 LOGGER.withCorrelationId(event).error(
-                    "Failed to enrich Thing event <{}> for Thing <{}>; denying publication to all READ subjects",
-                    event.getType(), entityId, ex);
+                        "Failed to enrich Thing event <{}> for Thing <{}>; denying publication to all READ subjects",
+                        event.getType(), entityId, ex);
                 eventToPublish = event.setDittoHeaders(event.getDittoHeaders().toBuilder()
                         .readGrantedSubjects(JsonFactory.newArray())
                         .build());
