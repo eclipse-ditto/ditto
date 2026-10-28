@@ -138,10 +138,22 @@ final class Thing3ValuePredicateVisitor implements CriteriaVisitor<Function<Thin
 
     private boolean isUnknownField(final FieldExpression fieldExpression) {
         final JsonPointer fieldExpressionPointer = fieldExpression.accept(new GetJsonPointer());
-        return unknownFields.contains(fieldExpressionPointer) ||
-                unknownFields.stream().anyMatch(jsonPointer ->
-                        fieldExpressionPointer.toString().startsWith(jsonPointer.toString())
-                );
+        return unknownFields.stream()
+                .anyMatch(unknownField -> isSameOrAncestor(unknownField, fieldExpressionPointer));
+    }
+
+    // compares level by level, so that e.g. "/attributes/p" is not considered an ancestor of "/attributes/pressure"
+    private static boolean isSameOrAncestor(final JsonPointer candidate, final JsonPointer pointer) {
+        final int candidateLevelCount = candidate.getLevelCount();
+        if (candidateLevelCount > pointer.getLevelCount()) {
+            return false;
+        }
+        for (int level = 0; level < candidateLevelCount; level++) {
+            if (!candidate.get(level).equals(pointer.get(level))) {
+                return false;
+            }
+        }
+        return true;
     }
 
     private static final class GetJsonPointer implements FieldExpressionVisitor<JsonPointer> {
@@ -173,14 +185,14 @@ final class Thing3ValuePredicateVisitor implements CriteriaVisitor<Function<Thin
 
         @Override
         public JsonPointer visitFeatureIdProperty(final String featureId, final String property) {
-            return visitFeature(featureId).append(JsonPointer.of(property));
+            return visitFeatureProperties(featureId).append(JsonPointer.of(property));
         }
 
         @Override
         public JsonPointer visitFeatureIdDesiredProperty(final CharSequence featureId,
                 final CharSequence desiredProperty) {
 
-            return visitFeature(featureId.toString()).append(JsonPointer.of(desiredProperty));
+            return visitFeatureDesiredProperties(featureId).append(JsonPointer.of(desiredProperty));
         }
 
         @Override
