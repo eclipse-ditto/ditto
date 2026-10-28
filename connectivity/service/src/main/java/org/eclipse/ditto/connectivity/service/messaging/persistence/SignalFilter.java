@@ -20,10 +20,12 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.base.model.auth.AuthorizationContext;
+import org.eclipse.ditto.base.model.common.Placeholders;
 import org.eclipse.ditto.base.model.entity.id.EntityId;
 import org.eclipse.ditto.base.model.entity.id.WithEntityId;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
@@ -34,10 +36,12 @@ import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
 import org.eclipse.ditto.base.model.signals.events.Event;
 import org.eclipse.ditto.connectivity.model.Connection;
+import org.eclipse.ditto.connectivity.model.ConnectionId;
 import org.eclipse.ditto.connectivity.model.FilteredTopic;
 import org.eclipse.ditto.connectivity.model.Target;
 import org.eclipse.ditto.connectivity.model.Topic;
 import org.eclipse.ditto.connectivity.model.signals.announcements.ConnectivityAnnouncement;
+import org.eclipse.ditto.connectivity.service.messaging.Resolvers;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.ConnectionMonitor;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.ConnectionMonitorRegistry;
 import org.eclipse.ditto.edge.service.placeholders.EntityIdPlaceholder;
@@ -119,7 +123,7 @@ public final class SignalFilter {
                 .peek(authorizedTarget -> connectionMonitorRegistry.forOutboundDispatched(connection,
                         authorizedTarget.getAddress())
                         .success(signal))
-                .filter(t -> isTargetSubscribedForTopicWithFiltering(t, signal))
+                .filter(t -> isTargetSubscribedForTopicWithFiltering(t, signal, connection.getId()))
                 // count authorized + filtered targets
                 .peek(filteredTarget -> connectionMonitorRegistry.forOutboundFiltered(connection,
                         filteredTarget.getAddress())
@@ -143,11 +147,12 @@ public final class SignalFilter {
                 .anyMatch(applyTopicFilter(signal));
     }
 
-    private static boolean isTargetSubscribedForTopicWithFiltering(final Target target, final Signal<?> signal) {
+    private static boolean isTargetSubscribedForTopicWithFiltering(final Target target, final Signal<?> signal,
+            final ConnectionId connectionId) {
         return target.getTopics().stream()
                 .filter(applyTopicFilter(signal))
                 .filter(applyNamespaceFilter(signal))
-                .anyMatch(filteredTopic -> matchesFilterBeforeEnrichment(filteredTopic, signal));
+                .anyMatch(filteredTopic -> matchesFilterBeforeEnrichment(filteredTopic, signal, connectionId));
     }
 
     private static Predicate<FilteredTopic> applyTopicFilter(final Signal<?> signal) {
@@ -164,7 +169,8 @@ public final class SignalFilter {
         return NamespaceReader.fromEntityId(withEntityId.getEntityId()).orElse(null);
     }
 
-    private static boolean matchesFilterBeforeEnrichment(final FilteredTopic filteredTopic, final Signal<?> signal) {
+    private static boolean matchesFilterBeforeEnrichment(final FilteredTopic filteredTopic, final Signal<?> signal,
+            final ConnectionId connectionId) {
         final Optional<String> filterOptional = filteredTopic.getFilter();
         if (filterOptional.isPresent()) {
             // match filter ignoring "extraFields"
@@ -188,7 +194,7 @@ public final class SignalFilter {
                     topicPathPlaceholderResolver, entityIdPlaceholderResolver, thingPlaceholderResolver,
                     featurePlaceholderResolver, resourcePlaceholderResolver, timePlaceholderResolver);
             final Set<JsonPointer> extraFields = filteredTopic.getExtraFields()
-                    .map(JsonFieldSelector::getPointers)
+                    .map(selector -> resolveExtraFields(selector, signal, connectionId))
                     .orElse(Collections.emptySet());
             if (signal instanceof ThingEvent) {
                 return ThingEventToThingConverter.thingEventToThing((ThingEvent<?>) signal)
@@ -205,6 +211,20 @@ public final class SignalFilter {
         } else {
             return true;
         }
+    }
+
+    /**
+     * Resolves the placeholders in the extra fields like OutboundMappingProcessorActor does for the enrichment, so that
+     * the filter fields they cover are already known as such before the enrichment.
+     */
+    private static Set<JsonPointer> resolveExtraFields(final JsonFieldSelector extraFields, final Signal<?> signal,
+            final ConnectionId connectionId) {
+
+        if (Placeholders.containsAnyPlaceholder(extraFields.toString())) {
+            return Resolvers.resolveExtraFields(Resolvers.forSignal(signal, connectionId), extraFields)
+                    .collect(Collectors.toSet());
+        }
+        return extraFields.getPointers();
     }
 
     /**
