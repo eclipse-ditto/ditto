@@ -84,7 +84,7 @@ public final class ThingPersistenceActor
      * The ID of the journal plugin this persistence actor uses.
      */
     static final String JOURNAL_PLUGIN_ID = "pekko-contrib-mongodb-persistence-things-journal";
-    
+
     /**
      * The ID of the snapshot plugin this persistence actor uses.
      */
