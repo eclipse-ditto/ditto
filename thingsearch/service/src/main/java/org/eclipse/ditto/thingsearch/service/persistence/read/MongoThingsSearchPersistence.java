@@ -57,7 +57,9 @@ import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.policies.api.PolicyTag;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.rql.query.Query;
+import org.eclipse.ditto.rql.query.SortDirection;
 import org.eclipse.ditto.rql.query.SortOption;
+import org.eclipse.ditto.rql.query.expression.SimpleFieldExpression;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.thingsearch.api.QueryTimeExceededException;
 import org.eclipse.ditto.thingsearch.api.SearchNamespaceReportResult;
@@ -356,9 +358,62 @@ public final class MongoThingsSearchPersistence implements ThingsSearchPersisten
 
         final int skip = query.getSkip();
         final Bson projection = GetSortBsonVisitor.projections(query.getSortOptions());
+        final Bson hint = hints.getHint(namespaces).orElse(null);
+        final Source<Document, NotUsed> documents = Source.from(boundByNamespaces(queryFilter, query, namespaces))
+                .flatMapConcat(filter ->
+                        find(filter, hint, sortOptions, skip, projection, limit, maxQueryTime));
+
+        // several namespace walks may together find more than the limit; like MongoDB, treat a limit of 0 as none
+        return null != limit && limit > 0 ? documents.take(limit) : documents;
+    }
+
+    /**
+     * Bounds the {@code _id} of a query filter by the ranges of the namespaces the query is restricted to, so that no
+     * query plan walks past them. A query sorted by thing ID only and without skip walks each namespace separately in
+     * thing ID order, so that no walk passes the things sorting between two namespaces either.
+     *
+     * @param queryFilter the query filter, already restricted to the namespaces.
+     * @param query the query.
+     * @param namespaces the namespaces the query is restricted to, or {@code null} if it is not.
+     * @return the filters to query one after another.
+     */
+    private static List<Bson> boundByNamespaces(final BsonDocument queryFilter, final Query query,
+            @Nullable final Set<String> namespaces) {
+
+        if (null == namespaces || namespaces.isEmpty()) {
+            return List.of(queryFilter);
+        }
+        final Optional<SortDirection> thingIdOnlySortDirection = getThingIdOnlySortDirection(query);
+        if (namespaces.size() > 1 && query.getSkip() == 0 && thingIdOnlySortDirection.isPresent()) {
+            return NamespaceThingIdRanges.inThingIdOrder(namespaces, thingIdOnlySortDirection.get())
+                    .stream()
+                    .map(namespace -> Filters.and(queryFilter, NamespaceThingIdRanges.of(namespace)))
+                    .toList();
+        }
+        return List.of(Filters.and(queryFilter, NamespaceThingIdRanges.spanning(namespaces)));
+    }
+
+    private static Optional<SortDirection> getThingIdOnlySortDirection(final Query query) {
+        final List<SortOption> sortOptions = query.getSortOptions();
+        if (sortOptions.size() == 1 &&
+                sortOptions.get(0).getSortExpression() instanceof SimpleFieldExpression simpleFieldExpression &&
+                PersistenceConstants.FIELD_ID.equals(simpleFieldExpression.getFieldName())) {
+            return Optional.of(sortOptions.get(0).getSortDirection());
+        }
+        return Optional.empty();
+    }
+
+    private Source<Document, NotUsed> find(final Bson queryFilter,
+            @Nullable final Bson hint,
+            final Bson sortOptions,
+            final int skip,
+            final Bson projection,
+            @Nullable final Integer limit,
+            @Nullable final Duration maxQueryTime) {
+
         final FindPublisher<Document> findPublisher =
                 collection.find(queryFilter, Document.class)
-                        .hint(hints.getHint(namespaces).orElse(null))
+                        .hint(hint)
                         .sort(sortOptions)
                         .skip(skip)
                         .projection(projection);

@@ -483,7 +483,6 @@ public final class SearchActor extends AbstractActorWithShutdownBehaviorAndReque
         final SpanWithTimer spanWithTimer = startNewTimer(queryType, queryThings);
         final var searchTimer = spanWithTimer.startedTimer;
         final var queryParsingTimer = searchTimer.startNewSegment(QUERY_PARSING_SEGMENT_NAME);
-        final var namespaces = queryThings.getNamespaces().orElse(null);
 
         final QueryThings tracedQueryThings = queryThings.setDittoHeaders(
                 spanWithTimer.startedSpan.propagateContext(queryThings.getDittoHeaders()));
@@ -493,6 +492,8 @@ public final class SearchActor extends AbstractActorWithShutdownBehaviorAndReque
                     cursor.ifPresent(c -> c.logCursorCorrelationId(l));
                     final QueryThings command = ThingsSearchCursor.adjust(cursor, tracedQueryThings);
                     final var dittoHeaders = command.getDittoHeaders();
+                    // the namespaces the query is parsed with: a cursor's namespaces replace those of the command
+                    final var namespaces = command.getNamespaces().orElse(null);
                     l.info("Processing QueryThings command with namespaces <{}> and filter: <{}>",
                             tracedQueryThings.getNamespaces(), tracedQueryThings.getFilter());
                     l.debug("Processing QueryThings command: <{}>", tracedQueryThings);
