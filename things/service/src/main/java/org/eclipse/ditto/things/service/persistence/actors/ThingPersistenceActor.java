@@ -33,6 +33,8 @@ import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.model.signals.commands.Command;
+import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
+import org.eclipse.ditto.internal.utils.pekko.logging.ThreadSafeDittoLogger;
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.ActivityCheckConfig;
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.NamespaceActivityCheckConfigProvider;
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.SnapshotConfig;
@@ -90,6 +92,9 @@ public final class ThingPersistenceActor
 
     private static final AckExtractor<ThingEvent<?>> ACK_EXTRACTOR =
             AckExtractor.of(ThingEvent::getEntityId, ThingEvent::getDittoHeaders);
+
+    private static final ThreadSafeDittoLogger LOGGER =
+            DittoLoggerFactory.getThreadSafeLogger(ThingPersistenceActor.class);
 
     private final ThingConfig thingConfig;
     private final NamespaceActivityCheckConfigProvider activityCheckConfigProvider;
@@ -295,7 +300,12 @@ public final class ThingPersistenceActor
         stage.whenComplete((modifiedEvent, ex) -> {
             final ThingEvent<?> eventToPublish;
             if (ex != null) {
-                eventToPublish = event;
+                LOGGER.withCorrelationId(event).error(
+                        "Failed to enrich Thing event <{}> for Thing <{}>; denying publication to all READ subjects",
+                        event.getType(), entityId, ex);
+                eventToPublish = event.setDittoHeaders(event.getDittoHeaders().toBuilder()
+                        .readGrantedSubjects(JsonFactory.newArray())
+                        .build());
             } else {
                 eventToPublish = modifiedEvent;
             }

@@ -251,16 +251,21 @@ final class PolicyTrie {
         return outputObjectBuilder.build();
     }
 
+    /**
+     * Returns the accessible paths for the given {@code jsonFields}.
+     *
+     * @param jsonFields the JSON fields
+     * @return a new, mutable set containing the accessible paths.
+     * @param subjectIds the subject IDs
+     * @param permissions the permissions
+     * @param basePath the base path
+     */
     Set<JsonPointer> getAccessiblePaths(final Iterable<JsonField> jsonFields,
             final Collection<String> subjectIds, final Permissions permissions, final JsonPointer basePath) {
 
         final PolicyTrie defaultPolicyTrie = new PolicyTrie(grantRevokeIndex, Collections.emptyMap());
 
-        if (jsonFields instanceof JsonObject && ((JsonObject) jsonFields).isNull()) {
-            return Collections.emptySet();
-        }
-
-        final Set<JsonPointer> accessiblePaths = new HashSet<>();
+        final HashSet<JsonPointer> accessiblePaths = new HashSet<>();
         for (final JsonField field : jsonFields) {
             final JsonPointer fieldPath = basePath.isEmpty()
                     ? JsonPointer.of("/" + field.getKey())
@@ -359,7 +364,7 @@ final class PolicyTrie {
             final Collection<String> subjectIds, final Permissions permissions, final JsonPointer currentPath) {
 
         final Set<JsonPointer> paths = getAccessiblePaths(jsonObject, subjectIds, permissions, currentPath);
-        if (grantRevokeIndex.hasPermissions(subjectIds, permissions)) {
+        if (!jsonObject.iterator().hasNext() && grantRevokeIndex.hasPermissions(subjectIds, permissions)) {
             paths.add(currentPath);
         }
         return paths;
