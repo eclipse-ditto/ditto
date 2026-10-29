@@ -14,6 +14,7 @@ package org.eclipse.ditto.base.model.headers;
 
 import java.text.MessageFormat;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.json.JsonArray;
@@ -50,12 +51,7 @@ final class RequestedAcksValueValidator extends AbstractHeaderValueValidator {
 
     @Override
     protected void validateValue(final HeaderDefinition definition, final CharSequence value) {
-        final JsonArray jsonArray;
-        try {
-            jsonArray = JsonArray.of(value.toString());
-        } catch (final JsonParseException e) {
-            throw DittoHeaderInvalidException.newInvalidTypeBuilder(definition, value, "JSON array").build();
-        }
+        final JsonArray jsonArray = parseJsonArray(definition, value);
 
         for (final JsonValue jsonValue : jsonArray) {
             if (jsonValue.isString()) {
@@ -77,6 +73,18 @@ final class RequestedAcksValueValidator extends AbstractHeaderValueValidator {
             }
         }
 
+    }
+
+    private static JsonArray parseJsonArray(final HeaderDefinition definition, final CharSequence value) {
+        @Nullable final JsonArray memoizedJsonArray = Header.getParsedArrayOrNull(value);
+        if (null != memoizedJsonArray) {
+            return memoizedJsonArray;
+        }
+        try {
+            return JsonArray.of(value.toString());
+        } catch (final JsonParseException e) {
+            throw DittoHeaderInvalidException.newInvalidTypeBuilder(definition, value, "JSON array").build();
+        }
     }
 
 }

@@ -226,6 +226,16 @@ public abstract class AbstractDittoHeadersBuilder<S extends AbstractDittoHeaders
     protected void validateValueTypes(final Map<String, String> headers,
             final Map<String, HeaderDefinition> definitionsMap) {
 
+        if (headers instanceof AbstractDittoHeaders) {
+            // validate the Headers themselves, so that JSON values parsed for the validation stay memoized in them
+            for (final Map.Entry<String, Header> headerEntry : ((AbstractDittoHeaders) headers).headers.entrySet()) {
+                final HeaderDefinition definition = definitionsMap.get(headerEntry.getKey());
+                if (null != definition) {
+                    definition.validateValue(headerEntry.getValue());
+                }
+            }
+            return;
+        }
         for (final Map.Entry<String, String> headerEntry : headers.entrySet()) {
             final String value = headerEntry.getValue();
             if (null == value) {
@@ -249,6 +259,30 @@ public abstract class AbstractDittoHeadersBuilder<S extends AbstractDittoHeaders
             }
         });
 
+        return result;
+    }
+
+    /**
+     * Like {@link #toMap(JsonValueContainer)}, but creates the {@code Header}s - keyed by their lower-case key - and
+     * keeps each non-string JSON value as the parsed value of its {@code Header}, so that it never has to be parsed
+     * back from its string representation.
+     *
+     * @param jsonObject the JSON object to create the headers from.
+     * @return the headers.
+     */
+    static Map<String, Header> toHeaders(final JsonValueContainer<JsonField> jsonObject) {
+        checkNotNull(jsonObject, "JSON object");
+        final Map<String, Header> result = new LinkedHashMap<>(jsonObject.getSize());
+        jsonObject.forEach(jsonField -> {
+            final JsonValue jsonValue = jsonField.getValue();
+            if (!jsonValue.isNull()) {
+                final String key = jsonField.getKeyName();
+                final Header header = jsonValue.isString()
+                        ? Header.of(key, jsonValue.asString())
+                        : Header.of(key, jsonValue.toString(), jsonValue);
+                result.put(key.toLowerCase(), header);
+            }
+        });
         return result;
     }
 
@@ -588,21 +622,35 @@ public abstract class AbstractDittoHeadersBuilder<S extends AbstractDittoHeaders
     public S putHeader(final CharSequence key, final CharSequence value) {
         validateKey(key);
         checkNotNull(value, "value");
-        final String keyString = key.toString().toLowerCase();
-        validateValueType(keyString, value);
+        return putHeader(key.toString(), Header.of(key.toString(), value.toString()));
+    }
+
+    @Override
+    public S putJsonHeader(final CharSequence key, final JsonValue value) {
+        validateKey(key);
+        checkNotNull(value, "value");
+        final Header header = value.isString()
+                ? Header.of(key.toString(), value.asString())
+                : Header.of(key.toString(), value.toString(), value);
+        return putHeader(key.toString(), header);
+    }
+
+    private S putHeader(final String key, final Header header) {
+        final String keyString = key.toLowerCase();
+        // validate the Header itself, so that a JSON value parsed for the validation stays memoized in it
+        validateValueType(keyString, header);
+        final String value = header.getValue();
         if (isPutMetadataKey(keyString)) {
             metadataHeaders = MetadataHeaders.parseMetadataHeaders(value);
         } else if (isGetMetadataKey(keyString)) {
-            getMetadataFieldSelector =
-                    JsonFactory.newFieldSelector(value.toString(), JSON_FIELD_SELECTOR_PARSE_OPTIONS);
+            getMetadataFieldSelector = JsonFactory.newFieldSelector(value, JSON_FIELD_SELECTOR_PARSE_OPTIONS);
         } else if (isDeleteMetadataKey(keyString)) {
-            deleteMetadataFieldSelector =
-                    JsonFactory.newFieldSelector(value.toString(), JSON_FIELD_SELECTOR_PARSE_OPTIONS);
+            deleteMetadataFieldSelector = JsonFactory.newFieldSelector(value, JSON_FIELD_SELECTOR_PARSE_OPTIONS);
         } else if (DittoHeaderDefinition.CORRELATION_ID.getKey().equals(keyString)) {
             correlationId(value);
         } else {
             headers.remove(keyString);
-            headers.put(keyString, Header.of(key.toString(), value.toString()));
+            headers.put(keyString, header);
         }
         return myself;
     }

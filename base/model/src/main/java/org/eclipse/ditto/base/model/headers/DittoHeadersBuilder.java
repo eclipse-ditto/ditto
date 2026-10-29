@@ -370,6 +370,28 @@ public interface DittoHeadersBuilder<B extends DittoHeadersBuilder<B, R>, R exte
     B putHeader(CharSequence key, CharSequence value);
 
     /**
+     * Puts an arbitrary header with the specified {@code name} and JSON {@code value} to this builder.
+     * Has the same effect as {@link #putHeader(CharSequence, CharSequence)} with the value's JSON string
+     * representation (or the plain string of a JSON string), but the built headers keep the given JSON value instead
+     * of parsing it back from its string representation when it is needed, e.g. for serialization.
+     *
+     * @param key the header name to use.
+     * @param value the JSON value.
+     * @return this builder for Method Chaining.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @throws IllegalArgumentException if key is empty
+     * @throws org.eclipse.ditto.base.model.exceptions.DittoHeaderInvalidException if {@code value} represents an
+     * invalid Java type.
+     * @since 3.9.9
+     */
+    default B putJsonHeader(final CharSequence key, final JsonValue value) {
+        if (null == value) {
+            throw new NullPointerException("The value must not be null!");
+        }
+        return putHeader(key, value.isString() ? value.asString() : value.toString());
+    }
+
+    /**
      * Puts the specified headers to this builder. Existing headers with the same key will be replaced.
      *
      * @param headers the headers to be put.

@@ -42,7 +42,9 @@ final class JsonObjectValueValidator extends AbstractHeaderValueValidator {
 
     @Override
     protected void validateValue(final HeaderDefinition definition, final CharSequence value) {
-        tryToParseJsonObject(definition, value.toString());
+        if (null == Header.getParsedObjectOrNull(value)) {
+            tryToParseJsonObject(definition, value.toString());
+        }
     }
 
     private static JsonObject tryToParseJsonObject(final HeaderDefinition definition, final String value) {

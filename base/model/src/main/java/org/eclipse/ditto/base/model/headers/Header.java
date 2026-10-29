@@ -18,7 +18,9 @@ import java.util.function.Function;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonValue;
 
 /**
@@ -103,6 +105,46 @@ final class Header implements CharSequence {
             parsedValue = result;
         }
         return result;
+    }
+
+    /**
+     * Returns the memoized JSON object of a header value which is a {@code Header} whose value is a JSON object.
+     * This lets a validator check the very {@code Header} a builder stores: the value is parsed once and stays
+     * memoized for {@link #getParsedValue()}, instead of being parsed for the validation and again later.
+     *
+     * @param value the header value to validate.
+     * @return the JSON object, or {@code null} if {@code value} is no {@code Header} or its value is no JSON object -
+     * the caller then parses {@code value} itself, which keeps its error reporting unchanged.
+     */
+    @Nullable
+    static JsonObject getParsedObjectOrNull(final CharSequence value) {
+        @Nullable final JsonValue parsedValue = getParsedValueOrNull(value);
+        return null != parsedValue && parsedValue.isObject() ? parsedValue.asObject() : null;
+    }
+
+    /**
+     * Like {@link #getParsedObjectOrNull(CharSequence)} for header values which are JSON arrays.
+     *
+     * @param value the header value to validate.
+     * @return the JSON array, or {@code null} if {@code value} is no {@code Header} or its value is no JSON array.
+     */
+    @Nullable
+    static JsonArray getParsedArrayOrNull(final CharSequence value) {
+        @Nullable final JsonValue parsedValue = getParsedValueOrNull(value);
+        return null != parsedValue && parsedValue.isArray() ? parsedValue.asArray() : null;
+    }
+
+    @Nullable
+    private static JsonValue getParsedValueOrNull(final CharSequence value) {
+        if (value instanceof Header && value.length() > 0) {
+            try {
+                return ((Header) value).getParsedValue();
+            } catch (final RuntimeException e) {
+                // the caller parses the value again and reports why it is invalid
+                return null;
+            }
+        }
+        return null;
     }
 
     /**
