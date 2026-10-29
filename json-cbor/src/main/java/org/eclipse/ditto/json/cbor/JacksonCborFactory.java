@@ -33,6 +33,7 @@ import org.eclipse.ditto.json.JsonNumber;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonParseException;
 import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.json.SerializationContext;
 
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.core.JsonToken;
@@ -141,11 +142,7 @@ public final class JacksonCborFactory implements CborFactory {
         final ByteArrayOutputStream baos = new ByteArrayOutputStream(guessedSerializedSize);
 
         try (final JacksonSerializationContext serializationContext = new JacksonSerializationContext(baos)) {
-            writeStartObjectWithLength(serializationContext, jsonFieldMap.size());
-            for (final JsonField jsonField : jsonFieldMap.values()) {
-                jsonField.writeKeyAndValue(serializationContext);
-            }
-            serializationContext.getJacksonGenerator().writeEndObject();
+            writeObject(jsonFieldMap, serializationContext);
         }
         return baos.toByteArray();
     }
@@ -156,13 +153,41 @@ public final class JacksonCborFactory implements CborFactory {
         final ByteArrayOutputStream baos = new ByteArrayOutputStream(guessedSerializedSize);
 
         try (final JacksonSerializationContext serializationContext = new JacksonSerializationContext(baos)) {
-            serializationContext.getJacksonGenerator().writeStartArray(list.size());
+            writeArray(list, serializationContext);
+        }
+        return baos.toByteArray();
+    }
+
+    @Override
+    public void writeObject(final Map<String, JsonField> jsonFieldMap,
+            final SerializationContext serializationContext) throws IOException {
+        if (serializationContext instanceof JacksonSerializationContext) {
+            final JacksonSerializationContext jacksonSerializationContext =
+                    (JacksonSerializationContext) serializationContext;
+            writeStartObjectWithLength(jacksonSerializationContext, jsonFieldMap.size());
+            for (final JsonField jsonField : jsonFieldMap.values()) {
+                jsonField.writeKeyAndValue(jacksonSerializationContext);
+            }
+            jacksonSerializationContext.getJacksonGenerator().writeEndObject();
+        } else {
+            CborFactory.super.writeObject(jsonFieldMap, serializationContext);
+        }
+    }
+
+    @Override
+    public void writeArray(final List<JsonValue> list, final SerializationContext serializationContext)
+            throws IOException {
+        if (serializationContext instanceof JacksonSerializationContext) {
+            final JsonGenerator jacksonGenerator =
+                    ((JacksonSerializationContext) serializationContext).getJacksonGenerator();
+            jacksonGenerator.writeStartArray(list.size());
             for (final JsonValue jsonValue : list) {
                 jsonValue.writeValue(serializationContext);
             }
-            serializationContext.getJacksonGenerator().writeEndArray();
+            jacksonGenerator.writeEndArray();
+        } else {
+            CborFactory.super.writeArray(list, serializationContext);
         }
-        return baos.toByteArray();
     }
 
     private static int determineSize(final JsonValue jsonValue) {

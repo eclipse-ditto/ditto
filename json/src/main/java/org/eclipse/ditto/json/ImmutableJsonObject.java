@@ -836,12 +836,15 @@ final class ImmutableJsonObject extends AbstractJsonValue implements JsonObject 
         }
 
         void writeValue(final SerializationContext serializationContext) throws IOException {
-            if (CBOR_FACTORY.isCborAvailable() && cborObjectRepresentation == null) {
-                final Map<String, JsonField> currentFields = fields();
-                cborObjectRepresentation = CBOR_FACTORY.createCborRepresentation(currentFields, guessSerializedSize());
-                softenFieldsRef(currentFields);
+            final byte[] cborRepresentation = cborObjectRepresentation;
+            if (null != cborRepresentation) {
+                serializationContext.writeCachedElement(cborRepresentation);
+            } else {
+                // Write the fields as part of the context's output instead of creating (and keeping) a CBOR
+                // representation of this object first: done on every nesting level, that encoded and copied each
+                // byte once per level and kept a copy of it in every nested object.
+                CBOR_FACTORY.writeObject(fields(), serializationContext);
             }
-            serializationContext.writeCachedElement(cborObjectRepresentation);
         }
 
         private int guessSerializedSize() {
