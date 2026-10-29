@@ -108,6 +108,19 @@ public class DittoHeadersRoundTripBenchmark {
         return enrichWithExtraFields(dittoHeaders.toBuilder()).build().toJson();
     }
 
+    /**
+     * Like {@link #putJsonHeaderStringsThenToJson()}, but puts the JSON values themselves.
+     */
+    @Benchmark
+    public JsonObject putJsonHeaderValuesThenToJson() {
+        return dittoHeaders.toBuilder()
+                .putJsonHeader(PRE_DEFINED_EXTRA_FIELDS, extraFields())
+                .putJsonHeader(PRE_DEFINED_EXTRA_FIELDS_READ_GRANT, extraFieldsReadGrant())
+                .putJsonHeader(PRE_DEFINED_EXTRA_FIELDS_OBJECT, extraFieldsObject())
+                .build()
+                .toJson();
+    }
+
     private static DittoHeadersBuilder<?, ?> enrichWithExtraFields(final DittoHeadersBuilder<?, ?> builder) {
         return builder
                 .putHeader(PRE_DEFINED_EXTRA_FIELDS, extraFields().toString())
