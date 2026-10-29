@@ -120,6 +120,29 @@ public final class NestedCborSerializationTest {
         }
     }
 
+    @Test
+    public void parsingKeepsNoCborRepresentationInNestedValues() throws Exception {
+        final JsonObject parsed = cborFactory.readFrom(cborFactory.toByteArray(deeplyNested(3))).asObject();
+        final JsonObject child = parsed.getValue("child").map(JsonValue::asObject).orElseThrow(AssertionError::new);
+        final JsonArray siblings =
+                parsed.getValue("siblings").map(JsonValue::asArray).orElseThrow(AssertionError::new);
+
+        for (final Object jsonValue : new Object[]{parsed, child}) {
+            assertThat(getInternalField(jsonValue, "fieldMap", "cborObjectRepresentation")).isNull();
+            assertThat(getInternalField(jsonValue, "fieldMap", "fieldsRef")).isNotInstanceOf(SoftReference.class);
+        }
+        assertThat(getInternalField(siblings, "valueList", "cborArrayRepresentation")).isNull();
+        assertThat(getInternalField(siblings, "valueList", "valuesRef")).isNotInstanceOf(SoftReference.class);
+    }
+
+    @Test
+    public void parsingDuplicateKeysKeepsLastValue() {
+        // {"a":1,"a":2}
+        final byte[] cbor = {(byte) 0xA2, 0x61, 0x61, 0x01, 0x61, 0x61, 0x02};
+
+        assertThat(cborFactory.readFrom(cbor)).isEqualTo(JsonObject.newBuilder().set("a", 2).build());
+    }
+
     private static JsonObject deeplyNested(final int depth) {
         JsonObject result = JsonObject.newBuilder()
                 .set("value", 21.5)

@@ -80,6 +80,20 @@ final class ImmutableJsonArray extends AbstractJsonValue implements JsonArray {
     }
 
     /**
+     * Like {@link #of(List, String)}, but takes over the passed list instead of copying it - for parsers which build
+     * the list exclusively for the new array. The caller must neither modify the list nor keep a reference to it.
+     *
+     * @param values the values of the JSON array, taken over.
+     * @param stringRepresentation the already known string representation of the returned array or {@code null}.
+     * @return the JSON array.
+     */
+    static ImmutableJsonArray ofTakingOwnership(final List<JsonValue> values,
+            @Nullable final String stringRepresentation) {
+        requireNonNull(values, ASSERTION_VALUES_OF_JSON_ARRAY);
+        return new ImmutableJsonArray(SoftReferencedValueList.ofTakingOwnership(values, stringRepresentation));
+    }
+
+    /**
      * Returns a new JSON array which is based on the given JSON array of the Minimal Json project library.
      *
      * @param values the values to base the JSON array to be created on.
@@ -308,7 +322,15 @@ final class ImmutableJsonArray extends AbstractJsonValue implements JsonArray {
         private SoftReferencedValueList(final List<JsonValue> jsonValueList,
                 @Nullable final String stringRepresentation,
                 @Nullable final byte[] cborArrayRepresentation) {
-            final List<JsonValue> immutable = Collections.unmodifiableList(new ArrayList<>(jsonValueList));
+            this(jsonValueList, stringRepresentation, cborArrayRepresentation, true);
+        }
+
+        private SoftReferencedValueList(final List<JsonValue> jsonValueList,
+                @Nullable final String stringRepresentation,
+                @Nullable final byte[] cborArrayRepresentation,
+                final boolean copyValueList) {
+            final List<JsonValue> immutable = Collections.unmodifiableList(
+                    copyValueList ? new ArrayList<>(jsonValueList) : jsonValueList);
             jsonArrayStringRepresentation = stringRepresentation;
             this.cborArrayRepresentation = cborArrayRepresentation;
             if (stringRepresentation != null || cborArrayRepresentation != null) {
@@ -325,6 +347,11 @@ final class ImmutableJsonArray extends AbstractJsonValue implements JsonArray {
 
         static SoftReferencedValueList of(final List<JsonValue> values) {
             return new SoftReferencedValueList(values, null, null);
+        }
+
+        static SoftReferencedValueList ofTakingOwnership(final List<JsonValue> values,
+                @Nullable final String stringRepresentation) {
+            return new SoftReferencedValueList(values, stringRepresentation, null, false);
         }
 
         static SoftReferencedValueList of(final List<JsonValue> jsonValueList,

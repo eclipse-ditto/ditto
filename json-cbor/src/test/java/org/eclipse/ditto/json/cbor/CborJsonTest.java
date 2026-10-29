@@ -216,9 +216,9 @@ public final class CborJsonTest {
         final JsonObject objectWithJsonCache = JsonFactory.newObject(objectFromBuilder.toString());
         assertInternalCachesAreAsExpected(objectFromBuilder, false, true);
 
-        // Constructing from CBOR / JSON inputs continues to pass that representation through
-        // to the field map unchanged (no lazy materialisation needed).
-        assertInternalCachesAreAsExpected(objectWithCborCache, true, false);
+        // Parsing JSON passes the string representation through to the field map; parsing CBOR keeps no copy of the
+        // parsed bytes as CBOR representation.
+        assertInternalCachesAreAsExpected(objectWithCborCache, false, false);
         assertInternalCachesAreAsExpected(objectWithJsonCache, false, true);
     }
 
@@ -272,7 +272,7 @@ public final class CborJsonTest {
         final JsonArray arrayWithJsonCache = JsonFactory.newArray(arrayWithSelfGeneratedCache.toString());
         assertInternalCachesAreAsExpected(arrayWithSelfGeneratedCache, false, true);
 
-        assertInternalCachesAreAsExpected(arrayWithCborCache, true, false);
+        assertInternalCachesAreAsExpected(arrayWithCborCache, false, false);
         assertInternalCachesAreAsExpected(arrayWithJsonCache, false, true);
     }
 
