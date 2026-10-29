@@ -24,3 +24,5 @@ deployment/helm/eclipse-ditto/charts/*
 .factorypath
 ui/node_modules
 ui/dist
+.claude/*.local.json
+CLAUDE.local.md
