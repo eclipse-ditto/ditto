@@ -147,7 +147,8 @@ public final class DefaultDittoJsonHandler extends DittoJsonHandler<List<JsonVal
             stringBuilder.append(']');
             valueString = stringBuilder.toString();
         }
-        jsonValue = ImmutableJsonArray.of(jsonValues, valueString);
+        // the list was created in startArray() exclusively for this array
+        jsonValue = ImmutableJsonArray.ofTakingOwnership(jsonValues, valueString);
     }
 
     @Override
@@ -177,7 +178,7 @@ public final class DefaultDittoJsonHandler extends DittoJsonHandler<List<JsonVal
         for (final JsonField jsonField : jsonFields) {
             fieldMap.put(jsonField.getKeyName(), jsonField);
         }
-        jsonValue = ImmutableJsonObject.of(fieldMap, valueString);
+        jsonValue = ImmutableJsonObject.ofTakingOwnership(fieldMap, valueString);
     }
 
     @Override

@@ -943,6 +943,40 @@ public final class JsonFactory {
     }
 
     /**
+     * Creates a {@link JsonObject} which takes over the passed field map instead of copying it, for parsers which
+     * build the map exclusively for the new object.
+     * <p>
+     * <b>This is a Ditto internal API is not intended for re-use.</b>
+     * It therefore is not treated as API which is held binary compatible to previous versions.
+     * </p>
+     *
+     * @param jsonFieldMap the JSON fields to create the JsonObject from - the caller must neither modify the map nor
+     * keep a reference to it.
+     * @return the created JsonObject.
+     * @since 3.9.9
+     */
+    public static JsonObject createJsonObjectTakingOwnership(final Map<String, JsonField> jsonFieldMap) {
+        return ImmutableJsonObject.ofTakingOwnership(jsonFieldMap, null);
+    }
+
+    /**
+     * Creates a {@link JsonArray} which takes over the passed value list instead of copying it, for parsers which
+     * build the list exclusively for the new array.
+     * <p>
+     * <b>This is a Ditto internal API is not intended for re-use.</b>
+     * It therefore is not treated as API which is held binary compatible to previous versions.
+     * </p>
+     *
+     * @param jsonValueList the JSON values to create the JsonArray from - the caller must neither modify the list nor
+     * keep a reference to it.
+     * @return the created JsonArray.
+     * @since 3.9.9
+     */
+    public static JsonArray createJsonArrayTakingOwnership(final List<JsonValue> jsonValueList) {
+        return ImmutableJsonArray.ofTakingOwnership(jsonValueList, null);
+    }
+
+    /**
      * Converts the specified char sequence to a {@link JsonPointer} which is guaranteed to be not empty.
      *
      * @param keyOrPointer a string representation of a JSON pointer or a JsonKey.
