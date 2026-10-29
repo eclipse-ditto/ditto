@@ -410,22 +410,61 @@ public final class ImmutableJsonArrayTest {
     }
 
     @Test
-    public void validateSoftReferenceStrategy() throws IllegalAccessException, NoSuchFieldException {
+    public void buildingDoesNotEagerlyEncodeAnyRepresentation() throws Exception {
         final ImmutableJsonArray jsonArray = ImmutableJsonArray.of(KNOWN_INT_VALUE_LIST);
+
+        assertThat(getInternalField(jsonArray, "jsonArrayStringRepresentation"))
+                .as("string representation must not be eagerly created on construction")
+                .isNull();
+        assertThat(getInternalField(jsonArray, "cborArrayRepresentation"))
+                .as("CBOR representation must not be eagerly created on construction")
+                .isNull();
+        assertThat(getInternalField(jsonArray, "valuesRef"))
+                .as("value list must be held strongly while no representation has been materialised")
+                .isInstanceOf(List.class);
+    }
+
+    @Test
+    public void toStringMaterialisesStringRepAndSoftensValueList() throws Exception {
+        final ImmutableJsonArray jsonArray = ImmutableJsonArray.of(KNOWN_INT_VALUE_LIST);
+
+        jsonArray.toString();
+
         assertInternalCachesAreAsExpected(jsonArray, true);
+        assertThat(getInternalField(jsonArray, "valuesRef"))
+                .as("value list is softened once a recoverable representation is cached")
+                .isInstanceOf(SoftReference.class);
+    }
 
-        final Field valueListField = jsonArray.getClass().getDeclaredField("valueList");
-        valueListField.setAccessible(true);
-        final ImmutableJsonArray.SoftReferencedValueList
-                valueList = (ImmutableJsonArray.SoftReferencedValueList) valueListField.get(jsonArray);
+    @Test
+    public void upperBoundForStringSizeMaterialisesStringRepLazily() throws Exception {
+        final ImmutableJsonArray jsonArray = ImmutableJsonArray.of(KNOWN_INT_VALUE_LIST);
 
-        final Field softReferenceField = valueList.getClass().getDeclaredField("valuesReference");
-        softReferenceField.setAccessible(true);
-        SoftReference softReference = (SoftReference) softReferenceField.get(valueList);
+        assertThat(jsonArray.getUpperBoundForStringSize()).isPositive();
+        assertInternalCachesAreAsExpected(jsonArray, true);
+    }
 
+    @Test
+    public void validateSoftReferenceStrategy() throws Exception {
+        final ImmutableJsonArray jsonArray = ImmutableJsonArray.of(KNOWN_INT_VALUE_LIST);
+        // materialise a representation, so that the value list is softened and can be recovered
+        jsonArray.toString();
+
+        @SuppressWarnings("rawtypes")
+        final SoftReference softReference = (SoftReference) getInternalField(jsonArray, "valuesRef");
         softReference.clear();
 
-        assertThat(jsonArray.get(0)).isPresent();
+        assertThat(jsonArray.get(0)).contains(KNOWN_INT_VALUE_LIST.get(0));
+        assertThat(jsonArray).isEqualTo(ImmutableJsonArray.of(KNOWN_INT_VALUE_LIST));
+    }
+
+    private static Object getInternalField(final JsonArray jsonArray, final String fieldName) throws Exception {
+        final Field valueListField = jsonArray.getClass().getDeclaredField("valueList");
+        valueListField.setAccessible(true);
+        final Object valueList = valueListField.get(jsonArray);
+        final Field target = valueList.getClass().getDeclaredField(fieldName);
+        target.setAccessible(true);
+        return target.get(valueList);
     }
 
     private void assertInternalCachesAreAsExpected(final JsonArray jsonArray, final boolean jsonExpected) {

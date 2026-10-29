@@ -207,16 +207,14 @@ public final class CborJsonTest {
         final JsonObject objectFromBuilder = JsonFactory.newObjectBuilder(KNOWN_FIELDS.values()).build();
         assertInternalCachesAreAsExpected(objectFromBuilder, false, false);
 
-        // toByteBuffer triggers two materialisations on the same object:
-        //   determineSize -> getUpperBoundForStringSize -> asJsonObjectString  (string rep)
-        //   writeToOutputStream -> writeValue -> createCborRepresentation       (cbor rep)
-        // Both are cached on the source object as a side effect of serialising it.
+        // toByteBuffer sizes its buffer via getUpperBoundForStringSize, which materialises the string rep;
+        // writeValue writes the fields directly into the CBOR output and caches no CBOR rep on the source object.
         final ByteBuffer byteBuffer = cborFactory.toByteBuffer(objectFromBuilder);
         final JsonObject objectWithCborCache = cborFactory.readFrom(byteBuffer).asObject();
-        assertInternalCachesAreAsExpected(objectFromBuilder, true, true);
+        assertInternalCachesAreAsExpected(objectFromBuilder, false, true);
         // toString() now hits the already-cached string rep, no additional materialisation.
         final JsonObject objectWithJsonCache = JsonFactory.newObject(objectFromBuilder.toString());
-        assertInternalCachesAreAsExpected(objectFromBuilder, true, true);
+        assertInternalCachesAreAsExpected(objectFromBuilder, false, true);
 
         // Constructing from CBOR / JSON inputs continues to pass that representation through
         // to the field map unchanged (no lazy materialisation needed).
@@ -263,14 +261,16 @@ public final class CborJsonTest {
 
     @Test
     public void validateImmutableJsonArrayInternalCachingBehaviour() throws IOException {
+        // like JsonObjects, JsonArrays hold no representation until one is needed
         final JsonArray arrayWithSelfGeneratedCache = JsonFactory.newArrayBuilder(KNOWN_INT_VALUE_LIST).build();
-        assertInternalCachesAreAsExpected(arrayWithSelfGeneratedCache, true, false);
+        assertInternalCachesAreAsExpected(arrayWithSelfGeneratedCache, false, false);
 
+        // sizing the buffer materialises the string rep; serializing caches no CBOR rep
         final ByteBuffer byteBuffer = cborFactory.toByteBuffer(arrayWithSelfGeneratedCache);
         final JsonArray arrayWithCborCache = cborFactory.readFrom(byteBuffer).asArray();
-        assertInternalCachesAreAsExpected(arrayWithSelfGeneratedCache, true, false);
+        assertInternalCachesAreAsExpected(arrayWithSelfGeneratedCache, false, true);
         final JsonArray arrayWithJsonCache = JsonFactory.newArray(arrayWithSelfGeneratedCache.toString());
-        assertInternalCachesAreAsExpected(arrayWithSelfGeneratedCache, true, true);
+        assertInternalCachesAreAsExpected(arrayWithSelfGeneratedCache, false, true);
 
         assertInternalCachesAreAsExpected(arrayWithCborCache, true, false);
         assertInternalCachesAreAsExpected(arrayWithJsonCache, false, true);
