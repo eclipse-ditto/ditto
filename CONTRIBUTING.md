@@ -120,6 +120,9 @@ Goals:
 Whenever a new feature or a bugfix is being worked on, we want to create an issue in Ditto's GitHub project **beforehand**:
 https://github.com/eclipse-ditto/ditto/issues
 
+Exception: small bugfixes which can be fixed directly, and maintenance changes (e.g. documentation, build or tooling),
+do not need an issue upfront. In that case, the PR description has to explain the bug (or the change) and its impact.
+
 This provides the needed transparency for other contributors before much effort is put into a new topic in order to:
 * Get input on the background (e.g. use case behind / "the need") of the feature/bugfix
 * Provide feedback, maybe even suggesting alternatives instead
