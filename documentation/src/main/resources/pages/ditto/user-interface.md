@@ -20,7 +20,7 @@ The Explorer UI gives you a visual interface to:
 * Inspect and manage Policies
 * Configure and monitor Connections
 * Send messages to Things and Features
-* Search Things using RQL filters
+* Search Things using RQL filters, optionally restricted to selected namespaces
 
 You can connect the UI to different Ditto instances (local, sandbox, staging, production) and switch between them instantly.
 
@@ -121,6 +121,7 @@ type Environment = {
     disableOperations?: boolean,
     authSettings?: AuthSettings,
     searchNamespaces?: string,
+    selectedSearchNamespaces?: string[],
     messageTemplates?: any,
     fieldList?: FieldListItem[],
     filterList?: string[],

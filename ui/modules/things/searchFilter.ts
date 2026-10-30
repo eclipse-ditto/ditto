@@ -15,6 +15,7 @@
 
 import * as Environments from '../environments/environments.js';
 import * as Utils from '../utils.js';
+import * as SearchNamespaces from './searchNamespaces.js';
 import * as ThingsSearch from './thingsSearch.js';
 
 const filterExamples = [
@@ -43,6 +44,10 @@ const dom = {
   searchFavorite: null,
   tabThings: null,
   pinnedThings: null,
+  searchNamespacesCount: null,
+  searchNamespacesList: null,
+  searchNamespaceAdd: null,
+  searchNamespaceAddButton: null,
 };
 
 /**
@@ -87,6 +92,17 @@ export async function ready() {
     ThingsSearch.removeMoreFromThingList();
   };
 
+  dom.searchNamespacesList.onchange = onSearchNamespaceToggled;
+  dom.searchNamespacesList.onclick = onSearchNamespaceRemoveClicked;
+  dom.searchNamespaceAddButton.onclick = addSearchNamespace;
+  dom.searchNamespaceAdd.onkeydown = (event) => {
+    if (event.key === 'Enter') {
+      // the surrounding form would otherwise submit via the favorite button
+      event.preventDefault();
+      addSearchNamespace();
+    }
+  };
+
   dom.searchFilterEdit.focus();
 }
 
@@ -100,6 +116,88 @@ function onEnvironmentChanged() {
   if (!Environments.current().pinnedThings) {
     Environments.current().pinnedThings = [];
   }
+  updateSearchNamespaces();
+}
+
+function availableSearchNamespaces(): string[] {
+  return SearchNamespaces.parseNamespaces(Environments.current().searchNamespaces);
+}
+
+function updateSearchNamespaces() {
+  const active = ThingsSearch.activeSearchNamespaces();
+  dom.searchNamespacesCount.textContent = active.length > 0 ? String(active.length) : '';
+  dom.searchNamespacesList.textContent = '';
+
+  const available = availableSearchNamespaces();
+  if (available.length === 0) {
+    const hint = document.createElement('div');
+    hint.classList.add('form-text', 'mt-0');
+    hint.textContent = 'No namespaces configured, searching in all namespaces';
+    dom.searchNamespacesList.append(hint);
+  }
+  available.forEach((namespace) => {
+    const row = document.createElement('div');
+    row.classList.add('d-flex', 'align-items-center');
+    row.dataset.namespace = namespace;
+
+    const check = document.createElement('div');
+    check.classList.add('form-check', 'flex-grow-1', 'mb-0');
+    const checkBox = document.createElement('input');
+    checkBox.classList.add('form-check-input');
+    checkBox.type = 'checkbox';
+    checkBox.id = `searchNamespace_${namespace}`;
+    checkBox.checked = active.includes(namespace);
+    const label = document.createElement('label');
+    label.classList.add('form-check-label', 'text-break');
+    label.htmlFor = checkBox.id;
+    label.textContent = namespace;
+    check.append(checkBox, label);
+
+    const removeButton = document.createElement('button');
+    removeButton.type = 'button';
+    removeButton.classList.add('btn', 'btn-sm', 'btn-link', 'text-secondary', 'p-0', 'ms-2');
+    removeButton.title = 'Remove namespace';
+    removeButton.innerHTML = '<i class="bi bi-x-lg"></i>';
+
+    row.append(check, removeButton);
+    dom.searchNamespacesList.append(row);
+  });
+}
+
+async function onSearchNamespaceToggled() {
+  const selected = Array.from(dom.searchNamespacesList.querySelectorAll('input:checked'))
+      .map((checkBox: HTMLElement) => checkBox.closest<HTMLElement>('[data-namespace]').dataset.namespace);
+  await searchNamespacesChanged(availableSearchNamespaces(), selected);
+}
+
+async function onSearchNamespaceRemoveClicked(event: MouseEvent) {
+  const removeButton = (event.target as HTMLElement).closest('button');
+  if (!removeButton) {
+    return;
+  }
+  const namespace = removeButton.closest<HTMLElement>('[data-namespace]').dataset.namespace;
+  await searchNamespacesChanged(
+      availableSearchNamespaces().filter((ns) => ns !== namespace),
+      ThingsSearch.activeSearchNamespaces().filter((ns) => ns !== namespace));
+}
+
+async function addSearchNamespace() {
+  const namespace = dom.searchNamespaceAdd.value.trim();
+  Utils.assert(SearchNamespaces.isValidNamespace(namespace),
+      'Namespace must be in Java package notation, e.g. org.eclipse.ditto',
+      dom.searchNamespaceAdd);
+  const available = availableSearchNamespaces();
+  const active = ThingsSearch.activeSearchNamespaces();
+  dom.searchNamespaceAdd.value = '';
+  await searchNamespacesChanged(
+      available.includes(namespace) ? available : [...available, namespace],
+      active.includes(namespace) ? active : [...active, namespace]);
+}
+
+async function searchNamespacesChanged(available: string[], selected: string[]) {
+  Environments.current().searchNamespaces = available.join(',');
+  Environments.current().selectedSearchNamespaces = selected;
+  await Environments.environmentsJsonChanged(false, 'searchNamespaces');
 }
 
 export function fillSearchFilterEdit(fillString: string) {
