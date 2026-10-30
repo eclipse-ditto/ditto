@@ -50,17 +50,34 @@ public final class StreamingSession {
 
     private final List<String> namespaces;
     private final BiPredicate<Thing, Signal<?>> thingPredicate;
+    @Nullable private final BiPredicate<Thing, Signal<?>> changePredicate;
     @Nullable private final ThingFieldSelector extraFields;
     private final ActorRef streamingSessionActor;
     private final ThreadSafeDittoLoggingAdapter logger;
 
     private StreamingSession(final List<String> namespaces, @Nullable final Criteria filterCriteria,
-            @Nullable final ThingFieldSelector extraFields, final ActorRef streamingSessionActor,
-            final ThreadSafeDittoLoggingAdapter logger) {
+            @Nullable final Criteria changeFilterCriteria, @Nullable final ThingFieldSelector extraFields,
+            final ActorRef streamingSessionActor, final ThreadSafeDittoLoggingAdapter logger) {
         this.namespaces = namespaces;
-        thingPredicate = filterCriteria == null
+        thingPredicate = toThingPredicate(filterCriteria);
+        changePredicate = changeFilterCriteria == null ? null : toThingPredicate(changeFilterCriteria);
+        this.extraFields = extraFields;
+        this.streamingSessionActor = streamingSessionActor;
+        this.logger = logger;
+    }
+
+    static StreamingSession of(final List<String> namespaces, @Nullable final Criteria filterCriteria,
+            @Nullable final Criteria changeFilterCriteria, @Nullable final ThingFieldSelector extraFields,
+            final ActorRef streamingSessionActor, final ThreadSafeDittoLoggingAdapter logger) {
+
+        return new StreamingSession(namespaces, filterCriteria, changeFilterCriteria, extraFields,
+                streamingSessionActor, logger);
+    }
+
+    private static BiPredicate<Thing, Signal<?>> toThingPredicate(@Nullable final Criteria criteria) {
+        return criteria == null
                 ? (thing, signal) -> true
-                : (thing, signal) -> ThingPredicateVisitor.apply(filterCriteria,
+                : (thing, signal) -> ThingPredicateVisitor.apply(criteria,
                         PlaceholderFactory.newPlaceholderResolver(TOPIC_PATH_PLACEHOLDER,
                                 PROTOCOL_ADAPTER.toTopicPath(signal)),
                         PlaceholderFactory.newPlaceholderResolver(ENTITY_ID_PLACEHOLDER,
@@ -69,16 +86,6 @@ public final class StreamingSession {
                         PlaceholderFactory.newPlaceholderResolver(TIME_PLACEHOLDER, new Object())
                 )
                 .test(thing);
-        this.extraFields = extraFields;
-        this.streamingSessionActor = streamingSessionActor;
-        this.logger = logger;
-    }
-
-    static StreamingSession of(final List<String> namespaces, @Nullable final Criteria filterCriteria,
-            @Nullable final ThingFieldSelector extraFields, final ActorRef streamingSessionActor,
-            final ThreadSafeDittoLoggingAdapter logger) {
-
-        return new StreamingSession(namespaces, filterCriteria, extraFields, streamingSessionActor, logger);
     }
 
     /**
@@ -118,6 +125,54 @@ public final class StreamingSession {
      */
     public boolean matchesFilter(final Thing thing, final Signal<?> signal) {
         return thingPredicate.test(thing, signal);
+    }
+
+    /**
+     * @return whether this session defines a change filter.
+     */
+    public boolean hasChangeFilter() {
+        return changePredicate != null;
+    }
+
+    /**
+     * Test whether the thing data carried by the signal itself, without extra fields, matches the change filter
+     * defined in this session. Evaluated before signal enrichment, so non-matching signals are not enriched.
+     * A failure to evaluate it is logged and treated as non-match.
+     *
+     * @param signal the signal.
+     * @return the thing data carried by the signal if it passes the change filter, to be passed to
+     * {@link #mergeThingWithExtra(Signal, Thing, JsonObject)}, or an empty optional if it does not pass.
+     */
+    public Optional<Thing> matchChangeFilter(final Signal<?> signal) {
+        try {
+            final Thing changedThing = ThingEventToThingConverter.mergeThingWithExtraFields(signal, null,
+                    JsonObject.empty()).orElseGet(() -> Thing.newBuilder().build());
+            return Optional.of(changedThing)
+                    .filter(thing -> changePredicate == null || changePredicate.test(thing, signal));
+        } catch (final RuntimeException e) {
+            logger.withCorrelationId(signal)
+                    .warning("Evaluating the change-filter failed with <{}>: <{}> - dropping the signal.",
+                            e.getClass().getSimpleName(), e.getMessage());
+            return Optional.empty();
+        }
+    }
+
+    /**
+     * Merge the thing data of a signal which passed the change filter together with extra fields from signal
+     * enrichment, without converting the signal again.
+     *
+     * @param signal the signal.
+     * @param changedThing the thing data carried by the signal as returned by {@link #matchChangeFilter(Signal)}, or
+     * {@code null} if the session has no change filter.
+     * @param extra extra fields from signal enrichment.
+     * @return the merged thing.
+     */
+    public Thing mergeThingWithExtra(final Signal<?> signal, @Nullable final Thing changedThing,
+            final JsonObject extra) {
+        if (changedThing == null) {
+            return mergeThingWithExtra(signal, extra);
+        }
+        return ThingEventToThingConverter.mergeThingWithExtraFields(changedThing, signal, extraFields, extra);
     }
 
     public ActorRef getStreamingSessionActor() {

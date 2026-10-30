@@ -47,6 +47,7 @@ import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.base.model.auth.AuthorizationContext;
 import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
+import org.eclipse.ditto.base.model.signals.commands.streaming.SubscribeForPersistedEvents;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThing;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThingResponse;
@@ -100,6 +101,7 @@ public final class ThingsSseRouteBuilderTest extends EndpointTestBase {
     private CharSequence connectionCorrelationId;
     private TestProbe streamingActor;
     private TestRoute underTest;
+    private TestRoute underTestWithExceptionHandling;
     private TestProbe proxyActor;
 
     @BeforeClass
@@ -129,6 +131,7 @@ public final class ThingsSseRouteBuilderTest extends EndpointTestBase {
         sseRouteBuilder.withProxyActor(proxyActor.ref());
         final Route sseRoute = extractRequestContext(ctx -> sseRouteBuilder.build(ctx, dittoHeadersSupplier));
         underTest = testRoute(sseRoute);
+        underTestWithExceptionHandling = testRoute(handleExceptions(() -> sseRoute));
     }
 
     @Test
@@ -333,6 +336,63 @@ public final class ThingsSseRouteBuilderTest extends EndpointTestBase {
                                         Collections.emptySet()))
                         .withExtraFields(extraFields)
                         .build());
+    }
+
+    @Test
+    public void getWithAcceptHeaderAndChangeFilterParameterOpensSseConnection() {
+        final String changeFilter = "exists(features/location)";
+        final ThingFieldSelector extraFields = ThingFieldSelector.fromString("features/location");
+
+        final String requestUrl = THINGS_ROUTE + "?change-filter=" + changeFilter + "&extraFields=" + extraFields;
+
+        executeThingsRouteTest(HttpRequest.GET(requestUrl).addHeader(acceptHeader),
+                StartStreaming.getBuilder(StreamingType.EVENTS, connectionCorrelationId,
+                                AuthorizationModelFactory.newAuthContext(DittoAuthorizationContextType.UNSPECIFIED,
+                                        Collections.emptySet()))
+                        .withChangeFilter(changeFilter)
+                        .withExtraFields(extraFields)
+                        .build());
+    }
+
+    @Test
+    public void historicalStreamAndCombinesFilterAndChangeFilter() {
+        assertHistoricalFilter(
+                "?from-historical-revision=1&filter=exists(attributes/a)&change-filter=exists(features/f)",
+                "and(exists(attributes/a),exists(features/f))");
+    }
+
+    @Test
+    public void historicalStreamWithChangeFilterOnlyUsesIt() {
+        assertHistoricalFilter("?from-historical-revision=1&change-filter=exists(features/f)", "exists(features/f)");
+    }
+
+    @Test
+    public void historicalStreamRejectsPlaceholderTerms() {
+        for (final String query : List.of(
+                "?from-historical-revision=1&change-filter=eq(topic:action,'deleted')",
+                "?from-historical-timestamp=2026-10-26T00:00:00Z&filter=like(resource:path,'/features/f*')")) {
+            underTestWithExceptionHandling.run(HttpRequest.GET(THINGS_ROUTE + "/org.eclipse.ditto:my-thing-1" + query)
+                            .addHeader(acceptHeader))
+                    .assertStatusCode(StatusCodes.BAD_REQUEST);
+        }
+    }
+
+    private void assertHistoricalFilter(final String query, final String expectedFilter) {
+        new TestKit(actorSystem) {{
+            final TestRouteResult routeResult =
+                    underTest.run(HttpRequest.GET(THINGS_ROUTE + "/org.eclipse.ditto:my-thing-1" + query)
+                            .addHeader(acceptHeader));
+            final CompletableFuture<Void> routeTestAssertions = CompletableFuture.runAsync(
+                    () -> routeResult.assertStatusCode(StatusCodes.OK), ASYNC_TEST_EXECUTOR);
+
+            streamingActor.expectMsgClass(Connect.class);
+            streamingActor.reply(streamingActor.ref());
+
+            final SubscribeForPersistedEvents subscribe =
+                    streamingActor.expectMsgClass(SubscribeForPersistedEvents.class);
+            assertThat(subscribe.getFilter()).contains(expectedFilter);
+            routeTestAssertions.cancel(true);
+        }};
     }
 
     @Test
@@ -575,6 +635,8 @@ public final class ThingsSseRouteBuilderTest extends EndpointTestBase {
                     .isEqualTo(expectedStartStreaming.getExtraFields());
             assertThat(receivedStartStreaming.getFilter())
                     .isEqualTo(expectedStartStreaming.getFilter());
+            assertThat(receivedStartStreaming.getChangeFilter())
+                    .isEqualTo(expectedStartStreaming.getChangeFilter());
             assertThat(receivedStartStreaming.getNamespaces())
                     .isEqualTo(expectedStartStreaming.getNamespaces());
             assertThat(receivedStartStreaming.getStreamingType())

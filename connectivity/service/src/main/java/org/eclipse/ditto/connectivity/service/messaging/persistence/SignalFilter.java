@@ -62,6 +62,7 @@ import org.eclipse.ditto.protocol.placeholders.TopicPathPlaceholder;
 import org.eclipse.ditto.rql.parser.RqlPredicateParser;
 import org.eclipse.ditto.rql.query.criteria.Criteria;
 import org.eclipse.ditto.rql.query.filter.QueryFilterCriteriaFactory;
+import org.eclipse.ditto.rql.query.things.ThingPredicateVisitor;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.events.ThingEvent;
@@ -111,9 +112,10 @@ public final class SignalFilter {
      * Filters the passed {@code signal} by extracting those {@link Target}s which should receive the signal.
      * Fields are ignored if they occur as "extra targets" to be evaluated later after signal enrichment.
      * <p>
-     * A target topic may carry an optional RQL {@code filter} and any number of {@code fn-filter}s (placeholder
-     * pipelines, see {@link org.eclipse.ditto.connectivity.service.messaging.TargetTopicFilter}); all of them must
-     * match. The {@code fn-filter}s are evaluated first. A {@link RuntimeException} thrown while evaluating one of
+     * A target topic may carry an optional RQL {@code filter}, an optional RQL {@code change-filter} and any number of
+     * {@code fn-filter}s (placeholder pipelines, see
+     * {@link org.eclipse.ditto.connectivity.service.messaging.TargetTopicFilter}); all of them must match. The
+     * {@code fn-filter}s are evaluated first. A {@link RuntimeException} thrown while evaluating one of
      * them is logged, recorded as failure in the connection logs and treated as a non-match, whereas the exception
      * of an invalid RQL filter is propagated.
      *
@@ -186,46 +188,85 @@ public final class SignalFilter {
                 return false;
             }
         }
+        final Optional<String> changeFilterOptional = filteredTopic.getChangeFilter();
         final Optional<String> filterOptional = filteredTopic.getFilter();
+        if (changeFilterOptional.isEmpty() && filterOptional.isEmpty()) {
+            return true;
+        }
+        final List<PlaceholderResolver<?>> placeholderResolvers = getPlaceholderResolvers(signal);
+        final Optional<Thing> thingFromSignal = thingFromSignal(signal);
+        if (changeFilterOptional.isPresent() && !matchesChangeFilter(changeFilterOptional.get(), signal,
+                thingFromSignal.orElseGet(() -> Thing.newBuilder().build()), placeholderResolvers)) {
+            return false;
+        }
         if (filterOptional.isEmpty()) {
             return true;
         }
 
         // match the RQL filter ignoring "extraFields"
-        final TopicPath topicPath = DITTO_PROTOCOL_ADAPTER.toTopicPath(signal);
-        final PlaceholderResolver<TopicPath> topicPathPlaceholderResolver =
-                PlaceholderFactory.newPlaceholderResolver(TOPIC_PATH_PLACEHOLDER, topicPath);
-        final PlaceholderResolver<EntityId> entityIdPlaceholderResolver = PlaceholderFactory
-                .newPlaceholderResolver(ENTITY_ID_PLACEHOLDER,
-                        (signal instanceof WithEntityId withEntityId) ? withEntityId.getEntityId() : null);
-        final PlaceholderResolver<EntityId> thingPlaceholderResolver = PlaceholderFactory
-                .newPlaceholderResolver(THING_PLACEHOLDER,
-                        (signal instanceof WithEntityId withEntityId) ? withEntityId.getEntityId() : null);
-        final PlaceholderResolver<Signal<?>> featurePlaceholderResolver = PlaceholderFactory
-                .newPlaceholderResolver(FEATURE_PLACEHOLDER, signal);
-        final PlaceholderResolver<WithResource> resourcePlaceholderResolver = PlaceholderFactory
-                .newPlaceholderResolver(RESOURCE_PLACEHOLDER, signal);
-        final PlaceholderResolver<Object> timePlaceholderResolver = PlaceholderFactory
-                .newPlaceholderResolver(TIME_PLACEHOLDER, new Object());
+        if (thingFromSignal.isEmpty()) {
+            return false;
+        }
+        final Thing thingToMatch = thingFromSignal.get();
         final Set<JsonPointer> extraFields = filteredTopic.getExtraFields()
                 .map(JsonFieldSelector::getPointers)
                 .orElse(Collections.emptySet());
-        final Thing thingToMatch;
-        if (signal instanceof ThingEvent) {
-            final Optional<Thing> thingFromEvent = ThingEventToThingConverter.thingEventToThing((ThingEvent<?>) signal);
-            if (thingFromEvent.isEmpty()) {
-                return false;
-            }
-            thingToMatch = thingFromEvent.get();
-        } else {
-            thingToMatch = Thing.newBuilder().build();
-        }
-        final Criteria criteria = parseCriteria(filterOptional.get(), signal.getDittoHeaders(),
-                topicPathPlaceholderResolver, entityIdPlaceholderResolver, thingPlaceholderResolver,
-                featurePlaceholderResolver, resourcePlaceholderResolver, timePlaceholderResolver);
+        final Criteria criteria = parseCriteria(filterOptional.get(), signal.getDittoHeaders(), placeholderResolvers);
         return Thing3ValuePredicateVisitor.couldBeTrue(criteria, extraFields, thingToMatch,
-                topicPathPlaceholderResolver, entityIdPlaceholderResolver, thingPlaceholderResolver,
-                featurePlaceholderResolver, resourcePlaceholderResolver, timePlaceholderResolver);
+                placeholderResolvers);
+    }
+
+    /**
+     * Evaluates an RQL {@code change-filter} against the thing data carried by the signal only, never against
+     * {@code extraFields}.
+     *
+     * @param changeFilter the RQL expression of the change filter.
+     * @param signal the signal to evaluate the change filter for.
+     * @param changedThing the thing data carried by the signal, see {@link #getChangedThing(Signal)}.
+     * @param placeholderResolvers the placeholder resolvers of the signal, see {@link #getPlaceholderResolvers(Signal)}.
+     * @return whether the signal matches the change filter.
+     * @throws org.eclipse.ditto.base.model.exceptions.InvalidRqlExpressionException if the change filter is invalid
+     */
+    public static boolean matchesChangeFilter(final String changeFilter, final Signal<?> signal,
+            final Thing changedThing, final List<PlaceholderResolver<?>> placeholderResolvers) {
+        final Criteria criteria = parseCriteria(changeFilter, signal.getDittoHeaders(), placeholderResolvers);
+        return ThingPredicateVisitor.apply(criteria, placeholderResolvers).test(changedThing);
+    }
+
+    /**
+     * @param signal the signal.
+     * @return the thing data carried by the signal, or an empty thing if it carries none, so that terms on
+     * placeholders still apply.
+     */
+    public static Thing getChangedThing(final Signal<?> signal) {
+        return thingFromSignal(signal).orElseGet(() -> Thing.newBuilder().build());
+    }
+
+    private static Optional<Thing> thingFromSignal(final Signal<?> signal) {
+        if (signal instanceof ThingEvent<?> thingEvent) {
+            return ThingEventToThingConverter.thingEventToThing(thingEvent);
+        }
+        return Optional.of(Thing.newBuilder().build());
+    }
+
+    /**
+     * @param signal the signal.
+     * @return the placeholder resolvers available to the RQL {@code filter} and {@code change-filter} of a target
+     * topic, without {@code thing-json}, which needs the enriched thing.
+     */
+    public static List<PlaceholderResolver<?>> getPlaceholderResolvers(final Signal<?> signal) {
+        @Nullable final EntityId entityId = signal instanceof WithEntityId withEntityId
+                ? withEntityId.getEntityId()
+                : null;
+        return List.of(
+                PlaceholderFactory.newPlaceholderResolver(TOPIC_PATH_PLACEHOLDER,
+                        DITTO_PROTOCOL_ADAPTER.toTopicPath(signal)),
+                PlaceholderFactory.newPlaceholderResolver(ENTITY_ID_PLACEHOLDER, entityId),
+                PlaceholderFactory.newPlaceholderResolver(THING_PLACEHOLDER, entityId),
+                PlaceholderFactory.newPlaceholderResolver(FEATURE_PLACEHOLDER, signal),
+                PlaceholderFactory.newPlaceholderResolver(RESOURCE_PLACEHOLDER, signal),
+                PlaceholderFactory.newPlaceholderResolver(TIME_PLACEHOLDER, new Object())
+        );
     }
 
     /**
@@ -258,8 +299,9 @@ public final class SignalFilter {
      * mapped to a valid criterion
      */
     private static Criteria parseCriteria(final String filter, final DittoHeaders dittoHeaders,
-            final PlaceholderResolver<?>... placeholderResolvers) {
-        return QueryFilterCriteriaFactory.modelBased(RqlPredicateParser.getInstance(), placeholderResolvers)
+            final List<PlaceholderResolver<?>> placeholderResolvers) {
+        return QueryFilterCriteriaFactory.modelBased(RqlPredicateParser.getInstance(),
+                        placeholderResolvers.toArray(PlaceholderResolver<?>[]::new))
                 .filterCriteria(filter, dittoHeaders);
     }
 
