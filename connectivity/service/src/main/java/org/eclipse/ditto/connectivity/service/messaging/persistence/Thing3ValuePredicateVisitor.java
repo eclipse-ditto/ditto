@@ -28,17 +28,21 @@ import org.eclipse.ditto.rql.query.criteria.visitors.CriteriaVisitor;
 import org.eclipse.ditto.rql.query.expression.ExistsFieldExpression;
 import org.eclipse.ditto.rql.query.expression.FieldExpression;
 import org.eclipse.ditto.rql.query.expression.FilterFieldExpression;
-import org.eclipse.ditto.rql.query.expression.visitors.FieldExpressionVisitor;
 import org.eclipse.ditto.rql.query.things.EmptyThingPredicateVisitor;
 import org.eclipse.ditto.rql.query.things.ExistsThingPredicateVisitor;
 import org.eclipse.ditto.rql.query.things.FilterThingPredicateVisitor;
+import org.eclipse.ditto.rql.query.things.ThingJsonPointerVisitor;
 import org.eclipse.ditto.rql.query.things.ThingPredicatePredicateVisitor;
 import org.eclipse.ditto.things.model.Thing;
+import org.eclipse.ditto.things.model.ThingsModelFactory;
 
 /**
  * Visitor to evaluate a criteria against a partial thing with unknown fields.
  */
 final class Thing3ValuePredicateVisitor implements CriteriaVisitor<Function<Thing, Trilean>> {
+
+    private static final JsonKey FEATURES_KEY = Thing.JsonFields.FEATURES.getPointer().getRoot().orElseThrow();
+    private static final JsonKey METADATA_KEY = Thing.JsonFields.METADATA.getPointer().getRoot().orElseThrow();
 
     private final Set<JsonPointer> unknownFields;
     private final List<PlaceholderResolver<?>> placeholderResolvers;
@@ -137,74 +141,36 @@ final class Thing3ValuePredicateVisitor implements CriteriaVisitor<Function<Thin
     }
 
     private boolean isUnknownField(final FieldExpression fieldExpression) {
-        final JsonPointer fieldExpressionPointer = fieldExpression.accept(new GetJsonPointer());
-        return unknownFields.stream()
-                .anyMatch(unknownField -> isSameOrAncestor(unknownField, fieldExpressionPointer));
+        final JsonPointer fieldExpressionPointer = ThingJsonPointerVisitor.apply(fieldExpression);
+        return unknownFields.stream().anyMatch(unknownField -> overlaps(unknownField, fieldExpressionPointer));
     }
 
-    // compares level by level, so that e.g. "/attributes/p" is not considered an ancestor of "/attributes/pressure"
-    private static boolean isSameOrAncestor(final JsonPointer candidate, final JsonPointer pointer) {
-        final int candidateLevelCount = candidate.getLevelCount();
-        if (candidateLevelCount > pointer.getLevelCount()) {
-            return false;
-        }
-        for (int level = 0; level < candidateLevelCount; level++) {
-            if (!candidate.get(level).equals(pointer.get(level))) {
+    /*
+     * Enrichment changes the value of a field when the field is the unknown field itself, a descendant of it or an
+     * ancestor of it - so the pointers must be the same up to the shorter one of both. Compares level by level, so
+     * that e.g. "/attributes/p" does not overlap with "/attributes/pressure".
+     */
+    private static boolean overlaps(final JsonPointer unknownField, final JsonPointer pointer) {
+        final int commonLevelCount = Math.min(unknownField.getLevelCount(), pointer.getLevelCount());
+        for (int level = 0; level < commonLevelCount; level++) {
+            if (!isFeatureIdWildcard(unknownField, level) && !unknownField.get(level).equals(pointer.get(level))) {
                 return false;
             }
         }
         return true;
     }
 
-    private static final class GetJsonPointer implements FieldExpressionVisitor<JsonPointer> {
-
-        @Override
-        public JsonPointer visitAttribute(final String key) {
-            return Thing.JsonFields.ATTRIBUTES.getPointer().append(JsonPointer.of(key));
+    // the feature ID wildcards of extra fields, see ThingsModelFactory#expandFeatureIdWildcard
+    private static boolean isFeatureIdWildcard(final JsonPointer unknownField, final int level) {
+        if (unknownField.get(level).filter(ThingsModelFactory.FEATURE_ID_WILDCARD::equals).isEmpty()) {
+            return false;
         }
-
-        @Override
-        public JsonPointer visitFeature(final String featureId) {
-            return Thing.JsonFields.FEATURES.getPointer().addLeaf(JsonKey.of(featureId));
+        if (level == 1) {
+            return unknownField.get(0).filter(FEATURES_KEY::equals).isPresent();
         }
-
-        @Override
-        public JsonPointer visitFeatureDefinition(final String featureId) {
-            return visitFeature(featureId).append(JsonPointer.of("definition"));
-        }
-
-        @Override
-        public JsonPointer visitFeatureProperties(final CharSequence featureId) {
-            return visitFeature(featureId.toString()).append(JsonPointer.of("properties"));
-        }
-
-        @Override
-        public JsonPointer visitFeatureDesiredProperties(final CharSequence featureId) {
-            return visitFeature(featureId.toString()).append(JsonPointer.of("desiredProperties"));
-        }
-
-        @Override
-        public JsonPointer visitFeatureIdProperty(final String featureId, final String property) {
-            return visitFeatureProperties(featureId).append(JsonPointer.of(property));
-        }
-
-        @Override
-        public JsonPointer visitFeatureIdDesiredProperty(final CharSequence featureId,
-                final CharSequence desiredProperty) {
-
-            return visitFeatureDesiredProperties(featureId).append(JsonPointer.of(desiredProperty));
-        }
-
-        @Override
-        public JsonPointer visitSimple(final String fieldName) {
-            return JsonPointer.empty().addLeaf(JsonKey.of(fieldName));
-        }
-
-        @Override
-        public JsonPointer visitMetadata(final String key) {
-            return Thing.JsonFields.METADATA.getPointer().append(JsonPointer.of(key));
-        }
-
+        return level == 2 &&
+                unknownField.get(0).filter(METADATA_KEY::equals).isPresent() &&
+                unknownField.get(1).filter(FEATURES_KEY::equals).isPresent();
     }
 
 }
