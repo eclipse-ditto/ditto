@@ -116,4 +116,34 @@ public interface CborFactory {
      * @throws IOException in case writing the value to the backing OutputStream causes an IOException.
      */
     byte[] createCborRepresentation(List<JsonValue> list, int guessedSerializedSize) throws IOException;
+
+    /**
+     * Writes the passed JSON fieldMap as CBOR object to the passed serialization context. Implementations should
+     * write it directly, as part of the context's CBOR output, instead of creating a separate CBOR representation of
+     * it first - which, for nested values, would encode and copy each byte once per nesting level.
+     *
+     * @param jsonFieldMap the map of JsonFields to write.
+     * @param serializationContext the serialization context to write to.
+     * @throws IOException in case writing the value to the backing OutputStream causes an IOException.
+     * @since 3.9.9
+     */
+    default void writeObject(final Map<String, JsonField> jsonFieldMap,
+            final SerializationContext serializationContext) throws IOException {
+        serializationContext.writeCachedElement(createCborRepresentation(jsonFieldMap, 512));
+    }
+
+    /**
+     * Writes the passed JSON value list as CBOR array to the passed serialization context. Implementations should
+     * write it directly, as part of the context's CBOR output, instead of creating a separate CBOR representation of
+     * it first - which, for nested values, would encode and copy each byte once per nesting level.
+     *
+     * @param list the list of JsonValues to write.
+     * @param serializationContext the serialization context to write to.
+     * @throws IOException in case writing the value to the backing OutputStream causes an IOException.
+     * @since 3.9.9
+     */
+    default void writeArray(final List<JsonValue> list, final SerializationContext serializationContext)
+            throws IOException {
+        serializationContext.writeCachedElement(createCborRepresentation(list, 512));
+    }
 }

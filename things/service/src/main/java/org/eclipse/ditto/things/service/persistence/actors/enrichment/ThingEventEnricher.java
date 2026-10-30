@@ -162,12 +162,12 @@ public final class ThingEventEnricher {
                                 final String extraFieldsObjectKey = DittoHeaderDefinition.PRE_DEFINED_EXTRA_FIELDS_OBJECT.getKey();
 
                                 final DittoHeadersBuilder<?, ?> headersBuilder = dittoHeaders.toBuilder()
-                                        .putHeader(extraFieldsKey,
+                                        .putJsonHeader(extraFieldsKey,
                                                 buildPredefinedExtraFieldsHeaderList(combinedPredefinedExtraFields))
-                                        .putHeader(readGrantKey, readGrant.toJson().toString())
-                                        .putHeader(extraFieldsObjectKey,
+                                        .putJsonHeader(readGrantKey, readGrant.toJson())
+                                        .putJsonHeader(extraFieldsObjectKey,
                                                 buildPredefinedExtraFieldsHeaderObject(thingJson,
-                                                        combinedPredefinedExtraFields).toString());
+                                                        combinedPredefinedExtraFields));
 
                                 return enrichedWithPartialAccessPaths.setDittoHeaders(headersBuilder.build());
                             });
@@ -247,12 +247,11 @@ public final class ThingEventEnricher {
         };
     }
 
-    private static String buildPredefinedExtraFieldsHeaderList(final JsonFieldSelector preDefinedExtraFields) {
+    private static JsonArray buildPredefinedExtraFieldsHeaderList(final JsonFieldSelector preDefinedExtraFields) {
         return StreamSupport.stream(preDefinedExtraFields.spliterator(), false)
                 .map(JsonPointer::toString)
                 .map(JsonValue::of)
-                .collect(JsonCollectors.valuesToArray())
-                .toString();
+                .collect(JsonCollectors.valuesToArray());
     }
 
     /**
@@ -435,7 +434,7 @@ public final class ThingEventEnricher {
                     .warn("Overwriting existing {} header", partialAccessPathsKey);
         }
         final DittoHeaders updatedHeaders = currentHeaders.toBuilder()
-                .putHeader(partialAccessPathsKey, partialAccessPathsJson.toString())
+                .putJsonHeader(partialAccessPathsKey, partialAccessPathsJson)
                 .build();
         return withDittoHeaders.setDittoHeaders(updatedHeaders);
     }

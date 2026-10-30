@@ -85,6 +85,19 @@ final class ImmutableJsonObject extends AbstractJsonValue implements JsonObject 
     }
 
     /**
+     * Like {@link #of(Map, String)}, but takes over the passed map instead of copying it - for parsers which build
+     * the map exclusively for the new object. The caller must neither modify the map nor keep a reference to it.
+     *
+     * @param fields the fields of the JSON object, taken over.
+     * @param stringRepresentation the already known string representation of the returned object or {@code null}.
+     * @return the JSON object.
+     */
+    static ImmutableJsonObject ofTakingOwnership(final Map<String, JsonField> fields,
+            @Nullable final String stringRepresentation) {
+        return new ImmutableJsonObject(SoftReferencedFieldMap.ofTakingOwnership(fields, stringRepresentation));
+    }
+
+    /**
      * Returns a new {@code ImmutableJsonObject} instance which contains the given fields.
      *
      * @param fields the fields of the new JSON object.
@@ -626,10 +639,16 @@ final class ImmutableJsonObject extends AbstractJsonValue implements JsonObject 
 
         private SoftReferencedFieldMap(final Map<String, JsonField> jsonFieldMap,
                 @Nullable final String stringRepresentation, @Nullable final byte[] cborObjectRepresentation) {
+            this(jsonFieldMap, stringRepresentation, cborObjectRepresentation, true);
+        }
+
+        private SoftReferencedFieldMap(final Map<String, JsonField> jsonFieldMap,
+                @Nullable final String stringRepresentation, @Nullable final byte[] cborObjectRepresentation,
+                final boolean copyFieldMap) {
 
             requireNonNull(jsonFieldMap, "The fields of JSON object must not be null!");
-            final Map<String, JsonField> immutable =
-                    Collections.unmodifiableMap(new LinkedHashMap<>(jsonFieldMap));
+            final Map<String, JsonField> immutable = Collections.unmodifiableMap(
+                    copyFieldMap ? new LinkedHashMap<>(jsonFieldMap) : jsonFieldMap);
             this.jsonObjectStringRepresentation = stringRepresentation;
             this.cborObjectRepresentation = cborObjectRepresentation;
             // Soft-reference the field map only when a serialised representation already
@@ -650,6 +669,11 @@ final class ImmutableJsonObject extends AbstractJsonValue implements JsonObject 
 
         static SoftReferencedFieldMap of(final Map<String, JsonField> fieldMap) {
             return new SoftReferencedFieldMap(fieldMap, null, null);
+        }
+
+        static SoftReferencedFieldMap ofTakingOwnership(final Map<String, JsonField> fieldMap,
+                @Nullable final String stringRepresentation) {
+            return new SoftReferencedFieldMap(fieldMap, stringRepresentation, null, false);
         }
 
         static SoftReferencedFieldMap of(final Map<String, JsonField> jsonFieldMap,
@@ -836,12 +860,15 @@ final class ImmutableJsonObject extends AbstractJsonValue implements JsonObject 
         }
 
         void writeValue(final SerializationContext serializationContext) throws IOException {
-            if (CBOR_FACTORY.isCborAvailable() && cborObjectRepresentation == null) {
-                final Map<String, JsonField> currentFields = fields();
-                cborObjectRepresentation = CBOR_FACTORY.createCborRepresentation(currentFields, guessSerializedSize());
-                softenFieldsRef(currentFields);
+            final byte[] cborRepresentation = cborObjectRepresentation;
+            if (null != cborRepresentation) {
+                serializationContext.writeCachedElement(cborRepresentation);
+            } else {
+                // Write the fields as part of the context's output instead of creating (and keeping) a CBOR
+                // representation of this object first: done on every nesting level, that encoded and copied each
+                // byte once per level and kept a copy of it in every nested object.
+                CBOR_FACTORY.writeObject(fields(), serializationContext);
             }
-            serializationContext.writeCachedElement(cborObjectRepresentation);
         }
 
         private int guessSerializedSize() {
