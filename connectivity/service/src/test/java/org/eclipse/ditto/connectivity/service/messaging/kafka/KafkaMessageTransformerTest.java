@@ -13,12 +13,12 @@
 package org.eclipse.ditto.connectivity.service.messaging.kafka;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.eclipse.ditto.connectivity.service.EnforcementFactoryFactory.newEnforcementFilterFactory;
+import static org.assertj.core.api.Assertions.assertThatCode;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.eclipse.ditto.connectivity.service.messaging.TestConstants.Authorization.AUTHORIZATION_CONTEXT;
 import static org.eclipse.ditto.connectivity.service.messaging.kafka.KafkaHeader.KAFKA_KEY;
 import static org.eclipse.ditto.connectivity.service.messaging.kafka.KafkaHeader.KAFKA_TIMESTAMP;
 import static org.eclipse.ditto.connectivity.service.messaging.kafka.KafkaHeader.KAFKA_TOPIC;
-import static org.eclipse.ditto.placeholders.PlaceholderFactory.newHeadersPlaceholder;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
@@ -28,22 +28,27 @@ import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.common.header.internals.RecordHeader;
 import org.apache.kafka.common.header.internals.RecordHeaders;
 import org.eclipse.ditto.base.model.common.ByteBufferUtils;
+import org.eclipse.ditto.base.model.entity.id.EntityId;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.signals.Signal;
+import org.eclipse.ditto.base.model.signals.SignalWithEntityId;
 import org.eclipse.ditto.connectivity.api.ExternalMessage;
 import org.eclipse.ditto.connectivity.model.ConnectionId;
+import org.eclipse.ditto.connectivity.model.ConnectionSignalIdEnforcementFailedException;
 import org.eclipse.ditto.connectivity.model.ConnectivityModelFactory;
 import org.eclipse.ditto.connectivity.model.Enforcement;
-import org.eclipse.ditto.connectivity.model.EnforcementFilterFactory;
+import org.eclipse.ditto.connectivity.model.EnforcementFilter;
 import org.eclipse.ditto.connectivity.model.Source;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.ConnectionMonitor;
+import org.eclipse.ditto.connectivity.service.SourceEnforcementFilterFactory;
 import org.eclipse.ditto.internal.utils.tracing.DittoTracingInitResource;
 import org.eclipse.ditto.placeholders.UnresolvedPlaceholderException;
+import org.eclipse.ditto.things.model.ThingId;
 import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Test;
@@ -53,6 +58,7 @@ public final class KafkaMessageTransformerTest {
     @ClassRule
     public static final DittoTracingInitResource DITTO_TRACING_INIT_RESOURCE =
             DittoTracingInitResource.disableDittoTracing();
+    private static final String TOPIC = "org.eclipse.ditto.sensor1";
 
     private static final long TIMESTAMP = System.currentTimeMillis();
     private KafkaMessageTransformer underTest;
@@ -69,11 +75,10 @@ public final class KafkaMessageTransformerTest {
                 .enforcement(enforcement)
                 .qos(1)
                 .build();
-        final EnforcementFilterFactory<Map<String, String>, Signal<?>> enforcementFilterFactory =
-                newEnforcementFilterFactory(enforcement, newHeadersPlaceholder());
+        final SourceEnforcementFilterFactory sourceEnforcementFilterFactory = SourceEnforcementFilterFactory.of(source);
         inboundMonitor = mock(ConnectionMonitor.class);
         underTest = new KafkaMessageTransformer(ConnectionId.of("foo"),
-                source, sourceAddress, enforcementFilterFactory, inboundMonitor);
+                source, sourceAddress, sourceEnforcementFilterFactory, inboundMonitor);
     }
 
     @Test
@@ -211,6 +216,62 @@ public final class KafkaMessageTransformerTest {
         final TransformationResult transformResult = underTest.transform(consumerRecord);
 
         assertThat(transformResult).isNull();
+    }
+
+    private static ConsumerRecord<String, ByteBuffer> mockRecord(final String topic, final RecordHeaders headers) {
+        final ConsumerRecord<String, ByteBuffer> consumerRecord = mock(ConsumerRecord.class);
+        when(consumerRecord.headers()).thenReturn(headers);
+        when(consumerRecord.key()).thenReturn("someKey");
+        when(consumerRecord.value()).thenReturn(ByteBufferUtils.fromUtf8String("someValue"));
+        when(consumerRecord.topic()).thenReturn(topic);
+        when(consumerRecord.timestamp()).thenReturn(TIMESTAMP);
+        return consumerRecord;
+    }
+
+    private static Signal<?> mockSignalWithId(final EntityId entityId) {
+        final SignalWithEntityId<?> signal = mock(SignalWithEntityId.class);
+        when(signal.getEntityId()).thenReturn(entityId);
+        when(signal.getDittoHeaders()).thenReturn(DittoHeaders.empty());
+        return signal;
+    }
+
+    private KafkaMessageTransformer sourceAddressTransformer() {
+        final Enforcement enforcement = ConnectivityModelFactory.newEnforcement("{{ source:address }}",
+                Collections.singleton("{{ thing:namespace }}.{{ thing:name }}"));
+        final Source source = ConnectivityModelFactory.newSourceBuilder()
+                .address(TOPIC)
+                .authorizationContext(AUTHORIZATION_CONTEXT)
+                .enforcement(enforcement)
+                .qos(1)
+                .build();
+        return new KafkaMessageTransformer(ConnectionId.of("foo"), source, TOPIC,
+                SourceEnforcementFilterFactory.of(source), inboundMonitor);
+    }
+
+    @Test
+    public void testSourceAddressEnforcementMatchesTopic() {
+        final TransformationResult result = sourceAddressTransformer().
+                transform(mockRecord(TOPIC, new RecordHeaders()));
+
+        assertThat(result).isNotNull();
+        final ExternalMessage externalMessage = result.getExternalMessage().orElseThrow();
+        final EnforcementFilter<Signal<?>> enforcementFilter = externalMessage.getEnforcementFilter().orElseThrow();
+        assertThatCode(() -> enforcementFilter.match(mockSignalWithId(ThingId.of("org.eclipse.ditto:sensor1"))))
+                .doesNotThrowAnyException();
+    }
+
+    @Test
+    public void testSourceAddressEnforcementRejectsOtherThing() {
+        final TransformationResult result = sourceAddressTransformer()
+                .transform(mockRecord(TOPIC, new RecordHeaders()));
+
+        assertThat(result).isNotNull();
+        final ExternalMessage externalMessage = result.getExternalMessage().orElseThrow();
+        final EnforcementFilter<Signal<?>> enforcementFilter = externalMessage.getEnforcementFilter().orElseThrow();
+
+        assertThatExceptionOfType(ConnectionSignalIdEnforcementFailedException.class)
+                .isThrownBy(() -> enforcementFilter
+                        .match(mockSignalWithId(ThingId.of("org.eclipse.ditto:sensor2"))));
     }
 
 }

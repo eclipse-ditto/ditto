@@ -30,13 +30,12 @@ import org.eclipse.ditto.base.model.common.CharsetDeterminer;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.connectivity.api.ExternalMessage;
 import org.eclipse.ditto.connectivity.api.ExternalMessageFactory;
 import org.eclipse.ditto.connectivity.model.ConnectionId;
-import org.eclipse.ditto.connectivity.model.EnforcementFilterFactory;
 import org.eclipse.ditto.connectivity.model.Source;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.ConnectionMonitor;
+import org.eclipse.ditto.connectivity.service.SourceEnforcementFilterFactory;
 import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.pekko.logging.ThreadSafeDittoLogger;
 import org.eclipse.ditto.internal.utils.tracing.DittoTracing;
@@ -55,16 +54,16 @@ final class KafkaMessageTransformer {
     private final ConnectionId connectionId;
     private final Source source;
     private final String sourceAddress;
-    private final EnforcementFilterFactory<Map<String, String>, Signal<?>> headerEnforcementFilterFactory;
+    private final SourceEnforcementFilterFactory sourceEnforcementFilterFactory;
     private final ConnectionMonitor inboundMonitor;
 
     KafkaMessageTransformer(final ConnectionId connectionId, final Source source, final String sourceAddress,
-            final EnforcementFilterFactory<Map<String, String>, Signal<?>> headerEnforcementFilterFactory,
+            final SourceEnforcementFilterFactory sourceEnforcementFilterFactory,
             final ConnectionMonitor inboundMonitor) {
         this.connectionId = connectionId;
         this.source = source;
         this.sourceAddress = sourceAddress;
-        this.headerEnforcementFilterFactory = headerEnforcementFilterFactory;
+        this.sourceEnforcementFilterFactory = sourceEnforcementFilterFactory;
         this.inboundMonitor = inboundMonitor;
     }
 
@@ -131,7 +130,7 @@ final class KafkaMessageTransformer {
             final ExternalMessage externalMessage = ExternalMessageFactory.newExternalMessageBuilder(messageHeaders)
                     .withTextAndBytes(ByteBufferUtils.toString(value, charset), value)
                     .withAuthorizationContext(source.getAuthorizationContext())
-                    .withEnforcement(headerEnforcementFilterFactory.getFilter(messageHeaders))
+                    .withEnforcement(sourceEnforcementFilterFactory.getFilter(messageHeaders, sourceAddress))
                     .withHeaderMapping(source.getHeaderMapping())
                     .withSourceAddress(sourceAddress)
                     .withPayloadMapping(source.getPayloadMapping())

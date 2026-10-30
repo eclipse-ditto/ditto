@@ -16,8 +16,6 @@ import static org.apache.qpid.jms.message.JmsMessageSupport.ACCEPTED;
 import static org.apache.qpid.jms.message.JmsMessageSupport.MODIFIED_FAILED;
 import static org.apache.qpid.jms.message.JmsMessageSupport.REJECTED;
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
-import static org.eclipse.ditto.connectivity.service.EnforcementFactoryFactory.newEnforcementFilterFactory;
-import static org.eclipse.ditto.placeholders.PlaceholderFactory.newHeadersPlaceholder;
 
 import java.nio.ByteBuffer;
 import java.text.MessageFormat;
@@ -50,15 +48,12 @@ import org.apache.qpid.jms.message.JmsMessage;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.connectivity.api.ExternalMessage;
 import org.eclipse.ditto.connectivity.api.ExternalMessageBuilder;
 import org.eclipse.ditto.connectivity.api.ExternalMessageFactory;
 import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.ConnectivityModelFactory;
 import org.eclipse.ditto.connectivity.model.ConnectivityStatus;
-import org.eclipse.ditto.connectivity.model.Enforcement;
-import org.eclipse.ditto.connectivity.model.EnforcementFilterFactory;
 import org.eclipse.ditto.connectivity.model.ResourceStatus;
 import org.eclipse.ditto.connectivity.service.config.Amqp10Config;
 import org.eclipse.ditto.connectivity.service.config.ConnectionConfig;
@@ -70,6 +65,7 @@ import org.eclipse.ditto.connectivity.service.messaging.backoff.BackOffActor;
 import org.eclipse.ditto.connectivity.service.messaging.internal.ConnectionFailure;
 import org.eclipse.ditto.connectivity.service.messaging.internal.RetrieveAddressStatus;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.logs.InfoProviderFactory;
+import org.eclipse.ditto.connectivity.service.SourceEnforcementFilterFactory;
 import org.eclipse.ditto.internal.utils.config.InstanceIdentifierSupplier;
 import org.eclipse.ditto.internal.utils.pekko.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.internal.utils.tracing.DittoTracing;
@@ -87,7 +83,8 @@ final class AmqpConsumerActor extends LegacyBaseConsumerActor
      */
     static final String ACTOR_NAME_PREFIX = "amqpConsumerActor-";
 
-    private final EnforcementFilterFactory<Map<String, String>, Signal<?>> headerEnforcementFilterFactory;
+    private final SourceEnforcementFilterFactory sourceEnforcementFilterFactory;
+
     private final ActorRef backOffActor;
 
     private final MessageRateLimiter<String> messageRateLimiter;
@@ -126,10 +123,7 @@ final class AmqpConsumerActor extends LegacyBaseConsumerActor
         messageRateLimiter = initMessageRateLimiter(amqp10Config);
         backOffActor = getContext().actorOf(BackOffActor.props(amqp10Config.getBackOffConfig()));
 
-        final Enforcement enforcement = consumerData.getSource().getEnforcement().orElse(null);
-        headerEnforcementFilterFactory = enforcement != null
-                ? newEnforcementFilterFactory(enforcement, newHeadersPlaceholder())
-                : input -> null;
+        sourceEnforcementFilterFactory = SourceEnforcementFilterFactory.of(consumerData.getSource());
     }
 
     /**
@@ -367,7 +361,7 @@ final class AmqpConsumerActor extends LegacyBaseConsumerActor
             final ExternalMessageBuilder builder = ExternalMessageFactory.newExternalMessageBuilder(headers);
             final ExternalMessage externalMessage = extractPayloadFromMessage(message, builder)
                     .withAuthorizationContext(source.getAuthorizationContext())
-                    .withEnforcement(headerEnforcementFilterFactory.getFilter(headers))
+                    .withEnforcement(sourceEnforcementFilterFactory.getFilter(headers, sourceAddress))
                     .withHeaderMapping(source.getHeaderMapping())
                     .withSourceAddress(sourceAddress)
                     .withPayloadMapping(consumerData.getSource().getPayloadMapping())
