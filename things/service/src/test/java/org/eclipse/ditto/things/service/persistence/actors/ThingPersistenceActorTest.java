@@ -900,6 +900,54 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
     }
 
     @Test
+    public void deniesReadersWhenEnrichmentFails() {
+        when(policyEnforcerProvider.getPolicyEnforcer(POLICY_ID))
+                .thenReturn(CompletableFuture.failedFuture(new IllegalStateException("enrichment failure")));
+
+        new TestKit(actorSystem) {
+            {
+                final Thing thing = createThingV2WithRandomId();
+                final DittoHeaders eventHeaders = dittoHeadersV2.toBuilder()
+                        .readGrantedSubjects(List.of(
+                                AuthorizationSubject.newInstance("test:unrestricted"),
+                                AuthorizationSubject.newInstance("test:partial")))
+                        .build();
+                final ActorRef underTest = createPersistenceActorFor(thing);
+
+                underTest.tell(CreateThing.of(thing, null, eventHeaders), getRef());
+
+                expectMsgClass(CreateThingResponse.class);
+                final ThingEvent<?> publishedEvent = pubSubTestProbe.expectMsgClass(ThingEvent.class);
+
+                assertThat(publishedEvent.getDittoHeaders().getReadGrantedSubjects()).isEmpty();
+            }
+        };
+    }
+
+    @Test
+    public void deniesReadersWhenPolicyEnforcerIsUnavailable() {
+        when(policyEnforcerProvider.getPolicyEnforcer(POLICY_ID))
+                .thenReturn(CompletableFuture.completedFuture(Optional.empty()));
+
+        new TestKit(actorSystem) {
+            {
+                final Thing thing = createThingV2WithRandomId();
+                final DittoHeaders eventHeaders = dittoHeadersV2.toBuilder()
+                        .readGrantedSubjects(List.of(AuthorizationSubject.newInstance("test:partial")))
+                        .build();
+                final ActorRef underTest = createPersistenceActorFor(thing);
+
+                underTest.tell(CreateThing.of(thing, null, eventHeaders), getRef());
+
+                expectMsgClass(CreateThingResponse.class);
+                final ThingEvent<?> publishedEvent = pubSubTestProbe.expectMsgClass(ThingEvent.class);
+
+                assertThat(publishedEvent.getDittoHeaders().getReadGrantedSubjects()).isEmpty();
+            }
+        };
+    }
+
+    @Test
     public void recoverThingCreated() {
         new TestKit(actorSystem) {
             {

@@ -112,11 +112,12 @@ final class Header implements CharSequence {
      * <p>
      * Callers must uphold two invariants:
      * <ul>
-     * <li>The derivation must return a non-{@code null}, deeply immutable value whose fields are all {@code final}
-     * (e.g. the result of {@link java.util.Set#copyOf}). The memo field is deliberately non-volatile, so only
+     * <li>The derivation must return a non-{@code null} value which is never modified after it was returned and whose
+     * state is reachable through {@code final} fields only. The memo field is deliberately non-volatile, so only
      * final-field freeze semantics (JLS 17.5) guarantee that another thread observing the memo cannot see a
-     * partially constructed object. A {@code Collections.unmodifiableSet(new HashSet<>(…))} would <em>not</em> be
-     * safe here.</li>
+     * partially constructed object. These semantics also cover objects reachable through a {@code final} field, so
+     * e.g. {@code Collections.unmodifiableSet(fullyPopulatedSet)} is safe, whereas returning the mutable
+     * {@code fullyPopulatedSet} itself would <em>not</em> be.</li>
      * <li>For any given header key, exactly one derivation function must ever be used. The memo slot is untyped, so
      * mixing derivations of different result types for the same key would cause a {@link ClassCastException} at the
      * call site.</li>

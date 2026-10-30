@@ -243,6 +243,21 @@ public final class ThingEventEnricherTest {
     }
 
     @Test
+    public void returnsFailedStageWhenThingSerializationFails() {
+        final Thing thing = mock(Thing.class);
+        when(thing.toJson()).thenThrow(new IllegalStateException("serialization failure"));
+        final ThingEventEnricher sut = new ThingEventEnricher(policyEnforcerProvider, true, true);
+        final AttributeModified event = AttributeModified.of(
+                KNOWN_THING_ID, JsonPointer.of("something"), JsonValue.of(true), 4L,
+                Instant.now(), DittoHeaders.empty(), null);
+
+        final CompletionStage<AttributeModified> resultStage =
+                sut.enrichWithPredefinedExtraFields(List.of(), KNOWN_THING_ID, thing, KNOWN_POLICY_ID, event);
+
+        assertThatCompletionStage(resultStage).isCompletedExceptionally();
+    }
+
+    @Test
     public void skipsPartialAccessHeaderWhenNoPartialSubjectsExist() {
         final PolicyEnforcerProvider fullAccessProvider = mock(PolicyEnforcerProvider.class);
         when(fullAccessProvider.getPolicyEnforcer(KNOWN_POLICY_ID))

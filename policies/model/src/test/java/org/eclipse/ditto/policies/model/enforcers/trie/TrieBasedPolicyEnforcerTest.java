@@ -16,12 +16,14 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.Set;
 
-import org.eclipse.ditto.json.JsonFactory;
-import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.base.model.auth.AuthorizationContext;
 import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
 import org.eclipse.ditto.base.model.auth.DittoAuthorizationContextType;
+import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.policies.model.enforcers.Enforcer;
+import org.eclipse.ditto.policies.model.enforcers.PolicyEnforcers;
 import org.eclipse.ditto.policies.model.Permissions;
 import org.eclipse.ditto.policies.model.PoliciesModelFactory;
 import org.eclipse.ditto.policies.model.PoliciesResourceType;
@@ -81,6 +83,132 @@ public class TrieBasedPolicyEnforcerTest {
                 .doesNotContain(someRevokedSubject);
     }
 
+    @Test
+    public void getAccessiblePathsHandlesGrantedNullObject() {
+        final AuthorizationSubject subject = AuthorizationSubject.newInstance("dummy:partial");
+        final Policy policy = Policy.newBuilder(PolicyId.of("namespace", "id"))
+                .forLabel("partial")
+                .setSubject(subject.getId(), SubjectType.GENERATED)
+                .setGrantedPermissions(
+                        PoliciesResourceType.thingResource("/features/TestFeature"),
+                        Permissions.newInstance("READ"))
+                .build();
+        final JsonObject thingJson = thingWithNullFeature();
+        final ResourceKey resourceKey = ResourceKey.newInstance("thing", "/");
+        final Set<JsonPointer> triePaths = accessiblePaths(
+                PolicyEnforcers.throughputOptimizedEvaluator(policy), resourceKey, thingJson, subject);
+        final Set<JsonPointer> treePaths = accessiblePaths(
+                PolicyEnforcers.memoryOptimizedEvaluator(policy), resourceKey, thingJson, subject);
+
+        assertThat(triePaths).containsExactly(JsonPointer.of("/features/TestFeature"));
+        assertThat(triePaths).isEqualTo(treePaths);
+    }
+
+    @Test
+    public void getAccessiblePathsExcludesGrantedParentWithRevokedChild() {
+        final AuthorizationSubject subject = AuthorizationSubject.newInstance("dummy:partial");
+        final Policy policy = Policy.newBuilder(PolicyId.of("namespace", "id"))
+                .forLabel("partial")
+                .setSubject(subject.getId(), SubjectType.GENERATED)
+                .setGrantedPermissions(PoliciesResourceType.thingResource("/features/f1"),
+                        Permissions.newInstance("READ"))
+                .setRevokedPermissions(PoliciesResourceType.thingResource("/features/f1/properties/secret"),
+                        Permissions.newInstance("READ"))
+                .build();
+        final JsonObject thingJson = JsonFactory.newObjectBuilder()
+                .set("features", JsonFactory.newObjectBuilder()
+                        .set("f1", JsonFactory.newObjectBuilder()
+                                .set("properties", JsonFactory.newObjectBuilder()
+                                        .set("secret", JsonFactory.newValue("secret-value"))
+                                        .set("ok", JsonFactory.newValue("ok-value"))
+                                        .build())
+                                .build())
+                        .build())
+                .build();
+        final ResourceKey resourceKey = ResourceKey.newInstance("thing", "/");
+        final Set<JsonPointer> triePaths = accessiblePaths(
+                PolicyEnforcers.throughputOptimizedEvaluator(policy), resourceKey, thingJson, subject);
+        final Set<JsonPointer> treePaths = accessiblePaths(
+                PolicyEnforcers.memoryOptimizedEvaluator(policy), resourceKey, thingJson, subject);
+
+        assertThat(triePaths).containsExactly(JsonPointer.of("/features/f1/properties/ok"));
+        assertThat(triePaths).isEqualTo(treePaths);
+    }
+
+    @Test
+    public void getAccessiblePathsReturnsNoPathForNullObjectWithoutGrant() {
+        final AuthorizationSubject subject = AuthorizationSubject.newInstance("dummy:partial");
+        final Policy policy = Policy.newBuilder(PolicyId.of("namespace", "id")).build();
+        final Set<JsonPointer> accessiblePaths = accessiblePaths(
+                PolicyEnforcers.throughputOptimizedEvaluator(policy),
+                ResourceKey.newInstance("thing", "/"),
+                thingWithNullFeature(),
+                subject);
+
+        assertThat(accessiblePaths).isEmpty();
+    }
+
+    @Test
+    public void getAccessiblePathsFindsNullObjectUnderGrantedAncestor() {
+        final AuthorizationSubject subject = AuthorizationSubject.newInstance("dummy:partial");
+        final Policy policy = Policy.newBuilder(PolicyId.of("namespace", "id"))
+                .forLabel("partial")
+                .setSubject(subject.getId(), SubjectType.GENERATED)
+                .setGrantedPermissions(PoliciesResourceType.thingResource("/features"),
+                        Permissions.newInstance("READ"))
+                .build();
+        final ResourceKey resourceKey = ResourceKey.newInstance("thing", "/");
+        final JsonObject thingJson = thingWithNullFeature();
+        final Set<JsonPointer> accessiblePaths = accessiblePaths(
+                PolicyEnforcers.throughputOptimizedEvaluator(policy), resourceKey, thingJson, subject);
+        final Set<JsonPointer> treePaths = accessiblePaths(
+                PolicyEnforcers.memoryOptimizedEvaluator(policy), resourceKey, thingJson, subject);
+
+        assertThat(accessiblePaths).isEqualTo(treePaths);
+        assertThat(accessiblePaths).containsExactly(JsonPointer.of("/features/TestFeature"));
+    }
+
+    @Test
+    public void getAccessiblePathsExcludesRevokedNullObjectPathBelowGrantedAncestor() {
+        final AuthorizationSubject subject = AuthorizationSubject.newInstance("dummy:partial");
+        final Policy policy = Policy.newBuilder(PolicyId.of("namespace", "id"))
+                .forLabel("partial")
+                .setSubject(subject.getId(), SubjectType.GENERATED)
+                .setGrantedPermissions(PoliciesResourceType.thingResource("/features"),
+                        Permissions.newInstance("READ"))
+                .setRevokedPermissions(PoliciesResourceType.thingResource("/features/TestFeature"),
+                        Permissions.newInstance("READ"))
+                .build();
+        final ResourceKey resourceKey = ResourceKey.newInstance("thing", "/");
+        final JsonObject thingJson = thingWithNullFeature();
+        final Set<JsonPointer> accessiblePaths = accessiblePaths(
+                PolicyEnforcers.throughputOptimizedEvaluator(policy), resourceKey, thingJson, subject);
+        final Set<JsonPointer> treePaths = accessiblePaths(
+                PolicyEnforcers.memoryOptimizedEvaluator(policy), resourceKey, thingJson, subject);
+
+        assertThat(accessiblePaths).isEqualTo(treePaths);
+        assertThat(accessiblePaths).isEmpty();
+    }
+
+    @Test
+    public void getAccessiblePathsReturnsNoPathForNullObjectAtResourceRoot() {
+        final AuthorizationSubject subject = AuthorizationSubject.newInstance("dummy:partial");
+        final Policy policy = Policy.newBuilder(PolicyId.of("namespace", "id"))
+                .forLabel("partial")
+                .setSubject(subject.getId(), SubjectType.GENERATED)
+                .setGrantedPermissions(PoliciesResourceType.thingResource("/features/TestFeature"),
+                        Permissions.newInstance("READ"))
+                .build();
+        final JsonPointer resourcePath = JsonPointer.of("/features/TestFeature");
+        final Set<JsonPointer> accessiblePaths = accessiblePaths(
+                PolicyEnforcers.throughputOptimizedEvaluator(policy),
+                ResourceKey.newInstance("thing", resourcePath),
+                JsonFactory.nullObject(),
+                subject);
+
+        assertThat(accessiblePaths).isEmpty();
+    }
+
     private static Policy defaultPolicy(final PolicyId policyId) {
         final Permissions permissions = Permissions.newInstance("READ", "WRITE");
         return PoliciesModelFactory.newPolicyBuilder(policyId)
@@ -88,6 +216,24 @@ public class TrieBasedPolicyEnforcerTest {
                 .setSubject("dummy:test", SubjectType.GENERATED)
                 .setGrantedPermissions("foo", JsonPointer.of("/foo"), permissions)
                 .setRevision(1L)
+                .build();
+    }
+
+    private static Set<JsonPointer> accessiblePaths(final Enforcer enforcer,
+            final ResourceKey resourceKey,
+            final JsonObject thingJson,
+            final AuthorizationSubject subject) {
+        final AuthorizationContext authorizationContext = AuthorizationContext.newInstance(
+                DittoAuthorizationContextType.UNSPECIFIED, subject);
+        return enforcer.getAccessiblePaths(resourceKey, thingJson, authorizationContext,
+                Permissions.newInstance("READ"));
+    }
+
+    private static JsonObject thingWithNullFeature() {
+        return JsonFactory.newObjectBuilder()
+                .set("features", JsonFactory.newObjectBuilder()
+                        .set("TestFeature", JsonFactory.nullObject())
+                        .build())
                 .build();
     }
 }

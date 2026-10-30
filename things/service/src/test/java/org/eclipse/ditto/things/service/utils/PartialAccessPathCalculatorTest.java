@@ -29,6 +29,7 @@ import org.eclipse.ditto.policies.model.ResourceKey;
 import org.eclipse.ditto.policies.model.Subject;
 import org.eclipse.ditto.policies.model.SubjectId;
 import org.eclipse.ditto.policies.model.SubjectType;
+import org.eclipse.ditto.policies.model.enforcers.trie.TrieBasedPolicyEnforcer;
 import org.eclipse.ditto.things.model.FeatureProperties;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingId;
@@ -90,6 +91,27 @@ public final class PartialAccessPathCalculatorTest {
                 .containsExactlyInAnyOrder(
                         JsonPointer.of("/features/temperature/properties/value"),
                         JsonPointer.of("/features/humidity/properties/value"));
+    }
+
+    @Test
+    public void calculatesPathsForNullFeatureWithTrieEnforcer() {
+        final String subject = "test:partial-null-feature";
+        final Thing thing = ThingsModelFactory.newThingBuilder()
+                .setId(KNOWN_THING_ID)
+                .setFeature(ThingsModelFactory.nullFeature("null-feature"))
+                .build();
+        final Policy policy = Policy.newBuilder(KNOWN_POLICY_ID)
+                .setSubjectFor("partial-null-feature", Subject.newInstance(
+                        SubjectId.newInstance(subject), SubjectType.GENERATED))
+                .setGrantedPermissionsFor("partial-null-feature",
+                        ResourceKey.newInstance("thing", "/features/null-feature"), "READ")
+                .build();
+        final PolicyEnforcer enforcer = PolicyEnforcer.of(policy, TrieBasedPolicyEnforcer.newInstance(policy));
+
+        final Map<String, List<JsonPointer>> result =
+                PartialAccessPathCalculator.calculatePartialAccessPaths(thing, enforcer);
+
+        assertThat(result).containsEntry(subject, List.of(JsonPointer.of("/features")));
     }
 
     @Test

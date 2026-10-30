@@ -318,7 +318,7 @@ public final class TestConstants {
 
         public static final List<String> NAMESPACES = Arrays.asList("com.acme", "com.acme.*");
 
-        public static final List<EntryReference> REFERENCES = List.of(
+        public static final List<EntryReference> REFERENCES = Arrays.asList(
                 PoliciesModelFactory.newEntryReference(POLICY_ID, Label.of("driver")),
                 PoliciesModelFactory.newLocalEntryReference(Label.of("shared"))
         );

@@ -17,6 +17,7 @@ import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 
 import java.text.MessageFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
@@ -263,7 +264,7 @@ public final class ImmutableFilteredTopicTest {
     @Test
     public void getFnFiltersReturnsExpectedIfSet() {
         final ImmutableFilteredTopic underTest = ImmutableFilteredTopic.getBuilder(Topic.TWIN_EVENTS)
-                .withFnFilters(List.of(FN_FILTER_EXAMPLE))
+                .withFnFilters(Arrays.asList(FN_FILTER_EXAMPLE))
                 .build();
 
         assertThat(underTest.getFnFilters()).containsExactly(FN_FILTER_EXAMPLE);
@@ -273,7 +274,7 @@ public final class ImmutableFilteredTopicTest {
     @Test
     public void getFnFiltersKeepsSeveralExpressionsInOrder() {
         final ImmutableFilteredTopic underTest = ImmutableFilteredTopic.getBuilder(Topic.TWIN_EVENTS)
-                .withFnFilters(List.of(OTHER_FN_FILTER_EXAMPLE, FN_FILTER_EXAMPLE))
+                .withFnFilters(Arrays.asList(OTHER_FN_FILTER_EXAMPLE, FN_FILTER_EXAMPLE))
                 .build();
 
         assertThat(underTest.getFnFilters()).containsExactly(OTHER_FN_FILTER_EXAMPLE, FN_FILTER_EXAMPLE);
@@ -281,7 +282,7 @@ public final class ImmutableFilteredTopicTest {
 
     @Test
     public void getFnFiltersIsUnmodifiableAndDetachedFromTheBuilderInput() {
-        final List<String> input = new ArrayList<>(List.of(FN_FILTER_EXAMPLE));
+        final List<String> input = new ArrayList<>(Arrays.asList(FN_FILTER_EXAMPLE));
         final ImmutableFilteredTopic underTest = ImmutableFilteredTopic.getBuilder(Topic.TWIN_EVENTS)
                 .withFnFilters(input)
                 .build();
@@ -297,7 +298,7 @@ public final class ImmutableFilteredTopicTest {
         final ImmutableFilteredTopic underTest = ImmutableFilteredTopic.getBuilder(Topic.TWIN_EVENTS)
                 .withNamespaces(NAMESPACES)
                 .withFilter(FILTER_EXAMPLE)
-                .withFnFilters(List.of(FN_FILTER_EXAMPLE))
+                .withFnFilters(Arrays.asList(FN_FILTER_EXAMPLE))
                 .withExtraFields(EXTRA_FIELDS)
                 .build();
 
@@ -311,7 +312,7 @@ public final class ImmutableFilteredTopicTest {
     @Test
     public void toStringReturnsExpectedWithOnlyFnFilter() {
         final ImmutableFilteredTopic underTest = ImmutableFilteredTopic.getBuilder(Topic.LIVE_COMMANDS)
-                .withFnFilters(List.of(FN_FILTER_EXAMPLE))
+                .withFnFilters(Arrays.asList(FN_FILTER_EXAMPLE))
                 .build();
 
         assertThat(underTest.toString()).isEqualTo("_/_/things/live/commands?fn-filter=" + FN_FILTER_EXAMPLE);
@@ -340,7 +341,7 @@ public final class ImmutableFilteredTopicTest {
     @Test
     public void toStringRepeatsTheFnFilterParameterPerExpression() {
         final ImmutableFilteredTopic underTest = ImmutableFilteredTopic.getBuilder(Topic.LIVE_COMMANDS)
-                .withFnFilters(List.of(FN_FILTER_EXAMPLE, OTHER_FN_FILTER_EXAMPLE))
+                .withFnFilters(Arrays.asList(FN_FILTER_EXAMPLE, OTHER_FN_FILTER_EXAMPLE))
                 .build();
 
         assertThat(underTest.toString()).isEqualTo("_/_/things/live/commands?fn-filter=" + FN_FILTER_EXAMPLE +
@@ -351,7 +352,7 @@ public final class ImmutableFilteredTopicTest {
     public void fromStringToStringRoundTripsWithSeveralFnFilters() {
         final ImmutableFilteredTopic filteredTopic = ImmutableFilteredTopic.getBuilder(Topic.TWIN_EVENTS)
                 .withFilter(FILTER_EXAMPLE)
-                .withFnFilters(List.of(FN_FILTER_EXAMPLE, OTHER_FN_FILTER_EXAMPLE))
+                .withFnFilters(Arrays.asList(FN_FILTER_EXAMPLE, OTHER_FN_FILTER_EXAMPLE))
                 .withExtraFields(EXTRA_FIELDS)
                 .build();
 
@@ -365,9 +366,9 @@ public final class ImmutableFilteredTopicTest {
     public void topicsWithDifferentFnFilterOrderAreNotEqual() {
         // the order is kept as given (it is the evaluation order), so it is part of the topic's identity
         assertThat(ImmutableFilteredTopic.getBuilder(Topic.TWIN_EVENTS)
-                .withFnFilters(List.of(FN_FILTER_EXAMPLE, OTHER_FN_FILTER_EXAMPLE)).build())
+                .withFnFilters(Arrays.asList(FN_FILTER_EXAMPLE, OTHER_FN_FILTER_EXAMPLE)).build())
                 .isNotEqualTo(ImmutableFilteredTopic.getBuilder(Topic.TWIN_EVENTS)
-                        .withFnFilters(List.of(OTHER_FN_FILTER_EXAMPLE, FN_FILTER_EXAMPLE)).build());
+                        .withFnFilters(Arrays.asList(OTHER_FN_FILTER_EXAMPLE, FN_FILTER_EXAMPLE)).build());
     }
 
     @Test
@@ -375,7 +376,7 @@ public final class ImmutableFilteredTopicTest {
         final ImmutableFilteredTopic filteredTopic = ImmutableFilteredTopic.getBuilder(Topic.TWIN_EVENTS)
                 .withNamespaces(NAMESPACES)
                 .withFilter(FILTER_EXAMPLE)
-                .withFnFilters(List.of(FN_FILTER_EXAMPLE))
+                .withFnFilters(Arrays.asList(FN_FILTER_EXAMPLE))
                 .withExtraFields(EXTRA_FIELDS)
                 .build();
 
@@ -429,11 +430,11 @@ public final class ImmutableFilteredTopicTest {
     public void announcementTopicsDropFnFilter() {
         final ImmutableFilteredTopic policyAnnouncements =
                 ImmutableFilteredTopic.getBuilder(Topic.POLICY_ANNOUNCEMENTS)
-                        .withFnFilters(List.of(FN_FILTER_EXAMPLE))
+                        .withFnFilters(Arrays.asList(FN_FILTER_EXAMPLE))
                         .build();
         final ImmutableFilteredTopic connectionAnnouncements =
                 ImmutableFilteredTopic.getBuilder(Topic.CONNECTION_ANNOUNCEMENTS)
-                        .withFnFilters(List.of(FN_FILTER_EXAMPLE))
+                        .withFnFilters(Arrays.asList(FN_FILTER_EXAMPLE))
                         .build();
 
         assertThat(policyAnnouncements.getFnFilters()).isEmpty();
@@ -510,7 +511,7 @@ public final class ImmutableFilteredTopicTest {
     public void toStringRoundTripsTopicBuiltWithReservedCharacters() {
         final ImmutableFilteredTopic topic = ImmutableFilteredTopic.getBuilder(Topic.TWIN_EVENTS)
                 .withFilter("like(attributes/a,\"100% a&b a+b\")")
-                .withFnFilters(List.of("fn:filter(header:x,'eq','%25&+')"))
+                .withFnFilters(Collections.singletonList("fn:filter(header:x,'eq','%25&+')"))
                 .build();
 
         assertThat(ImmutableFilteredTopic.fromString(topic.toString())).isEqualTo(topic);
