@@ -65,6 +65,19 @@ public final class ThingEventToThingConverter {
     }
 
     /**
+     * Creates a Thing from the passed ThingEvent like {@link #thingEventToThing(ThingEvent)}, but falls back to an
+     * empty Thing with the event's revision for events which carry no thing data, e.g. feature definition events.
+     *
+     * @param thingEvent the ThingEvent to extract the correlating Thing from
+     * @return the Thing represented by the passed in ThingEvent, or an empty Thing with its revision
+     * @since 4.0.0
+     */
+    public static Thing thingEventToThingOrEmpty(final ThingEvent<?> thingEvent) {
+        return thingEventToThing(thingEvent)
+                .orElseGet(() -> Thing.newBuilder().setRevision(thingEvent.getRevision()).build());
+    }
+
+    /**
      * Merge any thing information in a signal event together with extra fields from signal enrichment.
      * Thing events contain thing information. All other signals do not contain thing information.
      * Extra fields contain thing information if it is not empty.

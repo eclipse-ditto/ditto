@@ -486,15 +486,14 @@ public final class OutboundMappingProcessorActor
                 .map(partialThing -> partialThing
                         .<Collection<OutboundSignalWithSender>>thenApply(extra -> {
                             final JsonObject readableExtra = view.filterThingJson(extra);
+                            final Thing changedThing = SignalFilter.getChangedThing(readableSource);
                             final Thing enrichedThing = ThingEventToThingConverter.mergeThingWithExtraFields(
-                                            readableSource, allExtraFieldsOptional.get(), readableExtra)
-                                    .orElse(null);
+                                    changedThing,
+                                    readableSource,
+                                    allExtraFieldsOptional.get(),
+                                    readableExtra);
                             final List<PlaceholderResolver<?>> placeholderResolvers =
                                     SignalFilter.getPlaceholderResolvers(readableSource);
-                            @Nullable final Thing changedThing =
-                                    topics.stream().anyMatch(t -> t.getChangeFilter().isPresent())
-                                            ? SignalFilter.getChangedThing(readableSource)
-                                            : null;
                             return topics.stream()
                                     .sorted(Comparator.comparing((FilteredTopic t) -> t.getExtraFields().isEmpty())
                                             .thenComparing(t ->
@@ -857,7 +856,7 @@ public final class OutboundMappingProcessorActor
     private Optional<OutboundSignalWithSender> applyFilter(final OutboundSignalWithSender outboundSignal,
             final Signal<?> signal,
             @Nullable final Thing thing,
-            @Nullable final Thing changedThing,
+            final Thing changedThing,
             final List<PlaceholderResolver<?>> placeholderResolvers,
             final FilteredTopic topic) {
 
@@ -870,7 +869,7 @@ public final class OutboundMappingProcessorActor
         }
         // a target passes SignalFilter if any of its topics matches, so the change-filter is re-evaluated per topic
         final Optional<String> changeFilter = topic.getChangeFilter();
-        if (changeFilter.isPresent() && null != changedThing &&
+        if (changeFilter.isPresent() &&
                 !SignalFilter.matchesChangeFilter(changeFilter.get(), signal, changedThing, placeholderResolvers)) {
             return Optional.empty();
         }
