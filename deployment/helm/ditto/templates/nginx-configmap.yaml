@@ -58,13 +58,14 @@ data:
 
       map $http_authorization $authentication {
         default "Authentication required";
-        "~Bearer" "off";
+        "~^Bearer " "off";
         # the above means: if we get a request containing an "Authorization: Bearer ..." header, set "off" to $authentication
+        # such requests are forwarded without "x-ditto-pre-authenticated" header and must be authenticated by the gateway via JWT
       }
 
       map $http_authorization $nginx_auth_user {
         default "nginx:${remote_user}";
-        "~Bearer" "";
+        "~^Bearer " "";
       }
 
       upstream {{ include "ditto.fullname" . }}-gateway {

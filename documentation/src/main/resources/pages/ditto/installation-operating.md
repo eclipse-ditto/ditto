@@ -138,6 +138,9 @@ the user and the subject contains e.g. the user-id or -name.
 
 This string must then be used in [policies](basic-policy.html#subjects) as "Subject ID".
 
+The gateway only reads the pre-authenticated subject from this HTTP header, a query parameter of the same name is
+ignored.
+
 Example for a nginx "proxy" configuration:
 ```
 auth_basic                    "Authentication required";
