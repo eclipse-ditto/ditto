@@ -127,6 +127,9 @@ global:
   hashedBasicAuthUsers: []
   # jwtOnly controls whether only OpenID-Connect authentication is supported
   #  if false, both OpenID-Connect and basicAuth via nginx (see above "basicAuthUsers" and "hashedBasicAuthUsers") is used
+  #  if false, Ditto "pre-authentication" is implicitly enabled in the gateway (regardless of
+  #  "gateway.config.authentication.enablePreAuthentication"), as nginx passes the basicAuth user as
+  #  "x-ditto-pre-authenticated" header to the gateway
   #  ref: https://www.eclipse.dev/ditto/installation-operating.html#openid-connect
   jwtOnly: false
   # jvmOptions defines the JVM options applied to all Ditto services running in the JVM, it is put in JAVA_TOOL_OPTIONS.
@@ -2410,6 +2413,8 @@ gateway:
     # authentication contains the settings regarding authentication against the gateway
     authentication:
       # enablePreAuthentication whether Ditto "pre-authentication" should be enabled
+      #  note: pre-authentication is always enabled if "global.jwtOnly" is false
+      #  only enable it if the gateway is exclusively reachable via a proxy which sets the "x-ditto-pre-authenticated" header
       #  ref: https://www.eclipse.dev/ditto/installation-operating.html#pre-authentication
       enablePreAuthentication: false
       # oauth contains the OAuth2.0 / OpenID Connect related configuration

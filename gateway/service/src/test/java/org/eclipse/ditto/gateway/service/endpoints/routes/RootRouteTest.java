@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.gateway.service.endpoints.routes;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.eclipse.ditto.gateway.service.endpoints.EndpointTestConstants.KNOWN_DOMAIN;
 import static org.eclipse.ditto.gateway.service.endpoints.EndpointTestConstants.UNKNOWN_PATH;
@@ -69,6 +70,8 @@ import org.eclipse.ditto.internal.utils.http.HttpClientFacade;
 import org.eclipse.ditto.internal.utils.protocol.ProtocolAdapterProvider;
 import org.eclipse.ditto.internal.utils.tracing.DittoTracingInitResource;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.jwt.model.JwtInvalidException;
 import org.eclipse.ditto.things.model.ThingIdInvalidException;
 import org.junit.Before;
 import org.junit.ClassRule;
@@ -115,6 +118,8 @@ public final class RootRouteTest extends EndpointTestBase {
     private static final String THINGS_2_PATH_WITH_IDS =
             THINGS_2_PATH + "?" + ThingsParameter.IDS + "=namespace:bumlux";
     private static final String WS_2_PATH = ROOT_PATH + RootRoute.WS_PATH_PREFIX + "/" + JsonSchemaVersion.V_2.toInt();
+
+    private static final String PRE_AUTH_QUERY = "?" + HttpHeader.X_DITTO_PRE_AUTH.getName() + "=some-issuer:foo";
 
     private static final String HTTPS = "https";
 
@@ -407,6 +412,33 @@ public final class RootRouteTest extends EndpointTestBase {
     }
 
     @Test
+    public void getWhoamiWithPreAuthenticatedQueryParamOnlyIsUnauthorized() {
+        final HttpRequest request = withHttps(HttpRequest.GET(WHOAMI_PATH + PRE_AUTH_QUERY));
+
+        final TestRouteResult result = rootTestRoute.run(request);
+
+        result.assertStatusCode(StatusCodes.UNAUTHORIZED);
+    }
+
+    @Test
+    public void getWhoamiWithPreAuthenticatedQueryParamAndInvalidBearerTokenIsNotAuthenticated() {
+        final HttpRequest request = withHttps(withInvalidBearerToken(HttpRequest.GET(WHOAMI_PATH + PRE_AUTH_QUERY)));
+
+        final TestRouteResult result = rootTestRoute.run(request);
+
+        assertInvalidJwtResult(result);
+    }
+
+    @Test
+    public void getWsUrlWithPreAuthenticatedQueryParamAndInvalidBearerTokenIsNotAuthenticated() {
+        final HttpRequest request = withHttps(withInvalidBearerToken(HttpRequest.GET(WS_2_PATH + PRE_AUTH_QUERY)));
+
+        final TestRouteResult result = rootTestRoute.run(request);
+
+        assertInvalidJwtResult(result);
+    }
+
+    @Test
     public void getNonExistingSearchUrl() {
         final HttpRequest request = withHttps(withPreAuthenticatedAuthentication(HttpRequest.GET(UNKNOWN_SEARCH_PATH)));
 
@@ -528,6 +560,16 @@ public final class RootRouteTest extends EndpointTestBase {
 
     private static HttpRequest withHttps(final HttpRequest httpRequest) {
         return httpRequest.withUri(httpRequest.getUri().scheme("https"));
+    }
+
+    private static void assertInvalidJwtResult(final TestRouteResult result) {
+        result.assertStatusCode(StatusCodes.BAD_REQUEST);
+        assertThat(JsonObject.of(result.entityString()).getValue("error"))
+                .contains(JsonValue.of(JwtInvalidException.newBuilder().build().getErrorCode()));
+    }
+
+    private static HttpRequest withInvalidBearerToken(final HttpRequest httpRequest) {
+        return httpRequest.addHeader(RawHeader.create("Authorization", "Bearer invalid"));
     }
 
     private static HttpRequest withPreAuthenticatedAuthentication(final HttpRequest httpRequest, final String subject) {
