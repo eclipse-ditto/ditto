@@ -32,6 +32,7 @@ import org.eclipse.ditto.rql.query.criteria.Criteria;
 import org.eclipse.ditto.rql.query.things.ThingPredicateVisitor;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingFieldSelector;
+import org.eclipse.ditto.things.model.signals.events.ThingEvent;
 import org.eclipse.ditto.things.model.signals.events.ThingEventToThingConverter;
 
 import org.apache.pekko.actor.ActorRef;
@@ -145,13 +146,14 @@ public final class StreamingSession {
      */
     public Optional<Thing> matchChangeFilter(final Signal<?> signal) {
         try {
-            final Thing changedThing = ThingEventToThingConverter.mergeThingWithExtraFields(signal, null,
-                    JsonObject.empty()).orElseGet(() -> Thing.newBuilder().build());
+            final Thing changedThing = signal instanceof ThingEvent<?> thingEvent
+                    ? ThingEventToThingConverter.thingEventToThingOrEmpty(thingEvent)
+                    : Thing.newBuilder().build();
             return Optional.of(changedThing)
                     .filter(thing -> changePredicate == null || changePredicate.test(thing, signal));
         } catch (final RuntimeException e) {
             logger.withCorrelationId(signal)
-                    .warning("Evaluating the change-filter failed with <{}>: <{}> - dropping the signal.",
+                    .debug("Evaluating the change-filter failed with <{}>: <{}> - dropping the signal.",
                             e.getClass().getSimpleName(), e.getMessage());
             return Optional.empty();
         }

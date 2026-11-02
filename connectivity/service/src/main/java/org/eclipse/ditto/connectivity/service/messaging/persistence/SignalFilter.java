@@ -196,7 +196,7 @@ public final class SignalFilter {
         final List<PlaceholderResolver<?>> placeholderResolvers = getPlaceholderResolvers(signal);
         final Optional<Thing> thingFromSignal = thingFromSignal(signal);
         if (changeFilterOptional.isPresent() && !matchesChangeFilter(changeFilterOptional.get(), signal,
-                thingFromSignal.orElseGet(() -> Thing.newBuilder().build()), placeholderResolvers)) {
+                thingFromSignal.orElseGet(() -> getChangedThing(signal)), placeholderResolvers)) {
             return false;
         }
         if (filterOptional.isEmpty()) {
@@ -223,7 +223,8 @@ public final class SignalFilter {
      * @param changeFilter the RQL expression of the change filter.
      * @param signal the signal to evaluate the change filter for.
      * @param changedThing the thing data carried by the signal, see {@link #getChangedThing(Signal)}.
-     * @param placeholderResolvers the placeholder resolvers of the signal, see {@link #getPlaceholderResolvers(Signal)}.
+     * @param placeholderResolvers the placeholder resolvers of the signal, see
+     * {@link #getPlaceholderResolvers(Signal)}.
      * @return whether the signal matches the change filter.
      * @throws org.eclipse.ditto.base.model.exceptions.InvalidRqlExpressionException if the change filter is invalid
      */
@@ -239,7 +240,10 @@ public final class SignalFilter {
      * placeholders still apply.
      */
     public static Thing getChangedThing(final Signal<?> signal) {
-        return thingFromSignal(signal).orElseGet(() -> Thing.newBuilder().build());
+        if (signal instanceof ThingEvent<?> thingEvent) {
+            return ThingEventToThingConverter.thingEventToThingOrEmpty(thingEvent);
+        }
+        return Thing.newBuilder().build();
     }
 
     private static Optional<Thing> thingFromSignal(final Signal<?> signal) {

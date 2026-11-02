@@ -377,6 +377,17 @@ public final class ThingsSseRouteBuilderTest extends EndpointTestBase {
         }
     }
 
+    @Test
+    public void historicalStreamErrorNamesTheParameterHoldingThePlaceholderTerm() {
+        final TestRouteResult result = underTestWithExceptionHandling.run(
+                HttpRequest.GET(THINGS_ROUTE + "/org.eclipse.ditto:my-thing-1?from-historical-revision=1" +
+                                "&filter=exists(attributes/a)&change-filter=eq(topic:action,'deleted')")
+                        .addHeader(acceptHeader));
+
+        result.assertStatusCode(StatusCodes.BAD_REQUEST);
+        assertThat(result.entityString()).contains("'change-filter'").doesNotContain("and(");
+    }
+
     private void assertHistoricalFilter(final String query, final String expectedFilter) {
         new TestKit(actorSystem) {{
             final TestRouteResult routeResult =

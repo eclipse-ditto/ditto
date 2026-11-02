@@ -103,11 +103,14 @@ With `filter=exists(features/temperature)` instead, every event of a Thing which
 would be delivered, because the enriched feature always exists.
 
 `change-filter` is supported for twin events by the WebSocket API, SSE and connection target topics, and for
-live events by the WebSocket API and connection target topics. It resolves the same placeholders as `filter`.
+live events by the WebSocket API and connection target topics. On connection target topics it resolves the
+`topic:`, `entity:`, `thing:`, `feature:`, `resource:` and `time:` placeholders. The WebSocket API resolves
+`topic:`, `entity:`, `resource:` and `time:`; a term on `thing:`, `feature:` or `header:` is accepted there, but
+never matches. SSE only accepts `topic:`, `resource:` and `time:` and rejects other placeholders with status `400`.
 Without `extraFields` it sees the same Thing data as `filter`, except for events which carry no Thing data (see
 below): `change-filter` evaluates them against an empty Thing, so that placeholder terms still apply, while the
 `filter` of a connection target drops them. It is rejected for messages and live commands, which carry no Thing
-data -- use `filter` there.
+data -- use `filter` there -- and for policy announcements on the WebSocket API.
 Events of `PATCH` requests (`merged`) are matched by the merged payload, so
 `change-filter=exists(features/temperature)` also works where `resource:path` is just `/`.
 

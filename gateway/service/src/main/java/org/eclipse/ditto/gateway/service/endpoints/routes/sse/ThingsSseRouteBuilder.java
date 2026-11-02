@@ -418,13 +418,13 @@ public final class ThingsSseRouteBuilder extends RouteDirectives implements SseR
                         if (changeFilterString != null) {
                             queryFilterCriteriaFactory.filterCriteria(changeFilterString, dittoHeaders);
                         }
+                        if (null != fromHistoricalRevision || null != fromHistoricalTimestamp) {
+                            validateHistoricalFilter(PARAM_FILTER, filterString, dittoHeaders);
+                            validateHistoricalFilter(PARAM_CHANGE_FILTER, changeFilterString, dittoHeaders);
+                        }
                         // historical events are never enriched, so both filters see the same data
                         @Nullable final String historicalFilterString =
                                 andFilters(filterString, changeFilterString);
-                        if (historicalFilterString != null &&
-                                (null != fromHistoricalRevision || null != fromHistoricalTimestamp)) {
-                            validateHistoricalFilter(historicalFilterString, dittoHeaders);
-                        }
 
                         final String connectionCorrelationId = dittoHeaders.getCorrelationId()
                                 .orElseThrow(() -> new IllegalStateException(
@@ -763,12 +763,17 @@ public final class ThingsSseRouteBuilder extends RouteDirectives implements SseR
      * The things service evaluates the filter of historical events without placeholders and drops every event if it
      * cannot be parsed, so a term on a placeholder is rejected here.
      */
-    private static void validateHistoricalFilter(final String historicalFilter, final DittoHeaders dittoHeaders) {
+    private static void validateHistoricalFilter(final String parameterName, @Nullable final String filter,
+            final DittoHeaders dittoHeaders) {
+        if (null == filter) {
+            return;
+        }
         try {
-            HISTORICAL_QUERY_FILTER_CRITERIA_FACTORY.filterCriteria(historicalFilter, dittoHeaders);
+            HISTORICAL_QUERY_FILTER_CRITERIA_FACTORY.filterCriteria(filter, dittoHeaders);
         } catch (final InvalidRqlExpressionException e) {
             throw InvalidRqlExpressionException.newBuilder()
-                    .message(e.getMessage())
+                    .message("The '" + parameterName + "' parameter is invalid for historical events: " +
+                            e.getMessage())
                     .description("Filtering historical events only supports terms on Thing data, not on " +
                             "placeholders such as 'topic:action' or 'resource:path'.")
                     .cause(e)

@@ -29,9 +29,11 @@ import org.eclipse.ditto.protocol.placeholders.ResourcePlaceholder;
 import org.eclipse.ditto.rql.parser.RqlPredicateParser;
 import org.eclipse.ditto.rql.query.criteria.Criteria;
 import org.eclipse.ditto.rql.query.filter.QueryFilterCriteriaFactory;
+import org.eclipse.ditto.things.model.FeatureDefinition;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingFieldSelector;
 import org.eclipse.ditto.things.model.ThingId;
+import org.eclipse.ditto.things.model.signals.events.FeatureDefinitionCreated;
 import org.eclipse.ditto.things.model.signals.events.FeaturePropertyModified;
 import org.eclipse.ditto.things.model.signals.events.ThingMerged;
 import org.junit.Test;
@@ -110,6 +112,15 @@ public final class StreamingSessionTest {
     @Test
     public void absentChangeFilterMatchesEverything() {
         assertThat(session(null, null).matchChangeFilter(featurePropertyModified("otherFeature"))).isPresent();
+    }
+
+    @Test
+    public void changeFilterSeesTheRevisionOfEventsWithoutThingData() {
+        final StreamingSession underTest = session(null, criteria("gt(_revision,0)"));
+
+        assertThat(underTest.matchChangeFilter(FeatureDefinitionCreated.of(THING_ID, "specificFeature",
+                FeatureDefinition.fromIdentifier("org.acme:temp:1.0.0"), 3L, Instant.now(), DittoHeaders.empty(),
+                null))).contains(Thing.newBuilder().setRevision(3L).build());
     }
 
     private static StreamingSession session(@Nullable final Criteria filter,

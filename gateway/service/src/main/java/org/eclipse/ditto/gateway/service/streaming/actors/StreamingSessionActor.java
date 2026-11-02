@@ -894,8 +894,8 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
             throw InvalidRqlExpressionException.newBuilder()
                     .message("The 'change-filter' parameter is only supported when subscribing for twin or " +
                             "live events.")
-                    .description("Messages and live commands carry no thing data to filter on - use 'filter' " +
-                            "instead.")
+                    .description("Messages, live commands and policy announcements carry no thing data to " +
+                            "filter on - for messages and live commands, use 'filter' instead.")
                     .dittoHeaders(dittoHeaders)
                     .build();
         }

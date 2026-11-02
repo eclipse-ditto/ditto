@@ -247,10 +247,8 @@ public final class StartStreaming implements StreamControlMessage {
          * @return this builder instance to allow method chaining.
          */
         public StartStreamingBuilder withChangeFilter(@Nullable final CharSequence changeFilter) {
-            // policy announcements do not support filter.
-            if (streamingType != StreamingType.POLICY_ANNOUNCEMENTS) {
-                this.changeFilter = changeFilter;
-            }
+            // kept for every streaming type, so that the session rejects it for those without thing data
+            this.changeFilter = changeFilter;
             return this;
         }
 

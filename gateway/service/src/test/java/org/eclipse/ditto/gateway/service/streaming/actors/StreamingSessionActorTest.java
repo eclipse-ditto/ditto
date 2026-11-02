@@ -564,7 +564,7 @@ public final class StreamingSessionActorTest {
     }
 
     @Test
-    public void changeFilterIsRejectedForMessagesAndLiveCommands() {
+    public void changeFilterIsRejectedForStreamingTypesOtherThanEvents() {
         onDeclareAckLabels(CompletableFuture.completedFuture(null));
         setUpMockForTwinEventsSubscription();
         final var underTest = actorSystemResource.newActor(getProps());
@@ -572,7 +572,8 @@ public final class StreamingSessionActorTest {
                 AuthorizationContext.newInstance(DittoAuthorizationContextType.PRE_AUTHENTICATED_HTTP,
                         AuthorizationSubject.newInstance("ditto:ditto"));
 
-        for (final StreamingType streamingType : List.of(StreamingType.MESSAGES, StreamingType.LIVE_COMMANDS)) {
+        for (final StreamingType streamingType : List.of(StreamingType.MESSAGES, StreamingType.LIVE_COMMANDS,
+                StreamingType.POLICY_ANNOUNCEMENTS)) {
             underTest.tell(StartStreaming.getBuilder(streamingType, testName.getMethodName(), authorizationContext)
                     .withChangeFilter("eq(resource:path,'/inbox/messages/subject')")
                     .build(), ActorRef.noSender());

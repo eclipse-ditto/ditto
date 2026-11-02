@@ -1105,12 +1105,17 @@ public final class SignalFilterWithFilterTest {
                 ConnectivityModelFactory.newFilteredTopicBuilder(TWIN_EVENTS)
                         .withChangeFilter("exists(features/specificFeature)")
                         .build());
-        final SignalFilter signalFilter =
-                new SignalFilter(newConnection(placeholderTarget, existsTarget), connectionMonitorRegistry);
+        // like in the gateway, the empty thing carries the event's revision
+        final Target revisionTarget = newTwinEventsTarget("twin/revision",
+                ConnectivityModelFactory.newFilteredTopicBuilder(TWIN_EVENTS)
+                        .withChangeFilter("gt(_revision,0)")
+                        .build());
+        final SignalFilter signalFilter = new SignalFilter(
+                newConnection(placeholderTarget, existsTarget, revisionTarget), connectionMonitorRegistry);
 
         assertThat(signalFilter.filter(FeatureDefinitionCreated.of(THING_ID, "specificFeature",
                 FeatureDefinition.fromIdentifier("org.acme:temp:1.0.0"), 3L, Instant.now(), authorizedHeaders(),
-                null))).containsOnly(placeholderTarget);
+                null))).containsOnly(placeholderTarget, revisionTarget);
     }
 
     private static Target newTwinEventsTarget(final String address, final FilteredTopic topic) {
