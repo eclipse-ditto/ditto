@@ -18,6 +18,7 @@ import static org.assertj.core.api.Assertions.assertThatNoException;
 
 import java.lang.reflect.Field;
 
+import org.eclipse.ditto.base.model.acks.AcknowledgementRequest;
 import org.eclipse.ditto.base.model.exceptions.DittoHeaderInvalidException;
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonObject;
@@ -162,6 +163,23 @@ public final class HeaderJsonValueMemoizationTest {
                 .isThrownBy(() -> DittoHeaders.newBuilder(JsonObject.newBuilder()
                         .set(READ_SUBJECTS, JsonArray.of(JsonValue.of(1)))
                         .build()));
+    }
+
+    @Test
+    public void headersFromJsonWithMixedCaseKeysAreValidated() {
+        // like putHeader, the JSON object's keys are matched case-insensitively against the header definitions
+        assertThatExceptionOfType(DittoHeaderInvalidException.class)
+                .isThrownBy(() -> DittoHeaders.newBuilder(JsonObject.newBuilder()
+                        .set("Requested-Acks", "no-json-array")
+                        .build()));
+
+        final DittoHeaders dittoHeaders = DittoHeaders.newBuilder(JsonObject.newBuilder()
+                .set("Requested-Acks", REQUESTED_ACKS_JSON)
+                .build()).build();
+
+        assertThat(memoizedValueOf(dittoHeaders, REQUESTED_ACKS)).isSameAs(REQUESTED_ACKS_JSON);
+        assertThat(dittoHeaders.getAcknowledgementRequests())
+                .containsExactly(AcknowledgementRequest.parseAcknowledgementRequest("twin-persisted"));
     }
 
     @Test
