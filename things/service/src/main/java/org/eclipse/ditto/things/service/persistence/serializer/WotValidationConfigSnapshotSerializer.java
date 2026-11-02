@@ -32,7 +32,7 @@ import org.slf4j.LoggerFactory;
  * <p>
  * This serializer is required because {@code WotValidationConfigPersistenceActor} manages
  * {@link WotValidationConfig} entities, not {@link org.eclipse.ditto.things.model.Thing}s. The things-JVM-wide default
- * {@code snapshot-serializer} ({@link ThingMongoSnapshotAdapter}) only knows how to (de)serialize {@code Thing}s, so
+ * {@code snapshot-adapter} ({@link ThingMongoSnapshotAdapter}) only knows how to (de)serialize {@code Thing}s, so
  * letting the WoT actor inherit it caused a {@code ClassCastException} when a WoT snapshot was taken. The WoT actor
  * overrides {@code AbstractPersistenceActor#resolveSnapshotSerializer(..)} to return this serializer instead, while the
  * backend snapshot codec stays single-per-JVM and shared.

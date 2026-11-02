@@ -68,10 +68,10 @@ One more knob is passed via env (the service configs already expose it):
 * `POSTGRES_SSL_MODE=disable` — the default SSL mode is `verify-full`; a local plaintext Postgres needs this or
   the pool refuses to connect.
 
-The snapshot envelope no longer needs a per-service override: each service selects only its backend-neutral
-`ditto.extensions.snapshot-serializer`, and the persistent actors compose it with the active backend's snapshot
-codec (Mongo BSON / Postgres JSONB) resolved from the persistence-backend-provider. Including the Postgres
-persistence profile therefore switches the snapshot envelope to JSONB automatically.
+The snapshot envelope no longer needs a per-service override: `ditto.extensions.snapshot-adapter` keeps its
+MongoDB default and now selects only the backend-neutral serializer, and the persistent actors compose it with the
+active backend's snapshot codec (Mongo BSON / Postgres JSONB) resolved from the persistence-backend-provider.
+Including the Postgres persistence profile therefore switches the snapshot envelope to JSONB automatically.
 
 ### Extension JAR placement (two JARs per persistence service — changed)
 

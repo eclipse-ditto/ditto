@@ -48,7 +48,7 @@ import org.apache.pekko.testkit.javadsl.TestKit;
  * Mongo BSON codec, the Things-JVM default).
  * <p>
  * The WoT case is the real reproduction of the live {@code ClassCastException}: the things-JVM-wide {@code
- * snapshot-serializer} is the Thing serializer, so before {@code WotValidationConfigPersistenceActor} got its own
+ * snapshot-adapter} is the Thing serializer, so before {@code WotValidationConfigPersistenceActor} got its own
  * serializer hook, a WoT snapshot went through the Thing serializer and blew up. This test pins that the WoT serializer
  * round-trips a {@link WotValidationConfig} (active and deleted) AND that the old path (Thing serializer fed a
  * {@link WotValidationConfig}) still throws — documenting exactly what was broken.

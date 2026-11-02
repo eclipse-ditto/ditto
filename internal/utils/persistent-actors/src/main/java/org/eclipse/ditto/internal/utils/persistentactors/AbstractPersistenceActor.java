@@ -180,7 +180,7 @@ public abstract class AbstractPersistenceActor<
     /**
      * Resolves the per-entity snapshot {@link SnapshotSerializer} (domain&harr;{@code JsonObject}) for this actor.
      * <p>
-     * The default returns the JVM-wide service serializer configured at {@code ditto.extensions.snapshot-serializer}
+     * The default returns the JVM-wide service serializer configured at {@code ditto.extensions.snapshot-adapter}
      * via {@link SnapshotSerializer#get(ActorSystem, Config)}. Subclasses that manage a different entity type than the
      * JVM default (for example the WoT validation-config actor running inside the Things JVM, whose default serializer
      * only understands {@code Thing}s) override this hook to return their own serializer, avoiding the

@@ -14,8 +14,6 @@ package org.eclipse.ditto.internal.utils.persistence.postgres.journal;
 
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
-import org.eclipse.ditto.internal.utils.persistence.api.PersistenceOverload;
-
 import io.r2dbc.spi.R2dbcTransientResourceException;
 import reactor.pool.PoolAcquirePendingLimitException;
 
@@ -28,12 +26,9 @@ import reactor.pool.PoolAcquirePendingLimitException;
  * {@code R2dbcException}) being reported as an unclassified store error. Classified as an
  * {@link R2dbcTransientResourceException}: the store is healthy, it is only out of capacity right now. The original
  * exception is kept as the cause.
- * It is a {@link PersistenceOverload}: where a caller sees it, the request is answered with the entity's
- * "unavailable" exception (HTTP 503), not an internal error.
  * </p>
  */
-public final class PostgresPoolOverloadException extends R2dbcTransientResourceException
-        implements PersistenceOverload {
+public final class PostgresPoolOverloadException extends R2dbcTransientResourceException {
 
     private static final long serialVersionUID = -3794012567730958427L;
 

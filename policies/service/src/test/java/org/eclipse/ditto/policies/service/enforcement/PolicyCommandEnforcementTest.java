@@ -53,7 +53,6 @@ import org.eclipse.ditto.base.model.signals.events.Event;
 import org.eclipse.ditto.base.service.actors.ShutdownBehaviour;
 import org.eclipse.ditto.base.service.config.supervision.DefaultLocalAskTimeoutConfig;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
-import org.eclipse.ditto.internal.utils.persistence.api.PersistenceOverload;
 import org.eclipse.ditto.internal.utils.persistence.mongo.streaming.MongoReadJournal;
 import org.eclipse.ditto.internal.utils.persistentactors.AbstractPersistenceSupervisor;
 import org.eclipse.ditto.internal.utils.tracing.DittoTracingInitResource;
@@ -354,15 +353,11 @@ public final class PolicyCommandEnforcementTest {
     }
 
     @Test
-    public void persistenceActorFailingWithAnOpenCircuitBreakerIsAnsweredUnavailable() {
+    public void persistenceActorFailingWithAnOpenCircuitBreakerIsAnInternalError() {
+        // as on MongoDB: a persistence failure other than an ask timeout is answered as an internal error
         assertPersistenceActorFailureIsAnsweredWith(new CircuitBreakerOpenException(
                         new FiniteDuration(3L, TimeUnit.SECONDS), "Circuit Breaker is open; calls are failing fast"),
-                PolicyUnavailableException.class);
-    }
-
-    @Test
-    public void persistenceActorFailingWithABackendOverloadIsAnsweredUnavailable() {
-        assertPersistenceActorFailureIsAnsweredWith(new BackendOverload(), PolicyUnavailableException.class);
+                DittoInternalErrorException.class);
     }
 
     @Test
@@ -987,16 +982,6 @@ public final class PolicyCommandEnforcementTest {
         when(config.getAllNamespaceRootPolicyIds()).thenReturn(Collections.emptySet());
         when(config.getNamespacesForRootPolicy(Mockito.any())).thenReturn(Collections.emptySet());
         return config;
-    }
-
-    /** A backend exception that marks persistence overload, e.g. PostgresPoolOverloadException. */
-    private static final class BackendOverload extends RuntimeException implements PersistenceOverload {
-
-        private static final long serialVersionUID = 1L;
-
-        private BackendOverload() {
-            super("store out of capacity");
-        }
     }
 
 }

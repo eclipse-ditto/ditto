@@ -108,8 +108,8 @@ start_dev_service() { # name allinone-jar main-class extra-env...
 # the others retry that seed until it answers (shutdown-after-unsuccessful-join-seed-nodes = 60s, far longer
 # than a local Policies boot) — no staged waits needed.
 echo "Starting Policies (Postgres) ..."
-# No snapshot-adapter override: AbstractPersistenceActor composes the per-service snapshot-serializer with the
-# Postgres provider's JSONB snapshot codec automatically once the Postgres persistence profile is included.
+# No snapshot-adapter override: AbstractPersistenceActor composes the per-service snapshot-adapter (serializer) with
+# the Postgres provider's JSONB snapshot codec automatically once the Postgres persistence profile is included.
 start_pg_service policies \
   "policies/service/target/ditto-policies-service-0-SNAPSHOT-allinone.jar" \
   org.eclipse.ditto.policies.service.starter.PoliciesService \

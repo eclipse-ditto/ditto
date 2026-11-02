@@ -36,8 +36,8 @@ import org.apache.pekko.actor.ActorSystem;
  * and combined with this serializer in
  * {@code org.eclipse.ditto.internal.utils.persistence.api.serializer.NeutralSnapshotAdapter}.
  * <p>
- * The {@code MongoSnapshotAdapter} name is retained for config-compatibility (it is still referenced as the Mongo-default
- * {@code snapshot-serializer}); it is now purely a serializer and no longer carries any BSON-specific code.
+ * The {@code MongoSnapshotAdapter} class name and the {@code ditto.extensions.snapshot-adapter} key are unchanged, so
+ * existing MongoDB configurations keep working; the class is now purely a serializer without BSON-specific code.
  */
 @ThreadSafe
 public final class PolicyMongoSnapshotAdapter extends SnapshotSerializer<Policy> {

@@ -24,7 +24,7 @@ import org.apache.pekko.persistence.SnapshotOffer;
  * and is able to transform the Snapshot object before offering it to the Pekko PersistentActor.
  * <p>
  * The single neutral implementation is {@link NeutralSnapshotAdapter}, which composes the per-service
- * {@link SnapshotSerializer} (selected via {@code ditto.extensions.snapshot-serializer}) with the active backend's
+ * {@link SnapshotSerializer} (selected via {@code ditto.extensions.snapshot-adapter}) with the active backend's
  * {@link org.eclipse.ditto.internal.utils.persistence.api.SnapshotCodec} (BSON for Mongo, JSONB for Postgres). It is
  * resolved once, single-per-JVM, by {@code AbstractPersistenceActor}; there is no per-backend snapshot-adapter
  * selection any more.

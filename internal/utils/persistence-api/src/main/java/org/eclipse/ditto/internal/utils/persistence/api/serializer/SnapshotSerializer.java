@@ -23,7 +23,6 @@ import javax.annotation.concurrent.ThreadSafe;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.base.model.json.Jsonifiable;
-import org.eclipse.ditto.internal.utils.config.DittoConfigError;
 import org.eclipse.ditto.internal.utils.extension.DittoExtensionIds;
 import org.eclipse.ditto.internal.utils.extension.DittoExtensionPoint;
 import org.eclipse.ditto.json.JsonField;
@@ -47,7 +46,7 @@ import org.apache.pekko.actor.ActorSystem;
  * backends.
  * <p>
  * It is a {@link DittoExtensionPoint}: each service selects its default concrete serializer via the {@code
- * ditto.extensions.snapshot-serializer} config key, and {@link org.eclipse.ditto.internal.utils.persistentactors.AbstractPersistenceActor}
+ * ditto.extensions.snapshot-adapter} config key, and {@link org.eclipse.ditto.internal.utils.persistentactors.AbstractPersistenceActor}
  * resolves it (through its overridable {@code resolveSnapshotSerializer} hook, so an actor managing a different entity
  * type than the JVM default — e.g. the WoT validation-config actor in the Things JVM — can supply its own) and combines
  * it with the single-per-JVM {@code provider.snapshotCodec()}.
@@ -166,16 +165,14 @@ public abstract class SnapshotSerializer<T extends Jsonifiable.WithFieldSelector
 
     /**
      * Loads the per-service {@code SnapshotSerializer} configured for the {@code ActorSystem} at the
-     * {@code ditto.extensions.snapshot-serializer} config key.
+     * {@code ditto.extensions.snapshot-adapter} config key (the key MongoDB deployments have always used; it now selects
+     * only the backend-neutral serializer, the storage envelope comes from the persistence backend provider).
      *
      * @param actorSystem the actor system in which the serializer should be loaded.
      * @param config the config the extension is configured from.
      * @param <T> the jsonifiable type to snapshot.
      * @return the configured {@code SnapshotSerializer} implementation.
      * @throws NullPointerException if any argument is {@code null}.
-     * @throws org.eclipse.ditto.internal.utils.config.DittoConfigError if the removed
-     * {@code ditto.extensions.snapshot-adapter} key is still configured; it was renamed to
-     * {@code snapshot-serializer}.
      */
     @SuppressWarnings("unchecked")
     public static <T extends Jsonifiable.WithFieldSelectorAndPredicate<JsonField>> SnapshotSerializer<T> get(
@@ -183,14 +180,6 @@ public abstract class SnapshotSerializer<T extends Jsonifiable.WithFieldSelector
 
         checkNotNull(actorSystem, "actorSystem");
         checkNotNull(config, "config");
-        if (config.hasPath("snapshot-adapter")) {
-            throw new DittoConfigError("The extension key ditto.extensions.snapshot-adapter was RENAMED to "
-                    + "ditto.extensions.snapshot-serializer (the snapshot storage envelope moved into the "
-                    + "persistence-backend-provider's snapshot codec; the serializer is backend-neutral). "
-                    + "A configured snapshot-adapter would be silently ignored and snapshots would be "
-                    + "written/read with the default serializer — migrate the override to "
-                    + "snapshot-serializer (and port the class to the SnapshotSerializer SPI).");
-        }
         final var extensionIdConfig = ExtensionId.computeConfig(config);
         return (SnapshotSerializer<T>) DittoExtensionIds.get(actorSystem)
                 .computeIfAbsent(extensionIdConfig, ExtensionId::new)
@@ -203,7 +192,7 @@ public abstract class SnapshotSerializer<T extends Jsonifiable.WithFieldSelector
     @SuppressWarnings("rawtypes")
     static final class ExtensionId extends DittoExtensionPoint.ExtensionId<SnapshotSerializer> {
 
-        private static final String CONFIG_KEY = "snapshot-serializer";
+        private static final String CONFIG_KEY = "snapshot-adapter";
 
         private ExtensionId(final ExtensionIdConfig<SnapshotSerializer> extensionIdConfig) {
             super(extensionIdConfig);

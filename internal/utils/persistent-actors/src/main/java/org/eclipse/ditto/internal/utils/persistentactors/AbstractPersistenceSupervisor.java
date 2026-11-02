@@ -14,17 +14,14 @@ package org.eclipse.ditto.internal.utils.persistentactors;
 
 import java.time.Duration;
 import java.time.Instant;
-import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.CompletionStage;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
-import java.util.function.Supplier;
 
 import javax.annotation.Nullable;
 
@@ -86,7 +83,6 @@ import org.eclipse.ditto.internal.utils.pekko.actors.AbstractActorWithStashWithT
 import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.pekko.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.internal.utils.persistence.api.DittoReadJournal;
-import org.eclipse.ditto.internal.utils.persistence.api.PersistenceOverload;
 import org.eclipse.ditto.internal.utils.persistence.api.serializer.EventSerializer;
 import org.eclipse.ditto.internal.utils.tracing.DittoTracing;
 import org.eclipse.ditto.internal.utils.tracing.span.SpanOperationName;
@@ -99,8 +95,6 @@ import com.typesafe.config.Config;
  * Sharded Supervisor of persistent actors. It:
  * <ol>
  * <li>restarts failed child actor after exponential backoff,</li>
- * <li>answers a signal at once with the entity's "unavailable" exception when the persistence actor child terminates
- * before answering it,</li>
  * <li>shuts down self on command, and</li>
  * <li>handles initialization errors by becoming corrupted for a time.</li>
  * </ol>
@@ -146,9 +140,6 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
 
     private final ExponentialBackOffConfig exponentialBackOffConfig;
     private final SignalTransformer signalTransformer;
-    // asks of askAnsweredOnTermination that have not completed yet; added to on the enforcement executor, read by
-    // this actor when its persistence actor child terminates
-    private final Map<CompletableFuture<Object>, PendingAsk> pendingAsks = new ConcurrentHashMap<>();
     private ExponentialBackOff backOff;
     private boolean waitingForStopBeforeRestart = false;
     private boolean inCoordinatedShutdown = false;
@@ -543,7 +534,7 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
         if (null != targetActorWithMessage) {
             final ActorRef targetActor = targetActorWithMessage.targetActor();
             if (!targetActorWithMessage.messageTimeout().isZero()) {
-                return askAnsweredOnTermination(
+                return Patterns.ask(
                                 targetActor,
                                 targetActorWithMessage.message(),
                                 targetActorWithMessage.messageTimeout()
@@ -553,7 +544,7 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
             } else {
                 // special case: no response expected
                 if (targetActor.equals(persistenceActorChild)) {
-                    return askAnsweredOnTermination(
+                    return Patterns.ask(
                                     targetActor,
                                     targetActorWithMessage.message(),
                                     determineAskTimeoutForPersistenceActorForwarding(true) // calculate timeout for ACK only
@@ -568,64 +559,6 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
         } else {
             return CompletableFuture.completedFuture(null);
         }
-    }
-
-    /**
-     * Asks the target actor like {@link Patterns#ask(ActorRef, Object, Duration)}. If the target actor is the
-     * persistence actor child and terminates before answering, {@link #answerAsksPendingAt(ActorRef)} answers the ask
-     * at once. A persistence actor stops without answering when its recovery or a journal write fails, e.g. under
-     * persistence overload. Waiting for the ask timeout instead (up to {@code timeout-during-recovery}) would keep the
-     * later twin signals of the entity stashed until after their senders gave up.
-     *
-     * @param targetActor the actor to ask.
-     * @param message the message to send.
-     * @param timeout the ask timeout.
-     * @return the answer of the target actor or, if the persistence actor child terminated before answering, the
-     * entity's "unavailable" exception as a value.
-     */
-    private CompletionStage<Object> askAnsweredOnTermination(final ActorRef targetActor, final Object message,
-            final Duration timeout) {
-
-        // the ask itself is completed in the thread of the answering actor, before that actor can terminate;
-        // stages derived from it complete later and asynchronously, so only the ask tells whether an answer arrived
-        final CompletableFuture<Object> ask = Patterns.ask(targetActor, message, timeout).toCompletableFuture();
-        final CompletableFuture<Object> answer = new CompletableFuture<>();
-        pendingAsks.put(answer, new PendingAsk(targetActor, message, ask));
-        answer.whenComplete((response, error) -> pendingAsks.remove(answer));
-        ask.whenComplete((response, error) -> {
-            if (null != error) {
-                answer.completeExceptionally(error);
-            } else {
-                answer.complete(response);
-            }
-        });
-        return answer;
-    }
-
-    /**
-     * Answers the asks still pending at the terminated persistence actor child with the entity's "unavailable"
-     * exception, as this supervisor answers signals while its persistence actor is down. An ask whose answer arrived
-     * before the termination keeps that answer. An ask sent before the termination but registered only after this
-     * method ran keeps its ask timeout, as before; an ask sent after the termination fails at once.
-     *
-     * @param terminatedPersistenceActor the persistence actor child that terminated.
-     */
-    private void answerAsksPendingAt(final ActorRef terminatedPersistenceActor) {
-        pendingAsks.forEach((answer, pendingAsk) -> {
-            if (pendingAsk.targetActor().equals(terminatedPersistenceActor) && !pendingAsk.ask().isDone()) {
-                final DittoHeaders dittoHeaders = getDittoHeaders(pendingAsk.message());
-                final DittoRuntimeException unavailable = getUnavailableExceptionBuilder(entityId)
-                        .dittoHeaders(dittoHeaders)
-                        .build();
-                if (answer.complete(unavailable)) {
-                    log.withCorrelationId(dittoHeaders)
-                            .info("Persistence actor for entity with ID <{}> terminated before answering <{}>: " +
-                                            "answering <{}> instead of waiting for the ask timeout.", entityId,
-                                    pendingAsk.message().getClass().getSimpleName(),
-                                    unavailable.getClass().getSimpleName());
-                }
-            }
-        });
     }
 
     /**
@@ -751,7 +684,6 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
 
     private void childTerminated(final Terminated message) {
         if (message.getActor().equals(persistenceActorChild)) {
-            answerAsksPendingAt(message.getActor());
             persistenceActorChild = null;
             opCounter = 0;
             sudoOpCounter = 0;
@@ -840,8 +772,7 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
                 if (withDittoHeaders instanceof Signal<?> signal) {
                     signalTransformer.apply(signal, persistenceActorChild)
                             .whenComplete(
-                                    (result, error) -> handleOptionalTransformationException(signal, error, sender,
-                                            false))
+                                    (result, error) -> handleOptionalTransformationException(signal, error, sender))
                             .thenAccept(transformed -> persistenceActorChild.tell(transformed, sender));
                 } else {
                     persistenceActorChild.tell(withDittoHeaders, sender);
@@ -853,53 +784,18 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
     }
 
     private void handleOptionalTransformationException(final Signal<?> signal,
-            @Nullable final Throwable error, final ActorRef sender, final boolean persistenceActorAbsent) {
+            @Nullable final Throwable error, final ActorRef sender) {
 
         if (error != null) {
             log.withCorrelationId(signal)
                     .info("Got error during signal transformation: <{}>", error);
-            final var dre = getTransformationExceptionAsRuntimeException(error, signal.getDittoHeaders(),
-                    persistenceActorAbsent, () -> getUnavailableExceptionBuilder(entityId));
+            final var dre = DittoRuntimeException.asDittoRuntimeException(error,
+                    reason -> DittoInternalErrorException.newBuilder()
+                            .dittoHeaders(signal.getDittoHeaders())
+                            .cause(reason)
+                            .build());
             sender.tell(dre, ActorRef.noSender());
         }
-    }
-
-    /**
-     * Maps a failed signal transformation to the exception its sender gets.
-     * <p>
-     * A signal transformer may ask the persistence actor, e.g. whether the entity exists. When the persistence is
-     * overloaded, that actor stops without a reply (its recovery or journal write failed, e.g. on an open circuit
-     * breaker or a full connection pool) or is not running (back-off after such a stop), so the transformation fails
-     * with an {@link AskTimeoutException} or because there was no persistence actor to ask. These failures, and
-     * persistence overload itself ({@link PersistenceOverload#isOverload(Throwable)}), are answered with the entity's
-     * "unavailable" exception (HTTP 503), as when the persistence actor is down. A {@link DittoRuntimeException} is
-     * passed on; any other failure becomes a {@link DittoInternalErrorException} (HTTP 500).
-     * </p>
-     *
-     * @param error the failure of the transformation.
-     * @param dittoHeaders the headers of the transformed signal.
-     * @param persistenceActorAbsent whether there was no persistence actor when the transformation started.
-     * @param unavailableExceptionBuilder supplies the builder of the entity's "unavailable" exception.
-     * @return the exception to send to the signal's sender.
-     */
-    static DittoRuntimeException getTransformationExceptionAsRuntimeException(final Throwable error,
-            final DittoHeaders dittoHeaders,
-            final boolean persistenceActorAbsent,
-            final Supplier<DittoRuntimeExceptionBuilder<?>> unavailableExceptionBuilder) {
-
-        final Throwable rootCause = unwrapCompletionException(error);
-        if (!(rootCause instanceof DittoRuntimeException) && (persistenceActorAbsent ||
-                rootCause instanceof AskTimeoutException || PersistenceOverload.isOverload(rootCause))) {
-            return unavailableExceptionBuilder.get()
-                    .dittoHeaders(dittoHeaders)
-                    .cause(rootCause)
-                    .build();
-        }
-        return DittoRuntimeException.asDittoRuntimeException(error,
-                reason -> DittoInternalErrorException.newBuilder()
-                        .dittoHeaders(dittoHeaders)
-                        .cause(reason)
-                        .build());
     }
 
     /**
@@ -924,11 +820,9 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
                 if (shouldBecomeTwinSignalProcessingAwaiting(signal)) {
                     becomeTwinSignalProcessingAwaiting();
                 }
-                final boolean persistenceActorAbsent = null == persistenceActorChild;
                 final var syncCs = signalTransformer.apply(signal, persistenceActorChild)
                         .whenCompleteAsync((result, error) ->
-                                handleOptionalTransformationException(signal, error, sender,
-                                        persistenceActorAbsent),
+                                handleOptionalTransformationException(signal, error, sender),
                                 enforcementExecutor
                         )
                         .thenComposeAsync(transformed ->
@@ -1027,13 +921,6 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
                     .warning("Enforcement of signal for entity <{}> timed out: {}",
                             entityId, rootCause.getMessage());
             dre = EnforcementTimeoutException.newBuilder()
-                    .dittoHeaders(signal.getDittoHeaders())
-                    .cause(rootCause)
-                    .build();
-        } else if (PersistenceOverload.isOverload(rootCause)) {
-            log.withCorrelationId(signal)
-                    .warning("Persistence of entity <{}> is overloaded: {}", entityId, rootCause.getMessage());
-            dre = getUnavailableExceptionBuilder(entityId)
                     .dittoHeaders(signal.getDittoHeaders())
                     .cause(rootCause)
                     .build();
@@ -1327,15 +1214,6 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
      * @param signal the previous message.
      */
     private record ProcessNextTwinMessage(Signal<?> signal) {}
-
-    /**
-     * An ask of {@link #askAnsweredOnTermination(ActorRef, Object, Duration)} that has not completed yet.
-     *
-     * @param targetActor the asked actor.
-     * @param message the asked message.
-     * @param ask the ask itself, completed in the thread of the answering actor.
-     */
-    private record PendingAsk(ActorRef targetActor, Object message, CompletableFuture<Object> ask) {}
 
     private record EnforcedSignalAndTargetActorResponse(@Nullable Signal<?> enforcedSignal,
                                                         @Nullable Object response) {}

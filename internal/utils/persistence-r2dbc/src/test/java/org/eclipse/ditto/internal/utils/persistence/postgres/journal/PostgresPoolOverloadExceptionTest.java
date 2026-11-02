@@ -14,25 +14,26 @@ package org.eclipse.ditto.internal.utils.persistence.postgres.journal;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.util.concurrent.CompletionException;
-
-import org.eclipse.ditto.internal.utils.persistence.api.PersistenceOverload;
 import org.junit.Test;
 
+import io.r2dbc.spi.R2dbcTransientResourceException;
 import reactor.pool.PoolAcquirePendingLimitException;
 
 /**
- * Tests that a shed journal write is classified as persistence overload, backend-neutrally.
+ * Tests that a shed journal write is reported as a transient resource error that names the pool limit and keeps the
+ * pool's rejection as its cause.
  */
 public final class PostgresPoolOverloadExceptionTest {
 
     @Test
-    public void poolOverloadIsPersistenceOverload() {
-        final PostgresPoolOverloadException overload =
-                PostgresPoolOverloadException.of(new PoolAcquirePendingLimitException(8));
+    public void poolOverloadIsATransientResourceErrorNamingTheLimit() {
+        final PoolAcquirePendingLimitException rejection = new PoolAcquirePendingLimitException(8);
 
-        assertThat(overload).isInstanceOf(PersistenceOverload.class);
-        assertThat(PersistenceOverload.isOverload(new CompletionException(overload))).isTrue();
+        final PostgresPoolOverloadException overload = PostgresPoolOverloadException.of(rejection);
+
+        assertThat(overload).isInstanceOf(R2dbcTransientResourceException.class);
+        assertThat(overload).hasCause(rejection);
+        assertThat(overload.getMessage()).contains("pool.pending-acquire-max-size=8");
     }
 
 }

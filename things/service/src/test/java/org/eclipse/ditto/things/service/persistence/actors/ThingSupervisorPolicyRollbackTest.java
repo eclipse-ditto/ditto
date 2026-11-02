@@ -40,6 +40,7 @@ import org.eclipse.ditto.policies.model.PoliciesModelFactory;
 import org.eclipse.ditto.policies.model.PoliciesResourceType;
 import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.policies.model.SubjectIssuer;
+import org.eclipse.ditto.base.model.exceptions.EnforcementTimeoutException;
 import org.eclipse.ditto.policies.model.signals.commands.exceptions.PolicyUnavailableException;
 import org.eclipse.ditto.policies.model.signals.commands.modify.CreatePolicy;
 import org.eclipse.ditto.policies.model.signals.commands.modify.CreatePolicyResponse;
@@ -74,8 +75,9 @@ import scala.concurrent.duration.FiniteDuration;
 
 /**
  * Tests how {@link ThingSupervisorActor} handles a policy it created for a {@code CreateThing} that then failed: a
- * persistence actor that stops without answering is answered at once, the compensating deletion of the policy is
- * retried and reported honestly, and only the policy of the failed creation is ever deleted.
+ * persistence actor that stops without answering is answered once its ask times out (as on MongoDB) and the rollback
+ * follows, the compensating deletion of the policy is retried and reported honestly, and only the policy of the failed
+ * creation is ever deleted.
  */
 public final class ThingSupervisorPolicyRollbackTest extends PersistenceActorTestBase {
 
@@ -83,15 +85,18 @@ public final class ThingSupervisorPolicyRollbackTest extends PersistenceActorTes
     public static final DittoTracingInitResource DITTO_TRACING_INIT_RESOURCE =
             DittoTracingInitResource.disableDittoTracing();
 
-    /**
-     * Far below the 45 s {@code timeout-during-recovery} configured below.
-     */
     private static final Duration AT_ONCE = Duration.ofSeconds(3);
     private static final FiniteDuration PROBE_AT_ONCE = FiniteDuration.apply(3, TimeUnit.SECONDS);
+    /**
+     * Comfortably above the 2 s supervisor ask timeouts configured below: a persistence actor that stops without
+     * answering is answered only when its ask times out.
+     */
+    private static final FiniteDuration PROBE_AFTER_ASK_TIMEOUT = FiniteDuration.apply(8, TimeUnit.SECONDS);
 
     private static final Config CUSTOM_CONFIG = ConfigFactory.parseString(
-            // production value instead of the 5 s of thing-test.conf: waiting and answering at once must differ
-            "ditto.things.thing.supervisor.local-ask.timeout-during-recovery = 45s\n" +
+            // short ask timeouts keep the "persistence actor stops without answering" case fast
+            "ditto.things.thing.supervisor.local-ask.timeout = 2s\n" +
+            "ditto.things.thing.supervisor.local-ask.timeout-during-recovery = 2s\n" +
             "ditto.enforcement.created-policy-rollback {\n" +
             "  ask-timeout = 1s\n" +
             "  retry-strategy = BACKOFF_DELAY\n" +
@@ -133,7 +138,7 @@ public final class ThingSupervisorPolicyRollbackTest extends PersistenceActorTes
     }
 
     @Test
-    public void thingPersistenceActorThatStopsOnTheCreateTriggersTheRollbackAtOnce() {
+    public void thingPersistenceActorThatStopsOnTheCreateTriggersTheRollbackAfterTheAskTimeout() {
         new TestKit(actorSystem) {{
             final Thing thing = createThingV2WithRandomId().toBuilder().setPolicyId(null).build();
             final ActorRef underTest = startSupervisor(thing.getEntityId().orElseThrow(),
@@ -144,11 +149,13 @@ public final class ThingSupervisorPolicyRollbackTest extends PersistenceActorTes
             policiesShardRegionTestProbe.expectMsgClass(CreatePolicy.class);
             policiesShardRegionTestProbe.reply(CreatePolicyResponse.of(POLICY_ID, policy, DittoHeaders.empty()));
 
-            // the thing persistence actor stopped without answering: the rollback starts without the 45 s wait
+            // the thing persistence actor stopped without answering: as on MongoDB, the supervisor waits for its ask
+            // timeout, then rolls the created policy back and answers the timeout
+            policiesShardRegionTestProbe.expectNoMessage(FiniteDuration.apply(1, TimeUnit.SECONDS));
             final DeletePolicy deletePolicy =
-                    policiesShardRegionTestProbe.expectMsgClass(PROBE_AT_ONCE, DeletePolicy.class);
+                    policiesShardRegionTestProbe.expectMsgClass(PROBE_AFTER_ASK_TIMEOUT, DeletePolicy.class);
             policiesShardRegionTestProbe.reply(DeletePolicyResponse.of(POLICY_ID, deletePolicy.getDittoHeaders()));
-            expectMsgClass(AT_ONCE, ThingUnavailableException.class);
+            expectMsgClass(AT_ONCE, EnforcementTimeoutException.class);
         }};
     }
 
