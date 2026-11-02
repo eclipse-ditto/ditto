@@ -24,9 +24,6 @@ import java.util.stream.StreamSupport;
 
 import javax.annotation.concurrent.Immutable;
 
-import org.apache.pekko.http.javadsl.model.HttpRequest;
-import org.apache.pekko.http.javadsl.model.Query;
-import org.apache.pekko.http.javadsl.model.Uri;
 import org.apache.pekko.http.javadsl.server.RequestContext;
 import org.eclipse.ditto.base.model.auth.AuthorizationContext;
 import org.eclipse.ditto.base.model.auth.AuthorizationContextType;
@@ -55,6 +52,8 @@ import org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault;
  * If this is enabled it is of upmost importance that only the proxy in front of Ditto sets the defined header field
  * {@link org.eclipse.ditto.gateway.service.security.HttpHeader#X_DITTO_PRE_AUTH}, otherwise anyone using the HTTP API may impersonate any other authorization
  * subject.
+ * The pre-authenticated subject is only ever read from that header, never from a query parameter of the same name, as
+ * a client could otherwise supply its own subject which a proxy only overwriting the header would not prevent.
  *
  * @since 1.1.0
  */
@@ -83,19 +82,7 @@ public final class PreAuthenticatedAuthenticationProvider
 
     @Override
     public boolean isApplicable(final RequestContext requestContext) {
-        return containsHeader(requestContext, HttpHeader.X_DITTO_PRE_AUTH);
-    }
-
-    private static boolean containsHeader(final RequestContext requestContext, final HttpHeader header) {
-        final Optional<String> requestHeader = HttpUtils.getRequestHeader(requestContext, header.getName());
-        return requestHeader.isPresent() || getRequestParam(requestContext, header).isPresent();
-    }
-
-    private static Optional<String> getRequestParam(final RequestContext requestContext, final HttpHeader header) {
-        final HttpRequest httpRequest = requestContext.getRequest();
-        final Uri requestUri = httpRequest.getUri();
-        final Query query = requestUri.query();
-        return query.get(header.getName());
+        return getPreAuthenticated(requestContext).isPresent();
     }
 
     @Override
@@ -136,8 +123,7 @@ public final class PreAuthenticatedAuthenticationProvider
     }
 
     private static Optional<String> getPreAuthenticated(final RequestContext requestContext) {
-        return HttpUtils.getRequestHeader(requestContext, HttpHeader.X_DITTO_PRE_AUTH.getName())
-                .or(() -> getRequestParam(requestContext, HttpHeader.X_DITTO_PRE_AUTH));
+        return HttpUtils.getRequestHeader(requestContext, HttpHeader.X_DITTO_PRE_AUTH.getName());
     }
 
     private static DittoRuntimeException getAuthenticationFailedException(final DittoHeaders dittoHeaders) {

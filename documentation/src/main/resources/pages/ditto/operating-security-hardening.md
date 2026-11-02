@@ -62,6 +62,11 @@ means it trusts the value of the `x-ditto-pre-authenticated` header. This is saf
 * the proxy in front of it always sets the header from a verified identity and **removes any
   client-supplied value** of that header.
 
+The gateway reads the pre-authenticated subject **only** from the `x-ditto-pre-authenticated` HTTP header,
+never from a query parameter of the same name. A request the proxy forwards *without* the header (for
+example a request carrying `Authorization: Bearer <JWT>`) is therefore authenticated by the gateway itself,
+via the [OpenID Connect](operating-authentication.html#openid-connect) configuration.
+
 If you expose the gateway directly *while pre-authentication is enabled*, any client can impersonate
 any subject by sending the header themselves. The code carries an explicit warning about this in
 `PreAuthenticatedAuthenticationProvider`. So with this model: publish only the reverse proxy port and
@@ -102,8 +107,22 @@ When you adapt this for production, make sure the proxy:
 * **Authenticates** every request to the API (`/api`, `/ws`, and any custom routes).
 * **Overwrites** `x-ditto-pre-authenticated` on every request so a client cannot inject its own
   value. Setting `proxy_set_header` as above replaces any incoming header &mdash; do not forward a
-  client-supplied value.
+  client-supplied value. If a route intentionally skips proxy authentication (e.g. to pass through
+  `Authorization: Bearer <JWT>` requests), make sure the header is not forwarded on that route, so the
+  gateway has to validate the JWT.
 * Terminates TLS (see [section 8](#8-transport-security-tls)).
+
+#### Helm chart: mixed Basic auth and JWT mode
+
+With the default `global.jwtOnly: false`, the nginx bundled with the Helm chart combines both models:
+requests without `Authorization: Bearer ...` header must pass nginx Basic auth and are forwarded with
+`x-ditto-pre-authenticated: nginx:<user>`, while requests with a Bearer token skip Basic auth and are
+forwarded *without* that header, so that the gateway validates the JWT. In this mode the chart
+**implicitly enables pre-authentication** in the gateway, regardless of
+`gateway.config.authentication.enablePreAuthentication`. Only use it if the gateway is reachable
+exclusively via that nginx. If you only use OpenID Connect, configure `global.jwtOnly: true`, which
+disables pre-authentication (as long as `gateway.config.authentication.enablePreAuthentication` stays
+`false`).
 
 #### Replace the sample credentials
 
