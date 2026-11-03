@@ -16,10 +16,15 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.gateway.service.util.config.security.NamespaceAccessConfig;
 import org.eclipse.ditto.jwt.model.JsonWebToken;
+import org.eclipse.ditto.placeholders.ExpressionResolver;
+import org.eclipse.ditto.placeholders.PipelineElement;
+import org.eclipse.ditto.placeholders.PlaceholderFactory;
+import org.eclipse.ditto.placeholders.TimePlaceholder;
 import org.junit.Test;
 
 /**
@@ -464,6 +469,86 @@ public class NamespaceAccessValidatorTest {
         // No JWT present → no condition matched → fail-closed: restrict search to nothing.
         assertThat(validator.getApplicableNamespacePatterns())
                 .hasValueSatisfying(patterns -> assertThat(patterns).isEmpty());
+    }
+
+    @Test
+    public void conditionsAreEvaluatedOnlyOnceForRepeatedChecks() {
+        final NamespaceAccessConfig matchingRule = NamespaceAccessTestSupport.config(
+                List.of("{{ header:x-tenant | fn:filter('eq','tenant-a') }}"),
+                List.of("org.eclipse.*"),
+                List.of()
+        );
+        final NamespaceAccessConfig nonMatchingRule = NamespaceAccessTestSupport.config(
+                List.of("{{ header:x-tenant | fn:filter('eq','tenant-b') }}"),
+                List.of("com.acme"),
+                List.of()
+        );
+        final DittoHeaders headers = NamespaceAccessTestSupport.newHeadersWithHeader("x-tenant", "tenant-a");
+        final CountingExpressionResolver resolver = new CountingExpressionResolver(headers);
+
+        final NamespaceAccessValidator validator = new NamespaceAccessValidator(
+                NamespaceAccessValidator.toRules(List.of(matchingRule, nonMatchingRule)),
+                resolver,
+                headers
+        );
+
+        for (int i = 0; i < 3; i++) {
+            assertThat(validator.isNamespaceAccessible("org.eclipse.ditto")).isTrue();
+            assertThat(validator.isNamespaceAccessible("com.acme")).isFalse();
+        }
+        assertThat(validator.getApplicableNamespacePatterns()).contains(Set.of());
+        assertThat(validator.filterAllowedNamespaces(Set.of("org.eclipse.ditto", "com.acme")))
+                .containsExactly("org.eclipse.ditto");
+
+        // one evaluation per condition, memoized for all subsequent checks
+        assertThat(resolver.evaluations()).isEqualTo(2);
+    }
+
+    @Test
+    public void timeDependentConditionsAreEvaluatedOnEveryCheck() {
+        final NamespaceAccessConfig timeRule = NamespaceAccessTestSupport.config(
+                List.of("{{ time:now | fn:filter('like','*') }}"),
+                List.of("org.eclipse.*"),
+                List.of()
+        );
+        final CountingExpressionResolver resolver = new CountingExpressionResolver(DITTO_HEADERS);
+
+        final NamespaceAccessValidator validator = new NamespaceAccessValidator(
+                NamespaceAccessValidator.toRules(List.of(timeRule)),
+                resolver,
+                DITTO_HEADERS
+        );
+
+        for (int i = 0; i < 3; i++) {
+            assertThat(validator.isNamespaceAccessible("org.eclipse.ditto")).isTrue();
+        }
+
+        assertThat(resolver.evaluations()).isEqualTo(3);
+    }
+
+    private static final class CountingExpressionResolver implements ExpressionResolver {
+
+        private final ExpressionResolver delegate;
+        private final AtomicInteger evaluations = new AtomicInteger();
+
+        private CountingExpressionResolver(final DittoHeaders dittoHeaders) {
+            delegate = PlaceholderFactory.newExpressionResolver(
+                    PlaceholderFactory.newPlaceholderResolver(PlaceholderFactory.newHeadersPlaceholder(),
+                            dittoHeaders),
+                    PlaceholderFactory.newPlaceholderResolver(TimePlaceholder.getInstance(), new Object())
+            );
+        }
+
+        @Override
+        public PipelineElement resolveAsPipelineElement(final String pipelineExpression) {
+            evaluations.incrementAndGet();
+            return delegate.resolveAsPipelineElement(pipelineExpression);
+        }
+
+        private int evaluations() {
+            return evaluations.get();
+        }
+
     }
 
 }

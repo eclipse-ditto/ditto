@@ -16,10 +16,11 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicReferenceArray;
 import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
-import javax.annotation.concurrent.Immutable;
+import javax.annotation.concurrent.ThreadSafe;
 
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.gateway.service.security.authentication.jwt.JwtPlaceholder;
@@ -39,8 +40,13 @@ import org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault;
  * Validates namespace access based on configured namespace access control rules.
  * Evaluates conditions (using JWT claims and HTTP headers) and checks if namespaces
  * are allowed or blocked based on pattern matching with SQL-LIKE wildcard syntax.
+ * <p>
+ * The JWT and headers a validator resolves conditions against are fixed for its lifetime, so the outcome of a rule's
+ * conditions is memoized after the first evaluation. This matters for streaming sessions, which hold one validator
+ * and check every outgoing signal against it. Rules with a condition referencing the {@code time:} placeholder are
+ * re-evaluated on every check, as their outcome may change over time.
  */
-@Immutable
+@ThreadSafe
 @AllValuesAreNonnullByDefault
 public final class NamespaceAccessValidator {
 
@@ -50,15 +56,43 @@ public final class NamespaceAccessValidator {
     private final List<NamespaceAccessRule> namespaceAccessRules;
     private final ExpressionResolver expressionResolver;
     private final DittoHeaders dittoHeaders;
+    // index-aligned with namespaceAccessRules; null until the rule's conditions were evaluated
+    private final AtomicReferenceArray<Boolean> memoizedConditionResults;
 
     NamespaceAccessValidator(final List<NamespaceAccessConfig> namespaceAccessConfigs,
             final DittoHeaders dittoHeaders,
             @Nullable final JsonWebToken jwt) {
-        this.namespaceAccessRules = namespaceAccessConfigs.stream()
+        this(toRules(namespaceAccessConfigs), createExpressionResolver(dittoHeaders, jwt), dittoHeaders);
+    }
+
+    NamespaceAccessValidator(final List<NamespaceAccessRule> namespaceAccessRules,
+            final ExpressionResolver expressionResolver,
+            final DittoHeaders dittoHeaders) {
+        this.namespaceAccessRules = namespaceAccessRules;
+        this.expressionResolver = expressionResolver;
+        this.dittoHeaders = dittoHeaders;
+        memoizedConditionResults = new AtomicReferenceArray<>(namespaceAccessRules.size());
+    }
+
+    /**
+     * Creates a validator for already parsed rules, avoiding to compile their namespace patterns again.
+     *
+     * @param namespaceAccessRules the rules to validate against.
+     * @param dittoHeaders the Ditto headers containing request context.
+     * @param jwt the JSON Web Token, may be null.
+     * @return the validator.
+     */
+    static NamespaceAccessValidator of(final List<NamespaceAccessRule> namespaceAccessRules,
+            final DittoHeaders dittoHeaders,
+            @Nullable final JsonWebToken jwt) {
+        return new NamespaceAccessValidator(namespaceAccessRules, createExpressionResolver(dittoHeaders, jwt),
+                dittoHeaders);
+    }
+
+    static List<NamespaceAccessRule> toRules(final List<NamespaceAccessConfig> namespaceAccessConfigs) {
+        return namespaceAccessConfigs.stream()
                 .map(NamespaceAccessRule::new)
                 .toList();
-        this.expressionResolver = createExpressionResolver(dittoHeaders, jwt);
-        this.dittoHeaders = dittoHeaders;
     }
 
     private static ExpressionResolver createExpressionResolver(final DittoHeaders dittoHeaders,
@@ -94,8 +128,9 @@ public final class NamespaceAccessValidator {
 
         boolean allowedByAnyRule = false;
 
-        for (final NamespaceAccessRule rule : namespaceAccessRules) {
-            if (allConditionsMet(rule.conditions())) {
+        for (int i = 0; i < namespaceAccessRules.size(); i++) {
+            final NamespaceAccessRule rule = namespaceAccessRules.get(i);
+            if (conditionsMet(i)) {
                 if (rule.matcher().isBlocked(namespace)) {
                     LOGGER.withCorrelationId(dittoHeaders)
                             .info("Namespace <{}> is blocked by namespace-access rule: <{}>", namespace, rule);
@@ -145,8 +180,9 @@ public final class NamespaceAccessValidator {
         final Set<String> exactPatterns = new HashSet<>();
         boolean anyConditionMatched = false;
 
-        for (final NamespaceAccessRule rule : namespaceAccessRules) {
-            if (allConditionsMet(rule.conditions())) {
+        for (int i = 0; i < namespaceAccessRules.size(); i++) {
+            final NamespaceAccessRule rule = namespaceAccessRules.get(i);
+            if (conditionsMet(i)) {
                 anyConditionMatched = true;
                 final List<String> allowedNamespaces = rule.allowedNamespaces();
 
@@ -171,6 +207,20 @@ public final class NamespaceAccessValidator {
         return Optional.of(Set.copyOf(exactPatterns));
     }
 
+    private boolean conditionsMet(final int ruleIndex) {
+        final NamespaceAccessRule rule = namespaceAccessRules.get(ruleIndex);
+        if (rule.timeDependent()) {
+            return allConditionsMet(rule.conditions());
+        }
+        // racing threads compute the same result, so no synchronization beyond safe publication is needed
+        Boolean result = memoizedConditionResults.get(ruleIndex);
+        if (result == null) {
+            result = allConditionsMet(rule.conditions());
+            memoizedConditionResults.set(ruleIndex, result);
+        }
+        return result;
+    }
+
     private boolean allConditionsMet(final List<String> conditions) {
         if (conditions.isEmpty()) {
             return true;
@@ -191,14 +241,27 @@ public final class NamespaceAccessValidator {
         return true;
     }
 
-    private record NamespaceAccessRule(List<String> conditions,
-                                       List<String> allowedNamespaces,
-                                       List<String> blockedNamespaces,
-                                       NamespacePatternMatcher matcher
+    record NamespaceAccessRule(List<String> conditions,
+                               List<String> allowedNamespaces,
+                               List<String> blockedNamespaces,
+                               List<String> resourceTypes,
+                               NamespacePatternMatcher matcher,
+                               boolean timeDependent
     ) {
         private NamespaceAccessRule(final NamespaceAccessConfig config) {
             this(config.getConditions(), config.getAllowedNamespaces(), config.getBlockedNamespaces(),
-                    new NamespacePatternMatcher(config.getAllowedNamespaces(), config.getBlockedNamespaces()));
+                    config.getResourceTypes(),
+                    new NamespacePatternMatcher(config.getAllowedNamespaces(), config.getBlockedNamespaces()),
+                    isTimeDependent(config.getConditions()));
+        }
+
+        // deliberately coarse: a false positive only costs the memoization, never correctness
+        private static boolean isTimeDependent(final List<String> conditions) {
+            return conditions.stream().anyMatch(condition -> condition.contains(TimePlaceholder.PREFIX + ":"));
+        }
+
+        boolean appliesTo(final String resourceType) {
+            return resourceTypes.isEmpty() || resourceTypes.contains(resourceType);
         }
 
         @Override
