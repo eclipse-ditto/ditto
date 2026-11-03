@@ -232,6 +232,11 @@ cap the message rate of an established stream (`ditto.gateway.websocket.throttli
 second when enabled). These protect against a single noisy client, but are not a substitute for
 proxy-level rate limiting of authentication and connection attempts.
 
+Every open WebSocket or SSE session also costs gateway memory when it falls behind the events it receives.
+Set `ditto.gateway.streaming.max-session-lag` (disabled by default) so that a gateway closes lagging sessions
+instead of running out of heap, and consider limiting the number of concurrent streaming connections per client
+at the proxy.
+
 ### 10. Outbound HTTP requests (SSRF)
 
 Two Ditto features cause a service to issue outbound HTTP requests to a host that is not fixed in the

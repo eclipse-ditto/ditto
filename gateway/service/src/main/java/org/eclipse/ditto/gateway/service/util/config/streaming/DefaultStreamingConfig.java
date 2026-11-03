@@ -35,6 +35,7 @@ public final class DefaultStreamingConfig implements StreamingConfig {
     private final AcknowledgementConfig acknowledgementConfig;
     private final Duration searchIdleTimeout;
     private final Duration subscriptionRefreshDelay;
+    private final Duration maxSessionLag;
     private final WebsocketConfig websocketConfig;
     private final SseConfig sseConfig;
 
@@ -47,6 +48,7 @@ public final class DefaultStreamingConfig implements StreamingConfig {
         searchIdleTimeout = scopedConfig.getNonNegativeDurationOrThrow(StreamingConfigValue.SEARCH_IDLE_TIMEOUT);
         subscriptionRefreshDelay =
                 scopedConfig.getNonNegativeDurationOrThrow(StreamingConfigValue.SUBSCRIPTION_REFRESH_DELAY);
+        maxSessionLag = scopedConfig.getNonNegativeDurationOrThrow(StreamingConfigValue.MAX_SESSION_LAG);
         websocketConfig = DefaultWebsocketConfig.of(scopedConfig);
         sseConfig = DefaultSseConfig.of(scopedConfig);
     }
@@ -99,6 +101,11 @@ public final class DefaultStreamingConfig implements StreamingConfig {
     }
 
     @Override
+    public Duration getMaxSessionLag() {
+        return maxSessionLag;
+    }
+
+    @Override
     public boolean equals(final Object o) {
         if (this == o) {
             return true;
@@ -110,6 +117,7 @@ public final class DefaultStreamingConfig implements StreamingConfig {
         return parallelism == that.parallelism &&
                 Objects.equals(searchIdleTimeout, that.searchIdleTimeout) &&
                 Objects.equals(subscriptionRefreshDelay, that.subscriptionRefreshDelay) &&
+                Objects.equals(maxSessionLag, that.maxSessionLag) &&
                 Objects.equals(sessionCounterScrapeInterval, that.sessionCounterScrapeInterval) &&
                 Objects.equals(acknowledgementConfig, that.acknowledgementConfig) &&
                 Objects.equals(websocketConfig, that.websocketConfig) &&
@@ -119,7 +127,7 @@ public final class DefaultStreamingConfig implements StreamingConfig {
     @Override
     public int hashCode() {
         return Objects.hash(parallelism, sessionCounterScrapeInterval, acknowledgementConfig, websocketConfig,
-                sseConfig, searchIdleTimeout, subscriptionRefreshDelay);
+                sseConfig, searchIdleTimeout, subscriptionRefreshDelay, maxSessionLag);
     }
 
     @Override
@@ -129,6 +137,7 @@ public final class DefaultStreamingConfig implements StreamingConfig {
                 ", parallelism=" + parallelism +
                 ", searchIdleTimeout=" + searchIdleTimeout +
                 ", subscriptionRefreshDelay=" + subscriptionRefreshDelay +
+                ", maxSessionLag=" + maxSessionLag +
                 ", acknowledgementConfig=" + acknowledgementConfig +
                 ", websocketConfig=" + websocketConfig +
                 ", sseConfig=" + sseConfig +

@@ -54,6 +54,7 @@ import org.eclipse.ditto.base.model.headers.translator.HeaderTranslator;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
 import org.eclipse.ditto.base.model.signals.acks.AcknowledgementCorrelationIdMissingException;
+import org.eclipse.ditto.gateway.api.GatewayServiceUnavailableException;
 import org.eclipse.ditto.gateway.api.GatewayWebsocketSessionAbortedException;
 import org.eclipse.ditto.gateway.api.GatewayWebsocketSessionClosedException;
 import org.eclipse.ditto.gateway.api.GatewayWebsocketSessionExpiredException;
@@ -381,6 +382,29 @@ public final class StreamingSessionActorTest {
     }
 
     @Test
+    public void closeSessionWhenLagProbeArrivesLaterThanMaxSessionLag() {
+        final var testKit = actorSystemResource.newTestKit();
+        final var underTest = testKit.watch(actorSystemResource.newActor(getPropsWithMaxSessionLag("10s")));
+
+        underTest.tell(new StreamingSessionActor.LagProbe(System.nanoTime() - Duration.ofSeconds(11L).toNanos()),
+                ActorRef.noSender());
+
+        testKit.expectTerminated(underTest);
+        sinkProbe.ensureSubscription();
+        assertThat(sinkProbe.expectError()).isInstanceOf(GatewayServiceUnavailableException.class);
+    }
+
+    @Test
+    public void keepSessionOpenWhileLagProbesArriveInTime() {
+        final var testKit = actorSystemResource.newTestKit();
+        final var underTest = testKit.watch(actorSystemResource.newActor(getPropsWithMaxSessionLag("200ms")));
+
+        testKit.expectNoMessage(Duration.ofSeconds(1L));
+        underTest.tell(PoisonPill.getInstance(), ActorRef.noSender());
+        testKit.expectTerminated(underTest);
+    }
+
+    @Test
     public void blockIncomingCommandForInaccessibleNamespaceWhenResponseIsRequired() {
         final NamespaceAccessValidatorFactory namespaceAccessValidatorFactory =
                 Mockito.mock(NamespaceAccessValidatorFactory.class);
@@ -582,6 +606,19 @@ public final class StreamingSessionActorTest {
                 mockSub,
                 commandRouterProbe.ref(),
                 DefaultStreamingConfig.of(ConfigFactory.empty()),
+                HeaderTranslator.empty(),
+                Props.create(Actor.class, () -> new TestActor(new LinkedBlockingDeque<>())),
+                Props.create(Actor.class, () -> new TestActor(new LinkedBlockingDeque<>())),
+                mockValidator,
+                mockAuthenticationResultProvider,
+                null);
+    }
+
+    private Props getPropsWithMaxSessionLag(final String maxSessionLag) {
+        return StreamingSessionActor.props(getConnect(getAcknowledgementLabels()),
+                mockSub,
+                commandRouterProbe.ref(),
+                DefaultStreamingConfig.of(ConfigFactory.parseString("streaming.max-session-lag = " + maxSessionLag)),
                 HeaderTranslator.empty(),
                 Props.create(Actor.class, () -> new TestActor(new LinkedBlockingDeque<>())),
                 Props.create(Actor.class, () -> new TestActor(new LinkedBlockingDeque<>())),
