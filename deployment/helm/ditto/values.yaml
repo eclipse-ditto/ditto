@@ -2549,7 +2549,8 @@ gateway:
         limit: 100
     # streaming contains configuration shared by websocket and SSE sessions
     streaming:
-      # maxSessionLag closes a websocket/SSE session whose mailbox delays messages longer than this - 0s disables
+      # maxSessionLag closes a websocket/SSE session whose mailbox delays messages longer than this - 0s disables,
+      #  otherwise at least 1s and well above the gateway's GC pause times
       maxSessionLag: 0s
     # edge contains edge service configuration
     edge:

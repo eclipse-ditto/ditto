@@ -39,6 +39,7 @@ import org.apache.pekko.stream.javadsl.SourceQueueWithComplete;
 import org.apache.pekko.stream.testkit.TestSubscriber;
 import org.apache.pekko.stream.testkit.javadsl.TestSink;
 import org.apache.pekko.testkit.TestActor;
+import org.apache.pekko.testkit.TestActorRef;
 import org.apache.pekko.testkit.TestProbe;
 import org.eclipse.ditto.base.model.acks.AcknowledgementLabel;
 import org.eclipse.ditto.base.model.acks.AcknowledgementLabelNotDeclaredException;
@@ -395,13 +396,37 @@ public final class StreamingSessionActorTest {
     }
 
     @Test
-    public void keepSessionOpenWhileLagProbesArriveInTime() {
-        final var testKit = actorSystemResource.newTestKit();
-        final var underTest = testKit.watch(actorSystemResource.newActor(getPropsWithMaxSessionLag("200ms")));
+    public void startLagProbeTimerWhenMaxSessionLagIsSet() {
+        final TestActorRef<StreamingSessionActor> underTest =
+                TestActorRef.create(actorSystemResource.getActorSystem(), getPropsWithMaxSessionLag("2s"));
 
-        testKit.expectNoMessage(Duration.ofSeconds(1L));
-        underTest.tell(PoisonPill.getInstance(), ActorRef.noSender());
-        testKit.expectTerminated(underTest);
+        assertThat(underTest.underlyingActor().getTimers().isTimerActive(StreamingSessionActor.LagProbe.class))
+                .isTrue();
+    }
+
+    @Test
+    public void doNotStartLagProbeTimerWhenMaxSessionLagIsDisabled() {
+        final TestActorRef<StreamingSessionActor> underTest =
+                TestActorRef.create(actorSystemResource.getActorSystem(), getProps());
+
+        assertThat(underTest.underlyingActor().getTimers().isTimerActive(StreamingSessionActor.LagProbe.class))
+                .isFalse();
+    }
+
+    @Test
+    public void rearmLagProbeTimerAfterOnTimeProbe() {
+        final var testKit = actorSystemResource.newTestKit();
+        final TestActorRef<StreamingSessionActor> underTest =
+                TestActorRef.create(actorSystemResource.getActorSystem(), getPropsWithMaxSessionLag("2s"));
+        testKit.watch(underTest);
+        final var timers = underTest.underlyingActor().getTimers();
+        timers.cancel(StreamingSessionActor.LagProbe.class);
+        assertThat(timers.isTimerActive(StreamingSessionActor.LagProbe.class)).isFalse();
+
+        underTest.tell(new StreamingSessionActor.LagProbe(System.nanoTime()), ActorRef.noSender());
+
+        assertThat(timers.isTimerActive(StreamingSessionActor.LagProbe.class)).isTrue();
+        testKit.expectNoMessage(Duration.ofMillis(200L));
     }
 
     @Test
