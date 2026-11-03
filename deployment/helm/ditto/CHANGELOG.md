@@ -15,6 +15,13 @@ sections: `Added`, `Changed`, `Deprecated`, `Removed`, `Fixed`, `Security`.
 
 ## [Unreleased]
 
+## [4.10.0]
+
+### Added
+- New `gateway.config.streaming.maxSessionLag` (default `0s`, disabled), passed to the gateway as
+  `GATEWAY_STREAMING_MAX_SESSION_LAG`. When set, a websocket or SSE session whose mailbox delays messages longer
+  than this is closed instead of letting its backlog grow until the gateway runs out of heap.
+
 ## [4.9.0]
 
 ### Added

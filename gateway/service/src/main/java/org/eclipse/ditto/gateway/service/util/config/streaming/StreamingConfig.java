@@ -83,6 +83,14 @@ public interface StreamingConfig {
     Duration getSubscriptionRefreshDelay();
 
     /**
+     * Returns the maximum time a message may wait in a streaming session's mailbox before the session is closed.
+     * A zero duration disables the check; any other value is at least one second.
+     *
+     * @return the maximum session lag.
+     */
+    Duration getMaxSessionLag();
+
+    /**
      * Render this object into a Config object from which a copy of this object can be constructed.
      *
      * @return a config representation.
@@ -94,6 +102,7 @@ public interface StreamingConfig {
         map.put(StreamingConfigValue.PARALLELISM.getConfigPath(), getParallelism());
         map.put(StreamingConfigValue.SEARCH_IDLE_TIMEOUT.getConfigPath(), getSearchIdleTimeout());
         map.put(StreamingConfigValue.SUBSCRIPTION_REFRESH_DELAY.getConfigPath(), getSubscriptionRefreshDelay());
+        map.put(StreamingConfigValue.MAX_SESSION_LAG.getConfigPath(), getMaxSessionLag());
         return ConfigFactory.parseMap(map)
                 .withFallback(getWebsocketConfig().render())
                 .atKey(CONFIG_PATH);
@@ -123,7 +132,12 @@ public interface StreamingConfig {
         /**
          * Minimum delay before refreshing the Ditto pubsub subscriptions of a stream.
          */
-        SUBSCRIPTION_REFRESH_DELAY("subscription-refresh-delay", Duration.ofMinutes(5));
+        SUBSCRIPTION_REFRESH_DELAY("subscription-refresh-delay", Duration.ofMinutes(5)),
+
+        /**
+         * Maximum time a message may wait in a streaming session's mailbox before the session is closed; 0 disables.
+         */
+        MAX_SESSION_LAG("max-session-lag", Duration.ZERO);
 
         private final String path;
         private final Object defaultValue;

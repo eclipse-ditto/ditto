@@ -76,6 +76,7 @@ import org.eclipse.ditto.edge.service.placeholders.FeaturePlaceholder;
 import org.eclipse.ditto.edge.service.placeholders.ThingPlaceholder;
 import org.eclipse.ditto.edge.service.streaming.StreamingSubscriptionManager;
 import org.eclipse.ditto.gateway.api.GatewayInternalErrorException;
+import org.eclipse.ditto.gateway.api.GatewayServiceUnavailableException;
 import org.eclipse.ditto.gateway.api.GatewayWebsocketSessionAbortedException;
 import org.eclipse.ditto.gateway.api.GatewayWebsocketSessionClosedException;
 import org.eclipse.ditto.gateway.api.GatewayWebsocketSessionExpiredException;
@@ -92,6 +93,7 @@ import org.eclipse.ditto.gateway.service.streaming.signals.RefreshSession;
 import org.eclipse.ditto.gateway.service.streaming.signals.StartStreaming;
 import org.eclipse.ditto.gateway.service.streaming.signals.StopStreaming;
 import org.eclipse.ditto.gateway.service.util.config.streaming.StreamingConfig;
+import org.eclipse.ditto.internal.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.pekko.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.internal.utils.pubsub.StreamingType;
@@ -218,6 +220,7 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
                 StreamingSubscriptionManager.ACTOR_NAME);
         declaredAcks = connect.getDeclaredAcknowledgementLabels();
         startSubscriptionRefreshTimer();
+        startLagProbeTimer();
     }
 
     /**
@@ -542,7 +545,34 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
                 .matchEquals(Control.TERMINATED, this::handleTerminated)
                 .matchEquals(Control.SESSION_TERMINATION, this::handleSessionTermination)
                 .matchEquals(Control.SERVICE_REQUESTS_DONE, this::serviceRequestsDone)
+                .match(LagProbe.class, this::checkSessionLag)
                 .build();
+    }
+
+    private void startLagProbeTimer() {
+        final var maxSessionLag = streamingConfig.getMaxSessionLag();
+        if (!maxSessionLag.isZero()) {
+            final var interval = maxSessionLag.dividedBy(2L);
+            timers().startSingleTimer(LagProbe.class, new LagProbe(System.nanoTime() + interval.toNanos()), interval);
+        }
+    }
+
+    private void checkSessionLag(final LagProbe lagProbe) {
+        final var lag = Duration.ofNanos(System.nanoTime() - lagProbe.dueAtNanos());
+        final var maxSessionLag = streamingConfig.getMaxSessionLag();
+        if (lag.compareTo(maxSessionLag) > 0) {
+            logger.warning("Closing <{}> session: its mailbox delays messages by <{}>, more than the allowed <{}>.",
+                    type, lag, maxSessionLag);
+            DittoMetrics.counter("streaming_session_lag_terminations").tag("type", type).increment();
+            eventAndResponsePublisher.fail(GatewayServiceUnavailableException.newBuilder()
+                    .message("The streaming session could not keep up with the events it receives and was closed.")
+                    .description("Reconnect, ideally with a narrower filter or fewer concurrent sessions.")
+                    .dittoHeaders(DittoHeaders.newBuilder().correlationId(connectionCorrelationId).build())
+                    .build());
+            terminateWebsocketStream();
+        } else {
+            startLagProbeTimer();
+        }
     }
 
     private void handleTerminated(final Object terminated) {
@@ -990,6 +1020,8 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
         }
 
     }
+
+    record LagProbe(long dueAtNanos) {}
 
     public enum Control {
         TERMINATED,

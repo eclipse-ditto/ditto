@@ -20,6 +20,7 @@ import javax.annotation.concurrent.Immutable;
 import org.eclipse.ditto.edge.service.acknowledgements.AcknowledgementConfig;
 import org.eclipse.ditto.edge.service.acknowledgements.config.DefaultAcknowledgementConfig;
 import org.eclipse.ditto.internal.utils.config.ConfigWithFallback;
+import org.eclipse.ditto.internal.utils.config.DittoConfigError;
 import org.eclipse.ditto.internal.utils.config.ScopedConfig;
 
 import com.typesafe.config.Config;
@@ -30,11 +31,14 @@ import com.typesafe.config.Config;
 @Immutable
 public final class DefaultStreamingConfig implements StreamingConfig {
 
+    private static final Duration MIN_MAX_SESSION_LAG = Duration.ofSeconds(1L);
+
     private final Duration sessionCounterScrapeInterval;
     private final int parallelism;
     private final AcknowledgementConfig acknowledgementConfig;
     private final Duration searchIdleTimeout;
     private final Duration subscriptionRefreshDelay;
+    private final Duration maxSessionLag;
     private final WebsocketConfig websocketConfig;
     private final SseConfig sseConfig;
 
@@ -47,8 +51,19 @@ public final class DefaultStreamingConfig implements StreamingConfig {
         searchIdleTimeout = scopedConfig.getNonNegativeDurationOrThrow(StreamingConfigValue.SEARCH_IDLE_TIMEOUT);
         subscriptionRefreshDelay =
                 scopedConfig.getNonNegativeDurationOrThrow(StreamingConfigValue.SUBSCRIPTION_REFRESH_DELAY);
+        maxSessionLag = getMaxSessionLagOrThrow(scopedConfig);
         websocketConfig = DefaultWebsocketConfig.of(scopedConfig);
         sseConfig = DefaultSseConfig.of(scopedConfig);
+    }
+
+    private static Duration getMaxSessionLagOrThrow(final ScopedConfig scopedConfig) {
+        final var maxSessionLag = scopedConfig.getNonNegativeDurationOrThrow(StreamingConfigValue.MAX_SESSION_LAG);
+        if (!maxSessionLag.isZero() && maxSessionLag.compareTo(MIN_MAX_SESSION_LAG) < 0) {
+            throw new DittoConfigError("The value of <" + scopedConfig.getConfigPath() + "." +
+                    StreamingConfigValue.MAX_SESSION_LAG.getConfigPath() + "> must be 0s (disabled) or at least <" +
+                    MIN_MAX_SESSION_LAG + ">, but was <" + maxSessionLag + ">.");
+        }
+        return maxSessionLag;
     }
 
     /**
@@ -99,6 +114,11 @@ public final class DefaultStreamingConfig implements StreamingConfig {
     }
 
     @Override
+    public Duration getMaxSessionLag() {
+        return maxSessionLag;
+    }
+
+    @Override
     public boolean equals(final Object o) {
         if (this == o) {
             return true;
@@ -110,6 +130,7 @@ public final class DefaultStreamingConfig implements StreamingConfig {
         return parallelism == that.parallelism &&
                 Objects.equals(searchIdleTimeout, that.searchIdleTimeout) &&
                 Objects.equals(subscriptionRefreshDelay, that.subscriptionRefreshDelay) &&
+                Objects.equals(maxSessionLag, that.maxSessionLag) &&
                 Objects.equals(sessionCounterScrapeInterval, that.sessionCounterScrapeInterval) &&
                 Objects.equals(acknowledgementConfig, that.acknowledgementConfig) &&
                 Objects.equals(websocketConfig, that.websocketConfig) &&
@@ -119,7 +140,7 @@ public final class DefaultStreamingConfig implements StreamingConfig {
     @Override
     public int hashCode() {
         return Objects.hash(parallelism, sessionCounterScrapeInterval, acknowledgementConfig, websocketConfig,
-                sseConfig, searchIdleTimeout, subscriptionRefreshDelay);
+                sseConfig, searchIdleTimeout, subscriptionRefreshDelay, maxSessionLag);
     }
 
     @Override
@@ -129,6 +150,7 @@ public final class DefaultStreamingConfig implements StreamingConfig {
                 ", parallelism=" + parallelism +
                 ", searchIdleTimeout=" + searchIdleTimeout +
                 ", subscriptionRefreshDelay=" + subscriptionRefreshDelay +
+                ", maxSessionLag=" + maxSessionLag +
                 ", acknowledgementConfig=" + acknowledgementConfig +
                 ", websocketConfig=" + websocketConfig +
                 ", sseConfig=" + sseConfig +
