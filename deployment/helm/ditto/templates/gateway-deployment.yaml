@@ -275,6 +275,8 @@ spec:
               value: "{{ .Values.gateway.config.sse.throttling.interval }}"
             - name: GATEWAY_SSE_THROTTLING_LIMIT
               value: "{{ .Values.gateway.config.sse.throttling.limit }}"
+            - name: GATEWAY_STREAMING_MAX_SESSION_LAG
+              value: "{{ .Values.gateway.config.streaming.maxSessionLag }}"
             - name: GATEWAY_SIGNAL_ENRICHMENT_CACHE_ENABLED
               value: "{{ .Values.gateway.config.signalEnrichment.cache.enabled }}"
             - name: GATEWAY_SIGNAL_ENRICHMENT_CACHE_MAXIMUM_SIZE

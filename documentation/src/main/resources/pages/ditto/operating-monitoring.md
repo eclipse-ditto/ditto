@@ -106,6 +106,7 @@ Ditto reports:
 * **HTTP metrics** ([gateway service](architecture-services-gateway.html)): roundtrip times, request counts, response status codes
 * **MongoDB metrics** ([things](architecture-services-things.html), [policies](architecture-services-policies.html), [things-search](architecture-services-things-search.html)): inserts, updates, reads per second, roundtrip times
 * **Connection metrics** ([connectivity service](architecture-services-connectivity.html)): processed messages, mapping times
+* **Streaming metrics** ([gateway service](architecture-services-gateway.html)): WebSocket/SSE messages (`streaming_messages`), queued messages per actor class (`actor_mailbox_size`), sessions closed for lagging (`streaming_session_lag_terminations`)
 
 Explore the [example Grafana dashboards](https://github.com/eclipse-ditto/ditto/tree/master/deployment/operations/grafana-dashboards) and contribute new ones back to the community.
 

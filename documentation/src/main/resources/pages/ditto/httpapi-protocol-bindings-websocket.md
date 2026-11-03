@@ -91,6 +91,12 @@ The WebSocket binding defines plain-text control messages (not JSON) for subscri
 | [Policy announcements](protocol-specification-policies-announcement.html) | `START-SEND-POLICY-ANNOUNCEMENTS` | `STOP-SEND-POLICY-ANNOUNCEMENTS` | `START-SEND-POLICY-ANNOUNCEMENTS:ACK` / `STOP-SEND-POLICY-ANNOUNCEMENTS:ACK` |
 | Refresh JWT authentication | `JWT-TOKEN` | -- | -- |
 
+### Sessions that cannot keep up
+
+If the operator configured `ditto.gateway.streaming.max-session-lag`, Ditto closes a WebSocket session that cannot keep
+up with the messages it receives, with a `gateway:service.unavailable` error. Reconnect, ideally with narrower
+[filters](basic-rql.html) or fewer concurrent sessions.
+
 ### JWT token refresh
 
 Ditto closes WebSocket connections when the JWT expires. To keep the connection open, send a new valid JWT using the `JWT-TOKEN` message. The `sub` claim of the new token must match the original token.

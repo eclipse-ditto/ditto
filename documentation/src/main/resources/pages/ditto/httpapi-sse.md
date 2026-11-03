@@ -17,6 +17,9 @@ SSE is simpler than WebSocket to set up and works natively with the browser `Eve
 
 For a detailed introduction to SSE, see the [HTML5 specification](https://html.spec.whatwg.org/multipage/server-sent-events.html).
 
+If the operator configured `ditto.gateway.streaming.max-session-lag`, Ditto closes an SSE connection that cannot keep
+up with its events. The browser `EventSource` reconnects automatically; other clients should reconnect as well.
+
 ## SSE for Thing change notifications
 
 ### Endpoint
