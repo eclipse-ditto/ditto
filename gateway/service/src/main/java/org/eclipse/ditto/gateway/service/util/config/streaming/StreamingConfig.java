@@ -84,7 +84,7 @@ public interface StreamingConfig {
 
     /**
      * Returns the maximum time a message may wait in a streaming session's mailbox before the session is closed.
-     * A zero duration disables the check.
+     * A zero duration disables the check; any other value is at least one second.
      *
      * @return the maximum session lag.
      */

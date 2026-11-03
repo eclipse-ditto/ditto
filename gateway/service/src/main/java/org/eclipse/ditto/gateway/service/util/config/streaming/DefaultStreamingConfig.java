@@ -20,6 +20,7 @@ import javax.annotation.concurrent.Immutable;
 import org.eclipse.ditto.edge.service.acknowledgements.AcknowledgementConfig;
 import org.eclipse.ditto.edge.service.acknowledgements.config.DefaultAcknowledgementConfig;
 import org.eclipse.ditto.internal.utils.config.ConfigWithFallback;
+import org.eclipse.ditto.internal.utils.config.DittoConfigError;
 import org.eclipse.ditto.internal.utils.config.ScopedConfig;
 
 import com.typesafe.config.Config;
@@ -29,6 +30,8 @@ import com.typesafe.config.Config;
  */
 @Immutable
 public final class DefaultStreamingConfig implements StreamingConfig {
+
+    private static final Duration MIN_MAX_SESSION_LAG = Duration.ofSeconds(1L);
 
     private final Duration sessionCounterScrapeInterval;
     private final int parallelism;
@@ -48,9 +51,19 @@ public final class DefaultStreamingConfig implements StreamingConfig {
         searchIdleTimeout = scopedConfig.getNonNegativeDurationOrThrow(StreamingConfigValue.SEARCH_IDLE_TIMEOUT);
         subscriptionRefreshDelay =
                 scopedConfig.getNonNegativeDurationOrThrow(StreamingConfigValue.SUBSCRIPTION_REFRESH_DELAY);
-        maxSessionLag = scopedConfig.getNonNegativeDurationOrThrow(StreamingConfigValue.MAX_SESSION_LAG);
+        maxSessionLag = getMaxSessionLagOrThrow(scopedConfig);
         websocketConfig = DefaultWebsocketConfig.of(scopedConfig);
         sseConfig = DefaultSseConfig.of(scopedConfig);
+    }
+
+    private static Duration getMaxSessionLagOrThrow(final ScopedConfig scopedConfig) {
+        final var maxSessionLag = scopedConfig.getNonNegativeDurationOrThrow(StreamingConfigValue.MAX_SESSION_LAG);
+        if (!maxSessionLag.isZero() && maxSessionLag.compareTo(MIN_MAX_SESSION_LAG) < 0) {
+            throw new DittoConfigError("The value of <" + scopedConfig.getConfigPath() + "." +
+                    StreamingConfigValue.MAX_SESSION_LAG.getConfigPath() + "> must be 0s (disabled) or at least <" +
+                    MIN_MAX_SESSION_LAG + ">, but was <" + maxSessionLag + ">.");
+        }
+        return maxSessionLag;
     }
 
     /**

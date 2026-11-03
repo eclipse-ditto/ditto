@@ -233,8 +233,8 @@ second when enabled). These protect against a single noisy client, but are not a
 proxy-level rate limiting of authentication and connection attempts.
 
 Every open WebSocket or SSE session also costs gateway memory when it falls behind the events it receives.
-Set `ditto.gateway.streaming.max-session-lag` (disabled by default) so that a gateway closes lagging sessions
-instead of running out of heap, and consider limiting the number of concurrent streaming connections per client
+Set `ditto.gateway.streaming.max-session-lag` (disabled by default, well above the gateway's GC pause times) so
+that a gateway closes lagging sessions instead of running out of heap, and consider limiting the number of concurrent streaming connections per client
 at the proxy.
 
 ### 10. Outbound HTTP requests (SSRF)

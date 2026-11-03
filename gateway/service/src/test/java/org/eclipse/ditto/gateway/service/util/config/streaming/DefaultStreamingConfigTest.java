@@ -12,9 +12,12 @@
  */
 package org.eclipse.ditto.gateway.service.util.config.streaming;
 
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
+
 import java.time.Duration;
 
 import org.assertj.core.api.JUnitSoftAssertions;
+import org.eclipse.ditto.internal.utils.config.DittoConfigError;
 import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
@@ -92,6 +95,20 @@ public final class DefaultStreamingConfigTest {
         softly.assertThat(underTest.getWebsocketConfig().getThrottlingConfig().getLimit())
                 .as("websocket.throttling.limit")
                 .isEqualTo(9);
+    }
+
+    @Test
+    public void rejectMaxSessionLagBelowOneSecond() {
+        assertThatExceptionOfType(DittoConfigError.class).isThrownBy(() ->
+                DefaultStreamingConfig.of(ConfigFactory.parseString("streaming.max-session-lag = 999ms")));
+    }
+
+    @Test
+    public void acceptMaxSessionLagOfOneSecond() {
+        final StreamingConfig underTest =
+                DefaultStreamingConfig.of(ConfigFactory.parseString("streaming.max-session-lag = 1s"));
+
+        softly.assertThat(underTest.getMaxSessionLag()).isEqualTo(Duration.ofSeconds(1L));
     }
 
 }
