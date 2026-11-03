@@ -3,7 +3,7 @@
 **Related Issue**: none yet — to be opened together with the upstream pull request (target release 4.0.0)
 
 **Status**: Implemented on branch `feat/postgres-persistance-search`; what the code still owes this design: §9
-**Last Updated**: 2026-11-02
+**Last Updated**: 2026-11-03
 
 ---
 
@@ -32,6 +32,9 @@ nothing changes for API users or existing deployments.
   actors) stay backend-agnostic. Backend-neutral types moved out of the MongoDB persistence packages and out of the
   search service packages into two new API modules; a few neutral config types (`WithActivityCheckConfig`,
   `WithSnapshotConfig`, `NamespaceActivityCheckConfig`) still live in `persistence.mongo.config`.
+- **Own Pekko plugin on the plain R2DBC driver.** Reactive end to end like the MongoDB path; the upstream
+  `pekko-persistence-r2dbc` plugin was rejected (no tag queries, `bytea` payloads, a delete marker inside the
+  journal, single-row snapshots) and the bom bans it (§2.4).
 - **JSONB, not BSON-as-bytes.** Events and snapshots are stored as `jsonb` so that SQL can read them (cleanup,
   ping, streaming, diagnostics). The known consequence is JSON normalisation (key order, number rendering).
 - **Flattened side table for search.** PostgreSQL has no counterpart of MongoDB's wildcard index, so the search
@@ -166,6 +169,47 @@ classes is an open item (§9).
 - **Dev profiles** `<service>-pg-dev.conf` (four, shipped inert in the allinone JARs) and six `.run/* (Postgres)`
   run configurations (one per service plus the compound; the gateway one carries no PostgreSQL config) exist for
   local runs only.
+
+### 2.4 Alternatives considered
+
+The designs that were not chosen, and why, so that the choices of §2–§4 can be checked against their reasons.
+
+- **JDBC with a thread pool instead of R2DBC.** The MongoDB path is reactive end to end: the reactive-streams driver,
+  `Source.fromPublisher` at every call site, no blocking pool. R2DBC gives the PostgreSQL path the same shape — both
+  drivers expose a reactive-streams `Publisher`, so the same bridge serves both — and keeps the journal, snapshot store
+  and read journal free of threads that block on the database. A sized blocking pool (HikariCP) would work and is the
+  simpler fallback should reactive parity ever be given up; it was not chosen because PostgreSQL would then be the one
+  backend that holds a service thread for the duration of every query. The price is the third-party content of the base
+  JAR (§2.3: reactor, netty, r2dbc) and that schema tooling built on JDBC is out (below).
+- **`pekko-persistence-r2dbc` as the Pekko plugin.** Evaluated against version 1.1.0 and rejected; `bom/pom.xml` bans
+  it (§2.3) so it cannot return as a transitive dependency. Four facts, each sufficient on its own:
+  - Its read journal implements slice, persistence-id and paged queries only — no `EventsByTagQuery`, and nothing like
+    the persistence ping's query for distinct pids ordered by the priority tag of each pid's newest event (§3.4).
+  - Its journal and snapshot payloads are `bytea` through Pekko serialization, with no JSON option, so Ditto's JSON
+    adapters would need their own serializer and DAO anyway, and SQL could not read the payloads (§3.3).
+  - Its `deleteMessagesTo` deletes the rows and inserts a marker row (`deleted = true`, empty payload) at the deleted
+    sequence number into the journal table, and the highest sequence number is read from the journal rows. Ditto's
+    background cleanup deletes journal rows by range outside the plugin (`Cleanup` through the read journal), so that
+    number would depend on rows Ditto removes; the `<e>_journal_seq` row (§3.1) keeps it independent of the journal.
+  - Its snapshot store keeps one row per persistence id (`ON CONFLICT (persistence_id) DO UPDATE`): no snapshot
+    history, no recovery at an older sequence number, no retention of several snapshots (§3.1 keys on
+    `(pid, sn, written_at)`).
+- **`pekko-persistence-jdbc`.** The same query gaps, and Slick runs blocking JDBC on a thread pool (first item).
+- **Flyway or Liquibase for the schema.** Both need a JDBC driver next to R2DBC in the base JAR and keep a migration
+  history of their own. The service owns its DDL instead (§3.2): idempotent statements, a version + checksum row as the
+  history, an advisory lock as the coordinator. The price is that transforming changes cannot be expressed (§3.2).
+- **`bytea` payloads (BSON or Pekko-serialized bytes) instead of `jsonb`.** Cleanup, ping, streaming and operators read
+  events and snapshots in SQL; bytes would move that into the application and take `psql` away from the operator.
+  Accepted consequence: JSON normalisation and the U+0000 rejection (§3.3). The one payload that is bytes by nature,
+  sharding's remember-entities state, gets a JSON envelope on plugins of its own (§9).
+- **One journal table for all entity types** (the upstream plugins' layout) instead of a table set per entity. MongoDB
+  keeps one collection set per entity type, and every per-entity walk — ping, cleanup, namespace purge, snapshot
+  streaming — scans a whole table in pid order; a shared table would make each walk filter by pid prefix and put
+  Pekko's own `/sharding/…` persistence ids next to Ditto's (§9). The twelve tables of §3.1 form one DDL component
+  with one version row, so the roll rule of §3.2 has a single row to check.
+- **Search.** The alternatives there were measured rather than argued and are recorded with the decision: a GIN index
+  on the `jsonb` document (§4.1), a semi-join translation of RQL (§4.4), generic plans (§4.4), table-wide versus
+  per-path trigram indexes (§4.3, §8), MongoDB's TTL index versus the reaper (§4.2).
 
 ---
 
