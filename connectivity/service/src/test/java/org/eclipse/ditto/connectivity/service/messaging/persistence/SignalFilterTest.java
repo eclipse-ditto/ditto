@@ -199,6 +199,66 @@ public final class SignalFilterTest {
                         .withFilter("eq(features/foo/properties/p,5)")
                         .build())
                 .build();
+        final Target enrichedFeatureIdWildcard = ConnectivityModelFactory.newTargetBuilder(twinAuthd)
+                .topics(ConnectivityModelFactory.newFilteredTopicBuilder(TWIN_EVENTS)
+                        .withExtraFields(ThingFieldSelector.fromString("features/*/properties/p"))
+                        .withFilter("eq(features/f/properties/p,5)")
+                        .build())
+                .build();
+        final Target enrichedFeatureIdWildcardOtherProperty = ConnectivityModelFactory.newTargetBuilder(twinAuthd)
+                .topics(ConnectivityModelFactory.newFilteredTopicBuilder(TWIN_EVENTS)
+                        .withExtraFields(ThingFieldSelector.fromString("features/*/properties/q"))
+                        .withFilter("eq(features/f/properties/p,5)")
+                        .build())
+                .build();
+        final Target enrichedMetadataFeatureIdWildcard = ConnectivityModelFactory.newTargetBuilder(twinAuthd)
+                .topics(ConnectivityModelFactory.newFilteredTopicBuilder(TWIN_EVENTS)
+                        .withExtraFields(ThingFieldSelector.fromString("_metadata/features/*/properties/p"))
+                        .withFilter("exists(_metadata/features/f/properties/p)")
+                        .build())
+                .build();
+        final Target enrichedAttributeAsteriskIsNoWildcard = ConnectivityModelFactory.newTargetBuilder(twinAuthd)
+                .topics(ConnectivityModelFactory.newFilteredTopicBuilder(TWIN_EVENTS)
+                        .withExtraFields(ThingFieldSelector.fromString("attributes/*"))
+                        .withFilter("eq(attributes/y,5)")
+                        .build())
+                .build();
+        final Target enrichedPlaceholder = ConnectivityModelFactory.newTargetBuilder(twinAuthd)
+                .topics(ConnectivityModelFactory.newFilteredTopicBuilder(TWIN_EVENTS)
+                        .withExtraFields(ThingFieldSelector.fromString("attributes/{{ thing:name }}"))
+                        .withFilter("eq(attributes/myThing,5)")
+                        .build())
+                .build();
+        final Target enrichedUnresolvablePlaceholder = ConnectivityModelFactory.newTargetBuilder(twinAuthd)
+                .topics(ConnectivityModelFactory.newFilteredTopicBuilder(TWIN_EVENTS)
+                        .withExtraFields(ThingFieldSelector.fromString("features/{{ feature:id }}/properties/p"))
+                        .withFilter("eq(features/f/properties/p,5)")
+                        .build())
+                .build();
+        final Target enrichedFeatureAncestor = ConnectivityModelFactory.newTargetBuilder(twinAuthd)
+                .topics(ConnectivityModelFactory.newFilteredTopicBuilder(TWIN_EVENTS)
+                        .withExtraFields(ThingFieldSelector.fromString("features/f/properties/p"))
+                        .withFilter("exists(features/f)")
+                        .build())
+                .build();
+        final Target enrichedAttributeAncestor = ConnectivityModelFactory.newTargetBuilder(twinAuthd)
+                .topics(ConnectivityModelFactory.newFilteredTopicBuilder(TWIN_EVENTS)
+                        .withExtraFields(ThingFieldSelector.fromString("attributes/y/z"))
+                        .withFilter("and(eq(attributes/x,5),exists(attributes/y))")
+                        .build())
+                .build();
+        final Target enrichedOtherFeatureAncestor = ConnectivityModelFactory.newTargetBuilder(twinAuthd)
+                .topics(ConnectivityModelFactory.newFilteredTopicBuilder(TWIN_EVENTS)
+                        .withExtraFields(ThingFieldSelector.fromString("features/f/properties/p"))
+                        .withFilter("exists(features/g)")
+                        .build())
+                .build();
+        final Target enrichedSimpleField = ConnectivityModelFactory.newTargetBuilder(twinAuthd)
+                .topics(ConnectivityModelFactory.newFilteredTopicBuilder(TWIN_EVENTS)
+                        .withExtraFields(ThingFieldSelector.fromString("definition"))
+                        .withFilter("eq(definition,'org.eclipse.ditto:model:1.0')")
+                        .build())
+                .build();
         final Target filteredEventTopicPath1 = ConnectivityModelFactory.newTargetBuilder(twinAuthd)
                 .topics(ConnectivityModelFactory.newFilteredTopicBuilder(TWIN_EVENTS)
                         .withFilter("and(in(topic:action,'created','modified'),eq(resource:path,'/'))")
@@ -252,6 +312,13 @@ public final class SignalFilterTest {
                         enrichedOtherFeatureProperty, enrichedFeaturePropertyNotFiltered,
                         enrichedFeaturePropertyPrefixCollision, enrichedFeatureIdPrefixCollision),
                 Lists.list(enrichedFeatureProperty, enrichedFeatureDesiredProperty, enrichedWholeFeature)});
+        params.add(new Object[]{TWIN_EVENTS, readSubjects,
+                Lists.list(enrichedFeatureIdWildcard, enrichedFeatureIdWildcardOtherProperty,
+                        enrichedMetadataFeatureIdWildcard, enrichedAttributeAsteriskIsNoWildcard, enrichedPlaceholder,
+                        enrichedUnresolvablePlaceholder, enrichedFeatureAncestor, enrichedAttributeAncestor,
+                        enrichedOtherFeatureAncestor, enrichedSimpleField),
+                Lists.list(enrichedFeatureIdWildcard, enrichedMetadataFeatureIdWildcard, enrichedPlaceholder,
+                        enrichedFeatureAncestor, enrichedAttributeAncestor, enrichedSimpleField)});
         params.add(new Object[]{TWIN_EVENTS, readSubjects,
                 Lists.list(filteredEventTopicPath1, filteredEventTopicPath2, notFilteredEventTopicPath1, notFilteredEventTopicPath2),
                 Lists.list(filteredEventTopicPath1, filteredEventTopicPath2)});

@@ -348,6 +348,50 @@ public final class SignalFilterWithFilterTest {
         Assertions.assertThat(filteredTargets).hasSize(1).contains(target);
     }
 
+    /**
+     * Test that filter fields covered by extra fields with the feature:id placeholder are not evaluated before the
+     * enrichment.
+     */
+    @Test
+    public void applySignalFilterWithFeatureIdPlaceholderInExtraFields() {
+        final Target enrichedFeature = enrichedTarget("features/{{ feature:id }}/desiredProperties",
+                "eq(features/" + TestConstants.Feature.FEATURE_ID + "/desiredProperties/property,'test')");
+        final Target otherFeature = enrichedTarget("features/{{ feature:id }}/desiredProperties",
+                "eq(features/Other/desiredProperties/property,'test')");
+        final Connection connection = TestConstants.createConnection(CONNECTION_ID, enrichedFeature, otherFeature);
+        final SignalFilter signalFilter = new SignalFilter(connection, connectionMonitorRegistry);
+        final Signal<?> signal = TestConstants.featurePropertiesModified(Collections.singletonList(AUTHORIZED));
+
+        final List<Target> filteredTargets = signalFilter.filter(signal);
+        Assertions.assertThat(filteredTargets).containsExactly(enrichedFeature);
+    }
+
+    /**
+     * Test that a filter on an ancestor of an extra field is not evaluated before the enrichment.
+     */
+    @Test
+    public void applySignalFilterOnAncestorOfExtraFields() {
+        final Target target = enrichedTarget("features/" + TestConstants.Feature.FEATURE_ID +
+                        "/desiredProperties/property",
+                "exists(features/" + TestConstants.Feature.FEATURE_ID + "/desiredProperties)");
+        final Connection connection = TestConstants.createConnection(CONNECTION_ID, target);
+        final SignalFilter signalFilter = new SignalFilter(connection, connectionMonitorRegistry);
+        final Signal<?> signal = TestConstants.featurePropertiesModified(Collections.singletonList(AUTHORIZED));
+
+        final List<Target> filteredTargets = signalFilter.filter(signal);
+        Assertions.assertThat(filteredTargets).containsExactly(target);
+    }
+
+    private static Target enrichedTarget(final String extraFields, final String filter) {
+        return ConnectivityModelFactory.newTargetBuilder().address("address")
+                .authorizationContext(newAuthContext(DittoAuthorizationContextType.UNSPECIFIED, AUTHORIZED))
+                .topics(ConnectivityModelFactory.newFilteredTopicBuilder(TWIN_EVENTS)
+                        .withExtraFields(ThingFieldSelector.fromString(extraFields))
+                        .withFilter(filter)
+                        .build())
+                .build();
+    }
+
     // ===== fn-filter only =====
 
     @Test
