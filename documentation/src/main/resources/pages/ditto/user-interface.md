@@ -69,6 +69,7 @@ Environments are stored in your browser's local storage. You can also edit them 
 |---------------------|-------------|
 | `primaryEnvironmentName` | Name of the environment to select by default |
 | `environmentsURL` | URL to a JSON file with environment configurations |
+| `namespaces` | Comma separated namespaces to restrict the Things search to; namespaces not yet configured are added to the namespaces picker |
 
 Example:
 

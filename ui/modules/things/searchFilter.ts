@@ -35,6 +35,12 @@ let keyStrokeTimeout;
 
 const FILTER_PLACEHOLDER = '...';
 
+const URL_SEARCH_NAMESPACES = 'namespaces';
+
+let searchNamespacesUrlRead = false;
+
+let renderedSearchNamespaces: string[] = null;
+
 let autoCompleteJS;
 
 const dom = {
@@ -45,6 +51,7 @@ const dom = {
   tabThings: null,
   pinnedThings: null,
   searchNamespacesCount: null,
+  searchNamespacesAll: null,
   searchNamespacesList: null,
   searchNamespaceAdd: null,
   searchNamespaceAddButton: null,
@@ -92,6 +99,7 @@ export async function ready() {
     ThingsSearch.removeMoreFromThingList();
   };
 
+  dom.searchNamespacesAll.onchange = onAllSearchNamespacesToggled;
   dom.searchNamespacesList.onchange = onSearchNamespaceToggled;
   dom.searchNamespacesList.onclick = onSearchNamespaceRemoveClicked;
   dom.searchNamespaceAddButton.onclick = addSearchNamespace;
@@ -119,22 +127,48 @@ function onEnvironmentChanged() {
   updateSearchNamespaces();
 }
 
-function availableSearchNamespaces(): string[] {
-  return SearchNamespaces.parseNamespaces(Environments.current().searchNamespaces);
+/**
+ * Applies the namespaces of the URL to the current environment. Must only be called once on page load, as the URL is
+ * updated with every change of the selection.
+ */
+export function applySearchNamespacesFromUrl() {
+  searchNamespacesUrlRead = true;
+  const fromUrl = SearchNamespaces.parseNamespaces(
+      new URLSearchParams(window.location.search).get(URL_SEARCH_NAMESPACES));
+  const invalid = fromUrl.filter((namespace) => !SearchNamespaces.isValidNamespace(namespace));
+  if (invalid.length > 0) {
+    Utils.showInfoToast(`Ignored invalid namespaces of the URL: ${invalid.join(', ')}`, 'Warning');
+  }
+  const valid = fromUrl.filter(SearchNamespaces.isValidNamespace);
+  if (valid.length === 0) {
+    return;
+  }
+  const available = ThingsSearch.availableSearchNamespaces();
+  Environments.current().searchNamespaces =
+      [...available, ...valid.filter((namespace) => !available.includes(namespace))].join(',');
+  Environments.current().selectedSearchNamespaces = valid;
+  Environments.saveEnvironmentsToLocalStorage();
 }
 
 function updateSearchNamespaces() {
+  const available = ThingsSearch.availableSearchNamespaces();
   const active = ThingsSearch.activeSearchNamespaces();
-  dom.searchNamespacesCount.textContent = active.length > 0 ? String(active.length) : '';
-  dom.searchNamespacesList.textContent = '';
+  dom.searchNamespacesCount.textContent = active.length > 0 ? String(active.length) : 'all';
+  dom.searchNamespacesAll.checked = active.length === 0;
 
-  const available = availableSearchNamespaces();
-  if (available.length === 0) {
-    const hint = document.createElement('div');
-    hint.classList.add('form-text', 'mt-0');
-    hint.textContent = 'No namespaces configured, searching in all namespaces';
-    dom.searchNamespacesList.append(hint);
+  if (renderedSearchNamespaces?.join(',') !== available.join(',')) {
+    renderSearchNamespaces(available);
   }
+  dom.searchNamespacesList.querySelectorAll('[data-namespace]').forEach((row: HTMLElement) => {
+    row.querySelector<HTMLInputElement>('input').checked = active.includes(row.dataset.namespace);
+  });
+
+  writeSearchNamespacesToUrl(active);
+}
+
+function renderSearchNamespaces(available: string[]) {
+  renderedSearchNamespaces = available;
+  dom.searchNamespacesList.textContent = '';
   available.forEach((namespace) => {
     const row = document.createElement('div');
     row.classList.add('d-flex', 'align-items-center');
@@ -146,7 +180,6 @@ function updateSearchNamespaces() {
     checkBox.classList.add('form-check-input');
     checkBox.type = 'checkbox';
     checkBox.id = `searchNamespace_${namespace}`;
-    checkBox.checked = active.includes(namespace);
     const label = document.createElement('label');
     label.classList.add('form-check-label', 'text-break');
     label.htmlFor = checkBox.id;
@@ -164,40 +197,63 @@ function updateSearchNamespaces() {
   });
 }
 
-async function onSearchNamespaceToggled() {
-  const selected = Array.from(dom.searchNamespacesList.querySelectorAll('input:checked'))
-      .map((checkBox: HTMLElement) => checkBox.closest<HTMLElement>('[data-namespace]').dataset.namespace);
-  await searchNamespacesChanged(availableSearchNamespaces(), selected);
+function writeSearchNamespacesToUrl(active: string[]) {
+  if (!searchNamespacesUrlRead) {
+    return;
+  }
+  const urlSearchParams = new URLSearchParams(window.location.search);
+  const value = active.join(',');
+  if ((urlSearchParams.get(URL_SEARCH_NAMESPACES) ?? '') === value) {
+    return;
+  }
+  if (value === '') {
+    urlSearchParams.delete(URL_SEARCH_NAMESPACES);
+  } else {
+    urlSearchParams.set(URL_SEARCH_NAMESPACES, value);
+  }
+  window.history.replaceState(null, null, `${window.location.pathname}?${urlSearchParams}`);
 }
 
-async function onSearchNamespaceRemoveClicked(event: MouseEvent) {
+function onAllSearchNamespacesToggled() {
+  searchNamespacesChanged(ThingsSearch.availableSearchNamespaces(), []);
+}
+
+function onSearchNamespaceToggled() {
+  const selected = Array.from(dom.searchNamespacesList.querySelectorAll('input:checked'))
+      .map((checkBox: HTMLElement) => checkBox.closest<HTMLElement>('[data-namespace]').dataset.namespace);
+  searchNamespacesChanged(ThingsSearch.availableSearchNamespaces(), selected);
+}
+
+function onSearchNamespaceRemoveClicked(event: MouseEvent) {
   const removeButton = (event.target as HTMLElement).closest('button');
   if (!removeButton) {
     return;
   }
   const namespace = removeButton.closest<HTMLElement>('[data-namespace]').dataset.namespace;
-  await searchNamespacesChanged(
-      availableSearchNamespaces().filter((ns) => ns !== namespace),
+  searchNamespacesChanged(
+      ThingsSearch.availableSearchNamespaces().filter((ns) => ns !== namespace),
       ThingsSearch.activeSearchNamespaces().filter((ns) => ns !== namespace));
 }
 
-async function addSearchNamespace() {
+function addSearchNamespace() {
   const namespace = dom.searchNamespaceAdd.value.trim();
   Utils.assert(SearchNamespaces.isValidNamespace(namespace),
       'Namespace must be in Java package notation, e.g. org.eclipse.ditto',
       dom.searchNamespaceAdd);
-  const available = availableSearchNamespaces();
+  const available = ThingsSearch.availableSearchNamespaces();
   const active = ThingsSearch.activeSearchNamespaces();
   dom.searchNamespaceAdd.value = '';
-  await searchNamespacesChanged(
+  searchNamespacesChanged(
       available.includes(namespace) ? available : [...available, namespace],
       active.includes(namespace) ? active : [...active, namespace]);
 }
 
-async function searchNamespacesChanged(available: string[], selected: string[]) {
+function searchNamespacesChanged(available: string[], selected: string[]) {
   Environments.current().searchNamespaces = available.join(',');
   Environments.current().selectedSearchNamespaces = selected;
-  await Environments.environmentsJsonChanged(false, 'searchNamespaces');
+  Environments.saveEnvironmentsToLocalStorage();
+  updateSearchNamespaces();
+  ThingsSearch.performLastSearch();
 }
 
 export function fillSearchFilterEdit(fillString: string) {

@@ -14,8 +14,10 @@
 import {
   activeNamespaces,
   isValidNamespace,
+  mergeNamespaces,
   namespacesQueryParameter,
   parseNamespaces,
+  parseValidNamespaces,
 } from '../../modules/things/searchNamespaces';
 
 describe('parseNamespaces', () => {
@@ -29,11 +31,39 @@ describe('parseNamespaces', () => {
   });
 });
 
+describe('parseValidNamespaces', () => {
+  test('drops invalid namespaces', () => {
+    expect(parseValidNamespaces('org.eclipse.ditto, 1invalid, org..ditto,com.example'))
+        .toEqual(['org.eclipse.ditto', 'com.example']);
+  });
+});
+
+describe('mergeNamespaces', () => {
+  test('keeps the served namespaces and adds the ones only stored locally', () => {
+    expect(mergeNamespaces('org.served, org.both', 'org.both,org.added')).toBe('org.served,org.both,org.added');
+  });
+
+  test.each([
+    ['org.served', undefined, 'org.served'],
+    [undefined, 'org.added', 'org.added'],
+  ])('merges %p and %p to %p', (remote, local, expected) => {
+    expect(mergeNamespaces(remote, local)).toBe(expected);
+  });
+
+  test('is undefined if neither is set', () => {
+    expect(mergeNamespaces(undefined, undefined)).toBeUndefined();
+  });
+});
+
 describe('activeNamespaces', () => {
   const available = ['org.eclipse.ditto', 'com.example', 'org.example'];
 
   test('uses all available namespaces if nothing was selected yet', () => {
     expect(activeNamespaces(available, undefined)).toEqual(available);
+  });
+
+  test('uses all namespaces if the selection is no longer available', () => {
+    expect(activeNamespaces(available, ['removed'])).toEqual([]);
   });
 
   test('uses no namespace if everything was deselected', () => {

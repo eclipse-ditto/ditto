@@ -13,7 +13,7 @@
 
 import { UserManager, UserManagerSettings } from 'oidc-client-ts';
 import * as API from '../api.js';
-import { fillSearchFilterEdit } from '../things/searchFilter';
+import { applySearchNamespacesFromUrl, fillSearchFilterEdit } from '../things/searchFilter';
 import { ThingsSearchGlobalVars } from '../things/thingsSearch';
 import * as Utils from '../utils.js';
 import { showError, showInfoToast } from '../utils.js';
@@ -408,5 +408,8 @@ export async function onEnvironmentChanged(initialPageLoad: boolean) {
   if (filter) {
     ThingsSearchGlobalVars.lastSearch = filter;
     fillSearchFilterEdit(filter);
+  }
+  if (initialPageLoad) {
+    applySearchNamespacesFromUrl();
   }
 }

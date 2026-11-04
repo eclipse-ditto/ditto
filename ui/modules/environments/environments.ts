@@ -12,6 +12,7 @@
  */
 
 import { UserManagerSettings } from 'oidc-client-ts';
+import * as SearchNamespaces from '../things/searchNamespaces.js';
 import * as Utils from '../utils.js';
 /* eslint-disable arrow-parens */
 /* eslint-disable prefer-const */
@@ -27,6 +28,12 @@ export const URL_PRIMARY_ENVIRONMENT_NAME = 'primaryEnvironmentName';
 export const URL_OIDC_PROVIDER = 'oidcProvider';
 const URL_ENVIRONMENTS = 'environmentsURL';
 const STORAGE_KEY = 'ditto-ui-env';
+
+const FIELDS_NOT_CHANGING_CONTEXT = ['pinnedThings', 'filterList', 'messageTemplates', 'recentPolicyIds'];
+
+export function changesContext(modifiedField: string | null): boolean {
+  return !FIELDS_NOT_CHANGING_CONTEXT.includes(modifiedField);
+}
 
 export enum AuthMethod {
   oidc='oidc',
@@ -122,7 +129,7 @@ type Environment = {
   authSettings?: AuthSettings,
   /** A comma separated list of namespaces available for selection in the Things search */
   searchNamespaces?: string,
-  /** The namespaces selected in the Things search, all of `searchNamespaces` if absent */
+  /** The namespaces selected in the Things search: all of `searchNamespaces` if absent, all namespaces if empty */
   selectedSearchNamespaces?: string[],
   /** Holds templates for well known (feature) messages */
   messageTemplates?: any,
@@ -283,6 +290,7 @@ async function onCreateEnvironmentClick(event) {
       event.target.validationElement);
 
   if (event.target === dom.crudEnvironmentFields) {
+    validateSearchNamespacesInput();
     environments[event.target.idValue] = new Environment({
       api_uri: dom.inputApiUri.value ?? '',
       searchNamespaces: dom.inputSearchNamespaces.value ?? '',
@@ -309,6 +317,9 @@ function onEnvironmentsTableClick(event) {
 }
 
 async function onUpdateEnvironmentClick(event) {
+  if (event.target === dom.crudEnvironmentFields) {
+    validateSearchNamespacesInput();
+  }
   if (selectedEnvName !== event.target.idValue) {
     changeEnvironmentName();
   }
@@ -330,6 +341,12 @@ async function onUpdateEnvironmentClick(event) {
     delete environments[selectedEnvName];
     selectedEnvName = event.target.idValue;
   }
+}
+
+function validateSearchNamespacesInput() {
+  const invalid = SearchNamespaces.parseNamespaces(dom.inputSearchNamespaces.value)
+      .filter((namespace) => !SearchNamespaces.isValidNamespace(namespace));
+  Utils.assert(invalid.length === 0, `Invalid namespaces: ${invalid.join(', ')}`, dom.inputSearchNamespaces);
 }
 
 export function saveEnvironmentsToLocalStorage() {
@@ -468,6 +485,12 @@ async function loadEnvironmentTemplates() {
         ...local[env],
         ...remote[env],
       };
+      if (local[env]) {
+        merged[env].searchNamespaces =
+            SearchNamespaces.mergeNamespaces(remote[env].searchNamespaces, local[env].searchNamespaces);
+        merged[env].selectedSearchNamespaces =
+            local[env].selectedSearchNamespaces ?? remote[env].selectedSearchNamespaces;
+      }
     });
     return {
       ...local,

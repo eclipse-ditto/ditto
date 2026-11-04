@@ -90,7 +90,7 @@ function stopSSE(eventSource) {
 }
 
 function onEnvironmentChanged(modifiedField) {
-  if (!['pinnedThings', 'filterList', 'messageTemplates', 'recentPolicyIds'].includes(modifiedField)) {
+  if (Environments.changesContext(modifiedField)) {
     stopSSE(selectedThingEventSource);
     stopSSE(thingsTableEventSource);
   }

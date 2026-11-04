@@ -33,6 +33,8 @@ export class ThingsSearchGlobalVars {
 
 let theSearchCursor;
 
+let latestRequest = 0;
+
 const dom = {
   searchFilterCount: null,
   thingsTableHead: null,
@@ -125,6 +127,7 @@ export function performLastSearch() {
  * @param {Array} thingIds Array of thingIds
  */
 export function getThings(thingIds) {
+  const request = ++latestRequest;
   dom.searchFilterCount.textContent = '';
   dom.thingsTableBody.textContent = '';
   const fieldsQueryParameter = Fields.getQueryParameter();
@@ -132,11 +135,17 @@ export function getThings(thingIds) {
     API.callDittoREST('GET',
         `/things?${fieldsQueryParameter}&ids=${thingIds}&option=sort(%2BthingId)`)
         .then((thingJsonArray) => {
+          if (request !== latestRequest) {
+            return;
+          }
           fillThingsTable(thingJsonArray);
           dom.searchFilterCount.textContent = '#: ' + thingJsonArray.length;
           notifyAll(thingIds, fieldsQueryParameter);
         })
         .catch((error) => {
+          if (request !== latestRequest) {
+            return;
+          }
           resetAndClearViews();
           notifyAll();
         });
@@ -156,28 +165,37 @@ function resetAndClearViews(retainThing = false) {
   }
 }
 
+export function availableSearchNamespaces(): string[] {
+  return SearchNamespaces.parseValidNamespaces(Environments.current().searchNamespaces);
+}
+
 export function activeSearchNamespaces(): string[] {
-  return SearchNamespaces.activeNamespaces(
-      SearchNamespaces.parseNamespaces(Environments.current().searchNamespaces),
-      Environments.current().selectedSearchNamespaces);
+  return SearchNamespaces.activeNamespaces(availableSearchNamespaces(), Environments.current().selectedSearchNamespaces);
 }
 
 /**
  * Calls Ditto search API to perform a count and adds the count to the UI.
  * @param {string} filter Ditto search filter (rql)
+ * @param {string[]} namespaces namespaces to count in
+ * @param {number} request the search request the count belongs to
  */
-function countThings(filter: string) {
+function countThings(filter: string, namespaces: string[], request: number) {
   dom.searchFilterCount.textContent = '';
   const queryParameters = [
     (filter && filter !== '') ? 'filter=' + encodeURIComponent(filter) : '',
-    SearchNamespaces.namespacesQueryParameter(activeSearchNamespaces()),
+    SearchNamespaces.namespacesQueryParameter(namespaces),
   ].filter((parameter) => parameter !== '');
   API.callDittoREST('GET',
     '/search/things/count' + (queryParameters.length > 0 ? '?' + queryParameters.join('&') : ''), null, null
   ).then((countResult) => {
+    if (request !== latestRequest) {
+      return;
+    }
     dom.searchFilterCount.textContent = '#: ' + countResult;
   }).catch((error) => {
-    notifyAll();
+    if (request === latestRequest) {
+      notifyAll();
+    }
   });
 }
 
@@ -189,7 +207,9 @@ function countThings(filter: string) {
 function searchThings(filter: string, isMore = false) {
   document.body.style.cursor = 'progress';
 
-  const namespacesQueryParameter = SearchNamespaces.namespacesQueryParameter(activeSearchNamespaces());
+  const request = isMore ? latestRequest : ++latestRequest;
+  const namespaces = activeSearchNamespaces();
+  const namespacesQueryParameter = SearchNamespaces.namespacesQueryParameter(namespaces);
   const fieldsQueryParameter = Fields.getQueryParameter();
   API.callDittoREST('GET',
       '/search/things?' + fieldsQueryParameter +
@@ -199,10 +219,13 @@ function searchThings(filter: string, isMore = false) {
       // ',size(3)' +
       (isMore ? ',cursor(' + theSearchCursor + ')' : ''), null, null
   ).then((searchResult) => {
+    if (request !== latestRequest) {
+      return;
+    }
     if (isMore) {
       removeMoreFromThingList();
     } else {
-      countThings(filter);
+      countThings(filter, namespaces, request);
       resetAndClearViews(true);
     }
     fillThingsTable(searchResult.items);
@@ -211,6 +234,9 @@ function searchThings(filter: string, isMore = false) {
       notifyAll(searchResult.items.map(thingJson => thingJson.thingId), fieldsQueryParameter);
     }
   }).catch((error) => {
+    if (request !== latestRequest) {
+      return;
+    }
     resetAndClearViews();
     notifyAll();
   }).finally(() => {

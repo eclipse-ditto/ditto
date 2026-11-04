@@ -30,11 +30,29 @@ export function parseNamespaces(commaSeparated: string | undefined | null): stri
       .filter((namespace) => namespace !== ''))];
 }
 
+export function parseValidNamespaces(commaSeparated: string | undefined | null): string[] {
+  return parseNamespaces(commaSeparated).filter(isValidNamespace);
+}
+
+/**
+ * Merges the namespaces of a served environment with the locally stored ones, so namespaces added by the user survive
+ * @param {string} remote comma separated namespaces of the served environment
+ * @param {string} local comma separated namespaces from the local storage
+ * @return {string} the comma separated union, undefined if neither is set
+ */
+export function mergeNamespaces(remote: string | undefined, local: string | undefined): string | undefined {
+  if (remote === undefined && local === undefined) {
+    return undefined;
+  }
+  return [...new Set([...parseNamespaces(remote), ...parseNamespaces(local)])].join(',');
+}
+
 /**
  * Determines the namespaces to search in
  * @param {string[]} available the namespaces available for selection
  * @param {string[]} selected the selected namespaces, undefined if the user never picked any
- * @return {string[]} the selected namespaces which are still available, all available ones if nothing was picked yet
+ * @return {string[]} the selected namespaces which are still available, all available ones if nothing was picked yet;
+ *   empty means searching in all namespaces
  */
 export function activeNamespaces(available: string[], selected: string[] | undefined): string[] {
   if (selected === undefined) {
