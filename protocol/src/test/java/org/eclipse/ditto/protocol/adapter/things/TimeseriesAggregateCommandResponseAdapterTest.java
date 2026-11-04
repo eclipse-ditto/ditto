@@ -114,8 +114,9 @@ public final class TimeseriesAggregateCommandResponseAdapterTest {
     }
 
     private static RetrieveAggregatedTimeseriesResponse sampleResponse() {
-        final Map<String, String> group = new LinkedHashMap<>();
-        group.put("attributes/building", "A");
+        final Map<String, JsonValue> group = new LinkedHashMap<>();
+        group.put("attributes/building", JsonValue.of("A"));
+        group.put("attributes/floor", JsonValue.of(2));
         final List<TimeseriesDataValue> data = Arrays.asList(
                 TimeseriesDataValue.of(Instant.parse("2026-07-01T00:00:00Z"), JsonValue.of(23.5)),
                 TimeseriesDataValue.of(Instant.parse("2026-07-01T01:00:00Z"), JsonValue.of(24.0)));

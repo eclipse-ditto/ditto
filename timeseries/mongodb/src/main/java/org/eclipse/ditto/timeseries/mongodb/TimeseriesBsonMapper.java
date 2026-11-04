@@ -111,10 +111,12 @@ public final class TimeseriesBsonMapper {
         meta.append(META_THING_ID, dataPoint.getThingId().toString());
         meta.append(META_PATH, dataPoint.getPath().toString());
 
-        final Map<String, String> tags = dataPoint.getTags();
+        final Map<String, JsonValue> tags = dataPoint.getTags();
         if (!tags.isEmpty()) {
-            // LinkedHashMap to preserve declared order in the BSON document.
-            meta.append(META_TAGS, new Document(new LinkedHashMap<>(tags)));
+            // Typed, so that range operators of a filter compare numbers numerically.
+            final Document tagsDoc = new Document();
+            tags.forEach((key, value) -> tagsDoc.append(key, convertScalarValue(value)));
+            meta.append(META_TAGS, tagsDoc);
         }
 
         dataPoint.getUnit().ifPresent(unit -> meta.append(META_UNIT, unit));
@@ -172,25 +174,25 @@ public final class TimeseriesBsonMapper {
     }
 
     /**
-     * Returns the {@code meta.tags} of a stored document as a string map, preserving order; empty
+     * Returns the {@code meta.tags} of a stored document with their JSON types, preserving order; empty
      * when the document carries no tags.
      */
-    public static Map<String, String> getStoredTags(final Document document) {
+    public static Map<String, JsonValue> getStoredTags(final Document document) {
         checkNotNull(document, "document");
         final Document meta = (Document) document.get(FIELD_META);
         if (meta == null || !(meta.get(META_TAGS) instanceof Document tagsDoc)) {
             return Map.of();
         }
-        final Map<String, String> result = new LinkedHashMap<>();
+        final Map<String, JsonValue> result = new LinkedHashMap<>();
         for (final Map.Entry<String, Object> entry : tagsDoc.entrySet()) {
             if (entry.getValue() != null) {
-                result.put(entry.getKey(), entry.getValue().toString());
+                result.put(entry.getKey(), bsonValueToJsonValue(entry.getValue()));
             }
         }
         return result;
     }
 
-    private static JsonValue bsonValueToJsonValue(@Nullable final Object raw) {
+    static JsonValue bsonValueToJsonValue(@Nullable final Object raw) {
         if (raw == null) {
             return JsonFactory.nullLiteral();
         }
@@ -222,7 +224,8 @@ public final class TimeseriesBsonMapper {
      * Converts a scalar {@link JsonValue} (number, string, boolean, null) into a BSON-compatible
      * Java primitive. Object and array values are rejected.
      */
-    private static Object convertScalarValue(final JsonValue value) {
+    @Nullable
+    static Object convertScalarValue(final JsonValue value) {
         if (value.isNull()) {
             return null;
         }

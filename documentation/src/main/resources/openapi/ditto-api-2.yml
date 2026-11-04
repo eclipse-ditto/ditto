@@ -9464,8 +9464,9 @@ paths:
           description: |-
             Restrict the result to points whose resolved tags match every given `key:value` pair
             (comma-separated, logical AND) — e.g. `building:A,floor:2`. Tags are declared on the WoT
-            property's `ditto:timeseries` annotation and resolved at ingestion time. Applies to raw and
-            aggregated reads.
+            property's `ditto:timeseries` annotation and resolved at ingestion time. A value is read like
+            an RQL literal and compared with the tag's JSON type: `floor:2` matches the number 2,
+            `floor:"2"` the string "2". Applies to raw and aggregated reads.
           required: false
           schema:
             type: string
@@ -9648,8 +9649,9 @@ paths:
           description: |-
             Restrict the result to points whose resolved tags match every given `key:value` pair
             (comma-separated, logical AND) — e.g. `building:A,floor:2`. Tags are declared on the WoT
-            property's `ditto:timeseries` annotation and resolved at ingestion time. Applies to raw and
-            aggregated reads.
+            property's `ditto:timeseries` annotation and resolved at ingestion time. A value is read like
+            an RQL literal and compared with the tag's JSON type: `floor:2` matches the number 2,
+            `floor:"2"` the string "2". Applies to raw and aggregated reads.
           required: false
           schema:
             type: string
@@ -11159,7 +11161,10 @@ components:
               tagFilters:
                 type: object
                 additionalProperties:
-                  type: string
+                  oneOf:
+                    - type: string
+                    - type: number
+                    - type: boolean
                 description: 'Tag filters supplied on the request, if any.'
           result:
             type: object
@@ -11201,7 +11206,10 @@ components:
               tags:
                 type: object
                 additionalProperties:
-                  type: string
+                  oneOf:
+                    - type: string
+                    - type: number
+                    - type: boolean
                 description: |-
                   The resolved tags of the series, as stored with the points (representative: the first
                   point's). Omitted when the series has no tags or for aggregated reads (which group away
@@ -11300,14 +11308,19 @@ components:
               group:
                 type: object
                 additionalProperties:
-                  type: string
+                  nullable: true
+                  oneOf:
+                    - type: string
+                    - type: number
+                    - type: boolean
                 description: |-
                   The group identity: one entry per `groupBy` dimension, keyed by the dimension's name
                   (`thingId`, `path`, or the bare tag key for a `tag:<key>` dimension). Absent when the
                   query declared no `groupBy`, in which case the entry aggregates every matching thing.
 
-                  A point that carries no value for a grouped tag appears under an empty-string value
-                  rather than being dropped, so the set of keys is the same across all entries.
+                  A point that carries no value for a grouped tag appears under a `null` value rather
+                  than being dropped, so the set of keys is the same across all entries. Tag values keep
+                  the JSON type they were stored with.
                 example:
                   building: A
               path:
@@ -11335,7 +11348,10 @@ components:
                   tags:
                     type: object
                     additionalProperties:
-                      type: string
+                      oneOf:
+                        - type: string
+                        - type: number
+                        - type: boolean
                     description: |-
                       Always empty for aggregated results: a group spans many points whose tags may differ,
                       so there is no single tag set to report. Use `group` instead.
@@ -12987,6 +13003,8 @@ components:
         things:
           $ref: '#/components/schemas/ModuleUpdatedLogLevel'
         connectivity:
+          $ref: '#/components/schemas/ModuleUpdatedLogLevel'
+        timeseries:
           $ref: '#/components/schemas/ModuleUpdatedLogLevel'
     ModuleConfigService:
       type: object

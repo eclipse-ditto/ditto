@@ -23,10 +23,13 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletionException;
+import java.util.function.Supplier;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import javax.annotation.Nullable;
 
-import org.apache.pekko.actor.AbstractActor;
+import org.apache.pekko.actor.AbstractActorWithTimers;
 import org.apache.pekko.actor.ActorRef;
 import org.apache.pekko.actor.Props;
 import org.apache.pekko.actor.Status;
@@ -38,7 +41,9 @@ import org.eclipse.ditto.internal.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.internal.utils.metrics.instruments.counter.Counter;
 import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.pekko.logging.ThreadSafeDittoLogger;
+import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.placeholders.ExpressionResolver;
 import org.eclipse.ditto.placeholders.PlaceholderFactory;
 import org.eclipse.ditto.placeholders.PlaceholderFilter;
@@ -57,6 +62,9 @@ import org.eclipse.ditto.wot.api.resolver.ThingSubmodel;
 import org.eclipse.ditto.wot.api.resolver.WotThingModelResolver;
 import org.eclipse.ditto.wot.model.IRI;
 import org.eclipse.ditto.wot.model.ThingModel;
+
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 
 /**
  * Per-Things-service-node actor that turns {@link ThingEvent}s into {@link IngestDataPoints}
@@ -104,7 +112,7 @@ import org.eclipse.ditto.wot.model.ThingModel;
  * {@link java.util.concurrent.CompletionStage} callbacks. The actor itself holds only
  * constructor-immutable fields.
  */
-public final class TimeseriesIngestPublisher extends AbstractActor {
+public final class TimeseriesIngestPublisher extends AbstractActorWithTimers {
 
     /** Name of this actor in the actor system. */
     public static final String ACTOR_NAME = TimeseriesMessagingConstants.INGEST_PUBLISHER_ACTOR_NAME;
@@ -118,6 +126,14 @@ public final class TimeseriesIngestPublisher extends AbstractActor {
      */
     private static final int MAX_ATTEMPTS = 3;
 
+    /** Delay before the second attempt, doubled for every further one. */
+    static final Duration RETRY_BACKOFF = Duration.ofMillis(500);
+
+    private static final int RESOLVED_LEAVES_CACHE_SIZE = 10_000;
+
+    private static final Pattern SINGLE_THING_JSON_PLACEHOLDER =
+            Pattern.compile("\\{\\{\\s*thing-json:([^\\s|}]+)\\s*}}");
+
     /** Kamon {@code timeseries_ingest_dropped} — incremented per batch given up after retries. */
     private static final Counter DROPPED_BATCHES =
             DittoMetrics.counter("timeseries_ingest_dropped");
@@ -130,6 +146,8 @@ public final class TimeseriesIngestPublisher extends AbstractActor {
     private final ActorRef shardRegionProxy;
     private final WotThingModelResolver wotResolver;
     private final Duration askTimeout;
+    private final Cache<LeafKey, CachedLeaf> resolvedLeaves =
+            Caffeine.newBuilder().maximumSize(RESOLVED_LEAVES_CACHE_SIZE).build();
 
     @SuppressWarnings("unused")
     private TimeseriesIngestPublisher(final ActorRef shardRegionProxy,
@@ -162,7 +180,8 @@ public final class TimeseriesIngestPublisher extends AbstractActor {
     public Receive createReceive() {
         return receiveBuilder()
                 .match(IngestRequest.class, this::handleIngestRequest)
-                .match(RetrySend.class, retry -> sendWithRetry(retry.command(), retry.attempt()))
+                .match(RetrySend.class, this::scheduleRetry)
+                .match(SendRetry.class, send -> sendWithRetry(send.retry().command(), send.retry().attempt()))
                 .build();
     }
 
@@ -240,6 +259,11 @@ public final class TimeseriesIngestPublisher extends AbstractActor {
                 });
     }
 
+    private void scheduleRetry(final RetrySend retry) {
+        final Duration delay = RETRY_BACKOFF.multipliedBy(1L << (retry.attempt() - 2));
+        getTimers().startSingleTimer(retry, new SendRetry(retry), delay);
+    }
+
     @Nullable
     private static Throwable unwrap(@Nullable final Throwable throwable) {
         if (throwable instanceof CompletionException ce && ce.getCause() != null) {
@@ -252,7 +276,7 @@ public final class TimeseriesIngestPublisher extends AbstractActor {
         return IRI.of(def.toString());
     }
 
-    private static List<TimeseriesDataPoint> buildDataPoints(final ThingId thingId,
+    private List<TimeseriesDataPoint> buildDataPoints(final ThingId thingId,
             final List<PropertyLeaf> leaves,
             final Thing thing,
             final Map<ThingSubmodel, ThingModel> submodels,
@@ -264,18 +288,19 @@ public final class TimeseriesIngestPublisher extends AbstractActor {
 
         // Resolve tag placeholders (e.g. "{{ thing-json:attributes/building }}") against the
         // post-event Thing once per event — all leaves of one event share the same Thing snapshot.
-        final ExpressionResolver tagResolver = PlaceholderFactory.newExpressionResolver(
-                PlaceholderFactory.newThingJsonPlaceholder(), thing.toJson(FieldType.all()));
+        final Supplier<JsonObject> thingJson = memoize(() -> thing.toJson(FieldType.regularOrSpecial()));
+        final Supplier<ExpressionResolver> tagResolver = memoize(() -> PlaceholderFactory.newExpressionResolver(
+                PlaceholderFactory.newThingJsonPlaceholder(), thingJson.get()));
 
         for (final PropertyLeaf leaf : leaves) {
-            final Optional<ThingModel> submodelTm = submodels.entrySet().stream()
+            final Optional<Map.Entry<ThingSubmodel, ThingModel>> submodel = submodels.entrySet().stream()
                     .filter(e -> leaf.featureId().equals(e.getKey().instanceName()))
-                    .map(Map.Entry::getValue)
                     .findFirst();
-            if (submodelTm.isEmpty()) {
+            if (submodel.isEmpty()) {
                 continue;
             }
-            final Optional<ResolvedLeaf> resolved = WotLeafResolver.resolveLeaf(submodelTm.get(), leaf.path());
+            final Optional<ResolvedLeaf> resolved =
+                    resolveLeaf(submodel.get().getKey(), submodel.get().getValue(), leaf.path());
             if (resolved.isEmpty()) {
                 continue;
             }
@@ -285,7 +310,8 @@ public final class TimeseriesIngestPublisher extends AbstractActor {
                     .append(JsonPointer.of(leaf.featureId()))
                     .append(JsonPointer.of("properties"))
                     .append(leaf.path());
-            final Map<String, String> resolvedTags = resolveTags(annotation.getTags(), tagResolver, thing);
+            final Map<String, JsonValue> resolvedTags =
+                    resolveTags(annotation.getTags(), thingJson, tagResolver, thing);
             dataPoints.add(TimeseriesDataPoint.of(thingId, thingPath, timestamp, leaf.value(), revision,
                     resolvedTags, resolved.get().unit()));
         }
@@ -297,22 +323,35 @@ public final class TimeseriesIngestPublisher extends AbstractActor {
      * expressions (e.g. {@code "{{ thing-json:attributes/building }}"}) with the Thing's current
      * values; constant tag values pass through unchanged.
      * <p>
+     * A tag declared as exactly one {@code {{ thing-json:<path> }}} keeps the JSON type of that field, so a
+     * filter can compare numbers numerically. Any other expression resolves to a string.
+     * <p>
      * A tag whose placeholder resolves to no value on this Thing — or whose expression is malformed —
      * is <em>dropped</em> for this data point rather than stored empty or failing ingestion. Tags are
      * a point-in-time snapshot, so each point keeps exactly the values that were resolvable when it
      * was recorded.
      */
-    private static Map<String, String> resolveTags(final Map<String, String> declared,
-            final ExpressionResolver resolver, final Thing thing) {
+    private static Map<String, JsonValue> resolveTags(final Map<String, String> declared,
+            final Supplier<JsonObject> thingJson, final Supplier<ExpressionResolver> resolver, final Thing thing) {
 
-        if (declared.isEmpty()) {
-            return declared;
-        }
-        final Map<String, String> resolved = new LinkedHashMap<>(declared.size());
+        final Map<String, JsonValue> resolved = new LinkedHashMap<>(declared.size());
         for (final Map.Entry<String, String> entry : declared.entrySet()) {
-            try {
-                PlaceholderFilter.applyOrElseDelete(entry.getValue(), resolver)
+            final String expression = entry.getValue();
+            if (!expression.contains("{{")) {
+                resolved.put(entry.getKey(), JsonValue.of(expression));
+                continue;
+            }
+            final Matcher thingField = SINGLE_THING_JSON_PLACEHOLDER.matcher(expression);
+            if (thingField.matches()) {
+                thingJson.get().getValue(JsonPointer.of(thingField.group(1)))
+                        .filter(value -> !value.isNull())
+                        .map(value -> value.isObject() || value.isArray() ? JsonValue.of(value.toString()) : value)
                         .ifPresent(value -> resolved.put(entry.getKey(), value));
+                continue;
+            }
+            try {
+                PlaceholderFilter.applyOrElseDelete(expression, resolver.get())
+                        .ifPresent(value -> resolved.put(entry.getKey(), JsonValue.of(value)));
             } catch (final RuntimeException e) {
                 // Malformed/unknown placeholder in the model — drop this tag, never break ingest.
                 LOGGER.debug("Dropping timeseries tag <{}> for thing <{}>: {}",
@@ -320,6 +359,37 @@ public final class TimeseriesIngestPublisher extends AbstractActor {
             }
         }
         return resolved;
+    }
+
+    /**
+     * The resolved annotation only depends on the submodel and the path. The WoT resolver hands out the same
+     * {@link ThingModel} instance while it is cached, so a different instance means the model was reloaded.
+     */
+    private Optional<ResolvedLeaf> resolveLeaf(final ThingSubmodel submodel, final ThingModel submodelTm,
+            final JsonPointer path) {
+
+        final LeafKey key = new LeafKey(submodel.href(), path);
+        final CachedLeaf cached = resolvedLeaves.getIfPresent(key);
+        if (cached != null && cached.model() == submodelTm) {
+            return cached.leaf();
+        }
+        final Optional<ResolvedLeaf> leaf = WotLeafResolver.resolveLeaf(submodelTm, path);
+        resolvedLeaves.put(key, new CachedLeaf(submodelTm, leaf));
+        return leaf;
+    }
+
+    private static <T> Supplier<T> memoize(final Supplier<T> supplier) {
+        return new Supplier<T>() {
+            @Nullable private T value;
+
+            @Override
+            public T get() {
+                if (value == null) {
+                    value = supplier.get();
+                }
+                return value;
+            }
+        };
     }
 
     private static DittoHeaders newDeliveryHeaders(final DittoHeaders source) {
@@ -343,4 +413,11 @@ public final class TimeseriesIngestPublisher extends AbstractActor {
 
     /** Self-message scheduling a retry on the actor thread so it doesn't race the next message. */
     private record RetrySend(IngestDataPoints command, int attempt) {}
+
+    private record SendRetry(RetrySend retry) {}
+
+    private record LeafKey(IRI submodel, JsonPointer path) {}
+
+    @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
+    private record CachedLeaf(ThingModel model, Optional<ResolvedLeaf> leaf) {}
 }

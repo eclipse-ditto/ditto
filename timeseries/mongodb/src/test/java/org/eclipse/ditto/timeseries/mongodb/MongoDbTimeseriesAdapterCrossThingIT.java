@@ -258,7 +258,7 @@ public final class MongoDbTimeseriesAdapterCrossThingIT {
 
         final Map<String, AggregatedTimeseriesResult> byThing = new LinkedHashMap<>();
         for (final AggregatedTimeseriesResult r : results) {
-            byThing.put(r.getGroup().get("thingId"), r);
+            byThing.put(r.getGroup().get("thingId").asString(), r);
         }
         assertThat(byThing.keySet()).containsExactlyInAnyOrder(
                 t1.toString(), t2.toString(), t3.toString());
@@ -440,7 +440,7 @@ public final class MongoDbTimeseriesAdapterCrossThingIT {
                 point(t1, FLOW, 0, 1.0),
                 // t2's point is a day later — outside [HOUR, HOUR_END).
                 TimeseriesDataPoint.of(t2, FLOW, HOUR.plus(1, ChronoUnit.DAYS),
-                        JsonValue.of(2.0), 1L, Collections.<String, String>emptyMap(), UNIT)
+                        JsonValue.of(2.0), 1L, Collections.<String, JsonValue>emptyMap(), UNIT)
         )).toCompletableFuture().get();
 
         final Map<JsonPointer, List<ThingId>> contributors = adapter.discoverContributors(
@@ -545,7 +545,7 @@ public final class MongoDbTimeseriesAdapterCrossThingIT {
 
         final Map<String, AggregatedTimeseriesResult> byBuilding = new LinkedHashMap<>();
         for (final AggregatedTimeseriesResult r : results) {
-            byBuilding.put(r.getGroup().get("building"), r);
+            byBuilding.put(r.getGroup().get("building").asString(), r);
         }
         assertThat(byBuilding.keySet()).containsExactlyInAnyOrder("A", "B");
         assertThat(doubleAt(byBuilding.get("A"), 0)).isCloseTo(15.0, within(1e-9));
@@ -709,14 +709,14 @@ public final class MongoDbTimeseriesAdapterCrossThingIT {
             final int minute, final double value) {
 
         return TimeseriesDataPoint.of(thingId, path, HOUR.plus(minute, ChronoUnit.MINUTES),
-                JsonValue.of(value), 1L, Collections.<String, String>emptyMap(), UNIT);
+                JsonValue.of(value), 1L, Collections.<String, JsonValue>emptyMap(), UNIT);
     }
 
     private TimeseriesDataPoint pointTagged(final ThingId thingId, final JsonPointer path,
             final int minute, final double value, final String tagKey, final String tagValue) {
 
         return TimeseriesDataPoint.of(thingId, path, HOUR.plus(minute, ChronoUnit.MINUTES),
-                JsonValue.of(value), 1L, Collections.singletonMap(tagKey, tagValue), UNIT);
+                JsonValue.of(value), 1L, Collections.singletonMap(tagKey, JsonValue.of(tagValue)), UNIT);
     }
 
     private static AggregatedTimeseriesResult seriesFor(

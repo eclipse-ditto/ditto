@@ -45,12 +45,12 @@ import org.eclipse.ditto.json.JsonValue;
 @Immutable
 final class ImmutableAggregatedTimeseriesResult implements AggregatedTimeseriesResult {
 
-    private final Map<String, String> group;
+    private final Map<String, JsonValue> group;
     private final JsonPointer path;
     private final TimeseriesResultMeta meta;
     private final List<TimeseriesDataValue> data;
 
-    private ImmutableAggregatedTimeseriesResult(final Map<String, String> group,
+    private ImmutableAggregatedTimeseriesResult(final Map<String, JsonValue> group,
             final JsonPointer path,
             final TimeseriesResultMeta meta,
             final List<TimeseriesDataValue> data) {
@@ -61,12 +61,19 @@ final class ImmutableAggregatedTimeseriesResult implements AggregatedTimeseriesR
         this.data = Collections.unmodifiableList(new ArrayList<>(data));
     }
 
-    static AggregatedTimeseriesResult of(final Map<String, String> group,
+    static AggregatedTimeseriesResult of(final Map<String, JsonValue> group,
             final JsonPointer path,
             final TimeseriesResultMeta meta,
             final List<TimeseriesDataValue> data) {
 
         checkNotNull(group, "group");
+        group.forEach((key, value) -> {
+            checkNotNull(value, "group value");
+            if (!value.isNull() && !TagValues.isTagValue(value)) {
+                throw new IllegalArgumentException("The group value of <" + key +
+                        "> must be a string, number, boolean or null but was: " + value);
+            }
+        });
         checkNotNull(path, "path");
         checkNotNull(meta, "meta");
         checkNotNull(data, "data");
@@ -76,7 +83,7 @@ final class ImmutableAggregatedTimeseriesResult implements AggregatedTimeseriesR
     static AggregatedTimeseriesResult fromJson(final JsonObject jsonObject) {
         checkNotNull(jsonObject, "jsonObject");
 
-        final Map<String, String> group = jsonObject.getValue(JsonFields.GROUP)
+        final Map<String, JsonValue> group = jsonObject.getValue(JsonFields.GROUP)
                 .map(ImmutableAggregatedTimeseriesResult::groupFromJson)
                 .orElseGet(Collections::emptyMap);
         final JsonPointer path = JsonPointer.of(jsonObject.getValueOrThrow(JsonFields.PATH));
@@ -87,11 +94,10 @@ final class ImmutableAggregatedTimeseriesResult implements AggregatedTimeseriesR
         return of(group, path, meta, data);
     }
 
-    private static Map<String, String> groupFromJson(final JsonObject groupJson) {
-        final Map<String, String> result = new LinkedHashMap<>();
+    private static Map<String, JsonValue> groupFromJson(final JsonObject groupJson) {
+        final Map<String, JsonValue> result = new LinkedHashMap<>();
         for (final JsonField field : groupJson) {
-            final JsonValue value = field.getValue();
-            result.put(field.getKeyName(), value.isString() ? value.asString() : value.formatAsString());
+            result.put(field.getKeyName(), field.getValue());
         }
         return result;
     }
@@ -105,7 +111,7 @@ final class ImmutableAggregatedTimeseriesResult implements AggregatedTimeseriesR
     }
 
     @Override
-    public Map<String, String> getGroup() {
+    public Map<String, JsonValue> getGroup() {
         return group;
     }
 
@@ -129,7 +135,7 @@ final class ImmutableAggregatedTimeseriesResult implements AggregatedTimeseriesR
         final JsonObjectBuilder builder = JsonFactory.newObjectBuilder();
         if (!group.isEmpty()) {
             final JsonObjectBuilder groupBuilder = JsonFactory.newObjectBuilder();
-            for (final Map.Entry<String, String> entry : group.entrySet()) {
+            for (final Map.Entry<String, JsonValue> entry : group.entrySet()) {
                 groupBuilder.set(JsonKey.of(entry.getKey()), entry.getValue());
             }
             builder.set(JsonFields.GROUP, groupBuilder.build());

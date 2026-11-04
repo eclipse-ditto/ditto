@@ -33,6 +33,7 @@ import org.eclipse.ditto.gateway.service.util.config.security.NamespaceAccessCon
 import com.typesafe.config.ConfigFactory;
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.junit.Before;
 import org.junit.Test;
@@ -267,5 +268,46 @@ public final class TimeseriesRouteCrossThingTest extends EndpointTestBase {
         result.assertStatusCode(StatusCodes.OK);
         assertThat(result.entityString())
                 .contains("timeseries.commands:retrieveTimeseries");
+    }
+
+    @Test
+    public void singleThingTagFilterValuesAreParsedLikeRqlLiterals() {
+        final var result = underTest.run(HttpRequest.GET(
+                "/timeseries/things/" + NAMESPACE + ":heatsource-1?paths=" + PATH
+                        + "&from=2026-07-01T00:00:00Z&to=2026-07-02T00:00:00Z"
+                        + "&tagFilter=" + urlEncode("floor:2,building:A,room:\"2\"")));
+
+        result.assertStatusCode(StatusCodes.OK);
+        final JsonObject tagFilters = JsonObject.of(result.entityString())
+                .getValue(JsonPointer.of("/payload/query/tagFilters"))
+                .map(JsonValue::asObject)
+                .orElseThrow();
+        assertThat(tagFilters.getValue("floor")).contains(JsonValue.of(2));
+        assertThat(tagFilters.getValue("building")).contains(JsonValue.of("A"));
+        assertThat(tagFilters.getValue("room")).contains(JsonValue.of("2"));
+    }
+
+    @Test
+    public void singleThingPathsRouteRejectsNamespaceOutsideTheAccessAllowList() {
+        final TestRoute restricted = testRouteWithNamespaceAccess(List.of("org.eclipse.allowed"));
+
+        final var result = restricted.run(HttpRequest.GET(
+                "/timeseries/things/" + NAMESPACE + ":heatsource-1?paths=" + PATH
+                        + "&from=2026-07-01T00:00:00Z&to=2026-07-02T00:00:00Z"));
+
+        result.assertStatusCode(StatusCodes.FORBIDDEN);
+        assertThat(result.entityString()).contains("gateway:namespace.notaccessible");
+    }
+
+    @Test
+    public void singlePropertyRouteRejectsNamespaceOutsideTheAccessAllowList() {
+        final TestRoute restricted = testRouteWithNamespaceAccess(List.of("org.eclipse.allowed"));
+
+        final var result = restricted.run(HttpRequest.GET(
+                "/timeseries/things/" + NAMESPACE + ":heatsource-1" + PATH
+                        + "?from=2026-07-01T00:00:00Z&to=2026-07-02T00:00:00Z"));
+
+        result.assertStatusCode(StatusCodes.FORBIDDEN);
+        assertThat(result.entityString()).contains("gateway:namespace.notaccessible");
     }
 }

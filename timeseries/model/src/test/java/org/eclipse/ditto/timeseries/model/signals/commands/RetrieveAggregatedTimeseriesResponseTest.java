@@ -41,8 +41,9 @@ public final class RetrieveAggregatedTimeseriesResponseTest {
     private static final JsonPointer OTHER = JsonPointer.of("/features/circuit/properties/ret");
 
     private static List<AggregatedTimeseriesResult> results() {
-        return List.of(AggregatedTimeseriesResult.of(Map.of("building", "A"), PATH,
-                TimeseriesResultMeta.of(0, "cel", "number"), List.of()));
+        return Collections.singletonList(AggregatedTimeseriesResult.of(
+                Collections.singletonMap("building", JsonValue.of("A")), PATH,
+                TimeseriesResultMeta.of(0, "cel", "number"), Collections.emptyList()));
     }
 
     private static Map<String, Integer> withheld() {
@@ -76,16 +77,16 @@ public final class RetrieveAggregatedTimeseriesResponseTest {
 
         assertThat(entity.isObject()).isTrue();
         final JsonObject auth = entity.asObject().getValue("authorization")
-                .orElseThrow().asObject();
-        assertThat(auth.getValue("partial").orElseThrow().asBoolean()).isTrue();
+                .get().asObject();
+        assertThat(auth.getValue("partial").get().asBoolean()).isTrue();
         // Look the key up literally, by iterating fields: getValue(<slash-bearing string>) would
         // interpret it as a pointer and could pass even if the key had been wrongly nested.
-        final JsonObject withheldJson = auth.getValue("withheldByPath").orElseThrow().asObject();
+        final JsonObject withheldJson = auth.getValue("withheldByPath").get().asObject();
         assertThat(withheldJson.getKeys()).extracting(Object::toString)
                 .containsExactly(OTHER.toString());
         assertThat(withheldJson.stream()
                 .filter(f -> f.getKeyName().equals(OTHER.toString()))
-                .findFirst().orElseThrow().getValue().asInt()).isEqualTo(1);
+                .findFirst().get().getValue().asInt()).isEqualTo(1);
     }
 
     @Test

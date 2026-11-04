@@ -465,25 +465,25 @@ public final class MongoDbTimeseriesAdapterTest {
     @Test
     public void rawReadReturnsStoredTagsInMeta() {
         stubFindReturning(mongoCollection, docForWithTags(
-                Instant.parse("2026-01-14T10:00:00Z"), JsonValue.of(1.0), Map.of("building", "A", "floor", "2")));
+                Instant.parse("2026-01-14T10:00:00Z"), JsonValue.of(1.0), Map.of("building", JsonValue.of("A"), "floor", JsonValue.of(2))));
         final MongoDbTimeseriesAdapter adapter = newInitialisedAdapter();
 
         final List<org.eclipse.ditto.timeseries.model.TimeseriesQueryResult> results =
                 adapter.query(buildQuery()).toCompletableFuture().join();
 
         assertThat(results.get(0).getMeta().getTags())
-                .containsEntry("building", "A")
-                .containsEntry("floor", "2");
+                .containsEntry("building", JsonValue.of("A"))
+                .containsEntry("floor", JsonValue.of(2));
     }
 
     @Test
     public void tagFilterQueryExecutesAndReturnsData() {
         // Exercises the meta.tags.* filter branch end-to-end (the mock returns the matching point).
         stubFindReturning(mongoCollection, docForWithTags(
-                Instant.parse("2026-01-14T10:00:00Z"), JsonValue.of(1.0), Map.of("building", "A")));
+                Instant.parse("2026-01-14T10:00:00Z"), JsonValue.of(1.0), Map.of("building", JsonValue.of("A"))));
         final MongoDbTimeseriesAdapter adapter = newInitialisedAdapter();
         final org.eclipse.ditto.timeseries.model.TimeseriesQuery query =
-                buildQuery().withTagFilters(Map.of("building", "A"));
+                buildQuery().withTagFilters(Map.of("building", JsonValue.of("A")));
 
         final List<org.eclipse.ditto.timeseries.model.TimeseriesQueryResult> results =
                 adapter.query(query).toCompletableFuture().join();
@@ -786,7 +786,7 @@ public final class MongoDbTimeseriesAdapterTest {
     }
 
     private static org.bson.Document docForWithTags(final Instant timestamp, final JsonValue value,
-            final Map<String, String> tags) {
+            final Map<String, JsonValue> tags) {
         return TimeseriesBsonMapper.toDocument(TimeseriesDataPoint.of(
                 THING_ID, PATH, timestamp, value, 1L, tags, null));
     }

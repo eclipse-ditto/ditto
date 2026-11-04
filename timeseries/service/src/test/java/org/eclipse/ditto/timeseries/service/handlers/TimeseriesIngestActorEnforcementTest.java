@@ -17,6 +17,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.time.Instant;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
@@ -34,6 +35,7 @@ import org.eclipse.ditto.base.model.auth.DittoAuthorizationContextType;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.internal.utils.cache.entry.Entry;
 import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.policies.enforcement.PolicyEnforcer;
 import org.eclipse.ditto.policies.enforcement.PolicyEnforcerProvider;
 import org.eclipse.ditto.policies.model.PoliciesModelFactory;
@@ -117,6 +119,43 @@ public final class TimeseriesIngestActorEnforcementTest {
             final RetrieveTimeseriesResponse response = expectMsgClass(RetrieveTimeseriesResponse.class);
             assertThat((Object) response.getEntityId()).isEqualTo(THING_ID);
             assertThat(response.getDittoHeaders().getCorrelationId()).contains("granted-cid");
+        }};
+    }
+
+    @Test
+    public void tagFilterOnFieldWithoutReadIsDenied() {
+        new TestKit(actorSystem) {{
+            final TestProbe thingsShard = new TestProbe(actorSystem);
+            final PolicyEnforcerProvider provider = stubProvider(policyEnforcerWithGrant(Permission.READ_TS));
+            final ActorRef actor = startEntity(thingsShard.ref(), provider, recordingAdapter(),
+                    false, "tag-filter-denied");
+
+            actor.tell(retrieveTimeseriesWithTagFilter(authHeaders("tag-denied-cid")), getRef());
+
+            thingsShard.expectMsgClass(SudoRetrieveThing.class);
+            thingsShard.reply(SudoRetrieveThingResponse.of(
+                    thingWithPolicy(THING_ID, POLICY_ID).toJson(), DittoHeaders.empty()));
+
+            expectMsgClass(ThingNotAccessibleException.class);
+        }};
+    }
+
+    @Test
+    public void tagFilterOnFieldWithReadIsAllowed() {
+        new TestKit(actorSystem) {{
+            final TestProbe thingsShard = new TestProbe(actorSystem);
+            final PolicyEnforcerProvider provider =
+                    stubProvider(policyEnforcerWithGrant(Permission.READ + "\", \"" + Permission.READ_TS));
+            final ActorRef actor = startEntity(thingsShard.ref(), provider, recordingAdapter(),
+                    false, "tag-filter-allowed");
+
+            actor.tell(retrieveTimeseriesWithTagFilter(authHeaders("tag-allowed-cid")), getRef());
+
+            thingsShard.expectMsgClass(SudoRetrieveThing.class);
+            thingsShard.reply(SudoRetrieveThingResponse.of(
+                    thingWithPolicy(THING_ID, POLICY_ID).toJson(), DittoHeaders.empty()));
+
+            expectMsgClass(RetrieveTimeseriesResponse.class);
         }};
     }
 
@@ -386,6 +425,12 @@ public final class TimeseriesIngestActorEnforcementTest {
     private static RetrieveTimeseries retrieveTimeseries(final DittoHeaders headers) {
         final TimeseriesQuery query = TimeseriesQuery.of(THING_ID, List.of(PATH), FROM, TO,
                 null, null, null, null, null);
+        return RetrieveTimeseries.of(query, headers);
+    }
+
+    private static RetrieveTimeseries retrieveTimeseriesWithTagFilter(final DittoHeaders headers) {
+        final TimeseriesQuery query = TimeseriesQuery.of(THING_ID, List.of(PATH), FROM, TO,
+                null, null, null, null, null).withTagFilters(Map.of("attributes/owner", JsonValue.of("alice")));
         return RetrieveTimeseries.of(query, headers);
     }
 

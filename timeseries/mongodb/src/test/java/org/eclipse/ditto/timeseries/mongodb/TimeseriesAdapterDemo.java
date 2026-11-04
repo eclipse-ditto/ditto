@@ -125,9 +125,9 @@ public final class TimeseriesAdapterDemo {
     }
 
     private static List<TimeseriesDataPoint> sampleData(final ThingId thingId, final JsonPointer path) {
-        final Map<String, String> tags = new LinkedHashMap<>();
-        tags.put("attributes/building", "A");
-        tags.put("attributes/floor", "2");
+        final Map<String, JsonValue> tags = new LinkedHashMap<>();
+        tags.put("attributes/building", JsonValue.of("A"));
+        tags.put("attributes/floor", JsonValue.of(2));
 
         final List<TimeseriesDataPoint> points = new ArrayList<>();
         Instant t = Instant.parse("2026-01-14T00:00:00Z");

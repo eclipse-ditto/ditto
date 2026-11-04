@@ -29,6 +29,7 @@ import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.things.model.ThingId;
 
 /**
@@ -304,18 +305,21 @@ public interface TimeseriesQuery extends Jsonifiable<JsonObject> {
      * given key/value pair (logical AND). Always non-null; may be empty (no tag filtering). The
      * returned map is unmodifiable.
      */
-    Map<String, String> getTagFilters();
+    Map<String, JsonValue> getTagFilters();
 
     /**
      * Returns a copy of this query with the given tag filters. Only points whose stored tags match
      * every key/value pair are returned. Modelled as a wither rather than another {@code of(...)}
      * parameter to keep the factory signatures manageable.
      *
-     * @param tagFilters the tag key/value pairs to match (logical AND); may be empty to clear.
+     * @param tagFilters the tag key/value pairs to match (logical AND), compared with the stored tag including
+     * its JSON type; may be empty to clear.
      * @return a copy of this query carrying the given tag filters.
      * @throws NullPointerException if {@code tagFilters} is {@code null}.
+     * @throws TimeseriesQueryInvalidException if a key is empty or contains {@code .} or {@code $}, or a value is
+     * not a string, number or boolean.
      */
-    TimeseriesQuery withTagFilters(Map<String, String> tagFilters);
+    TimeseriesQuery withTagFilters(Map<String, JsonValue> tagFilters);
 
     /**
      * Returns a copy of this query restricted to {@code paths}.

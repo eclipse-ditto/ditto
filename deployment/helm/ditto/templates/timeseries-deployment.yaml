@@ -211,6 +211,8 @@ spec:
               value: "{{ .Values.global.cluster.downAllWhenUnstable }}"
             - name: REMOTE_MAX_FRAMESIZE
               value: "{{ .Values.global.limits.clusterMaxFramesize }}"
+            - name: DITTO_DEVOPS_FEATURE_TIMESERIES_ENABLED
+              value: "true"
             # Timeseries-specific knobs (timeseries.conf).
             - name: TIMESERIES_SIMPLIFIED_READ_PERMISSION
               value: "{{ printf "%t" .Values.timeseries.config.simplifiedReadPermission }}"

@@ -652,18 +652,17 @@ public final class MongoDbTimeseriesAdapter implements TimeseriesAdapter {
      * Reconstructs the caller-facing group identity from the Mongo {@code _id}: keys are the original
      * {@link GroupBy#getGroupKey()} values, not the sanitised Mongo field names.
      */
-    private static Map<String, String> groupIdentityFrom(final CrossThingTimeseriesQuery query,
+    private static Map<String, JsonValue> groupIdentityFrom(final CrossThingTimeseriesQuery query,
             final Document id) {
 
-        final Map<String, String> group = new LinkedHashMap<>();
+        final Map<String, JsonValue> group = new LinkedHashMap<>();
         for (final GroupBy dimension : query.getGroupBy()) {
             if (dimension.getKind() == GroupBy.Kind.PATH) {
-                group.put(dimension.getGroupKey(), id.getString(GROUP_FIELD_PATH));
+                group.put(dimension.getGroupKey(), JsonValue.of(id.getString(GROUP_FIELD_PATH)));
             } else {
-                final Object raw = id.get(groupFieldFor(dimension));
-                // A point that carries no such tag groups under null; surface it as an explicit
-                // empty string rather than dropping the key, so every series has the same shape.
-                group.put(dimension.getGroupKey(), raw == null ? "" : String.valueOf(raw));
+                // A point that carries no such tag groups under JSON null, so every series has the same keys.
+                group.put(dimension.getGroupKey(),
+                        TimeseriesBsonMapper.bsonValueToJsonValue(id.get(groupFieldFor(dimension))));
             }
         }
         return group;
@@ -732,7 +731,7 @@ public final class MongoDbTimeseriesAdapter implements TimeseriesAdapter {
     private static Bson pathFilter(final ThingId thingId, final JsonPointer path,
             final TimeseriesQuery query) {
         final Bson range = rangeFilter(thingId, path, query.getFrom(), query.getTo());
-        final Map<String, String> tagFilters = query.getTagFilters();
+        final Map<String, JsonValue> tagFilters = query.getTagFilters();
         if (tagFilters.isEmpty()) {
             return range;
         }
@@ -741,7 +740,8 @@ public final class MongoDbTimeseriesAdapter implements TimeseriesAdapter {
         final List<Bson> filters = new ArrayList<>(tagFilters.size() + 1);
         filters.add(range);
         tagFilters.forEach((key, value) ->
-                filters.add(Filters.eq("meta." + TimeseriesBsonMapper.META_TAGS + "." + key, value)));
+                filters.add(Filters.eq("meta." + TimeseriesBsonMapper.META_TAGS + "." + key,
+                        TimeseriesBsonMapper.convertScalarValue(value))));
         return Filters.and(filters);
     }
 
@@ -1579,7 +1579,7 @@ public final class MongoDbTimeseriesAdapter implements TimeseriesAdapter {
         }
 
         // Surface the series' tags (representative: the first point's), mirroring how unit is taken.
-        final Map<String, String> tags = documents.isEmpty()
+        final Map<String, JsonValue> tags = documents.isEmpty()
                 ? Map.of()
                 : TimeseriesBsonMapper.getStoredTags(documents.get(0));
 

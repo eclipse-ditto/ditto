@@ -85,14 +85,19 @@ properties:
         group:
           type: object
           additionalProperties:
-            type: string
+            nullable: true
+            oneOf:
+              - type: string
+              - type: number
+              - type: boolean
           description: |-
             The group identity: one entry per `groupBy` dimension, keyed by the dimension's name
             (`thingId`, `path`, or the bare tag key for a `tag:<key>` dimension). Absent when the
             query declared no `groupBy`, in which case the entry aggregates every matching thing.
 
-            A point that carries no value for a grouped tag appears under an empty-string value
-            rather than being dropped, so the set of keys is the same across all entries.
+            A point that carries no value for a grouped tag appears under a `null` value rather
+            than being dropped, so the set of keys is the same across all entries. Tag values keep
+            the JSON type they were stored with.
           example:
             building: 'A'
         path:
@@ -121,7 +126,10 @@ properties:
             tags:
               type: object
               additionalProperties:
-                type: string
+                oneOf:
+                  - type: string
+                  - type: number
+                  - type: boolean
               description: |-
                 Always empty for aggregated results: a group spans many points whose tags may differ,
                 so there is no single tag set to report. Use `group` instead.

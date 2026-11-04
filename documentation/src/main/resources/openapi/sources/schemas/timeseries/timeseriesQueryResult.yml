@@ -76,7 +76,10 @@ items:
         tagFilters:
           type: object
           additionalProperties:
-            type: string
+            oneOf:
+              - type: string
+              - type: number
+              - type: boolean
           description: Tag filters supplied on the request, if any.
     result:
       type: object
@@ -118,7 +121,10 @@ items:
         tags:
           type: object
           additionalProperties:
-            type: string
+            oneOf:
+              - type: string
+              - type: number
+              - type: boolean
           description: |-
             The resolved tags of the series, as stored with the points (representative: the first
             point's). Omitted when the series has no tags or for aggregated reads (which group away

@@ -116,6 +116,17 @@ connectivity:
     heapRamPercentage: 55
 
 ## ----------------------------------------------------------------------------
+## timeseries configuration
+timeseries:
+  enabled: true
+  resources:
+    cpu: 0.2
+    memoryMi: 512
+  jvm:
+    activeProcessorCount: 2
+    heapRamPercentage: 50
+
+## ----------------------------------------------------------------------------
 ## gateway configuration
 ## ref: https://www.eclipse.dev/ditto/architecture-services-gateway.html
 gateway:

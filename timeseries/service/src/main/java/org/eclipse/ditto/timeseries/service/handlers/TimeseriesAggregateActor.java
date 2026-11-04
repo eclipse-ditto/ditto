@@ -36,6 +36,7 @@ import org.apache.pekko.actor.Status;
 import org.apache.pekko.japi.pf.ReceiveBuilder;
 import org.apache.pekko.pattern.Patterns;
 import org.eclipse.ditto.base.model.auth.AuthorizationContext;
+import org.eclipse.ditto.base.model.exceptions.AskException;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
@@ -65,6 +66,7 @@ import org.eclipse.ditto.things.api.Permission;
 import org.eclipse.ditto.things.api.commands.sudo.SudoRetrieveThing;
 import org.eclipse.ditto.things.api.commands.sudo.SudoRetrieveThingResponse;
 import org.eclipse.ditto.things.model.Thing;
+import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingNotAccessibleException;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.timeseries.api.TimeseriesAdapter;
 import org.eclipse.ditto.timeseries.api.TimeseriesMessagingConstants;
@@ -272,20 +274,14 @@ public final class TimeseriesAggregateActor extends AbstractActor {
      * slice a timeseries by it. Tag keys are the Thing paths declared in the WoT model, which is
      * precisely what makes them checkable as policy resources.
      * <p>
-     * Evaluated against the namespace root policy, the same enforcer the namespace-wide gate uses:
-     * this is a statement about the caller's entitlement to the <em>dimension</em>, not about any one
-     * Thing's data, and it runs before discovery so an unauthorized slice provokes no work.
+     * Evaluated against the implicit entries of the namespace root policy, as the namespace-wide gate
+     * is, so it runs before discovery and an unauthorized slice provokes no work. Each contributing
+     * Thing's own policy is checked for the same fields in {@link #permittedPathsFor}.
      */
     private CompletionStage<Void> authorizeFilterAndGroupByFields(
             final RetrieveAggregatedTimeseries command) {
 
-        final Set<String> fields = new LinkedHashSet<>();
-        command.getQuery().getFilter().ifPresent(rql -> fields.addAll(filterFieldNames(rql, command)));
-        for (final GroupBy dimension : command.getQuery().getGroupBy()) {
-            if (dimension.getKind() == GroupBy.Kind.TAG) {
-                dimension.getTagKey().ifPresent(fields::add);
-            }
-        }
+        final Set<String> fields = filterAndGroupByFields(command);
         if (fields.isEmpty()) {
             return CompletableFuture.completedFuture(null);
         }
@@ -318,24 +314,59 @@ public final class TimeseriesAggregateActor extends AbstractActor {
         return combined;
     }
 
+    private static Set<String> filterAndGroupByFields(final RetrieveAggregatedTimeseries command) {
+        final Set<String> fields = new LinkedHashSet<>();
+        command.getQuery().getFilter().ifPresent(rql -> fields.addAll(filterFieldNames(rql, command)));
+        for (final GroupBy dimension : command.getQuery().getGroupBy()) {
+            if (dimension.getKind() == GroupBy.Kind.TAG) {
+                dimension.getTagKey().ifPresent(fields::add);
+            }
+        }
+        return fields;
+    }
+
     private static boolean grantsReadOnAllFields(final PolicyEnforcer policyEnforcer,
             final Set<String> fields, final String namespace, final DittoHeaders headers,
             final Permissions read) {
 
-        if (policyEnforcer.getPolicy().isEmpty()) {
+        final List<PolicyEntry> implicitEntries = implicitEntriesFor(policyEnforcer, namespace);
+        if (implicitEntries.isEmpty()) {
             return false;
         }
-        final Enforcer enforcer = policyEnforcer.forNamespace(namespace).getEnforcer();
+        return grantsReadOnAllFields(PolicyEnforcers.defaultEvaluator(implicitEntries), fields,
+                headers.getAuthorizationContext(), read);
+    }
+
+    private static boolean grantsReadOnAllFields(final Enforcer enforcer, final Set<String> fields,
+            final AuthorizationContext authorizationContext, final Permissions read) {
+
         for (final String field : fields) {
             final String pointer = field.startsWith("/") ? field : "/" + field;
             final ResourceKey resourceKey =
                     PoliciesResourceType.thingResource(JsonPointer.of(pointer));
-            if (!enforcer.hasUnrestrictedPermissions(resourceKey, headers.getAuthorizationContext(),
-                    read)) {
+            if (!enforcer.hasUnrestrictedPermissions(resourceKey, authorizationContext, read)) {
                 return false;
             }
         }
         return true;
+    }
+
+    /**
+     * The entries of a namespace root policy that are merged into the Things of {@code namespace}: only
+     * {@code implicit} ones, and only those applying to that namespace. Empty when the enforcer carries no
+     * {@link Policy}, as importability can't be verified then.
+     */
+    private static List<PolicyEntry> implicitEntriesFor(final PolicyEnforcer policyEnforcer, final String namespace) {
+        final List<PolicyEntry> implicitEntries = new ArrayList<>();
+        policyEnforcer.getPolicy().ifPresent(policy -> {
+            for (final PolicyEntry entry : policy) {
+                if (ImportableType.IMPLICIT.equals(entry.getImportableType())
+                        && entry.appliesToNamespace(namespace)) {
+                    implicitEntries.add(entry);
+                }
+            }
+        });
+        return implicitEntries;
     }
 
     /**
@@ -462,18 +493,9 @@ public final class TimeseriesAggregateActor extends AbstractActor {
             return false;
         }
 
-        final List<PolicyEntry> implicitEntries = new ArrayList<>();
-        for (final PolicyEntry entry : policyOpt.get()) {
-            // Two independent conditions, and both are required:
-            //  - IMPLICIT, because only implicit entries are merged into the namespace's Things;
-            //  - appliesToNamespace, because an entry may be scoped to a subset of namespaces and
-            //    PolicyImporter preserves that scoping when it injects the entry. Honouring a grant
-            //    scoped to another namespace would authorize a read the single-Thing path denies.
-            if (ImportableType.IMPLICIT.equals(entry.getImportableType())
-                    && entry.appliesToNamespace(query.getNamespace())) {
-                implicitEntries.add(entry);
-            }
-        }
+        // Both conditions are required: only IMPLICIT entries are merged into the namespace's Things,
+        // and PolicyImporter preserves an entry's namespace scoping when it injects it.
+        final List<PolicyEntry> implicitEntries = implicitEntriesFor(policyEnforcer, query.getNamespace());
         if (implicitEntries.isEmpty()) {
             LOGGER.withCorrelationId(headers)
                     .info("Namespace root policy <{}> has no implicitly-importable entries applying " +
@@ -553,10 +575,11 @@ public final class TimeseriesAggregateActor extends AbstractActor {
             final RetrieveAggregatedTimeseries command) {
 
         final long verifyStart = System.nanoTime();
+        final Set<String> fields = filterAndGroupByFields(command);
         final List<CompletionStage<Map.Entry<ThingId, Set<JsonPointer>>>> checks =
                 new ArrayList<>(distinct.size());
         for (final ThingId thingId : distinct) {
-            checks.add(permittedPathsFor(thingId, command)
+            checks.add(permittedPathsFor(thingId, command, fields)
                     .thenApply(paths -> Map.entry(thingId, paths)));
         }
 
@@ -638,7 +661,7 @@ public final class TimeseriesAggregateActor extends AbstractActor {
      * Thing rather than including it: fail closed.
      */
     private CompletionStage<Set<JsonPointer>> permittedPathsFor(final ThingId thingId,
-            final RetrieveAggregatedTimeseries command) {
+            final RetrieveAggregatedTimeseries command, final Set<String> fields) {
 
         final DittoHeaders headers = command.getDittoHeaders();
         // Only the policyId is needed. Without a selector this ships every attribute and feature of
@@ -647,11 +670,15 @@ public final class TimeseriesAggregateActor extends AbstractActor {
                 SudoRetrieveThing.of(thingId, POLICY_ID_SELECTOR, headers);
         return Patterns.ask(thingsShardRegion, sudo, THING_LOOKUP_TIMEOUT)
                 .<Set<JsonPointer>>thenCompose(reply -> {
-                    if (!(reply instanceof SudoRetrieveThingResponse response)) {
+                    if (reply instanceof ThingNotAccessibleException) {
                         LOGGER.withCorrelationId(headers)
-                                .warn("Could not resolve Thing <{}> while authorizing a cross-Thing " +
-                                        "aggregation; excluding it. Reply was <{}>.", thingId, reply);
+                                .debug("Thing <{}> no longer exists; excluding it from the aggregation.",
+                                        thingId);
                         return CompletableFuture.completedFuture(Set.<JsonPointer>of());
+                    }
+                    if (!(reply instanceof SudoRetrieveThingResponse response)) {
+                        return CompletableFuture.<Set<JsonPointer>>failedFuture(
+                                unverifiable(thingId, headers, "unexpected reply <" + reply + ">"));
                     }
                     final Optional<PolicyId> policyIdOpt = response.getThing().getPolicyId();
                     if (policyIdOpt.isEmpty()) {
@@ -682,9 +709,18 @@ public final class TimeseriesAggregateActor extends AbstractActor {
                                                     policyId, thingId);
                                     return Set.<JsonPointer>of();
                                 }
-                                final Set<JsonPointer> permitted = permittedPaths(
-                                        policyEnforcer.forNamespace(thingId.getNamespace())
-                                                .getEnforcer(),
+                                final Enforcer thingEnforcer =
+                                        policyEnforcer.forNamespace(thingId.getNamespace()).getEnforcer();
+                                if (!grantsReadOnAllFields(thingEnforcer, fields,
+                                        headers.getAuthorizationContext(),
+                                        Permissions.newInstance(Permission.READ))) {
+                                    LOGGER.withCorrelationId(headers)
+                                            .debug("Thing <{}> (policy <{}>) denies 'READ' on the " +
+                                                    "filter/groupBy fields {}; excluding it.",
+                                                    thingId, policyId, fields);
+                                    return Set.<JsonPointer>of();
+                                }
+                                final Set<JsonPointer> permitted = permittedPaths(thingEnforcer,
                                         headers.getAuthorizationContext(),
                                         command.getQuery().getPaths());
                                 if (permitted.size() < command.getQuery().getPaths().size()) {
@@ -702,11 +738,29 @@ public final class TimeseriesAggregateActor extends AbstractActor {
                             });
                 })
                 .exceptionally(throwable -> {
-                    LOGGER.withCorrelationId(headers)
-                            .warn("Authorization check for Thing <{}> failed ({}); excluding it.",
-                                    thingId, unwrap(throwable).getMessage());
-                    return Set.<JsonPointer>of();
+                    final Throwable cause = unwrap(throwable);
+                    if (cause instanceof DittoRuntimeException dre) {
+                        throw dre;
+                    }
+                    throw unverifiable(thingId, headers, cause.getMessage());
                 });
+    }
+
+    /**
+     * A Thing whose access can't be checked fails the whole aggregation: excluding it would return a partial
+     * result that is indistinguishable from one narrowed by policy.
+     */
+    private static AskException unverifiable(final ThingId thingId, final DittoHeaders headers,
+            final String reason) {
+
+        LOGGER.withCorrelationId(headers)
+                .warn("Authorization check for Thing <{}> failed ({}); failing the aggregation.", thingId, reason);
+        return AskException.newBuilder()
+                .message("The access to Thing <" + thingId + "> could not be verified, so the aggregation " +
+                        "was not computed.")
+                .description("Please try again later.")
+                .dittoHeaders(headers)
+                .build();
     }
 
     /**

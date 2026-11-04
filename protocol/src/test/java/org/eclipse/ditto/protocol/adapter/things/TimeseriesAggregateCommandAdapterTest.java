@@ -121,7 +121,7 @@ public final class TimeseriesAggregateCommandAdapterTest {
 
         assertThat(adaptable.getPayload().getValue()).isPresent();
         final CrossThingTimeseriesQuery parsed = CrossThingTimeseriesQuery.fromJson(
-                adaptable.getPayload().getValue().orElseThrow().asObject());
+                adaptable.getPayload().getValue().get().asObject());
         assertThat(parsed).isEqualTo(command.getQuery());
     }
 
