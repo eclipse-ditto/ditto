@@ -71,9 +71,6 @@ import org.eclipse.ditto.edge.service.acknowledgements.message.MessageCommandRes
 import org.eclipse.ditto.edge.service.acknowledgements.things.ThingCommandResponseAcknowledgementProvider;
 import org.eclipse.ditto.edge.service.acknowledgements.things.ThingLiveCommandAckRequestSetter;
 import org.eclipse.ditto.edge.service.acknowledgements.things.ThingModifyCommandAckRequestSetter;
-import org.eclipse.ditto.edge.service.placeholders.EntityIdPlaceholder;
-import org.eclipse.ditto.edge.service.placeholders.FeaturePlaceholder;
-import org.eclipse.ditto.edge.service.placeholders.ThingPlaceholder;
 import org.eclipse.ditto.edge.service.streaming.StreamingSubscriptionManager;
 import org.eclipse.ditto.gateway.api.GatewayInternalErrorException;
 import org.eclipse.ditto.gateway.api.GatewayServiceUnavailableException;
@@ -102,15 +99,9 @@ import org.eclipse.ditto.internal.utils.pubsubthings.DittoProtocolSub;
 import org.eclipse.ditto.internal.utils.search.SubscriptionManager;
 import org.eclipse.ditto.jwt.model.ImmutableJsonWebToken;
 import org.eclipse.ditto.messages.model.signals.commands.MessageCommand;
-import org.eclipse.ditto.placeholders.PlaceholderFactory;
-import org.eclipse.ditto.placeholders.TimePlaceholder;
 import org.eclipse.ditto.policies.model.PolicyConstants;
 import org.eclipse.ditto.policies.model.signals.announcements.PolicyAnnouncement;
-import org.eclipse.ditto.protocol.placeholders.ResourcePlaceholder;
-import org.eclipse.ditto.protocol.placeholders.TopicPathPlaceholder;
-import org.eclipse.ditto.rql.parser.RqlPredicateParser;
 import org.eclipse.ditto.rql.query.criteria.Criteria;
-import org.eclipse.ditto.rql.query.filter.QueryFilterCriteriaFactory;
 import org.eclipse.ditto.things.model.ThingConstants;
 import org.eclipse.ditto.thingsearch.model.signals.commands.ThingSearchCommand;
 import org.eclipse.ditto.thingsearch.model.signals.events.SubscriptionEvent;
@@ -912,18 +903,7 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
     }
 
     private static Criteria parseCriteria(final String filter, final DittoHeaders dittoHeaders) {
-        final var queryFilterCriteriaFactory = QueryFilterCriteriaFactory.modelBased(
-                RqlPredicateParser.getInstance(),
-                TopicPathPlaceholder.getInstance(),
-                EntityIdPlaceholder.getInstance(),
-                ThingPlaceholder.getInstance(),
-                FeaturePlaceholder.getInstance(),
-                ResourcePlaceholder.getInstance(),
-                TimePlaceholder.getInstance(),
-                PlaceholderFactory.newHeadersPlaceholder()
-        );
-
-        return queryFilterCriteriaFactory.filterCriteria(filter, dittoHeaders);
+        return StreamingSession.getFilterCriteriaFactory().filterCriteria(filter, dittoHeaders);
     }
 
     private void confirmSubscription(final StreamingType streamingType) {
