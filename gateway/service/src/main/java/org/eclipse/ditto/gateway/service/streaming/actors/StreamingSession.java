@@ -18,9 +18,12 @@ import java.util.function.BiPredicate;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.base.model.entity.id.EntityId;
 import org.eclipse.ditto.base.model.entity.id.WithEntityId;
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.edge.service.placeholders.EntityIdPlaceholder;
+import org.eclipse.ditto.edge.service.placeholders.FeaturePlaceholder;
+import org.eclipse.ditto.edge.service.placeholders.ThingPlaceholder;
 import org.eclipse.ditto.internal.utils.pekko.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.placeholders.PlaceholderFactory;
@@ -28,7 +31,9 @@ import org.eclipse.ditto.placeholders.TimePlaceholder;
 import org.eclipse.ditto.protocol.adapter.DittoProtocolAdapter;
 import org.eclipse.ditto.protocol.placeholders.ResourcePlaceholder;
 import org.eclipse.ditto.protocol.placeholders.TopicPathPlaceholder;
+import org.eclipse.ditto.rql.parser.RqlPredicateParser;
 import org.eclipse.ditto.rql.query.criteria.Criteria;
+import org.eclipse.ditto.rql.query.filter.QueryFilterCriteriaFactory;
 import org.eclipse.ditto.rql.query.things.ThingPredicateVisitor;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingFieldSelector;
@@ -42,9 +47,25 @@ import org.apache.pekko.actor.ActorRef;
 public final class StreamingSession {
 
     private static final EntityIdPlaceholder ENTITY_ID_PLACEHOLDER = EntityIdPlaceholder.getInstance();
+    private static final ThingPlaceholder THING_PLACEHOLDER = ThingPlaceholder.getInstance();
+    private static final FeaturePlaceholder FEATURE_PLACEHOLDER = FeaturePlaceholder.getInstance();
     private static final TopicPathPlaceholder TOPIC_PATH_PLACEHOLDER = TopicPathPlaceholder.getInstance();
     private static final ResourcePlaceholder RESOURCE_PLACEHOLDER = ResourcePlaceholder.getInstance();
     private static final TimePlaceholder TIME_PLACEHOLDER = TimePlaceholder.getInstance();
+
+    /*
+     * The placeholders accepted in the RQL filter of a streaming session - each of them must be resolved in
+     * toThingPredicate, otherwise a term on it silently evaluates as if the field was absent.
+     */
+    private static final QueryFilterCriteriaFactory FILTER_CRITERIA_FACTORY = QueryFilterCriteriaFactory.modelBased(
+            RqlPredicateParser.getInstance(),
+            TOPIC_PATH_PLACEHOLDER,
+            ENTITY_ID_PLACEHOLDER,
+            THING_PLACEHOLDER,
+            FEATURE_PLACEHOLDER,
+            RESOURCE_PLACEHOLDER,
+            TIME_PLACEHOLDER
+    );
 
     private static final DittoProtocolAdapter PROTOCOL_ADAPTER = DittoProtocolAdapter.newInstance();
 
@@ -58,17 +79,7 @@ public final class StreamingSession {
             @Nullable final ThingFieldSelector extraFields, final ActorRef streamingSessionActor,
             final ThreadSafeDittoLoggingAdapter logger) {
         this.namespaces = namespaces;
-        thingPredicate = filterCriteria == null
-                ? (thing, signal) -> true
-                : (thing, signal) -> ThingPredicateVisitor.apply(filterCriteria,
-                        PlaceholderFactory.newPlaceholderResolver(TOPIC_PATH_PLACEHOLDER,
-                                PROTOCOL_ADAPTER.toTopicPath(signal)),
-                        PlaceholderFactory.newPlaceholderResolver(ENTITY_ID_PLACEHOLDER,
-                                        ((WithEntityId) signal).getEntityId()),
-                        PlaceholderFactory.newPlaceholderResolver(RESOURCE_PLACEHOLDER, signal),
-                        PlaceholderFactory.newPlaceholderResolver(TIME_PLACEHOLDER, new Object())
-                )
-                .test(thing);
+        thingPredicate = toThingPredicate(filterCriteria);
         this.extraFields = extraFields;
         this.streamingSessionActor = streamingSessionActor;
         this.logger = logger;
@@ -79,6 +90,34 @@ public final class StreamingSession {
             final ThreadSafeDittoLoggingAdapter logger) {
 
         return new StreamingSession(namespaces, filterCriteria, extraFields, streamingSessionActor, logger);
+    }
+
+    /**
+     * Returns the factory for parsing the RQL filter of a streaming session, which accepts exactly the placeholders
+     * the session resolves when matching a signal against the filter.
+     *
+     * @return the factory.
+     */
+    public static QueryFilterCriteriaFactory getFilterCriteriaFactory() {
+        return FILTER_CRITERIA_FACTORY;
+    }
+
+    private static BiPredicate<Thing, Signal<?>> toThingPredicate(@Nullable final Criteria criteria) {
+        return criteria == null
+                ? (thing, signal) -> true
+                : (thing, signal) -> {
+                    @Nullable final EntityId entityId = WithEntityId.getEntityId(signal).orElse(null);
+                    return ThingPredicateVisitor.apply(criteria,
+                                    PlaceholderFactory.newPlaceholderResolver(TOPIC_PATH_PLACEHOLDER,
+                                            PROTOCOL_ADAPTER.toTopicPath(signal)),
+                                    PlaceholderFactory.newPlaceholderResolver(ENTITY_ID_PLACEHOLDER, entityId),
+                                    PlaceholderFactory.newPlaceholderResolver(THING_PLACEHOLDER, entityId),
+                                    PlaceholderFactory.newPlaceholderResolver(FEATURE_PLACEHOLDER, signal),
+                                    PlaceholderFactory.newPlaceholderResolver(RESOURCE_PLACEHOLDER, signal),
+                                    PlaceholderFactory.newPlaceholderResolver(TIME_PLACEHOLDER, new Object())
+                            )
+                            .test(thing);
+                };
     }
 
     /**

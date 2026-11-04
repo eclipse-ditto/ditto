@@ -128,7 +128,7 @@ public final class ThingsSseRouteBuilderTest extends EndpointTestBase {
                         HeaderTranslator.empty());
         sseRouteBuilder.withProxyActor(proxyActor.ref());
         final Route sseRoute = extractRequestContext(ctx -> sseRouteBuilder.build(ctx, dittoHeadersSupplier));
-        underTest = testRoute(sseRoute);
+        underTest = testRoute(handleExceptions(() -> sseRoute));
     }
 
     @Test
@@ -265,6 +265,39 @@ public final class ThingsSseRouteBuilderTest extends EndpointTestBase {
                                         Collections.emptySet()))
                         .withFilter(filter)
                         .build());
+    }
+
+    @Test
+    public void getWithAcceptHeaderAndPlaceholderFilterOpensSseConnection() {
+        final String filter = "and(eq(entity:id,\"org.eclipse.ditto:my-thing-1\"),eq(thing:name,\"my-thing-1\")," +
+                "eq(feature:id,\"lamp\"),eq(topic:action,\"modified\"),eq(resource:path,\"/\"))";
+
+        final String requestUrl = THINGS_ROUTE + "?filter=" + filter;
+
+        executeThingsRouteTest(HttpRequest.GET(requestUrl).addHeader(acceptHeader),
+                StartStreaming.getBuilder(StreamingType.EVENTS, connectionCorrelationId,
+                                AuthorizationModelFactory.newAuthContext(DittoAuthorizationContextType.UNSPECIFIED,
+                                        Collections.emptySet()))
+                        .withFilter(filter)
+                        .build());
+    }
+
+    @Test
+    public void getWithAcceptHeaderAndUnsupportedPlaceholderFilterFails() {
+        final String requestUrl = THINGS_ROUTE + "?filter=eq(policy:id,\"org.eclipse.ditto:my-policy\")";
+
+        underTest.run(HttpRequest.GET(requestUrl).addHeader(acceptHeader))
+                .assertStatusCode(StatusCodes.BAD_REQUEST);
+    }
+
+    @Test
+    public void getHistoryWithAcceptHeaderAndThingPlaceholderFilterFails() {
+        // the filter of a history subscription is evaluated by the things service, which does not resolve "thing:"
+        final String requestUrl = THINGS_ROUTE + "/org.eclipse.ditto:my-thing-1?from-historical-revision=1" +
+                "&filter=eq(thing:name,\"my-thing-1\")";
+
+        underTest.run(HttpRequest.GET(requestUrl).addHeader(acceptHeader))
+                .assertStatusCode(StatusCodes.BAD_REQUEST);
     }
 
     @Test
