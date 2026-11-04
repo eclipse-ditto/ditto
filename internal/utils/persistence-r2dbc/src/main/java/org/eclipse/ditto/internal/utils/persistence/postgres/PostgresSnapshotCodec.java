@@ -31,9 +31,8 @@ import org.eclipse.ditto.json.JsonObject;
  * whatever shape the JSONB column surfaces on load. The pure domain&harr;{@link JsonObject} logic stays in the shared
  * serializer; only this envelope differs from MongoDB's BSON envelope.
  * <p>
- * This is the single source of the JSONB envelope previously inlined in {@code PostgresSnapshotAdapter} (its
- * {@code toSnapshotStore} renders the JsonObject to text, and its {@code decodeJsonb} accepts the JSONB-derived shapes);
- * both behave identically to this codec, so the relocation in task E3 can delegate to it without changing behaviour.
+ * This is the single source of the JSONB envelope: {@code NeutralSnapshotAdapter} composes it with the per-service
+ * {@code SnapshotSerializer}, so no PostgreSQL-specific snapshot adapter exists.
  *
  * @since 3.7.0
  */

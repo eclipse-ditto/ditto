@@ -33,7 +33,7 @@ import org.eclipse.ditto.json.JsonObject;
  * <p>
  * This is the single source of the BSON envelope that was previously duplicated between
  * {@link AbstractMongoSnapshotAdapter#toSnapshotStore} and its {@code convertToJson} helper. Both now delegate
- * here; the behaviour is identical, so {@code SnapshotAdapterParityTest} remains the safety net.
+ * here; the behaviour is identical, so {@code SnapshotSerializerParityTest} remains the safety net.
  *
  * @since 3.7.0
  */

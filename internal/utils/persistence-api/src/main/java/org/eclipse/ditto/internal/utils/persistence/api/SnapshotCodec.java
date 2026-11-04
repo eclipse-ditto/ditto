@@ -20,7 +20,7 @@ import org.eclipse.ditto.json.JsonObject;
  * <p>
  * The pure domain&harr;{@link JsonObject} logic of a snapshot (deleted-lifecycle detection, revision handling, parsing)
  * already lives in the backend-neutral {@code SnapshotSerializer} and is parity-tested by
- * {@code SnapshotAdapterParityTest}. What remains backend-specific is purely how that {@link JsonObject} is wrapped for
+ * {@code SnapshotSerializerParityTest}. What remains backend-specific is purely how that {@link JsonObject} is wrapped for
  * storage: MongoDB encodes it to a {@code org.bson.BsonValue}, PostgreSQL renders it to JSONB text. This codec captures
  * exactly that envelope so a snapshot adapter can be assembled from {@code SnapshotSerializer} (shared) plus a
  * {@code SnapshotCodec} (per backend).

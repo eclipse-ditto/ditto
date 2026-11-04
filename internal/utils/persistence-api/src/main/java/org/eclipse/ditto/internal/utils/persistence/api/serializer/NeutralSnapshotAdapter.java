@@ -30,7 +30,7 @@ import org.apache.pekko.persistence.SnapshotOffer;
  * {@link SnapshotSerializer} (the pure domain&harr;{@link JsonObject} logic) with the active backend's
  * {@link SnapshotCodec} (the storage envelope — BSON for MongoDB, JSONB for PostgreSQL).
  * <p>
- * This unifies what the per-backend {@code *MongoSnapshotAdapter} / {@code *PostgresSnapshotAdapter} pairs used to do:
+ * This unifies what a per-backend pair of snapshot adapters would otherwise do:
  * the only thing that ever differed between backends was the storage envelope, which is now the injected
  * {@link SnapshotCodec}. The serializer and codec each have exactly one home, so a snapshot adapter is assembled rather
  * than subclassed per backend.

@@ -57,7 +57,7 @@ public final class MongoSnapshotCodecTest {
         final Object encoded = codec.encode(SAMPLE_JSON);
         final JsonObject decoded = codec.decode(encoded);
 
-        // Canonical JSON string equality — same normalization as SnapshotAdapterParityTest.
+        // Canonical JSON string equality — same normalization as SnapshotSerializerParityTest.
         assertThat(decoded.toString()).isEqualTo(SAMPLE_JSON.toString());
     }
 

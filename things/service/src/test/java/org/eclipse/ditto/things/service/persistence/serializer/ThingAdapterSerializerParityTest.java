@@ -14,15 +14,12 @@ package org.eclipse.ditto.things.service.persistence.serializer;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.List;
 
-import org.bson.BsonDocument;
 import org.bson.BsonValue;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.internal.utils.persistence.mongo.DittoBsonJson;
-import org.eclipse.ditto.internal.utils.persistence.serializer.PostgresSnapshotAdapter;
 import org.eclipse.ditto.internal.utils.persistence.api.serializer.SnapshotSerializer;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
@@ -39,16 +36,14 @@ import com.typesafe.config.ConfigFactory;
 import org.apache.pekko.actor.ActorRef;
 import org.apache.pekko.actor.ActorSystem;
 import org.apache.pekko.actor.ExtendedActorSystem;
-import org.apache.pekko.persistence.SnapshotMetadata;
-import org.apache.pekko.persistence.SnapshotOffer;
 import org.apache.pekko.persistence.journal.EventSeq;
 import org.apache.pekko.persistence.journal.Tagged;
 import scala.jdk.javaapi.CollectionConverters;
 
 /**
- * Proves that the WU6 serializer split keeps the MongoDB (BSON) and PostgreSQL (JSONB) envelopes byte-for-byte equal
- * at the {@link JsonObject} level for both events and snapshots, using the <em>real</em> Thing adapters, and that a
- * Thing snapshot stored as JSONB recovers to the identical domain object that the Mongo BSON path recovers.
+ * Proves that the serializer split keeps the MongoDB (BSON) and PostgreSQL (JSONB) envelopes equal at the
+ * {@link JsonObject} level for both events and snapshots, using the <em>real</em> Thing adapters, and that the JSON text
+ * a PostgreSQL snapshot row holds recovers to the identical domain object that the Mongo BSON path recovers.
  */
 public final class ThingAdapterSerializerParityTest {
 
@@ -105,25 +100,18 @@ public final class ThingAdapterSerializerParityTest {
     }
 
     @Test
-    public void snapshotRecoversRealThingFromJsonbSnapshotViaPostgresAdapter() {
-        // The serializer logic of the real ThingMongoSnapshotAdapter, fed through the Postgres JSONB envelope.
+    public void snapshotRecoversRealThingFromTheJsonTextStoredAsJsonb() {
+        // The serializer logic of the real ThingMongoSnapshotAdapter, fed the JSON text a PostgreSQL snapshot row holds:
+        // the PostgreSQL codec stores serializer.toJson(thing) as JSONB text and parses it back on load.
         final SnapshotSerializer<Thing> serializer =
                 new ThingMongoSnapshotAdapter(ActorRef.noSender(), ConfigFactory.parseString(
                         "thing-snapshot-taken-event-publishing-enabled = false"));
-        final PostgresSnapshotAdapter<Thing> postgres = new PostgresSnapshotAdapter<>(serializer);
         final Thing thing = sampleThing();
 
-        final String jsonbText = (String) postgres.toSnapshotStore(thing);
-        // Simulate what PostgresSnapshotStore.loadAsync hands Pekko: the JSONB column as UTF-8 bytes / text.
-        final Thing fromText = postgres.fromSnapshotStore(snapshotOffer(jsonbText));
-        final Thing fromBytes = postgres.fromSnapshotStore(snapshotOffer(jsonbText.getBytes(StandardCharsets.UTF_8)));
+        final String jsonbText = serializer.toJson(thing).toString();
+        final Thing recovered = serializer.fromJson(JsonFactory.newObject(jsonbText));
 
-        assertThat(fromText).isEqualTo(thing);
-        assertThat(fromBytes).isEqualTo(thing);
-    }
-
-    private static SnapshotOffer snapshotOffer(final Object snapshot) {
-        return new SnapshotOffer(new SnapshotMetadata("thing:pid", 1L, 0L), snapshot);
+        assertThat(recovered).isEqualTo(thing);
     }
 
 }

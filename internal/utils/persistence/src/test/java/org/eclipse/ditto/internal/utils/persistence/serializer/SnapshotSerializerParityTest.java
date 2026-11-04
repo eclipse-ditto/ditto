@@ -13,16 +13,18 @@
 package org.eclipse.ditto.internal.utils.persistence.serializer;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 
-import java.nio.charset.StandardCharsets;
 import java.util.Optional;
 
 import org.bson.BsonValue;
+import org.eclipse.ditto.internal.utils.persistence.api.serializer.NeutralSnapshotAdapter;
 import org.eclipse.ditto.internal.utils.persistence.api.serializer.SnapshotSerializer;
 import org.eclipse.ditto.internal.utils.persistence.mongo.AbstractMongoSnapshotAdapter;
 import org.eclipse.ditto.internal.utils.persistence.mongo.DittoBsonJson;
-import org.eclipse.ditto.json.JsonField;
+import org.eclipse.ditto.internal.utils.persistence.mongo.MongoSnapshotCodec;
 import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.things.model.Thing;
@@ -36,12 +38,14 @@ import org.apache.pekko.persistence.SnapshotMetadata;
 import org.apache.pekko.persistence.SnapshotOffer;
 
 /**
- * Proves that the MongoDB snapshot adapter (BSON envelope) and the {@link PostgresSnapshotAdapter} (JSONB envelope)
- * share the same pure {@link SnapshotSerializer} and therefore round-trip a {@link Thing} to an identical
- * {@link JsonObject} with field-level equality, and that the JSONB text/bytes decode recovers the original domain
- * type.
+ * Pins the contract the two snapshot envelopes share: the per-service {@link SnapshotSerializer} renders a snapshot to
+ * one {@link JsonObject}, and only the storage envelope differs per backend — BSON through {@link MongoSnapshotCodec},
+ * JSONB text through the PostgreSQL codec in {@code persistence-r2dbc} (whose accepted shapes its own
+ * {@code PostgresSnapshotCodecTest} covers). So the JSON text a PostgreSQL snapshot row holds must equal the JSON the
+ * BSON envelope carries, both must recover the identical {@link Thing}, and the production composition
+ * {@link NeutralSnapshotAdapter} must behave like the legacy MongoDB adapter it replaced.
  */
-public final class SnapshotAdapterParityTest {
+public final class SnapshotSerializerParityTest {
 
     /** Concrete Thing snapshot serializer mirroring ThingMongoSnapshotAdapter's pure logic (no pubsub side-effect). */
     private static final class ThingSnapshotSerializer extends AbstractMongoSnapshotAdapter<Thing> {
@@ -79,7 +83,7 @@ public final class SnapshotAdapterParityTest {
     private static Thing sampleThing() {
         return ThingsModelFactory.newThingBuilder()
                 .setId(ThingId.of("org.eclipse.ditto", "thing-parity"))
-                .setAttribute(JsonFactory.newPointer("manufacturer"), JsonValue.of("Bosch"))
+                .setAttribute(JsonFactory.newPointer("manufacturer"), JsonValue.of("ACME"))
                 .setAttribute(JsonFactory.newPointer("count"), JsonValue.of(42))
                 .setFeature("sensor", ThingsModelFactory.newFeaturePropertiesBuilder()
                         .set("temperature", 21.5)
@@ -91,96 +95,71 @@ public final class SnapshotAdapterParityTest {
     }
 
     @Test
-    public void mongoAndPostgresProduceIdenticalSnapshotJson() {
+    public void bsonEnvelopeCarriesTheSerializerJson() {
         final ThingSnapshotSerializer serializer = new ThingSnapshotSerializer();
-        final PostgresSnapshotAdapter<Thing> postgres = new PostgresSnapshotAdapter<>(serializer);
-
         final Thing thing = sampleThing();
 
         // Mongo envelope: domain -> BSON -> JsonObject
         final BsonValue mongoStored = (BsonValue) serializer.toSnapshotStore(thing);
         final JsonObject mongoJson = DittoBsonJson.getInstance().serialize(mongoStored).asObject();
 
-        // Postgres envelope: domain -> JSONB text -> JsonObject
-        final String postgresStored = (String) postgres.toSnapshotStore(thing);
-        final JsonObject postgresJson = JsonFactory.newObject(postgresStored);
-
-        // Field-level parity through Ditto's JsonObject serializer (canonical JSON rendering). Raw value-type
-        // identity is NOT asserted because BSON and JSONB normalize numbers differently ([LOW] caveat); the
-        // contract is field-level equality through the serializer, i.e. identical canonical JSON.
-        assertThat(postgresJson.toString()).isEqualTo(mongoJson.toString());
-        assertThat(postgresJson.toString()).isEqualTo(serializer.toJson(thing).toString());
-        // And both envelopes recover to the identical domain Thing.
-        assertThat(postgres.fromSnapshotStore(snapshotOffer(postgresStored)))
-                .isEqualTo(serializer.fromSnapshotStore(snapshotOffer(mongoStored)));
+        // Field-level parity through Ditto's canonical JSON rendering. Raw value-type identity is NOT asserted because
+        // BSON and JSONB normalize numbers differently; the contract is identical canonical JSON.
+        assertThat(mongoJson.toString()).isEqualTo(serializer.toJson(thing).toString());
     }
 
     @Test
-    public void postgresRecoversThingFromJsonbText() {
+    public void jsonTextAndBsonEnvelopeRecoverTheSameThing() {
         final ThingSnapshotSerializer serializer = new ThingSnapshotSerializer();
-        final PostgresSnapshotAdapter<Thing> postgres = new PostgresSnapshotAdapter<>(serializer);
         final Thing thing = sampleThing();
 
-        final String jsonbText = (String) postgres.toSnapshotStore(thing);
-        final Thing recovered = postgres.fromSnapshotStore(snapshotOffer(jsonbText));
+        // What a PostgreSQL snapshot row holds: the serializer's JSON rendered as text, parsed back on load.
+        final String jsonText = serializer.toJson(thing).toString();
+        final Thing fromJsonText = serializer.fromJson(JsonFactory.newObject(jsonText));
+        final Thing fromBson = serializer.fromSnapshotStore(snapshotOffer(serializer.toSnapshotStore(thing)));
 
-        assertThat(recovered).isEqualTo(thing);
+        assertThat(fromJsonText).isEqualTo(thing);
+        assertThat(fromBson).isEqualTo(thing);
     }
 
     @Test
-    public void postgresRecoversThingFromJsonbBytes() {
+    public void neutralAdapterWithMongoCodecMatchesTheLegacyMongoAdapter() {
         final ThingSnapshotSerializer serializer = new ThingSnapshotSerializer();
-        final PostgresSnapshotAdapter<Thing> postgres = new PostgresSnapshotAdapter<>(serializer);
+        final NeutralSnapshotAdapter<Thing> neutral =
+                new NeutralSnapshotAdapter<>(serializer, MongoSnapshotCodec.INSTANCE);
         final Thing thing = sampleThing();
 
-        final byte[] jsonbBytes = ((String) postgres.toSnapshotStore(thing)).getBytes(StandardCharsets.UTF_8);
-        final Thing recovered = postgres.fromSnapshotStore(snapshotOffer(jsonbBytes));
+        final BsonValue viaNeutral = (BsonValue) neutral.toSnapshotStore(thing);
+        final BsonValue viaLegacy = (BsonValue) serializer.toSnapshotStore(thing);
 
-        assertThat(recovered).isEqualTo(thing);
-    }
-
-    @Test
-    public void postgresRecoversThingFromAlreadyParsedJsonObject() {
-        final ThingSnapshotSerializer serializer = new ThingSnapshotSerializer();
-        final PostgresSnapshotAdapter<Thing> postgres = new PostgresSnapshotAdapter<>(serializer);
-        final Thing thing = sampleThing();
-
-        final JsonObject json = serializer.toJson(thing);
-        final Thing recovered = postgres.fromSnapshotStore(snapshotOffer(json));
-
-        assertThat(recovered).isEqualTo(thing);
+        assertThat(viaNeutral).isEqualTo(viaLegacy);
+        assertThat(neutral.fromSnapshotStore(snapshotOffer(viaLegacy))).isEqualTo(thing);
     }
 
     @Test
     public void deletedThingRoundTripsToNullOnBothEnvelopes() {
         final ThingSnapshotSerializer serializer = new ThingSnapshotSerializer();
-        final PostgresSnapshotAdapter<Thing> postgres = new PostgresSnapshotAdapter<>(serializer);
         final Thing deleted = sampleThing().toBuilder().setLifecycle(ThingLifecycle.DELETED).build();
 
         final BsonValue mongoStored = (BsonValue) serializer.toSnapshotStore(deleted);
         final JsonObject mongoJson = DittoBsonJson.getInstance().serialize(mongoStored).asObject();
-        final String postgresStored = (String) postgres.toSnapshotStore(deleted);
+        final String jsonText = serializer.toJson(deleted).toString();
 
-        assertThat(JsonFactory.newObject(postgresStored).toString()).isEqualTo(mongoJson.toString());
+        assertThat(mongoJson.toString()).isEqualTo(jsonText);
         // Both decode a deleted snapshot to null (entity is deleted).
-        assertThat(postgres.fromSnapshotStore(snapshotOffer(postgresStored))).isNull();
+        assertThat(serializer.fromJson(JsonFactory.newObject(jsonText))).isNull();
         assertThat(serializer.fromSnapshotStore(snapshotOffer(mongoStored))).isNull();
     }
 
-    @Test(expected = IllegalArgumentException.class)
-    public void mongoAdapterRejectsJsonbStringPayload() {
-        // AbstractMongoSnapshotAdapter requires a BsonValue and rejects JSONB text payloads, which is
-        // exactly why a dedicated PostgresSnapshotAdapter is needed.
+    @Test
+    public void bsonEnvelopeRejectsJsonTextPayload() {
+        // The BSON envelope decodes BsonValue only; decoding JSONB text is the PostgreSQL codec's job. That is why the
+        // envelope is a SnapshotCodec composed into NeutralSnapshotAdapter and not a snapshot adapter per backend.
         final ThingSnapshotSerializer serializer = new ThingSnapshotSerializer();
-        serializer.fromSnapshotStore(snapshotOffer(serializer.toJson(sampleThing()).toString()));
-    }
+        final String jsonText = serializer.toJson(sampleThing()).toString();
 
-    @Test(expected = IllegalArgumentException.class)
-    public void postgresAdapterRejectsBsonPayload() {
-        final ThingSnapshotSerializer serializer = new ThingSnapshotSerializer();
-        final PostgresSnapshotAdapter<Thing> postgres = new PostgresSnapshotAdapter<>(serializer);
-        final BsonValue bson = (BsonValue) serializer.toSnapshotStore(sampleThing());
-        postgres.fromSnapshotStore(snapshotOffer(bson));
+        assertThatIllegalArgumentException()
+                .isThrownBy(() -> serializer.fromSnapshotStore(snapshotOffer(jsonText)));
     }
 
     private static SnapshotOffer snapshotOffer(final Object snapshot) {

@@ -50,8 +50,8 @@ import scala.jdk.javaapi.FutureConverters;
  *     maxTs} with no lower bound.</li>
  * </ul>
  * <p>
- * The loaded JSONB is surfaced as JSON text and decoded to a {@code JsonObject} by the {@code PostgresSnapshotAdapter}
- * (resolved per entity type), which Pekko applies to the returned {@code SelectedSnapshot} payload.
+ * The loaded JSONB is surfaced as JSON text; the snapshot adapter Pekko applies to the returned {@code SelectedSnapshot}
+ * payload decodes it to a {@code JsonObject} through the provider's {@code PostgresSnapshotCodec}.
  * </p>
  */
 @NotThreadSafe

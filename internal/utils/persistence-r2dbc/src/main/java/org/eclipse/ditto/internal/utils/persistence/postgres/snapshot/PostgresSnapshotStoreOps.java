@@ -106,7 +106,8 @@ public final class PostgresSnapshotStoreOps {
     private static SelectedSnapshot toSelectedSnapshot(final SnapshotRow row) {
         final SnapshotMetadata metadata = new SnapshotMetadata(row.pid(), row.sequenceNr(),
                 row.writtenAt().toEpochMilli());
-        // The JSONB snapshot text is the raw payload; Pekko hands it to the PostgresSnapshotAdapter (decodes -> domain).
+        // The JSONB snapshot text is the raw payload; Pekko hands it to the snapshot adapter, whose
+        // PostgresSnapshotCodec decodes it to JSON before the serializer recovers the domain object.
         return SelectedSnapshot.create(metadata, row.snapshotJson());
     }
 
@@ -134,7 +135,7 @@ public final class PostgresSnapshotStoreOps {
             return new String(bytes, java.nio.charset.StandardCharsets.UTF_8);
         }
         throw new IllegalArgumentException("Unable to serialize snapshot of type <" + snapshot.getClass()
-                + ">; expected the PostgresSnapshotAdapter's JSON text (JsonValue/String/byte[]).");
+                + ">; expected the PostgresSnapshotCodec's JSON text (JsonValue/String/byte[]).");
     }
 
     private static Instant toInstantUpper(final long epochMillis) {
