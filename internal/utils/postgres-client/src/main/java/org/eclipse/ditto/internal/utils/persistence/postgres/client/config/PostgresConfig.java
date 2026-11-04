@@ -54,7 +54,8 @@ public interface PostgresConfig {
     Optional<String> getPassword();
 
     /**
-     * The connection-pooler topology. Informational only — drives a soft startup WARN, never a boot block.
+     * The connection-pooler topology. Does not shape the pool: it drives a soft startup WARN and gates the search
+     * path-index maintenance ({@code transaction} needs a direct URI to hold a session); never a boot block.
      *
      * @return the configured pooler mode.
      */

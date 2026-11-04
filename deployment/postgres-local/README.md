@@ -58,11 +58,10 @@ Postgres wiring. The overlays encode four non-obvious fixes:
    reach the run classpath. The launcher is never shaded or published, so r2dbc stays out of every service image.
    Run *Reload All Maven Projects* after pulling for IntelliJ to pick up the new module. (In IntelliJ the module
    graph also resolves the project's `reactor-core` 3.5.20, so the allinone's old 3.4.x copy is not involved.)
-4. **Singleton auto-start journal + Mongo `overrides` placeholders.** The Things/Policies root actors always
-   start a Mongo-era operations actor and a snapshot-streaming actor that read `pekko.persistence.*.auto-start-*`
-   (must be exactly one entry) and `<journal-plugin>.overrides.*-collection`. The overlays repoint the
-   auto-start lists at the Postgres plugins and add harmless placeholder `overrides` collection names so those
-   actors construct. (See "Known limitations" below.)
+4. **Narrowed auto-start lists.** The PostgreSQL profile's default `pekko.persistence.*.auto-start-*` lists name
+   the plugins of all four entities; each service's `*-pg-dev.conf` narrows them to its own entity's plugins,
+   because a service defines only its own persistence dispatchers. The operations, streaming and health-check
+   actors come from the backend provider, so no MongoDB setting is needed.
 
 One more knob is passed via env (the service configs already expose it):
 * `POSTGRES_SSL_MODE=disable` — the default SSL mode is `verify-full`; a local plaintext Postgres needs this or
@@ -118,8 +117,7 @@ docker compose -f deployment/postgres-local/docker-compose.postgres.yml up -d
 ## Step 2 — Build (once)
 
 ```bash
-MVN=/opt/homebrew/Cellar/sdkman-cli/5.18.2/libexec/candidates/maven/3.9.3/bin/mvn
-$MVN -pl :ditto-things-service,:ditto-policies-service,:ditto-gateway-service,:ditto-connectivity-service,:ditto-thingsearch-service,:ditto-internal-utils-persistence-r2dbc,:ditto-internal-utils-search-r2dbc \
+mvn -pl :ditto-things-service,:ditto-policies-service,:ditto-gateway-service,:ditto-connectivity-service,:ditto-thingsearch-service,:ditto-internal-utils-persistence-r2dbc,:ditto-internal-utils-search-r2dbc \
      -am -DskipTests -Dcheckstyle.skip -Dlicense.skip=true -Dpmd.skip=true install
 ```
 
@@ -203,15 +201,5 @@ the PostgreSQL search backend.
 
 ## Known limitations (local demo)
 
-* The **snapshot-streaming actor** (`snapshotStreamingActor`) and the **persistence-cleanup / operations**
-  actors are Mongo-specific: they expect a `<journal>-read` Pekko plugin and Mongo collections. On Postgres the
-  streaming actor logs an `ActorInitializationException` for the missing `ditto-postgres-things-journal-read`
-  plugin and the operations actor is a no-op. **These do not affect entity persistence or recovery** — Thing/
-  Policy actors resolve their journal/snapshot plugins through the Postgres backend provider, write to
-  `*_journal` / `*_snaps`, and recover from them on restart. They are background streaming/cleanup paths that
-  are simply not yet ported to Postgres.
-* The Mongo health-checker (`MongoHealthChecker`) still reports the persistence subsystem; with no Mongo running
-  it may report UP based on its own logic. Trust the Postgres table contents + recovery log lines as the real
-  evidence.
 * IntelliJ compound runs start all three services at once; they converge via the seed-node retry loop. The CLI
   `run-compound-postgres.sh` sleeps between services to start the Policies founder first (more deterministic).

@@ -45,7 +45,7 @@ import org.bson.json.JsonMode;
  * {@code src/test/resources/golden/expected/} tree at the repo root instead of updating the real fixtures:
  * <pre>
  * cd thingsearch/service
- * /opt/homebrew/Cellar/sdkman-cli/5.18.2/libexec/candidates/maven/3.9.3/bin/mvn test-compile \
+ * mvn test-compile \
  *     org.codehaus.mojo:exec-maven-plugin:3.5.1:java \
  *     -Dexec.mainClass=org.eclipse.ditto.thingsearch.service.persistence.write.mapping.EnforcedThingMapperGoldenGenerator \
  *     -Dexec.classpathScope=test

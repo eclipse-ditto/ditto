@@ -21,7 +21,7 @@ set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "$REPO_ROOT"
-MVN="${MVN:-/opt/homebrew/Cellar/sdkman-cli/5.18.2/libexec/candidates/maven/3.9.3/bin/mvn}"
+MVN="${MVN:-mvn}"
 OVERLAY_DIR="${REPO_ROOT}/deployment/postgres-local"
 
 # Fail fast if Postgres is not reachable — every downstream failure (crash-looping root actors, gateway

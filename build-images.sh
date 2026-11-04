@@ -37,12 +37,15 @@ SERVICES=(
 : "${DOCKERFILE:="dockerfile-snapshot"}"
 : "${SERVICE_VERSION:="0-SNAPSHOT"}"
 : "${IMAGE_VERSION:="${SERVICE_VERSION}"}"
+: "${BAKE_POSTGRES_EXTENSIONS:=false}"
 
 print_usage() {
   printf "%s [-uPh] [-p HTTP(S) PROXY HOST:PORT]\n" "$1"
   printf "  -u  build the ditto-ui as docker image\n" "$1"
   printf "  -P  push the built docker images\n" "$1"
   printf "  -h  display help\n" "$1"
+  printf "  BAKE_POSTGRES_EXTENSIONS=true (env) bakes the PostgreSQL extension JARs of this build into the\n"
+  printf "      things, policies, connectivity and things-search images (snapshot dockerfiles only)\n"
 }
 
 print_used_proxies() {

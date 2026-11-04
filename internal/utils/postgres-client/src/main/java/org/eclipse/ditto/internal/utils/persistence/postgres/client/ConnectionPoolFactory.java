@@ -36,8 +36,9 @@ import io.r2dbc.spi.ConnectionFactoryOptions;
  * <p>
  * Applies the SSL boot guard and the connection-pooling-safe defaults: {@code fetch-size=0} (no server-side
  * portals/cursors) and {@code prepared-statement-cache-queries=0} (unnamed statements), which keep the backend safe
- * behind PgBouncer in any pool mode. The configured {@code pooler-mode} drives an informational startup log line only
- * and never blocks boot.
+ * behind PgBouncer in any pool mode. The configured {@code pooler-mode} does not shape the pool: here it drives a
+ * startup cross-check log line and never blocks boot; the search backend gates its path-index maintenance on it
+ * (transaction mode needs a direct URI to hold a session).
  * </p>
  * <p>
  * <strong>Read path with {@code fetch-size=0}:</strong> r2dbc-postgresql sends one fetch-all {@code Execute} per

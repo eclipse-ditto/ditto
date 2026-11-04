@@ -217,10 +217,6 @@ include classpath("ditto-postgres-persistence")
 # for every service overlay, not optional.
 pekko.persistence.journal.auto-start-journals               = [ "ditto-postgres-things-journal" ]
 pekko.persistence.snapshot-store.auto-start-snapshot-stores = [ "ditto-postgres-things-snapshots" ]
-
-# Placeholder Mongo collection names so Mongo-era ops actors construct harmlessly
-ditto-postgres-things-journal.overrides   { journal-collection = "things_journal"; metadata-collection = "things_metadata" }
-ditto-postgres-things-snapshots.overrides { snaps-collection = "things_snaps" }
 ```
 
 This overlay also activates the Postgres persistence backend provider via:
