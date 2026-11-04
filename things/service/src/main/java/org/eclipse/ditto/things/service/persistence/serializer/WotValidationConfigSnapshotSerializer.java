@@ -46,7 +46,7 @@ import org.slf4j.LoggerFactory;
  * {@link SnapshotSerializer#convertToJson(Object)}/{@link SnapshotSerializer#fromJson(JsonObject)} pair use
  * {@link #getDeletedLifecycleJsonField()} accordingly.
  *
- * @since 3.7.0
+ * @since 4.0.0
  */
 @ThreadSafe
 public final class WotValidationConfigSnapshotSerializer extends SnapshotSerializer<WotValidationConfig> {

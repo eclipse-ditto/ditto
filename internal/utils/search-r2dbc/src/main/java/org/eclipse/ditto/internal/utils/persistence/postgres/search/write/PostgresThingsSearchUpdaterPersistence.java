@@ -75,7 +75,7 @@ import reactor.core.publisher.Mono;
  * calls, which is recorded for Phase D's plancache-guard decision — no new mechanism is introduced in C3.
  * </p>
  *
- * @since 3.10.0
+ * @since 4.0.0
  */
 @ThreadSafe
 public final class PostgresThingsSearchUpdaterPersistence implements ThingsSearchUpdaterPersistence {

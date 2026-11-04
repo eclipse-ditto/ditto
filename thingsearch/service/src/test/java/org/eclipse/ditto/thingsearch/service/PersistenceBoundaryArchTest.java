@@ -36,7 +36,7 @@ import com.tngtech.archunit.core.importer.ImportOption;
  * JUnit 4 / surefire setup; the imported classes are scoped to MAIN code via
  * {@link com.tngtech.archunit.core.importer.ImportOption.DoNotIncludeTests}.
  *
- * @since 3.7.0
+ * @since 4.0.0
  */
 public final class PersistenceBoundaryArchTest {
 

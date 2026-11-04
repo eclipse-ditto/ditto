@@ -42,7 +42,7 @@ import org.eclipse.ditto.internal.utils.persistence.api.operations.NamespacePers
  * exposes only the two neutral operations interfaces and a {@link Closeable}, neither this module nor the calling
  * {@code RootActor} depends on a backend's operations classes.
  *
- * @since 3.7.0
+ * @since 4.0.0
  */
 @Immutable
 public final class PersistenceOperationsCollaborators {

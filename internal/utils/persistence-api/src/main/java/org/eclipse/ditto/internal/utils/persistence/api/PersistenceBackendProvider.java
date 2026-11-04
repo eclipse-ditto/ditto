@@ -37,7 +37,7 @@ import com.typesafe.config.Config;
  * namespace persistence operations. These accessors default to throwing {@link UnsupportedOperationException}
  * so a backend can wire them incrementally; each backend overrides them as it is implemented.
  *
- * @since 3.7.0
+ * @since 4.0.0
  */
 public interface PersistenceBackendProvider extends DittoExtensionPoint {
 

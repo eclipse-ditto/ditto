@@ -40,7 +40,7 @@ import javax.annotation.concurrent.Immutable;
  * @param valBool the boolean value if {@code typeRank == 6}, else {@code null}.
  * @param valNum the numeric value if {@code typeRank == 2}, else {@code null}.
  * @param valText the string value if {@code typeRank == 3}, else {@code null}.
- * @since 3.10.0
+ * @since 4.0.0
  */
 @Immutable
 public record FlatRow(

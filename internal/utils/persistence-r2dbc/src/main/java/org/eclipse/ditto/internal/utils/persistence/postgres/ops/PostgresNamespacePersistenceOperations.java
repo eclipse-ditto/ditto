@@ -34,7 +34,7 @@ import reactor.core.publisher.Mono;
  * {@code List<Throwable>} — empty on success, a singleton list carrying the failure on error — so the
  * {@code AbstractPersistenceOperationsActor} treats the two backends identically.
  *
- * @since 3.7.0
+ * @since 4.0.0
  */
 public final class PostgresNamespacePersistenceOperations implements NamespacePersistenceOperations {
 

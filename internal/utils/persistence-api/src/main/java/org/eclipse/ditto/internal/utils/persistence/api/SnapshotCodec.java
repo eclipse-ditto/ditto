@@ -31,7 +31,7 @@ import org.eclipse.ditto.json.JsonObject;
  * signature names a backend type, so this interface stays free of {@code org.bson}, {@code io.r2dbc} and
  * {@code org.postgresql}. The Mongo implementation is task B5, the Postgres implementation task E2.
  *
- * @since 3.7.0
+ * @since 4.0.0
  */
 public interface SnapshotCodec {
 

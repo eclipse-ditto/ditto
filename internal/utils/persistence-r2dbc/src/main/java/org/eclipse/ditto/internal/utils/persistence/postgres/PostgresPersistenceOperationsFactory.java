@@ -57,7 +57,7 @@ import org.eclipse.ditto.internal.utils.persistence.postgres.ops.PostgresPersist
  * per call (cheap — the extension memoises the single pool), so it MUST be invoked lazily at ops-actor instantiation
  * time, matching the {@link PersistenceOperationsFactory} contract.
  *
- * @since 3.7.0
+ * @since 4.0.0
  */
 @Immutable
 public final class PostgresPersistenceOperationsFactory implements PersistenceOperationsFactory {

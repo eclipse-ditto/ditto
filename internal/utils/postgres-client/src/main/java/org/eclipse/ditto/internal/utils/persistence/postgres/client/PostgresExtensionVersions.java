@@ -37,7 +37,7 @@ import java.util.Set;
  * fewer than two markers are visible (e.g. a dev run from the raw module jars, which carry no marker) the check passes
  * quietly — the version-skew concern only exists for the shaded drop-in deployment.
  *
- * @since 3.10.0
+ * @since 4.0.0
  */
 public final class PostgresExtensionVersions {
 

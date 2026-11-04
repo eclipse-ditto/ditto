@@ -21,7 +21,7 @@ import java.util.Objects;
  * Unlike the backend-specific write models, this hierarchy holds NO storage driver types (no BSON, no SQL).
  * A backend translates a concrete write model into its own update representation.
  *
- * @since 3.10.0
+ * @since 4.0.0
  */
 public abstract class AbstractWriteModel {
 

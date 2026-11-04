@@ -37,7 +37,7 @@ import com.tngtech.archunit.core.importer.ImportOption;
  * existing JUnit 4 / surefire setup. The imported classes are scoped to MAIN code via
  * {@link com.tngtech.archunit.core.importer.ImportOption.DoNotIncludeTests}.
  *
- * @since 3.10.0
+ * @since 4.0.0
  */
 public final class ThingsearchPersistenceApiNeutralityArchTest {
 

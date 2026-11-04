@@ -38,7 +38,7 @@ import org.eclipse.ditto.json.JsonPointer;
  * both {@code '~'} and {@code '/'} are escaped here.
  * </p>
  *
- * @since 3.10.0
+ * @since 4.0.0
  */
 public final class JsonPointerSegments {
 

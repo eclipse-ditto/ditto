@@ -99,7 +99,7 @@ import com.typesafe.config.ConfigUtil;
  * {@code ditto-postgres-persistence.conf} that describe the Mongo equivalents — documentation,
  * not live config values.
  *
- * @since 3.7.0
+ * @since 4.0.0
  */
 @RunWith(Parameterized.class)
 public final class PostgresProfileHoconLintTest {

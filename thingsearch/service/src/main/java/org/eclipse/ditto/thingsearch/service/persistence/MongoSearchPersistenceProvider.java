@@ -60,7 +60,7 @@ import org.eclipse.ditto.internal.utils.persistence.mongo.MongoHealthChecker;
  * methods (via {@link MongoClientExtension}) or inside the Mongo implementations themselves. This mirrors the
  * {@code MongoPersistenceBackendProvider} precedent used by the things/policies/connectivity services.
  *
- * @since 3.10.0
+ * @since 4.0.0
  */
 public final class MongoSearchPersistenceProvider implements SearchPersistenceProvider {
 

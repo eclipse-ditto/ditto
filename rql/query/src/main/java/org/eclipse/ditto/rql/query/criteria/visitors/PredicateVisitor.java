@@ -51,7 +51,7 @@ public interface PredicateVisitor<T> {
      *
      * @param wildcardExpression the original wildcard expression, or {@code null}.
      * @return the result of visiting the "like" predicate.
-     * @since 3.10.0
+     * @since 4.0.0
      */
     default T visitLikeWithWildcards(@Nullable final String wildcardExpression) {
         return visitLike(LikeHelper.convertToRegexSyntax(wildcardExpression));
@@ -66,7 +66,7 @@ public interface PredicateVisitor<T> {
      *
      * @param wildcardExpression the original wildcard expression, or {@code null}.
      * @return the result of visiting the "ilike" predicate.
-     * @since 3.10.0
+     * @since 4.0.0
      */
     default T visitILikeWithWildcards(@Nullable final String wildcardExpression) {
         return visitILike(LikeHelper.convertToRegexSyntax(wildcardExpression));

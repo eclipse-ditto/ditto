@@ -28,7 +28,7 @@ import org.junit.Test;
  * rejection of non-BSON decode inputs, and that the {@link MongoPersistenceBackendProvider} returns a
  * non-null, functioning codec instance instead of throwing {@link UnsupportedOperationException}.
  *
- * @since 3.7.0
+ * @since 4.0.0
  */
 public final class MongoSnapshotCodecTest {
 

@@ -38,7 +38,7 @@ import org.apache.pekko.stream.javadsl.Sink;
  * neither builds nor closes a client: {@code SELECT 1} is a trivial, read-only probe whose per-query connection is
  * acquired from and released back to the shared pool on every terminal path (see {@link DittoPostgresClient#executeSql}).
  *
- * @since 3.7.0
+ * @since 4.0.0
  */
 public final class PostgresHealthChecker extends AbstractHealthCheckingActor {
 

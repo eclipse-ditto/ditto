@@ -64,7 +64,7 @@ import reactor.core.publisher.Mono;
  * the two lock different things (schema bootstrap vs. ongoing reap ticks) and must never collide.
  * </p>
  *
- * @since 3.10.0
+ * @since 4.0.0
  */
 @ThreadSafe
 public final class PostgresDeleteAtReaper {

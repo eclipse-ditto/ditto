@@ -48,7 +48,7 @@ import org.eclipse.ditto.internal.utils.persistence.api.PersistencePluginConfig;
  * documented value: they are valid plugin IDs (so a validator that resolves them finds them), and they are inert because
  * {@code ddata} never consults them. See {@link #getRememberStorePluginIds(String)}.
  *
- * @since 3.7.0
+ * @since 4.0.0
  */
 @Immutable
 public final class PostgresPersistencePluginConfig implements PersistencePluginConfig {

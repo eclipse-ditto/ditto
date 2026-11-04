@@ -43,7 +43,7 @@ import org.apache.pekko.actor.Props;
  * a tick and tries again on the next interval.
  * </p>
  *
- * @since 3.10.0
+ * @since 4.0.0
  */
 public final class PostgresDeleteAtReaperActor extends AbstractActor {
 

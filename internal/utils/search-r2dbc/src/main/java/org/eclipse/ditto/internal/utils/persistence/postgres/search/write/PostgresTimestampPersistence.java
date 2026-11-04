@@ -55,7 +55,7 @@ import reactor.core.publisher.Mono;
  * already-provisioned row.
  * </p>
  *
- * @since 3.10.0
+ * @since 4.0.0
  */
 @ThreadSafe
 public final class PostgresTimestampPersistence implements TimestampPersistence {

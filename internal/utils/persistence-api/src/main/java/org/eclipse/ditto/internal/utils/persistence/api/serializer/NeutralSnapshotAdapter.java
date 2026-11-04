@@ -47,7 +47,7 @@ import org.apache.pekko.persistence.SnapshotOffer;
  * </ul>
  *
  * @param <T> the jsonifiable snapshot type.
- * @since 3.7.0
+ * @since 4.0.0
  */
 @ThreadSafe
 public final class NeutralSnapshotAdapter<T extends Jsonifiable.WithFieldSelectorAndPredicate<JsonField>>

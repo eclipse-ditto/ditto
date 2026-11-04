@@ -18,7 +18,7 @@ package org.eclipse.ditto.thingsearch.persistence.api.write;
  * @param index the 0-based index of the failing write model within the submitted batch.
  * @param category the backend-neutral error category (duplicate-key errors are treated as success upstream).
  * @param message a human-readable error message.
- * @since 3.10.0
+ * @since 4.0.0
  */
 public record SearchWriteError(int index, Category category, String message) {
 

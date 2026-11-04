@@ -28,7 +28,7 @@ import org.eclipse.ditto.json.JsonObject;
  * snapshot payload as a backend-neutral JSON object, so that no backend driver type
  * (e.g. {@code org.bson.Document}) crosses the {@link DittoReadJournal} interface boundary.
  *
- * @since 3.7.0
+ * @since 4.0.0
  */
 @Immutable
 public final class SnapshotEntry {

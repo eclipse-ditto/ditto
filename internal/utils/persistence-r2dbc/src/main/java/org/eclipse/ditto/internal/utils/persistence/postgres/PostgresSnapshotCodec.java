@@ -34,7 +34,7 @@ import org.eclipse.ditto.json.JsonObject;
  * This is the single source of the JSONB envelope: {@code NeutralSnapshotAdapter} composes it with the per-service
  * {@code SnapshotSerializer}, so no PostgreSQL-specific snapshot adapter exists.
  *
- * @since 3.7.0
+ * @since 4.0.0
  */
 @Immutable
 public final class PostgresSnapshotCodec implements SnapshotCodec {

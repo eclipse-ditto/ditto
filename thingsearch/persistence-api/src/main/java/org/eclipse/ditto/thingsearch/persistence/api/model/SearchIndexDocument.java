@@ -38,7 +38,7 @@ import org.eclipse.ditto.things.model.ThingId;
  * revision/policy bookkeeping needed for consistency checks. A backend serializes this into its own on-disk
  * shape (Mongo: a BSON document with revised keys; PostgreSQL: a JSONB row plus flattened side rows).
  *
- * @since 3.10.0
+ * @since 4.0.0
  */
 @Immutable
 public final class SearchIndexDocument {

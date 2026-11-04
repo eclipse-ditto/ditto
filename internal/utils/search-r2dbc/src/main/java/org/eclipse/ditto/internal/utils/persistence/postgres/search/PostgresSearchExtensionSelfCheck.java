@@ -29,7 +29,7 @@ import java.lang.reflect.InvocationTargetException;
  * clear {@link IllegalStateException} naming the missing base jar; when the base is present we invoke its
  * {@code PostgresExtensionVersions.verifyConsistent()} and surface any same-release-mismatch error verbatim.
  *
- * @since 3.10.0
+ * @since 4.0.0
  */
 public final class PostgresSearchExtensionSelfCheck {
 

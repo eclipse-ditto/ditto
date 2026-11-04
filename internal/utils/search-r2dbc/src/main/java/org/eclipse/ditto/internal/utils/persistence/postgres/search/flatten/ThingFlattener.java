@@ -93,7 +93,7 @@ import org.eclipse.ditto.thingsearch.persistence.api.model.SearchIndexDocument;
  * repeatability for stable column-wise extraction, but must not assume any particular sort order.
  * </p>
  *
- * @since 3.10.0
+ * @since 4.0.0
  */
 @Immutable
 public final class ThingFlattener {

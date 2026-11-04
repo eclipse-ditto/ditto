@@ -19,7 +19,7 @@ import java.time.Duration;
  * they derive from a stream's {@code maxIdleTime} ("how long the stream is allowed to idle without sending any
  * element"): one place for the values all {@link DittoReadJournal} implementations use.
  *
- * @since 3.10.0
+ * @since 4.0.0
  */
 public final class ReadJournalRestarts {
 

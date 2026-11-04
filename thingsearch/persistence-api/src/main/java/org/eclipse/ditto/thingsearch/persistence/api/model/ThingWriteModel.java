@@ -25,7 +25,7 @@ import org.eclipse.ditto.policies.api.PolicyTag;
  * stream uses. A backend maps this into its own upsert (Mongo: a replace/aggregation update; PostgreSQL: a
  * JSONB upsert plus flattened side rows).
  *
- * @since 3.10.0
+ * @since 4.0.0
  */
 @Immutable
 public final class ThingWriteModel extends AbstractWriteModel {

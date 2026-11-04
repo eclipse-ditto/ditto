@@ -51,7 +51,7 @@ import com.typesafe.config.Config;
  * provider-supplied expected class names) and never references a Mongo or Postgres type. The family identity lives
  * entirely in the provider-supplied {@link BackendFamily} + expected class-name strings.
  *
- * @since 3.7.0
+ * @since 4.0.0
  */
 public final class PersistenceBackendSelfCheck {
 

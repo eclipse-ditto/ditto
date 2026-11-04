@@ -59,7 +59,7 @@ import com.typesafe.config.Config;
  * {@link PersistenceOperationsCollaborators#closeable()} so each ops actor owns and closes its own client on
  * {@code postStop}; this factory never caches or shares a client across calls.
  *
- * @since 3.7.0
+ * @since 4.0.0
  */
 @Immutable
 public final class MongoPersistenceOperationsFactory implements PersistenceOperationsFactory {

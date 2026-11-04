@@ -82,7 +82,7 @@ import reactor.core.publisher.Mono;
  * (unordered-bulk parity). The transaction is rolled back on any error.
  * </p>
  *
- * @since 3.10.0
+ * @since 4.0.0
  */
 @ThreadSafe
 public final class PostgresSearchUpdaterFlow implements SearchUpdaterFlow {

@@ -175,7 +175,7 @@ public interface WotValidationConfig extends Entity<WotValidationConfigRevision>
      * to ensure the JSON key contract is defined in exactly one place.
      * </p>
      *
-     * @since 3.7.0
+     * @since 4.0.0
      */
     final class JsonFields {
 

@@ -35,7 +35,7 @@ package org.eclipse.ditto.internal.utils.persistence.api;
  * the {@code Props} is built — exactly where the client is constructed today. Callers must not cache or share the
  * returned collaborators across ops actors; each ops actor owns and closes its own {@link #operations(String)} bundle.
  *
- * @since 3.7.0
+ * @since 4.0.0
  */
 @FunctionalInterface
 public interface PersistenceOperationsFactory {

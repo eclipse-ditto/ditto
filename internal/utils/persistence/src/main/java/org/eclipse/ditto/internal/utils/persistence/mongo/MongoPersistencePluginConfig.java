@@ -38,7 +38,7 @@ import org.eclipse.ditto.internal.utils.persistence.api.PersistencePluginConfig;
  * {@link MongoPersistenceBackendProvider} supplied at construction time, so plugin-ID resolution is never
  * duplicated and the two surfaces stay in sync automatically.
  *
- * @since 3.7.0
+ * @since 4.0.0
  */
 @Immutable
 public final class MongoPersistencePluginConfig implements PersistencePluginConfig {

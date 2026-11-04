@@ -20,7 +20,7 @@ import org.apache.pekko.stream.javadsl.Flow;
  * backend. A backend implements {@link #create()} with its own bulk-write logic (Mongo: an ordered/unordered
  * bulk write; PostgreSQL: batched JSONB upserts). Consumed by the search updater stream.
  *
- * @since 3.10.0
+ * @since 4.0.0
  */
 public interface SearchUpdaterFlow {
 

@@ -34,7 +34,7 @@ import reactor.core.publisher.Mono;
  * The {@code purgeEntity} contract mirrors {@code MongoOpsUtil}: the returned {@code Source} emits a single
  * {@code List<Throwable>} — empty on success, a singleton list carrying the failure on error.
  *
- * @since 3.7.0
+ * @since 4.0.0
  */
 public final class PostgresEntitiesPersistenceOperations implements EntityPersistenceOperations {
 

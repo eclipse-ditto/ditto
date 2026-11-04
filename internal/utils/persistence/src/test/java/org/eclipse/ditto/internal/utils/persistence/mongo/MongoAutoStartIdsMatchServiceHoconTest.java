@@ -58,7 +58,7 @@ import com.typesafe.config.ConfigParseOptions;
  * auto-started). The test explicitly asserts that neither WoT ID appears in the things auto-start set, mirroring the
  * intentional exclusion documented in {@code MongoPersistencePluginConfig}.
  *
- * @since 3.7.0
+ * @since 4.0.0
  */
 @RunWith(Parameterized.class)
 public final class MongoAutoStartIdsMatchServiceHoconTest {

@@ -53,7 +53,7 @@ import com.typesafe.config.ConfigUtil;
  * So this test proves the opt-in profile parses standalone-included on top of the search service's own defaults, using
  * the REAL production resource files at every layer.
  *
- * @since 3.10.0
+ * @since 4.0.0
  */
 public final class PostgresSearchProfileHoconLintTest {
 

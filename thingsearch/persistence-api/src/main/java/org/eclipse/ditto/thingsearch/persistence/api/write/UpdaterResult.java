@@ -20,6 +20,6 @@ import org.eclipse.ditto.thingsearch.persistence.api.model.AbstractWriteModel;
  *
  * @param writeModel the write model that was applied.
  * @param result the backend-neutral result of applying the write model.
- * @since 3.10.0
+ * @since 4.0.0
  */
 public record UpdaterResult(AbstractWriteModel writeModel, SearchWriteResult result) {}

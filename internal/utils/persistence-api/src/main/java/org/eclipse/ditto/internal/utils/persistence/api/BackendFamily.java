@@ -22,7 +22,7 @@ package org.eclipse.ditto.internal.utils.persistence.api;
  * {@link PersistenceBackendProvider#expectedReadJournalClassName()}), so the persistence-api module never imports a
  * Mongo or Postgres class to express which backend is active.
  *
- * @since 3.7.0
+ * @since 4.0.0
  */
 public enum BackendFamily {
 

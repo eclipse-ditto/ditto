@@ -21,7 +21,7 @@ import java.io.Closeable;
  * must not close), and by backends — such as PostgreSQL — whose connection pool is owned elsewhere (e.g. a client
  * extension) and outlives the actor.
  *
- * @since 3.7.0
+ * @since 4.0.0
  */
 public final class NoOpCloseable implements Closeable {
 

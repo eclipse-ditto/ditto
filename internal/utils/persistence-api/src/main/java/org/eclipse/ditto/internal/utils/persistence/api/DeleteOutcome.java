@@ -23,7 +23,7 @@ import javax.annotation.concurrent.Immutable;
  * MongoDB type crosses the {@link DittoReadJournal} interface boundary. Backends populate it from
  * their respective driver result (e.g. MongoDB's {@code DeleteResult}, a SQL {@code rowsUpdated}).
  *
- * @since 3.7.0
+ * @since 4.0.0
  */
 @Immutable
 public final class DeleteOutcome {

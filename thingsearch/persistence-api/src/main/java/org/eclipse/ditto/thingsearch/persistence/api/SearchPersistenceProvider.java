@@ -43,7 +43,7 @@ import com.typesafe.config.Config;
  * config. Factory methods take NO service config, because the service's {@code SearchConfig} is
  * Mongo-coupled and would leak backend-specific concerns through this neutral seam.
  *
- * @since 3.10.0
+ * @since 4.0.0
  */
 public interface SearchPersistenceProvider extends DittoExtensionPoint {
 

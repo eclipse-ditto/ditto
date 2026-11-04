@@ -17,7 +17,7 @@ import javax.annotation.concurrent.Immutable;
 /**
  * Backend-neutral write model that deletes the search-index entry of a thing.
  *
- * @since 3.10.0
+ * @since 4.0.0
  */
 @Immutable
 public final class ThingDeleteModel extends AbstractWriteModel {

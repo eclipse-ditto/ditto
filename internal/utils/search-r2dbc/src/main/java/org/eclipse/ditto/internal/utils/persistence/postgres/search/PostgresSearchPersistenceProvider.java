@@ -93,7 +93,7 @@ import reactor.core.Disposable;
  * {@link UnsupportedOperationException} any more.
  * </p>
  *
- * @since 3.10.0
+ * @since 4.0.0
  */
 public final class PostgresSearchPersistenceProvider implements SearchPersistenceProvider {
 

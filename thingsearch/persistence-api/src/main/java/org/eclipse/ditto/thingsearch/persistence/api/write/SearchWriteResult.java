@@ -25,7 +25,7 @@ import javax.annotation.concurrent.Immutable;
  * its decision precedence (CONSISTENCY_ERROR &gt; INCORRECT_PATCH &gt; WRITE_ERROR &gt; OK) as implemented by
  * {@code BulkWriteResultAckFlow.checkForConsistencyError}.
  *
- * @since 3.10.0
+ * @since 4.0.0
  */
 @Immutable
 public final class SearchWriteResult {

@@ -16,7 +16,7 @@ package org.eclipse.ditto.thingsearch.persistence.api.write;
  * Backend-neutral outcome vocabulary of applying a batch of search write models, preserving the business
  * rules of the Mongo bulk-write acknowledgement flow.
  *
- * @since 3.10.0
+ * @since 4.0.0
  */
 public enum SearchWriteResultStatus {
 

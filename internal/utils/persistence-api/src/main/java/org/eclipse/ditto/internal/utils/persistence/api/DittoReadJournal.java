@@ -42,7 +42,7 @@ import org.eclipse.ditto.json.JsonObject;
  * backend-neutral DTOs ({@link JournalEntry}, {@link SnapshotEntry}, {@link DeleteOutcome}) so that
  * no backend driver type (e.g. {@code org.bson.Document}) leaks to consumers.
  *
- * @since 3.7.0
+ * @since 4.0.0
  */
 public interface DittoReadJournal extends
         CurrentEventsByPersistenceIdQuery,

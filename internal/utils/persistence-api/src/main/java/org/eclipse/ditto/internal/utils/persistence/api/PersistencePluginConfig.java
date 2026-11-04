@@ -37,7 +37,7 @@ import java.util.Objects;
  * the remember-store is a lower-case entity name such as {@code "connection"}. Keeping these {@link String}s avoids
  * pulling a typed key into this neutral module and lets a backend implementation resolve them straight from HOCON.
  *
- * @since 3.7.0
+ * @since 4.0.0
  */
 public interface PersistencePluginConfig {
 
@@ -79,7 +79,7 @@ public interface PersistencePluginConfig {
      *
      * @param journalPluginId the Pekko journal plugin ID (the sharding {@code journal-plugin-id}).
      * @param snapshotPluginId the Pekko snapshot plugin ID (the sharding {@code snapshot-plugin-id}).
-     * @since 3.7.0
+     * @since 4.0.0
      */
     record RememberStorePluginIds(String journalPluginId, String snapshotPluginId) {
 

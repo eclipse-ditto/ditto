@@ -21,7 +21,7 @@ import com.tngtech.archunit.core.domain.JavaClass;
  * Defining the matchers in one place lets the META-TEST assert on the EXACT same predicate that the rules apply,
  * so the rules cannot accidentally diverge from what the meta-test proves.
  *
- * @since 3.7.0
+ * @since 4.0.0
  */
 final class PersistenceBoundaryMatchers {
 

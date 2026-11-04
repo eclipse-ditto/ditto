@@ -42,7 +42,7 @@ import com.typesafe.config.ConfigFactory;
  *     <li>connectivity.conf lines 1175–1176: connection remember-store journal + snapshot.</li>
  * </ul>
  *
- * @since 3.7.0
+ * @since 4.0.0
  */
 public final class MongoPersistencePluginConfigTest {
 

@@ -25,6 +25,6 @@ import org.eclipse.ditto.thingsearch.persistence.api.model.AbstractWriteModel;
  *
  * @param writeModel the current neutral write model to persist.
  * @param lastWriteModel the previously-applied neutral write model of the thing's search-index entry.
- * @since 3.10.0
+ * @since 4.0.0
  */
 public record UpdaterData(AbstractWriteModel writeModel, AbstractWriteModel lastWriteModel) {}
