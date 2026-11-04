@@ -41,7 +41,7 @@ public final class TimeseriesBsonMapperTest {
     private static final Instant TIMESTAMP = Instant.parse("2026-01-15T10:30:00Z");
     private static final long REVISION = 42L;
 
-    private static TimeseriesDataPoint dp(final JsonValue value, final Map<String, String> tags,
+    private static TimeseriesDataPoint dp(final JsonValue value, final Map<String, JsonValue> tags,
             final String unit) {
 
         return TimeseriesDataPoint.of(THING_ID, PATH, TIMESTAMP, value, REVISION, tags, unit);
@@ -89,9 +89,9 @@ public final class TimeseriesBsonMapperTest {
 
     @Test
     public void metaContainsTagsWhenPresent() {
-        final Map<String, String> tags = new LinkedHashMap<>();
-        tags.put("attributes/building", "A");
-        tags.put("attributes/floor", "2");
+        final Map<String, JsonValue> tags = new LinkedHashMap<>();
+        tags.put("attributes/building", JsonValue.of("A"));
+        tags.put("attributes/floor", JsonValue.of("2"));
 
         final Document doc = TimeseriesBsonMapper.toDocument(
                 dp(JsonValue.of(0), tags, null));
@@ -100,6 +100,33 @@ public final class TimeseriesBsonMapperTest {
         final Document tagsDoc = (Document) meta.get(TimeseriesBsonMapper.META_TAGS);
         assertThat(tagsDoc.getString("attributes/building")).isEqualTo("A");
         assertThat(tagsDoc.getString("attributes/floor")).isEqualTo("2");
+    }
+
+    @Test
+    public void numericAndBooleanTagsAreStoredAsTypedBsonAndReadBackWithTheirJsonType() {
+        final Map<String, JsonValue> tags = new LinkedHashMap<>();
+        tags.put("attributes/floor", JsonValue.of(2));
+        tags.put("attributes/area", JsonValue.of(12.5));
+        tags.put("attributes/heated", JsonValue.of(true));
+
+        final Document doc = TimeseriesBsonMapper.toDocument(dp(JsonValue.of(0), tags, null));
+
+        final Document tagsDoc = (Document) ((Document) doc.get(TimeseriesBsonMapper.FIELD_META))
+                .get(TimeseriesBsonMapper.META_TAGS);
+        assertThat(tagsDoc.get("attributes/floor")).isEqualTo(2);
+        assertThat(tagsDoc.get("attributes/area")).isEqualTo(12.5);
+        assertThat(tagsDoc.get("attributes/heated")).isEqualTo(true);
+        assertThat(TimeseriesBsonMapper.getStoredTags(doc)).containsExactlyEntriesOf(tags);
+    }
+
+    @Test
+    public void stringTagWithNumericContentStaysAString() {
+        final Map<String, JsonValue> tags = Collections.singletonMap("attributes/floor", JsonValue.of("2"));
+
+        final Document doc = TimeseriesBsonMapper.toDocument(dp(JsonValue.of(0), tags, null));
+
+        assertThat(TimeseriesBsonMapper.getStoredTags(doc)).containsExactly(
+                Map.entry("attributes/floor", JsonValue.of("2")));
     }
 
     @Test

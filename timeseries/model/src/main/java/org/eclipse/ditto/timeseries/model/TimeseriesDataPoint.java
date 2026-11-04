@@ -49,8 +49,8 @@ public interface TimeseriesDataPoint extends Jsonifiable<JsonObject> {
      * @param timestamp when the value was observed.
      * @param value the observed value as a {@code JsonValue}.
      * @param revision the Thing's revision counter at the time of observation.
-     * @param tags resolved tag values (stored verbatim with the data point); may be empty but never
-     * {@code null}.
+     * @param tags resolved tag values, each a string, number or boolean keeping the JSON type of the field
+     * it was taken from; may be empty but never {@code null}.
      * @param unit the unit of the value as declared in the WoT property's {@code unit} field, with
      * any semantic prefix already stripped; may be {@code null} when not declared.
      * @return the new data point.
@@ -61,7 +61,7 @@ public interface TimeseriesDataPoint extends Jsonifiable<JsonObject> {
             final Instant timestamp,
             final JsonValue value,
             final long revision,
-            final Map<String, String> tags,
+            final Map<String, JsonValue> tags,
             @Nullable final String unit) {
 
         return ImmutableTimeseriesDataPoint.of(thingId, path, timestamp, value, revision, tags, unit);
@@ -111,7 +111,7 @@ public interface TimeseriesDataPoint extends Jsonifiable<JsonObject> {
      * @return resolved tags stored with the data point. Always non-null; may be empty. The returned
      * map is unmodifiable.
      */
-    Map<String, String> getTags();
+    Map<String, JsonValue> getTags();
 
     /**
      * @return the unit of the value (semantic prefix stripped) if one was declared in the WoT model,

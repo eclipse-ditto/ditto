@@ -15,7 +15,6 @@ package org.eclipse.ditto.timeseries.model;
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import java.util.Collections;
-import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -24,7 +23,6 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.json.JsonFactory;
-import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonValue;
@@ -38,14 +36,14 @@ final class ImmutableTimeseriesResultMeta implements TimeseriesResultMeta {
     private final int count;
     @Nullable private final String unit;
     private final String dataType;
-    private final Map<String, String> tags;
+    private final Map<String, JsonValue> tags;
     @Nullable private final Boolean hasMore;
     @Nullable private final String nextCursor;
 
     private ImmutableTimeseriesResultMeta(final int count,
             @Nullable final String unit,
             final String dataType,
-            final Map<String, String> tags,
+            final Map<String, JsonValue> tags,
             @Nullable final Boolean hasMore,
             @Nullable final String nextCursor) {
 
@@ -60,17 +58,16 @@ final class ImmutableTimeseriesResultMeta implements TimeseriesResultMeta {
     static TimeseriesResultMeta of(final int count,
             @Nullable final String unit,
             final String dataType,
-            final Map<String, String> tags,
+            final Map<String, JsonValue> tags,
             @Nullable final Boolean hasMore,
             @Nullable final String nextCursor) {
 
         checkNotNull(dataType, "dataType");
-        checkNotNull(tags, "tags");
         if (count < 0) {
             throw new IllegalArgumentException("count must not be negative but was: " + count);
         }
         return new ImmutableTimeseriesResultMeta(count, unit, dataType,
-                Collections.unmodifiableMap(new LinkedHashMap<>(tags)), hasMore, nextCursor);
+                TagValues.copyOf(tags, "tags"), hasMore, nextCursor);
     }
 
     static TimeseriesResultMeta fromJson(final JsonObject jsonObject) {
@@ -79,22 +76,13 @@ final class ImmutableTimeseriesResultMeta implements TimeseriesResultMeta {
         final int count = jsonObject.getValueOrThrow(JsonFields.COUNT);
         final String unit = jsonObject.getValue(JsonFields.UNIT).orElse(null);
         final String dataType = jsonObject.getValueOrThrow(JsonFields.DATA_TYPE);
-        final Map<String, String> tags = jsonObject.getValue(JsonFields.TAGS)
-                .map(ImmutableTimeseriesResultMeta::tagsFromJson)
+        final Map<String, JsonValue> tags = jsonObject.getValue(JsonFields.TAGS)
+                .map(tagsJson -> TagValues.fromJson(tagsJson, JsonFields.TAGS.getPointer().toString()))
                 .orElseGet(Collections::emptyMap);
         final Boolean hasMore = jsonObject.getValue(JsonFields.HAS_MORE).orElse(null);
         final String nextCursor = jsonObject.getValue(JsonFields.NEXT_CURSOR).orElse(null);
 
         return of(count, unit, dataType, tags, hasMore, nextCursor);
-    }
-
-    private static Map<String, String> tagsFromJson(final JsonObject tagsJson) {
-        final Map<String, String> result = new LinkedHashMap<>();
-        for (final JsonField field : tagsJson) {
-            final JsonValue value = field.getValue();
-            result.put(field.getKeyName(), value.isString() ? value.asString() : value.formatAsString());
-        }
-        return result;
     }
 
     @Override
@@ -113,7 +101,7 @@ final class ImmutableTimeseriesResultMeta implements TimeseriesResultMeta {
     }
 
     @Override
-    public Map<String, String> getTags() {
+    public Map<String, JsonValue> getTags() {
         return tags;
     }
 
@@ -137,9 +125,7 @@ final class ImmutableTimeseriesResultMeta implements TimeseriesResultMeta {
             builder.set(JsonFields.UNIT, unit);
         }
         if (!tags.isEmpty()) {
-            final JsonObjectBuilder tagsBuilder = JsonFactory.newObjectBuilder();
-            tags.forEach(tagsBuilder::set);
-            builder.set(JsonFields.TAGS, tagsBuilder.build());
+            builder.set(JsonFields.TAGS, TagValues.toJson(tags));
         }
         if (hasMore != null) {
             builder.set(JsonFields.HAS_MORE, hasMore);

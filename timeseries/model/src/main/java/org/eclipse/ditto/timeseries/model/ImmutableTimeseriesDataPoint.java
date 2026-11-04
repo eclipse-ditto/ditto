@@ -17,7 +17,6 @@ import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 import java.time.Instant;
 import java.time.format.DateTimeParseException;
 import java.util.Collections;
-import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -27,8 +26,6 @@ import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.base.model.exceptions.DittoJsonException;
 import org.eclipse.ditto.json.JsonFactory;
-import org.eclipse.ditto.json.JsonField;
-import org.eclipse.ditto.json.JsonKey;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonParseException;
@@ -47,7 +44,7 @@ final class ImmutableTimeseriesDataPoint implements TimeseriesDataPoint {
     private final Instant timestamp;
     private final JsonValue value;
     private final long revision;
-    private final Map<String, String> tags;
+    private final Map<String, JsonValue> tags;
     @Nullable private final String unit;
 
     private ImmutableTimeseriesDataPoint(final ThingId thingId,
@@ -55,7 +52,7 @@ final class ImmutableTimeseriesDataPoint implements TimeseriesDataPoint {
             final Instant timestamp,
             final JsonValue value,
             final long revision,
-            final Map<String, String> tags,
+            final Map<String, JsonValue> tags,
             @Nullable final String unit) {
 
         this.thingId = thingId;
@@ -72,14 +69,13 @@ final class ImmutableTimeseriesDataPoint implements TimeseriesDataPoint {
             final Instant timestamp,
             final JsonValue value,
             final long revision,
-            final Map<String, String> tags,
+            final Map<String, JsonValue> tags,
             @Nullable final String unit) {
 
         checkNotNull(thingId, "thingId");
         checkNotNull(path, "path");
         checkNotNull(timestamp, "timestamp");
         checkNotNull(value, "value");
-        checkNotNull(tags, "tags");
         // Only scalar samples are storable. Null is excluded first because Ditto's JsonNull reports
         // both isObject() and isArray() as true, and an absent reading is legitimate.
         if (!value.isNull() && (value.isObject() || value.isArray())) {
@@ -95,7 +91,7 @@ final class ImmutableTimeseriesDataPoint implements TimeseriesDataPoint {
                 timestamp,
                 value,
                 revision,
-                Collections.unmodifiableMap(new LinkedHashMap<>(tags)),
+                TagValues.copyOf(tags, "tags"),
                 unit);
     }
 
@@ -107,8 +103,8 @@ final class ImmutableTimeseriesDataPoint implements TimeseriesDataPoint {
         final Instant timestamp = parseTimestamp(jsonObject.getValueOrThrow(JsonFields.TIMESTAMP));
         final JsonValue value = jsonObject.getValueOrThrow(JsonFields.VALUE);
         final long revision = jsonObject.getValueOrThrow(JsonFields.REVISION);
-        final Map<String, String> tags = jsonObject.getValue(JsonFields.TAGS)
-                .map(ImmutableTimeseriesDataPoint::tagsFromJson)
+        final Map<String, JsonValue> tags = jsonObject.getValue(JsonFields.TAGS)
+                .map(tagsJson -> TagValues.fromJson(tagsJson, JsonFields.TAGS.getPointer().toString()))
                 .orElseGet(Collections::emptyMap);
         final String unit = jsonObject.getValue(JsonFields.UNIT).orElse(null);
 
@@ -130,20 +126,6 @@ final class ImmutableTimeseriesDataPoint implements TimeseriesDataPoint {
                     .cause(e)
                     .build());
         }
-    }
-
-    private static Map<String, String> tagsFromJson(final JsonObject tagsJson) {
-        final Map<String, String> result = new LinkedHashMap<>(tagsJson.getSize());
-        for (final JsonField field : tagsJson) {
-            final JsonValue tagValue = field.getValue();
-            if (!tagValue.isString()) {
-                throw new DittoJsonException(JsonParseException.newBuilder()
-                        .message("Tag value for key <" + field.getKeyName() + "> must be a JSON string.")
-                        .build());
-            }
-            result.put(field.getKeyName(), tagValue.asString());
-        }
-        return result;
     }
 
     @Override
@@ -172,7 +154,7 @@ final class ImmutableTimeseriesDataPoint implements TimeseriesDataPoint {
     }
 
     @Override
-    public Map<String, String> getTags() {
+    public Map<String, JsonValue> getTags() {
         return tags;
     }
 
@@ -191,11 +173,7 @@ final class ImmutableTimeseriesDataPoint implements TimeseriesDataPoint {
                 .set(JsonFields.REVISION, revision);
 
         if (!tags.isEmpty()) {
-            final JsonObjectBuilder tagsBuilder = JsonFactory.newObjectBuilder();
-            for (final Map.Entry<String, String> entry : tags.entrySet()) {
-                tagsBuilder.set(JsonKey.of(entry.getKey()), entry.getValue());
-            }
-            builder.set(JsonFields.TAGS, tagsBuilder.build());
+            builder.set(JsonFields.TAGS, TagValues.toJson(tags));
         }
 
         if (unit != null) {

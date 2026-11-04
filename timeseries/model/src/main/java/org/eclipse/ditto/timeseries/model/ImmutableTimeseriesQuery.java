@@ -34,7 +34,6 @@ import org.eclipse.ditto.base.model.exceptions.DittoJsonException;
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonArrayBuilder;
 import org.eclipse.ditto.json.JsonFactory;
-import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonParseException;
@@ -68,7 +67,7 @@ final class ImmutableTimeseriesQuery implements TimeseriesQuery {
     @Nullable private final Double percentile;
     @Nullable private final String cursor;
     @Nullable private final SortOrder order;
-    private final Map<String, String> tagFilters;
+    private final Map<String, JsonValue> tagFilters;
 
     private ImmutableTimeseriesQuery(final ThingId thingId,
             final List<JsonPointer> paths,
@@ -82,7 +81,7 @@ final class ImmutableTimeseriesQuery implements TimeseriesQuery {
             @Nullable final Double percentile,
             @Nullable final String cursor,
             @Nullable final SortOrder order,
-            final Map<String, String> tagFilters) {
+            final Map<String, JsonValue> tagFilters) {
 
         this.thingId = thingId;
         this.paths = paths;
@@ -248,7 +247,7 @@ final class ImmutableTimeseriesQuery implements TimeseriesQuery {
         final SortOrder order = jsonObject.getValue(JsonFields.ORDER)
                 .map(s -> parseSortOrder(s))
                 .orElse(null);
-        final Map<String, String> tagFilters = jsonObject.getValue(JsonFields.TAG_FILTERS)
+        final Map<String, JsonValue> tagFilters = jsonObject.getValue(JsonFields.TAG_FILTERS)
                 .map(ImmutableTimeseriesQuery::tagFiltersFromJson)
                 .orElseGet(Collections::emptyMap);
 
@@ -257,13 +256,8 @@ final class ImmutableTimeseriesQuery implements TimeseriesQuery {
         return tagFilters.isEmpty() ? query : query.withTagFilters(tagFilters);
     }
 
-    private static Map<String, String> tagFiltersFromJson(final JsonObject tagFiltersJson) {
-        final Map<String, String> result = new LinkedHashMap<>();
-        for (final JsonField field : tagFiltersJson) {
-            final JsonValue value = field.getValue();
-            result.put(field.getKeyName(), value.isString() ? value.asString() : value.formatAsString());
-        }
-        return result;
+    private static Map<String, JsonValue> tagFiltersFromJson(final JsonObject tagFiltersJson) {
+        return TagValues.fromJson(tagFiltersJson, JsonFields.TAG_FILTERS.getPointer().toString());
     }
 
     private static List<JsonPointer> pathsFromJson(final JsonArray array) {
@@ -397,13 +391,24 @@ final class ImmutableTimeseriesQuery implements TimeseriesQuery {
     }
 
     @Override
-    public Map<String, String> getTagFilters() {
+    public Map<String, JsonValue> getTagFilters() {
         return tagFilters;
     }
 
     @Override
-    public TimeseriesQuery withTagFilters(final Map<String, String> newTagFilters) {
+    public TimeseriesQuery withTagFilters(final Map<String, JsonValue> newTagFilters) {
         checkNotNull(newTagFilters, "tagFilters");
+        for (final Map.Entry<String, JsonValue> entry : newTagFilters.entrySet()) {
+            final String key = entry.getKey();
+            if (key.isEmpty() || key.indexOf('.') >= 0 || key.indexOf('$') >= 0) {
+                throw TimeseriesQueryInvalidException.newBuilder("The tag filter key <" + key +
+                        "> is invalid: it must not be empty or contain '.' or '$'.").build();
+            }
+            if (entry.getValue() == null || !TagValues.isTagValue(entry.getValue())) {
+                throw TimeseriesQueryInvalidException.newBuilder("The tag filter value of <" + key +
+                        "> must be a string, number or boolean but was: " + entry.getValue()).build();
+            }
+        }
         return new ImmutableTimeseriesQuery(thingId, paths, from, to, step, aggregation, fillStrategy,
                 limit, timezone, percentile, cursor, order,
                 Collections.unmodifiableMap(new LinkedHashMap<>(newTagFilters)));

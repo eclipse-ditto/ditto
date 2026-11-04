@@ -142,8 +142,9 @@ get:
       description: |-
         Restrict the result to points whose resolved tags match every given `key:value` pair
         (comma-separated, logical AND) — e.g. `building:A,floor:2`. Tags are declared on the WoT
-        property's `ditto:timeseries` annotation and resolved at ingestion time. Applies to raw and
-        aggregated reads.
+        property's `ditto:timeseries` annotation and resolved at ingestion time. A value is read like
+        an RQL literal and compared with the tag's JSON type: `floor:2` matches the number 2,
+        `floor:"2"` the string "2". Applies to raw and aggregated reads.
       required: false
       schema:
         type: string

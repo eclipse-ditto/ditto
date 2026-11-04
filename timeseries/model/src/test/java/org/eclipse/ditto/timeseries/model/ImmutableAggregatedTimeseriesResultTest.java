@@ -42,9 +42,9 @@ public final class ImmutableAggregatedTimeseriesResultTest {
             TimeseriesDataValue.of(Instant.parse("2026-07-01T00:00:00Z"), JsonValue.of(21.5)),
             TimeseriesDataValue.of(Instant.parse("2026-07-01T01:00:00Z"), JsonValue.of(22.0)));
 
-    private static Map<String, String> group() {
-        final Map<String, String> group = new LinkedHashMap<>();
-        group.put("building", "A");
+    private static Map<String, JsonValue> group() {
+        final Map<String, JsonValue> group = new LinkedHashMap<>();
+        group.put("building", JsonValue.of("A"));
         return group;
     }
 
@@ -77,7 +77,7 @@ public final class ImmutableAggregatedTimeseriesResultTest {
     @Test
     public void jsonRoundTripsWithoutGroup() {
         final AggregatedTimeseriesResult underTest = AggregatedTimeseriesResult.of(
-                Collections.<String, String>emptyMap(), PATH, META, DATA);
+                Collections.<String, JsonValue>emptyMap(), PATH, META, DATA);
 
         assertThat(AggregatedTimeseriesResult.fromJson(underTest.toJson())).isEqualTo(underTest);
     }
@@ -93,7 +93,7 @@ public final class ImmutableAggregatedTimeseriesResultTest {
 
     @Test
     public void toJsonOmitsEmptyGroup() {
-        final JsonObject json = AggregatedTimeseriesResult.of(Collections.<String, String>emptyMap(),
+        final JsonObject json = AggregatedTimeseriesResult.of(Collections.<String, JsonValue>emptyMap(),
                 PATH, META, DATA).toJson();
 
         assertThat(json.getValue("group")).isEmpty();
@@ -108,6 +108,29 @@ public final class ImmutableAggregatedTimeseriesResultTest {
         assertThat(json.getValue("result")).isPresent();
         assertThat(json.getValue("path")).isPresent();
         assertThat(json.getValue("data")).isPresent();
+    }
+
+    @Test
+    public void jsonRoundTripsTypedAndNullGroupValues() {
+        final Map<String, JsonValue> group = new LinkedHashMap<>();
+        group.put("floor", JsonValue.of(2));
+        group.put("heated", JsonValue.of(true));
+        group.put("building", JsonValue.nullLiteral());
+        final AggregatedTimeseriesResult underTest = AggregatedTimeseriesResult.of(group, PATH, META, DATA);
+
+        final AggregatedTimeseriesResult parsed = AggregatedTimeseriesResult.fromJson(underTest.toJson());
+
+        assertThat(parsed).isEqualTo(underTest);
+        assertThat(parsed.getGroup()).containsExactlyEntriesOf(group);
+    }
+
+    @Test
+    public void rejectsObjectGroupValue() {
+        final Map<String, JsonValue> group =
+                Collections.<String, JsonValue>singletonMap("building", JsonObject.newBuilder().build());
+
+        assertThatExceptionOfType(IllegalArgumentException.class)
+                .isThrownBy(() -> AggregatedTimeseriesResult.of(group, PATH, META, DATA));
     }
 
     @Test
@@ -128,7 +151,7 @@ public final class ImmutableAggregatedTimeseriesResultTest {
                 AggregatedTimeseriesResult.of(group(), PATH, META, DATA);
 
         assertThatExceptionOfType(UnsupportedOperationException.class)
-                .isThrownBy(() -> underTest.getGroup().put("floor", "2"));
+                .isThrownBy(() -> underTest.getGroup().put("floor", JsonValue.of(2)));
         assertThatExceptionOfType(UnsupportedOperationException.class)
                 .isThrownBy(() -> underTest.getData().clear());
     }

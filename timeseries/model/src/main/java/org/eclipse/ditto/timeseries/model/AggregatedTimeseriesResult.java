@@ -18,6 +18,7 @@ import java.util.Map;
 import org.eclipse.ditto.base.model.json.Jsonifiable;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.json.JsonValue;
 
 /**
  * One aggregated series produced by a {@link CrossThingTimeseriesQuery}: the values for a single
@@ -36,14 +37,15 @@ public interface AggregatedTimeseriesResult extends Jsonifiable<JsonObject> {
      * Returns a new {@code AggregatedTimeseriesResult}.
      *
      * @param group the group identity: one entry per {@code groupBy} dimension, keyed by
-     * {@link GroupBy#getGroupKey()}. Empty when the query declared no grouping.
+     * {@link GroupBy#getGroupKey()}, with the tag's JSON value or JSON {@code null} for a series without that
+     * tag. Empty when the query declared no grouping.
      * @param path the path this series belongs to.
      * @param meta metadata about the data array.
      * @param data the aggregated values in chronological order; may be empty.
      * @return the new result.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    static AggregatedTimeseriesResult of(final Map<String, String> group,
+    static AggregatedTimeseriesResult of(final Map<String, JsonValue> group,
             final JsonPointer path,
             final TimeseriesResultMeta meta,
             final List<TimeseriesDataValue> data) {
@@ -66,7 +68,7 @@ public interface AggregatedTimeseriesResult extends Jsonifiable<JsonObject> {
     /**
      * @return the group identity; empty when the query declared no grouping dimensions.
      */
-    Map<String, String> getGroup();
+    Map<String, JsonValue> getGroup();
 
     /**
      * @return the path this series belongs to.

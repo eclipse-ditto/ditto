@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.timeseries.service.starter;
 
+import java.time.Duration;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
@@ -102,7 +103,12 @@ public final class TimeseriesRootActor extends DittoRootActor {
 
     private final DittoDiagnosticLoggingAdapter log = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
 
+    private static final Duration INIT_RETRY_MIN_DELAY = Duration.ofSeconds(1);
+    private static final Duration INIT_RETRY_MAX_DELAY = Duration.ofMinutes(1);
+
     private final TimeseriesAdapter adapter;
+    private final MongoDbTimeseriesAdapterConfig adapterConfig;
+    private Duration initRetryDelay = INIT_RETRY_MIN_DELAY;
 
     @SuppressWarnings("unused")
     private TimeseriesRootActor(final DittoServiceConfig timeseriesConfig,
@@ -164,13 +170,14 @@ public final class TimeseriesRootActor extends DittoRootActor {
         pubSubMediator.tell(DistPubSubAccess.put(aggregateActor), getSelf());
 
         // Null persistence checker: this service has no shared MongoDB persistence, the adapter
-        // owns its own connection.
+        // owns its own connection and is checked by TimeseriesAdapterHealthChecker.
         final var healthCheckConfig = DefaultHealthCheckConfig.of(timeseriesConfig);
         final var healthCheckingActorOptions = HealthCheckingActorOptions
                 .getBuilder(healthCheckConfig.isEnabled(), healthCheckConfig.getInterval())
                 .build();
         final ActorRef healthCheckingActor = startChildActor(DefaultHealthCheckingActorFactory.ACTOR_NAME,
-                DefaultHealthCheckingActorFactory.props(healthCheckingActorOptions, null));
+                DefaultHealthCheckingActorFactory.props(healthCheckingActorOptions, null,
+                        TimeseriesAdapterHealthChecker.props(adapter)));
         bindHttpStatusRoute(timeseriesConfig.getHttpConfig(), healthCheckingActor);
 
         // Piped back as an internal message so init failures surface in the log without blocking
@@ -178,12 +185,9 @@ public final class TimeseriesRootActor extends DittoRootActor {
         // services; timeseries tuning from `ditto.timeseries.adapter.mongodb`.
         final var dittoScopedConfig = DefaultScopedConfig.dittoScoped(rootConfig);
         final MongoDbConfig mongoDbConfig = DefaultMongoDbConfig.of(dittoScopedConfig);
-        final MongoDbTimeseriesAdapterConfig mongoConfig = DefaultMongoDbTimeseriesAdapterConfig.of(
+        adapterConfig = DefaultMongoDbTimeseriesAdapterConfig.of(
                 mongoDbConfig, rootConfig.getConfig(MONGODB_CONFIG_PATH));
-        final CompletionStage<Object> initStage = adapter.initialize(mongoConfig)
-                .<Object>thenApply(ignored -> AdapterInitialised.INSTANCE)
-                .exceptionally(AdapterInitFailed::new);
-        Patterns.pipe(initStage, getContext().getDispatcher()).to(getSelf());
+        initializeAdapter();
     }
 
     /**
@@ -202,12 +206,26 @@ public final class TimeseriesRootActor extends DittoRootActor {
         return receiveBuilder()
                 .match(AdapterInitialised.class, msg ->
                         log.info("Timeseries adapter initialised; health: {}", adapter.getHealth()))
-                .match(AdapterInitFailed.class, msg ->
-                        log.error(msg.getCause(),
-                                "Timeseries adapter initialisation failed; health remains: {}",
-                                adapter.getHealth()))
+                .match(AdapterInitFailed.class, this::scheduleAdapterInitRetry)
+                .matchEquals(RetryAdapterInit.INSTANCE, msg -> initializeAdapter())
                 .build()
                 .orElse(super.createReceive());
+    }
+
+    private void initializeAdapter() {
+        final CompletionStage<Object> initStage = adapter.initialize(adapterConfig)
+                .<Object>thenApply(ignored -> AdapterInitialised.INSTANCE)
+                .exceptionally(AdapterInitFailed::new);
+        Patterns.pipe(initStage, getContext().getDispatcher()).to(getSelf());
+    }
+
+    private void scheduleAdapterInitRetry(final AdapterInitFailed failed) {
+        log.error(failed.getCause(), "Timeseries adapter initialisation failed; health: {}, retrying in {}",
+                adapter.getHealth(), initRetryDelay);
+        getContext().getSystem().scheduler().scheduleOnce(initRetryDelay, getSelf(), RetryAdapterInit.INSTANCE,
+                getContext().getDispatcher(), getSelf());
+        final Duration doubled = initRetryDelay.multipliedBy(2);
+        initRetryDelay = doubled.compareTo(INIT_RETRY_MAX_DELAY) > 0 ? INIT_RETRY_MAX_DELAY : doubled;
     }
 
     /**
@@ -268,6 +286,10 @@ public final class TimeseriesRootActor extends DittoRootActor {
         private AdapterInitialised() {
             // singleton
         }
+    }
+
+    private enum RetryAdapterInit {
+        INSTANCE
     }
 
     /**

@@ -232,6 +232,8 @@ spec:
               value: "{{ .Values.global.featureFlags.policyEnforcementUseThroughputOptimizedEvaluatorEnabled }}"
             - name: DITTO_DEVOPS_FEATURE_STACKLESS_FLOW_CONTROL_EXCEPTIONS_ENABLED
               value: "{{ .Values.global.featureFlags.stacklessFlowControlExceptionsEnabled }}"
+            - name: DITTO_DEVOPS_FEATURE_TIMESERIES_ENABLED
+              value: "{{ .Values.timeseries.enabled }}"
             - name: PEKKO_COORDINATED_SHUTDOWN_PHASES_CLUSTER_SHARDING_SHUTDOWN_REGION
               value: "{{ .Values.connectivity.config.cluster.coordinatedShutdown.phases.clusterShardingShutdownRegion.timeout }}"
             - name: PEKKO_COORDINATED_SHUTDOWN_PHASES_CLUSTER_EXITING_TIMEOUT

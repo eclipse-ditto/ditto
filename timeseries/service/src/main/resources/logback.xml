@@ -12,15 +12,6 @@
   ~ SPDX-License-Identifier: EPL-2.0
   -->
 <configuration>
-
-    <!--
-      Brought to parity with the sibling services (things / policies / gateway / connectivity /
-      thingsearch), which each ship this file. Without it on the classpath, Logback falls back to its
-      built-in default: everything to console at DEBUG, no correlation-id in the pattern and no
-      per-logger levels — which is what a local (IDE) run of the timeseries service used to get.
-      In Kubernetes the Helm chart overrides this via -Dlogback.configurationFile, so deployments are
-      unaffected by this file's presence.
-    -->
     <statusListener class="ch.qos.logback.core.status.OnConsoleStatusListener"/>
 
     <appender name="STDERR" class="ch.qos.logback.core.ConsoleAppender">
@@ -33,20 +24,13 @@
         </filter>
     </appender>
 
-    <if condition='isDefined("DITTO_LOGGING_DISABLE_SYSOUT_LOG")'>
+    <condition class="ch.qos.logback.core.boolex.PropertyEqualityCondition">
+        <key>DITTO_LOGGING_DISABLE_SYSOUT_LOG</key>
+        <value>true</value>
+    </condition>
+    <if>
         <then>
-            <if condition='property("DITTO_LOGGING_DISABLE_SYSOUT_LOG").equals("true")'>
-                <then>
-                    <appender name="STDOUT" class="ch.qos.logback.core.helpers.NOPAppender"/>
-                </then>
-                <else>
-                    <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
-                        <encoder>
-                            <pattern>%date{ISO8601} %-5level [%X{correlation-id}][%X{traceparent-trace-id}] %logger{20} %X{pekkoSource} - %msg%n</pattern>
-                        </encoder>
-                    </appender>
-                </else>
-            </if>
+            <appender name="STDOUT" class="ch.qos.logback.core.helpers.NOPAppender"/>
         </then>
         <else>
             <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
@@ -57,7 +41,10 @@
         </else>
     </if>
 
-    <if condition='isDefined("DITTO_LOGGING_LOGSTASH_SERVER")'>
+    <condition class="ch.qos.logback.core.boolex.IsPropertyDefinedCondition">
+        <key>DITTO_LOGGING_LOGSTASH_SERVER</key>
+    </condition>
+    <if>
         <then>
             <appender name="stash" class="net.logstash.logback.appender.LogstashTcpSocketAppender">
                 <destination>${DITTO_LOGGING_LOGSTASH_SERVER}</destination>
@@ -67,7 +54,7 @@
 
                 <!-- Encoder is required -->
                 <encoder class="net.logstash.logback.encoder.LogstashEncoder">
-                    <customFields>{"appname":"things","instance_index":"${INSTANCE_INDEX}"}</customFields>
+                    <customFields>{"appname":"timeseries","instance_index":"${INSTANCE_INDEX}"}</customFields>
                 </encoder>
             </appender>
         </then>
@@ -76,7 +63,11 @@
         </else>
     </if>
 
-    <if condition='property("DITTO_LOGGING_FILE_APPENDER").equals("true")'>
+    <condition class="ch.qos.logback.core.boolex.PropertyEqualityCondition">
+        <key>DITTO_LOGGING_FILE_APPENDER</key>
+        <value>true</value>
+    </condition>
+    <if>
         <then>
             <appender name="file" class="ch.qos.logback.core.rolling.RollingFileAppender">
                 <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
@@ -93,7 +84,7 @@
                     <cleanHistoryOnStart>${DITTO_LOGGING_CLEAN_HISTORY_ON_START:-false}</cleanHistoryOnStart>
                 </rollingPolicy>
                 <encoder class="net.logstash.logback.encoder.LogstashEncoder">
-                    <customFields>{"appname":"things","instance_index":"${INSTANCE_INDEX}"}</customFields>
+                    <customFields>{"appname":"timeseries","instance_index":"${INSTANCE_INDEX}"}</customFields>
                 </encoder>
             </appender>
         </then>

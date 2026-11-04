@@ -108,7 +108,8 @@ final class ThingEventLeafExtractor {
 
     /**
      * Reduces {@code value} to scalar leaves. Objects descend one key at a time; arrays are
-     * skipped (a single data point is a scalar reading); scalars (incl. null) emit a leaf.
+     * skipped (a single data point is a scalar reading); {@code null}, which deletes the property in a
+     * merge patch, is skipped too; other scalars emit a leaf.
      */
     private static void flatten(final String featureId, final JsonPointer base, final JsonValue value,
             final List<PropertyLeaf> leaves) {
@@ -117,7 +118,7 @@ final class ThingEventLeafExtractor {
             for (final JsonField field : value.asObject()) {
                 flatten(featureId, base.addLeaf(field.getKey()), field.getValue(), leaves);
             }
-        } else if (!value.isArray()) {
+        } else if (!value.isArray() && !value.isNull()) {
             leaves.add(new PropertyLeaf(featureId, base, value));
         }
     }

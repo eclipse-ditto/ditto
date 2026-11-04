@@ -11,6 +11,20 @@
 
 A new Ditto microservice that **automatically captures Thing property changes over time** and provides a **unified query API for historical timeseries data**.
 
+### Phase 1 Scope
+
+The first, incubating implementation covers a subset of this design:
+
+| Area                 | Phase 1                                                                                                    | Deferred                                                                                                   |
+|----------------------|------------------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------|
+| Ingestion            | Feature properties annotated with `ditto:timeseries` in a feature submodel (§4.1, §4.3)                     | Thing-level ThingModel properties, i.e. attributes                                                         |
+| Single-Thing queries | `GET /api/2/timeseries/things/{thingId}/features/{featureId}/properties/{path}` and `GET /api/2/timeseries/things/{thingId}?paths=<p1>,<p2>` | `/attributes`, `/attributes/{path}`, `/features`, `/features/{featureId}`, `/features/{featureId}/properties`, the POST batch endpoints |
+| Cross-Thing queries  | `GET /api/2/timeseries/things?namespaces=<ns>&paths=…&step=…&agg=…`, one namespace per request              | `POST /api/2/timeseries/query`                                                                              |
+| Other channels       | Ditto Protocol via WebSocket and Connectivity for both query kinds                                         |                                                                                                            |
+| Rollout              | Disabled by default: `ditto.devops.feature.timeseries-enabled` / Helm `timeseries.enabled`                |                                                                                                            |
+
+Sections 4 and 7 describe the full design; the deferred parts are not available yet.
+
 ### What It Does
 
 | Capability                    | Description                                                                                         |

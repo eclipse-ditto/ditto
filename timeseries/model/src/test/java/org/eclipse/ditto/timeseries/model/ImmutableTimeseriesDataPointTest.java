@@ -44,13 +44,13 @@ public final class ImmutableTimeseriesDataPointTest {
     private static final Instant TIMESTAMP = Instant.parse("2026-01-15T10:30:00Z");
     private static final JsonValue VALUE = JsonValue.of(23.5);
     private static final long REVISION = 42L;
-    private static final Map<String, String> TAGS = sampleTags();
+    private static final Map<String, JsonValue> TAGS = sampleTags();
     private static final String UNIT = "cel";
 
-    private static Map<String, String> sampleTags() {
-        final Map<String, String> map = new LinkedHashMap<>();
-        map.put("attributes/building", "A");
-        map.put("attributes/floor", "2");
+    private static Map<String, JsonValue> sampleTags() {
+        final Map<String, JsonValue> map = new LinkedHashMap<>();
+        map.put("attributes/building", JsonValue.of("A"));
+        map.put("attributes/floor", JsonValue.of(2));
         return Collections.unmodifiableMap(map);
     }
 
@@ -71,7 +71,7 @@ public final class ImmutableTimeseriesDataPointTest {
         assertThat(underTest.getTimestamp()).isEqualTo(TIMESTAMP);
         assertThat((Object) underTest.getValue()).isEqualTo(VALUE);
         assertThat(underTest.getRevision()).isEqualTo(REVISION);
-        final Map<String, String> actualTags = underTest.getTags();
+        final Map<String, JsonValue> actualTags = underTest.getTags();
         assertThat(actualTags).containsAllEntriesOf(TAGS);
         final java.util.Optional<String> actualUnit = underTest.getUnit();
         assertThat(actualUnit).contains(UNIT);
@@ -124,6 +124,24 @@ public final class ImmutableTimeseriesDataPointTest {
     }
 
     @Test
+    public void factoryRejectsObjectTagValue() {
+        final Map<String, JsonValue> objectTags =
+                Collections.<String, JsonValue>singletonMap("attributes/location", JsonObject.newBuilder().build());
+
+        assertThatExceptionOfType(IllegalArgumentException.class).isThrownBy(() ->
+                TimeseriesDataPoint.of(THING_ID, PATH, TIMESTAMP, VALUE, REVISION, objectTags, UNIT));
+    }
+
+    @Test
+    public void factoryRejectsNullLiteralTagValue() {
+        final Map<String, JsonValue> nullTags =
+                Collections.singletonMap("attributes/floor", JsonValue.nullLiteral());
+
+        assertThatExceptionOfType(IllegalArgumentException.class).isThrownBy(() ->
+                TimeseriesDataPoint.of(THING_ID, PATH, TIMESTAMP, VALUE, REVISION, nullTags, UNIT));
+    }
+
+    @Test
     public void factoryRejectsObjectValue() {
         // The MongoDB Time Series collection's column-store layout cannot represent compound
         // values without flattening — and the aggregation path in later phases assumes one scalar
@@ -164,13 +182,13 @@ public final class ImmutableTimeseriesDataPointTest {
 
     @Test
     public void factoryDefensivelyCopiesTags() {
-        final Map<String, String> mutable = new LinkedHashMap<>();
-        mutable.put("attributes/building", "A");
+        final Map<String, JsonValue> mutable = new LinkedHashMap<>();
+        mutable.put("attributes/building", JsonValue.of("A"));
 
         final TimeseriesDataPoint underTest = TimeseriesDataPoint.of(
                 THING_ID, PATH, TIMESTAMP, VALUE, REVISION, mutable, null);
 
-        mutable.put("attributes/floor", "9");
+        mutable.put("attributes/floor", JsonValue.of(9));
 
         // The data point must not see the late-added entry.
         assertThat(underTest.getTags()).containsOnlyKeys("attributes/building");
@@ -208,11 +226,11 @@ public final class ImmutableTimeseriesDataPointTest {
         // JsonObjectBuilder.set(CharSequence, ...) would read such a key as a JSON *pointer* and nest
         // it into {"site":{"zone":…}}, which fromJson then reads back as a tag named "site" whose
         // value is an object -> DittoJsonException. It must stay one literal key instead.
-        final Map<String, String> slashTags = Collections.singletonMap("site/zone", "north");
+        final Map<String, JsonValue> slashTags = Collections.singletonMap("site/zone", JsonValue.of("north"));
         final TimeseriesDataPoint underTest = TimeseriesDataPoint.of(
                 THING_ID, PATH, TIMESTAMP, VALUE, REVISION, slashTags, UNIT);
 
-        final JsonObject tagsJson = underTest.toJson().getValue("tags").orElseThrow().asObject();
+        final JsonObject tagsJson = underTest.toJson().getValue("tags").get().asObject();
         assertThat(tagsJson.getKeys()).extracting(Object::toString).containsExactly("site/zone");
         assertThat(TimeseriesDataPoint.fromJson(underTest.toJson()).getTags()).isEqualTo(slashTags);
     }
@@ -295,9 +313,25 @@ public final class ImmutableTimeseriesDataPointTest {
     }
 
     @Test
-    public void fromJsonRejectsNonStringTagValue() {
+    public void roundTripPreservesNumberAndBooleanTagTypes() {
+        final Map<String, JsonValue> typedTags = new LinkedHashMap<>();
+        typedTags.put("attributes/floor", JsonValue.of(2));
+        typedTags.put("attributes/area", JsonValue.of(12.5));
+        typedTags.put("attributes/heated", JsonValue.of(true));
+        final TimeseriesDataPoint original =
+                TimeseriesDataPoint.of(THING_ID, PATH, TIMESTAMP, VALUE, REVISION, typedTags, UNIT);
+
+        final Map<String, JsonValue> parsedTags = TimeseriesDataPoint.fromJson(original.toJson()).getTags();
+
+        assertThat(parsedTags).containsExactlyEntriesOf(typedTags);
+        assertThat(parsedTags.get("attributes/floor").isNumber()).isTrue();
+        assertThat(parsedTags.get("attributes/heated").isBoolean()).isTrue();
+    }
+
+    @Test
+    public void fromJsonRejectsObjectTagValue() {
         final JsonObject tagsJson = JsonFactory.newObjectBuilder()
-                .set("attributes/floor", JsonValue.of(2))
+                .set("attributes/floor", JsonObject.newBuilder().set("level", 2).build())
                 .build();
         final JsonObject json = JsonFactory.newObjectBuilder()
                 .set("thingId", THING_ID.toString())

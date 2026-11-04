@@ -58,6 +58,14 @@ public final class TimeseriesRqlTranslatorTest {
     }
 
     @Test
+    public void numericLiteralIsComparedAsANumberAndQuotedLiteralAsAString() {
+        assertThat(render(TimeseriesRqlTranslator.translate("ge(attributes/floor,2)")))
+                .isEqualTo("{\"meta.tags.attributes/floor\": {\"$gte\": 2}}");
+        assertThat(render(TimeseriesRqlTranslator.translate("ge(attributes/floor,'2')")))
+                .isEqualTo("{\"meta.tags.attributes/floor\": {\"$gte\": \"2\"}}");
+    }
+
+    @Test
     public void inBecomesAnInFilter() {
         final String rendered = render(TimeseriesRqlTranslator.translate(
                 "in(attributes/floor,'1','2','3')"));

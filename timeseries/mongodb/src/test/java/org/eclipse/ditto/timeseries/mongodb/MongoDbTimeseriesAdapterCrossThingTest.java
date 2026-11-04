@@ -212,11 +212,11 @@ public final class MongoDbTimeseriesAdapterCrossThingTest {
                         seriesDocs, 1000, MAX_POINTS);
 
         assertThat(results).hasSize(2);
-        assertThat(results.get(0).getGroup()).containsEntry("building", "A");
+        assertThat(results.get(0).getGroup()).containsEntry("building", JsonValue.of("A"));
         assertThat((Object) results.get(0).getPath()).isEqualTo(PATH);
         assertThat(results.get(0).getData()).hasSize(2);
         assertThat(results.get(0).getMeta().getUnit()).contains("cel");
-        assertThat(results.get(1).getGroup()).containsEntry("building", "B");
+        assertThat(results.get(1).getGroup()).containsEntry("building", JsonValue.of("B"));
         assertThat(results.get(1).getData()).hasSize(1);
     }
 
@@ -321,7 +321,7 @@ public final class MongoDbTimeseriesAdapterCrossThingTest {
      * of keys, so clients can rely on a uniform shape.
      */
     @Test
-    public void foldSurfacesMissingTagValueAsEmptyString() {
+    public void foldSurfacesMissingTagValueAsJsonNull() {
         final List<Document> seriesDocs = Collections.singletonList(
                 new Document("_id", new Document("p", PATH.toString()).append("g_building", null))
                         .append("points", Collections.singletonList(bucket(FROM, 21.0)))
@@ -333,7 +333,23 @@ public final class MongoDbTimeseriesAdapterCrossThingTest {
                                 null, null, null),
                         seriesDocs, 1000, MAX_POINTS);
 
-        assertThat(results.get(0).getGroup()).containsEntry("building", "");
+        assertThat(results.get(0).getGroup()).containsEntry("building", JsonValue.nullLiteral());
+    }
+
+    @Test
+    public void foldSurfacesNumericTagValueAsJsonNumber() {
+        final List<Document> seriesDocs = Collections.singletonList(
+                new Document("_id", new Document("p", PATH.toString()).append("g_floor", 2))
+                        .append("points", Collections.singletonList(bucket(FROM, 21.0)))
+                        .append("unit", "cel"));
+
+        final List<AggregatedTimeseriesResult> results =
+                MongoDbTimeseriesAdapter.buildCrossThingResults(
+                        query(Collections.singletonList(GroupBy.tag("floor")),
+                                null, null, null),
+                        seriesDocs, 1000, MAX_POINTS);
+
+        assertThat(results.get(0).getGroup()).containsEntry("floor", JsonValue.of(2));
     }
 
     @Test

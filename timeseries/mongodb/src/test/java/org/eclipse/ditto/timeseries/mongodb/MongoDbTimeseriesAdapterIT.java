@@ -343,21 +343,21 @@ public final class MongoDbTimeseriesAdapterIT {
         final List<TimeseriesQueryResult> results = adapter.query(query).toCompletableFuture().get();
 
         assertThat(results.get(0).getMeta().getTags())
-                .containsEntry("attributes/building", "A")
-                .containsEntry("attributes/floor", "2");
+                .containsEntry("attributes/building", JsonValue.of("A"))
+                .containsEntry("attributes/floor", JsonValue.of(2));
     }
 
     @Test
     public void tagFilterSelectsMatchingPointsOnly() throws Exception {
         final Instant t = Instant.parse("2026-01-14T10:00:00Z");
         adapter.writeBatch(Arrays.asList(
-                dataPointWithTags(t, 1.0, Map.of("building", "A")),
-                dataPointWithTags(t.plusSeconds(1), 2.0, Map.of("building", "B")),
-                dataPointWithTags(t.plusSeconds(2), 3.0, Map.of("building", "A")))).toCompletableFuture().get();
+                dataPointWithTags(t, 1.0, Map.of("building", JsonValue.of("A"))),
+                dataPointWithTags(t.plusSeconds(1), 2.0, Map.of("building", JsonValue.of("B"))),
+                dataPointWithTags(t.plusSeconds(2), 3.0, Map.of("building", JsonValue.of("A"))))).toCompletableFuture().get();
 
         final TimeseriesQuery query = buildQuery(
                 Instant.parse("2026-01-14T09:00:00Z"), Instant.parse("2026-01-14T11:00:00Z"))
-                .withTagFilters(Map.of("building", "A"));
+                .withTagFilters(Map.of("building", JsonValue.of("A")));
         final List<TimeseriesDataValue> data =
                 adapter.query(query).toCompletableFuture().get().get(0).getData();
 
@@ -367,6 +367,24 @@ public final class MongoDbTimeseriesAdapterIT {
         }
         // Only the two building=A points, in time order; building=B is filtered out.
         assertThat(values).containsExactly(1.0, 3.0);
+    }
+
+    @Test
+    public void tagFilterMatchesTheStoredTagWithItsJsonType() throws Exception {
+        final Instant t = Instant.parse("2026-01-14T10:00:00Z");
+        adapter.writeBatch(Arrays.asList(
+                dataPointWithTags(t, 1.0, Map.of("floor", JsonValue.of(2))),
+                dataPointWithTags(t.plusSeconds(1), 2.0, Map.of("floor", JsonValue.of("2")))))
+                .toCompletableFuture().get();
+
+        final TimeseriesQuery numeric = buildQuery(
+                Instant.parse("2026-01-14T09:00:00Z"), Instant.parse("2026-01-14T11:00:00Z"))
+                .withTagFilters(Map.of("floor", JsonValue.of(2)));
+        final List<TimeseriesDataValue> data =
+                adapter.query(numeric).toCompletableFuture().get().get(0).getData();
+
+        assertThat(data).hasSize(1);
+        assertThat(data.get(0).getValue().orElseThrow().asDouble()).isEqualTo(1.0);
     }
 
     @Test
@@ -706,15 +724,15 @@ public final class MongoDbTimeseriesAdapterIT {
     private TimeseriesDataPoint dataPoint(final Instant timestamp, final double value,
             final JsonPointer path, final long revision) {
 
-        final Map<String, String> tags = new LinkedHashMap<>();
-        tags.put("attributes/building", "A");
-        tags.put("attributes/floor", "2");
+        final Map<String, JsonValue> tags = new LinkedHashMap<>();
+        tags.put("attributes/building", JsonValue.of("A"));
+        tags.put("attributes/floor", JsonValue.of(2));
         return TimeseriesDataPoint.of(
                 thingId, path, timestamp, JsonValue.of(value), revision, tags, "cel");
     }
 
     private TimeseriesDataPoint dataPointWithTags(final Instant timestamp, final double value,
-            final Map<String, String> tags) {
+            final Map<String, JsonValue> tags) {
         return TimeseriesDataPoint.of(
                 thingId, PATH, timestamp, JsonValue.of(value), 1L, tags, "cel");
     }

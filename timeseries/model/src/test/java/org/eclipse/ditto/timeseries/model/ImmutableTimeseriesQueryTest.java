@@ -532,19 +532,30 @@ public final class ImmutableTimeseriesQueryTest {
         final TimeseriesQuery underTest = TimeseriesQuery.of(THING_ID, PATHS, FROM, TO)
                 .withTagFilters(tagMap("building", "A"));
 
-        assertThat(underTest.getTagFilters()).containsEntry("building", "A");
+        assertThat(underTest.getTagFilters()).containsEntry("building", JsonValue.of("A"));
     }
 
     @Test
     public void tagFiltersRoundTripThroughJson() {
         final TimeseriesQuery original = TimeseriesQuery.of(THING_ID, PATHS, FROM, TO)
-                .withTagFilters(tagMap("building", "A", "floor", "2"));
+                .withTagFilters(tagMap("building", "A", "floor", JsonValue.of(2), "heated", JsonValue.of(true)));
 
         final JsonObject json = original.toJson();
         final TimeseriesQuery reconstructed = TimeseriesQuery.fromJson(json);
 
         assertThat(reconstructed).isEqualTo(original);
-        assertThat(reconstructed.getTagFilters()).containsEntry("building", "A").containsEntry("floor", "2");
+        assertThat(reconstructed.getTagFilters())
+                .containsEntry("building", JsonValue.of("A"))
+                .containsEntry("floor", JsonValue.of(2))
+                .containsEntry("heated", JsonValue.of(true));
+    }
+
+    @Test
+    public void tagFilterWithObjectValueIsRejected() {
+        final TimeseriesQuery query = TimeseriesQuery.of(THING_ID, PATHS, FROM, TO);
+
+        assertThatExceptionOfType(TimeseriesQueryInvalidException.class).isThrownBy(() ->
+                query.withTagFilters(tagMap("building", JsonObject.newBuilder().set("name", "A").build())));
     }
 
     @Test
@@ -552,10 +563,11 @@ public final class ImmutableTimeseriesQueryTest {
         assertThat(TimeseriesQuery.of(THING_ID, PATHS, FROM, TO).toJson().contains("tagFilters")).isFalse();
     }
 
-    private static Map<String, String> tagMap(final String... keyValues) {
-        final Map<String, String> map = new LinkedHashMap<>();
+    private static Map<String, JsonValue> tagMap(final Object... keyValues) {
+        final Map<String, JsonValue> map = new LinkedHashMap<>();
         for (int i = 0; i + 1 < keyValues.length; i += 2) {
-            map.put(keyValues[i], keyValues[i + 1]);
+            final Object value = keyValues[i + 1];
+            map.put((String) keyValues[i], value instanceof JsonValue ? (JsonValue) value : JsonValue.of((String) value));
         }
         return map;
     }
@@ -569,5 +581,22 @@ public final class ImmutableTimeseriesQueryTest {
                         .build())
                 .set("from", FROM.toString())
                 .set("to", TO.toString());
+    }
+
+    @Test
+    public void tagFilterKeysWithDotsOrDollarsOrEmptyAreRejected() {
+        final TimeseriesQuery query = TimeseriesQuery.of(THING_ID, SINGLE_PATH, FROM, TO, null, null, null, null, null);
+        for (final String key : Arrays.asList("", "attributes.owner", "$where", "attributes/$gt")) {
+            assertThatExceptionOfType(TimeseriesQueryInvalidException.class)
+                    .isThrownBy(() -> query.withTagFilters(Collections.singletonMap(key, JsonValue.of("alice"))));
+        }
+    }
+
+    @Test
+    public void tagFilterKeyWithSlashIsAccepted() {
+        final TimeseriesQuery query = TimeseriesQuery.of(THING_ID, SINGLE_PATH, FROM, TO, null, null, null, null, null)
+                .withTagFilters(Collections.singletonMap("attributes/owner", JsonValue.of("alice")));
+
+        assertThat(query.getTagFilters()).containsEntry("attributes/owner", JsonValue.of("alice"));
     }
 }

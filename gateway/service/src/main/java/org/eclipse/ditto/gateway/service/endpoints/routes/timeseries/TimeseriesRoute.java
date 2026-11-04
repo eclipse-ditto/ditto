@@ -150,6 +150,7 @@ public final class TimeseriesRoute extends AbstractRoute {
                                 rawPathPrefix(PathMatchers.slash().concat(PathMatchers.segment()),
                                         thingIdString -> {
                                             final ThingId thingId = ThingId.of(thingIdString);
+                                            requireNamespaceAccessible(thingId.getNamespace(), dittoHeaders);
                                             return concat(
                                                     // GET /timeseries/things/{id}/features/{f}/properties/{path}
                                                     singlePropertyRoute(ctx, dittoHeaders, thingId),
@@ -375,7 +376,7 @@ public final class TimeseriesRoute extends AbstractRoute {
         final String cursor = cursorOpt.map(String::trim).filter(s -> !s.isEmpty()).orElse(null);
         final SortOrder order = orderOpt.map(String::trim).filter(s -> !s.isEmpty())
                 .map(TimeseriesRoute::parseOrderParam).orElse(null);
-        final Map<String, String> tagFilters = tagFilterOpt.map(String::trim).filter(s -> !s.isEmpty())
+        final Map<String, JsonValue> tagFilters = tagFilterOpt.map(String::trim).filter(s -> !s.isEmpty())
                 .map(TimeseriesRoute::parseTagFiltersParam).orElseGet(Map::of);
         // Semantic validation (e.g. percentile requires a value, group aggregations require a step,
         // order=desc only for raw reads) lives in TimeseriesQuery.of so it applies uniformly across
@@ -463,10 +464,12 @@ public final class TimeseriesRoute extends AbstractRoute {
 
     /**
      * Parses the {@code tagFilter} parameter — a comma-separated list of {@code key:value} pairs
-     * (split on the first colon so values may contain colons) — into a tag-filter map.
+     * (split on the first colon so values may contain colons) — into a tag-filter map. A value is read
+     * like an RQL literal: {@code floor:2} is a number, {@code floor:"2"} a string, {@code building:A} a
+     * string.
      */
-    private static Map<String, String> parseTagFiltersParam(final String csv) {
-        final Map<String, String> filters = new LinkedHashMap<>();
+    private static Map<String, JsonValue> parseTagFiltersParam(final String csv) {
+        final Map<String, JsonValue> filters = new LinkedHashMap<>();
         for (final String raw : csv.split(",")) {
             final String pair = raw.trim();
             if (pair.isEmpty()) {
@@ -477,13 +480,25 @@ public final class TimeseriesRoute extends AbstractRoute {
                 throw invalidParam(PARAM_TAG_FILTER, csv,
                         "Expected comma-separated key:value pairs, e.g. building:A,floor:2.");
             }
-            filters.put(pair.substring(0, colon).trim(), pair.substring(colon + 1).trim());
+            filters.put(pair.substring(0, colon).trim(), parseTagFilterValue(pair.substring(colon + 1).trim()));
         }
         if (filters.isEmpty()) {
             throw invalidParam(PARAM_TAG_FILTER, csv,
                     "Expected at least one key:value pair, e.g. building:A.");
         }
         return filters;
+    }
+
+    private static JsonValue parseTagFilterValue(final String value) {
+        try {
+            final JsonValue literal = JsonFactory.readFrom(value);
+            if (literal.isNumber() || literal.isBoolean() || literal.isString()) {
+                return literal;
+            }
+        } catch (final RuntimeException e) {
+            // not a JSON literal, so a plain string
+        }
+        return JsonValue.of(value);
     }
 
     private static Double parsePercentileParam(final String value) {

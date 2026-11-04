@@ -38,9 +38,12 @@ import org.apache.pekko.testkit.javadsl.TestKit;
 import org.eclipse.ditto.base.model.auth.AuthorizationContext;
 import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
 import org.eclipse.ditto.base.model.auth.DittoAuthorizationContextType;
+import org.eclipse.ditto.base.model.common.HttpStatus;
+import org.eclipse.ditto.base.model.exceptions.AskException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.internal.utils.cache.entry.Entry;
 import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.policies.enforcement.PolicyEnforcer;
 import org.eclipse.ditto.policies.enforcement.PolicyEnforcerProvider;
 import org.eclipse.ditto.policies.enforcement.config.DefaultNamespacePoliciesConfig;
@@ -494,6 +497,20 @@ public final class TimeseriesAggregateActorEnforcementTest {
         }};
     }
 
+    @Test
+    public void thingWhoseAccessCannotBeVerifiedFailsTheAggregation() {
+        new TestKit(actorSystem) {{
+            final Fixture f = new Fixture();
+            f.failingPolicies = Set.of(policyIdOf(THING_B));
+            f.start("narrow-failing-policy-load");
+            f.ask(this, List.of(PATH));
+
+            final AskException failure = expectMsgClass(AskException.class);
+            assertThat(failure.getHttpStatus()).isEqualTo(HttpStatus.SERVICE_UNAVAILABLE);
+            assertThat(f.adapter.allowList.get()).isNull();
+        }};
+    }
+
     /**
      * Verifying a truncated contributor set would silently authorize whatever fell off the end, so
      * exceeding the ceiling fails the request — the same discipline as the group cap.
@@ -663,6 +680,7 @@ public final class TimeseriesAggregateActorEnforcementTest {
         private Set<ThingId> unknownThings = Set.of();
         private Set<ThingId> thingsWithoutPolicy = Set.of();
         private Set<PolicyId> unloadablePolicies = Set.of();
+        private Set<PolicyId> failingPolicies = Set.of();
         @Nullable private PolicyEnforcerProvider enforcers;
         private ActorRef actor;
 
@@ -676,6 +694,9 @@ public final class TimeseriesAggregateActorEnforcementTest {
             final PolicyEnforcerProvider provider = enforcers != null ? enforcers : policyId -> {
                 if (unloadablePolicies.contains(policyId)) {
                     return CompletableFuture.completedFuture(Optional.empty());
+                }
+                if (failingPolicies.contains(policyId)) {
+                    return CompletableFuture.failedFuture(new IllegalStateException("policy cache unavailable"));
                 }
                 final Policy policy = ROOT_POLICY_ID.equals(policyId)
                         ? rootPolicy
@@ -797,6 +818,44 @@ public final class TimeseriesAggregateActorEnforcementTest {
                     "and(eq(attributes/building,'A'),ge(attributes/floor,2))", headersFor(SUBJECT_ID, "cid")), getRef());
 
             expectMsgClass(RetrieveAggregatedTimeseriesResponse.class);
+        }};
+    }
+
+    /** An {@code explicit} root entry is never merged into the namespace's Things, so it grants no field. */
+    @Test
+    public void fieldGrantedOnlyByNonImplicitRootEntryIsForbidden() {
+        new TestKit(actorSystem) {{
+            final Fixture f = new Fixture();
+            final Policy explicitRead = PoliciesModelFactory.newPolicy(policyJson(ROOT_POLICY_ID, "BUILDING",
+                    Map.of("thing:/attributes/building", grant(Permission.READ)), "explicit"));
+            f.rootPolicy = grantingPolicy(Permission.READ_TS, "thing:/", "implicit")
+                    .setEntry(explicitRead.getEntryFor("BUILDING").get());
+            f.start("layer1-explicit-field-grant");
+            f.actor.tell(commandWithFields(List.of(PATH), List.of(GroupBy.thingId()),
+                    "eq(attributes/building,'A')", headersFor(SUBJECT_ID, "cid")), getRef());
+
+            expectMsgClass(TimeseriesAggregationForbiddenException.class);
+            assertThat(f.adapter.discoveryInvoked).isFalse();
+        }};
+    }
+
+    @Test
+    public void thingRevokingReadOnFilterFieldIsExcluded() {
+        new TestKit(actorSystem) {{
+            final Fixture f = new Fixture();
+            final String readAndReadTs = "{\"grant\":[\"READ\",\"READ_TS\"],\"revoke\":[]}";
+            f.thingPolicy = PoliciesModelFactory.newPolicy(policyJson(ROOT_POLICY_ID, "owner",
+                    Map.of("thing:/", readAndReadTs), "never"));
+            f.perThingPolicies.put(policyIdOf(THING_B),
+                    PoliciesModelFactory.newPolicy(policyJson(policyIdOf(THING_B), "owner",
+                            Map.of("thing:/", readAndReadTs,
+                                    "thing:/attributes/building", revoke(Permission.READ)), "never")));
+            f.start("narrow-field-revoked");
+            f.actor.tell(commandWithFields(List.of(PATH), List.of(GroupBy.thingId()),
+                    "eq(attributes/building,'A')", headersFor(SUBJECT_ID, "cid")), getRef());
+
+            expectMsgClass(RetrieveAggregatedTimeseriesResponse.class);
+            assertThat(f.adapter.allowList.get()).containsExactly(Map.entry(PATH, List.of(THING_A)));
         }};
     }
 
@@ -986,7 +1045,7 @@ public final class TimeseriesAggregateActorEnforcementTest {
                 return CompletableFuture.failedFuture(new IllegalStateException("must not run"));
             }
             return CompletableFuture.completedFuture(List.of(AggregatedTimeseriesResult.of(
-                    Map.of("building", "A"), query.getPaths().get(0),
+                    Map.of("building", JsonValue.of("A")), query.getPaths().get(0),
                     TimeseriesResultMeta.of(0, "cel", "number"), List.of())));
         }
     }

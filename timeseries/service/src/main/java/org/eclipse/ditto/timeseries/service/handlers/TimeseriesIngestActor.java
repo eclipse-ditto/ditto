@@ -30,10 +30,11 @@ import java.util.concurrent.CompletionStage;
 
 import javax.annotation.Nullable;
 
-import org.apache.pekko.actor.AbstractActorWithTimers;
+import org.apache.pekko.actor.AbstractActor;
 import org.apache.pekko.actor.ActorRef;
 import org.apache.pekko.actor.PoisonPill;
 import org.apache.pekko.actor.Props;
+import org.apache.pekko.actor.ReceiveTimeout;
 import org.apache.pekko.actor.Status;
 import org.apache.pekko.cluster.sharding.ShardRegion;
 import org.apache.pekko.pattern.Patterns;
@@ -45,6 +46,8 @@ import org.eclipse.ditto.internal.utils.metrics.instruments.counter.Counter;
 import org.eclipse.ditto.internal.utils.pekko.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.pekko.logging.ThreadSafeDittoLogger;
+import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.policies.enforcement.PolicyEnforcer;
 import org.eclipse.ditto.policies.enforcement.PolicyEnforcerProvider;
@@ -130,7 +133,7 @@ import org.eclipse.ditto.timeseries.model.signals.commands.RetrieveTimeseriesRes
  * in-flight writes). Cluster sharding re-creates it on the next message for this
  * Thing.
  */
-public final class TimeseriesIngestActor extends AbstractActorWithTimers {
+public final class TimeseriesIngestActor extends AbstractActor {
 
     /**
      * Thread-safe logger for the read path: the enforcement chain
@@ -150,8 +153,6 @@ public final class TimeseriesIngestActor extends AbstractActorWithTimers {
      * concern.
      */
     static final long PASSIVATION_TIMEOUT_SECONDS = 300;
-
-    private static final Object PASSIVATE_TICK = new Object();
 
     /**
      * Counter incremented every time {@code adapter.writeBatch} fails for a batch. Visible
@@ -183,6 +184,9 @@ public final class TimeseriesIngestActor extends AbstractActorWithTimers {
      * request to a sharded actor that should respond promptly; longer timeouts only mask issues.
      */
     private static final Duration THING_LOOKUP_TIMEOUT = Duration.ofSeconds(5);
+
+    private static final JsonFieldSelector POLICY_ID_SELECTOR =
+            JsonFactory.newFieldSelector(Thing.JsonFields.POLICY_ID);
 
     private final DittoDiagnosticLoggingAdapter log =
             DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
@@ -286,8 +290,7 @@ public final class TimeseriesIngestActor extends AbstractActorWithTimers {
     @Override
     public void preStart() throws Exception {
         super.preStart();
-        getTimers().startTimerWithFixedDelay(PASSIVATE_TICK, PASSIVATE_TICK,
-                Duration.ofSeconds(PASSIVATION_TIMEOUT_SECONDS));
+        getContext().setReceiveTimeout(Duration.ofSeconds(PASSIVATION_TIMEOUT_SECONDS));
     }
 
     @Override
@@ -296,7 +299,7 @@ public final class TimeseriesIngestActor extends AbstractActorWithTimers {
                 .match(IngestDataPoints.class, this::handleIngest)
                 .match(RetrieveTimeseries.class, this::handleRetrieveTimeseries)
                 .match(WriteCompleted.class, this::handleWriteCompleted)
-                .matchEquals(PASSIVATE_TICK, t -> maybePassivate())
+                .match(ReceiveTimeout.class, t -> maybePassivate())
                 .build();
     }
 
@@ -429,7 +432,7 @@ public final class TimeseriesIngestActor extends AbstractActorWithTimers {
     private CompletionStage<List<JsonPointer>> enforce(final RetrieveTimeseries command) {
         final ThingId queryThingId = command.getEntityId();
         final DittoHeaders headers = command.getDittoHeaders();
-        final SudoRetrieveThing sudo = SudoRetrieveThing.of(queryThingId, headers);
+        final SudoRetrieveThing sudo = SudoRetrieveThing.of(queryThingId, POLICY_ID_SELECTOR, headers);
         return Patterns.ask(thingsShardRegion, sudo, THING_LOOKUP_TIMEOUT)
                 .thenCompose(reply -> resolveSudoReply(reply, queryThingId, headers))
                 .thenCompose(thing -> loadEnforcer(thing, queryThingId, headers))
@@ -506,6 +509,22 @@ public final class TimeseriesIngestActor extends AbstractActorWithTimers {
                 simplifiedReadPermission ? Permission.READ : Permission.READ_TS;
         final Permissions required = Permissions.newInstance(requiredPermission);
         final List<JsonPointer> requested = command.getQuery().getPaths();
+        // Filtering by a tag discloses its value through empty vs. non-empty results, so it needs READ on the
+        // field the tag is keyed by, as for the filter of a cross-Thing aggregation.
+        final Permissions read = Permissions.newInstance(Permission.READ);
+        for (final String tagKey : command.getQuery().getTagFilters().keySet()) {
+            final JsonPointer field = JsonPointer.of(tagKey.startsWith("/") ? tagKey : "/" + tagKey);
+            if (!enforcerWithContext.enforcer.hasUnrestrictedPermissions(PoliciesResourceType.thingResource(field),
+                    enforcerWithContext.authorizationContext, read)) {
+                LOGGER.withCorrelationId(command.getDittoHeaders())
+                        .info("Subject <{}> denied 'READ' on tag filter field <{}> for thing <{}>.",
+                                enforcerWithContext.authorizationContext.getAuthorizationSubjectIds(), field,
+                                command.getEntityId());
+                throw ThingNotAccessibleException.newBuilder(command.getEntityId())
+                        .dittoHeaders(command.getDittoHeaders())
+                        .build();
+            }
+        }
         final List<JsonPointer> permitted = new ArrayList<>(requested.size());
         final List<JsonPointer> denied = new ArrayList<>();
         for (final JsonPointer path : requested) {

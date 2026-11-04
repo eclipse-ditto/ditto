@@ -136,8 +136,35 @@ public final class TimeseriesIngestPublisherTest {
             shardProbe.reply(IngestDataPointsResponse.of(THING_ID, command.getDittoHeaders()));
 
             assertThat(command.getDataPoints().get(0).getTags())
-                    .containsEntry("building", "A")
-                    .containsEntry("env", "prod");
+                    .containsEntry("building", JsonValue.of("A"))
+                    .containsEntry("env", JsonValue.of("prod"));
+        }};
+    }
+
+    @Test
+    public void singleThingJsonPlaceholderTagKeepsTheFieldsJsonType() {
+        new TestKit(actorSystem) {{
+            final TestProbe shardProbe = new TestProbe(actorSystem);
+            final WotThingModelResolver resolver = resolverWith(annotatedSubmodel("ALL", Map.of(
+                    "floor", "{{ thing-json:attributes/floor }}",
+                    "label", "floor-{{ thing-json:attributes/floor }}",
+                    "env", "2")));
+            final Thing thing = thingWithDefinitionAndAttributes()
+                    .setAttribute(JsonPointer.of("floor"), JsonValue.of(2));
+
+            final ActorRef publisher = actorSystem.actorOf(
+                    TimeseriesIngestPublisher.props(shardProbe.ref(), resolver, Duration.ofSeconds(2)));
+
+            publisher.tell(new TimeseriesIngestPublisher.IngestRequest(
+                    sampleEvent(JsonValue.of(21.5)), thing), getRef());
+
+            final IngestDataPoints command = shardProbe.expectMsgClass(IngestDataPoints.class);
+            shardProbe.reply(IngestDataPointsResponse.of(THING_ID, command.getDittoHeaders()));
+
+            assertThat(command.getDataPoints().get(0).getTags())
+                    .containsEntry("floor", JsonValue.of(2))
+                    .containsEntry("label", JsonValue.of("floor-2"))
+                    .containsEntry("env", JsonValue.of("2"));
         }};
     }
 
@@ -161,7 +188,7 @@ public final class TimeseriesIngestPublisherTest {
             shardProbe.reply(IngestDataPointsResponse.of(THING_ID, command.getDittoHeaders()));
 
             assertThat(command.getDataPoints().get(0).getTags())
-                    .containsEntry("env", "prod")
+                    .containsEntry("env", JsonValue.of("prod"))
                     .doesNotContainKey("floor");
         }};
     }
@@ -268,6 +295,28 @@ public final class TimeseriesIngestPublisherTest {
             assertThat(second.getDittoHeaders().getCorrelationId())
                     .isEqualTo(first.getDittoHeaders().getCorrelationId());
 
+            shardProbe.reply(IngestDataPointsResponse.of(THING_ID, second.getDittoHeaders()));
+        }};
+    }
+
+    @Test
+    public void retryIsDelayedByBackoff() {
+        new TestKit(actorSystem) {{
+            final TestProbe shardProbe = new TestProbe(actorSystem);
+            final WotThingModelResolver resolver = resolverWith(annotatedSubmodel("ALL", Map.of()));
+
+            final ActorRef publisher = actorSystem.actorOf(
+                    TimeseriesIngestPublisher.props(shardProbe.ref(), resolver, Duration.ofSeconds(2)));
+
+            publisher.tell(new TimeseriesIngestPublisher.IngestRequest(
+                    sampleEvent(JsonValue.of(21.5)), thingWithDefinition()), getRef());
+
+            shardProbe.expectMsgClass(IngestDataPoints.class);
+            shardProbe.reply(new Status.Failure(new RuntimeException("backend hiccup")));
+
+            shardProbe.expectNoMessage(scala.concurrent.duration.Duration.create(
+                    TimeseriesIngestPublisher.RETRY_BACKOFF.toMillis() - 100, TimeUnit.MILLISECONDS));
+            final IngestDataPoints second = shardProbe.expectMsgClass(IngestDataPoints.class);
             shardProbe.reply(IngestDataPointsResponse.of(THING_ID, second.getDittoHeaders()));
         }};
     }

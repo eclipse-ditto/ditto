@@ -65,6 +65,8 @@ A data point can carry **tags** — labels frozen onto the point at the moment i
 }
 ```
 
+A tag declared as exactly one `{{ thing-json:<path> }}` keeps the JSON type of that field, so a number stays a number and `ge(attributes/floor,2)` compares numerically; constants and other expressions are strings.
+
 Tag keys are full thing paths, which is what makes them checkable as [policy](basic-policy.html) resources. A tag whose placeholder resolves to no value on a given thing is simply omitted from that point rather than stored empty, so one shared model can declare tags that only some things carry.
 
 Because tags are frozen at ingest, they describe **the state of the world when the measurement was taken**. For a thing moved from building A to building B, points recorded while it was in A keep `building=A` forever. This is deliberate, and it differs from selecting things by their current attributes.
@@ -85,7 +87,7 @@ GET /api/2/timeseries/things/{thingId}?paths=<p1>,<p2>,...
 | `fill` | `linear` interpolates empty interior buckets; `previous` carries the last value forward. |
 | `tz` | Zone the bucket grid aligns to (DST-aware). |
 | `limit`, `cursor`, `order` | Keyset pagination and sort direction on raw reads. |
-| `tagFilter` | Comma-separated `key:value` tag predicates. |
+| `tagFilter` | Comma-separated `key:value` tag predicates. A value is read like an RQL literal: `floor:2` matches the number 2, `floor:"2"` the string. |
 | `timeFormat` | `ms` emits epoch millis instead of ISO-8601. |
 
 At most **100 paths** per request.
@@ -123,7 +125,7 @@ Exactly one namespace per request: storage is one collection per namespace, so s
 - `path` — one series per requested path (implicit, since results are always per path; declaring it only adds the path to the emitted group);
 - a **tag path** such as `attributes/building` — one series per distinct value of that ingest-time tag.
 
-Grouping by a tag requires `READ` on the referenced field, because the distinct values are themselves disclosure. Anything that is not `thingId` or `path` is read as a tag path, so a mistyped dimension yields a single group with an empty value rather than an error.
+Grouping by a tag requires `READ` on the referenced field, because the distinct values are themselves disclosure. Anything that is not `thingId` or `path` is read as a tag path, so a mistyped dimension yields a single group with a `null` value rather than an error.
 
 ### Filtering
 

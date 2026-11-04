@@ -20,6 +20,7 @@ import static org.assertj.core.api.Assertions.assertThatNullPointerException;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
+import org.eclipse.ditto.base.model.exceptions.DittoJsonException;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonMissingFieldException;
 import org.eclipse.ditto.json.JsonObject;
@@ -152,7 +153,7 @@ public final class ImmutableTimeseriesResultMetaTest {
         final TimeseriesResultMeta underTest = TimeseriesResultMeta.of(24, "cel", "number",
                 tagMap("building", "A"), true, "abc123");
 
-        assertThat(underTest.getTags()).containsEntry("building", "A");
+        assertThat(underTest.getTags()).containsEntry("building", JsonValue.of("A"));
         assertThat(underTest.getHasMore()).contains(true);
         assertThat(underTest.getNextCursor()).contains("abc123");
     }
@@ -190,12 +191,32 @@ public final class ImmutableTimeseriesResultMetaTest {
     @Test
     public void roundTripPreservesTagsAndPaginationMeta() {
         final TimeseriesResultMeta original = TimeseriesResultMeta.of(24, "cel", "number",
-                tagMap("building", "A", "floor", "2"), true, "abc123");
+                tagMap("building", "A", "floor", JsonValue.of(2), "heated", JsonValue.of(true)), true, "abc123");
 
         final TimeseriesResultMeta reconstructed = TimeseriesResultMeta.fromJson(original.toJson());
 
         assertThat(reconstructed).isEqualTo(original);
-        assertThat(reconstructed.getTags()).containsEntry("building", "A").containsEntry("floor", "2");
+        assertThat(reconstructed.getTags())
+                .containsEntry("building", JsonValue.of("A"))
+                .containsEntry("floor", JsonValue.of(2))
+                .containsEntry("heated", JsonValue.of(true));
+        assertThat(reconstructed.getTags().get("floor").isNumber()).isTrue();
+    }
+
+    @Test
+    public void factoryRejectsObjectTagValue() {
+        assertThatIllegalArgumentException().isThrownBy(() -> TimeseriesResultMeta.of(24, "cel", "number",
+                tagMap("building", JsonObject.newBuilder().set("name", "A").build()), null, null));
+    }
+
+    @Test
+    public void fromJsonRejectsArrayTagValue() {
+        final JsonObject json = TimeseriesResultMeta.of(24, "cel", "number").toJson()
+                .setValue("tags", JsonObject.newBuilder()
+                        .set("building", JsonFactory.newArrayBuilder().add("A").build())
+                        .build());
+
+        assertThatExceptionOfType(DittoJsonException.class).isThrownBy(() -> TimeseriesResultMeta.fromJson(json));
     }
 
     @Test
@@ -204,10 +225,11 @@ public final class ImmutableTimeseriesResultMetaTest {
                 .isThrownBy(() -> TimeseriesResultMeta.of(0, null, "number", null, null, null));
     }
 
-    private static Map<String, String> tagMap(final String... keyValues) {
-        final Map<String, String> map = new LinkedHashMap<>();
+    private static Map<String, JsonValue> tagMap(final Object... keyValues) {
+        final Map<String, JsonValue> map = new LinkedHashMap<>();
         for (int i = 0; i + 1 < keyValues.length; i += 2) {
-            map.put(keyValues[i], keyValues[i + 1]);
+            final Object value = keyValues[i + 1];
+            map.put((String) keyValues[i], value instanceof JsonValue ? (JsonValue) value : JsonValue.of((String) value));
         }
         return map;
     }

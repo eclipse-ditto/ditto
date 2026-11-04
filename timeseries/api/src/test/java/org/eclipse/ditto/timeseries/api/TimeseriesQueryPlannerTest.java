@@ -25,6 +25,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
 import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.timeseries.model.Aggregation;
 import org.eclipse.ditto.timeseries.model.FillStrategy;
@@ -191,7 +192,7 @@ public final class TimeseriesQueryPlannerTest {
         final TimeseriesQueryPlanner portablePlanner = new TimeseriesQueryPlanner(
                 capabilityAdapter(false, scanned, List.of()));
         final TimeseriesQuery tagFiltered = TimeseriesQuery.of(THING, List.of(FLOW), FROM, TO)
-                .withTagFilters(Map.of("building", "A"));
+                .withTagFilters(Map.of("building", JsonValue.of("A")));
 
         // The kernel path scans (timestamp, value) points that carry no tags, so it cannot honour a
         // tag filter. The planner must fail loud rather than silently return unfiltered data — and

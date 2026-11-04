@@ -24,6 +24,7 @@ import org.eclipse.ditto.base.model.json.Jsonifiable;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonValue;
 
 /**
  * Metadata about the {@code data} array in a {@link TimeseriesQueryResult}: how many points were
@@ -70,7 +71,7 @@ public interface TimeseriesResultMeta extends Jsonifiable<JsonObject> {
     static TimeseriesResultMeta of(final int count,
             @Nullable final String unit,
             final String dataType,
-            final Map<String, String> tags,
+            final Map<String, JsonValue> tags,
             @Nullable final Boolean hasMore,
             @Nullable final String nextCursor) {
 
@@ -108,7 +109,7 @@ public interface TimeseriesResultMeta extends Jsonifiable<JsonObject> {
      * @return the resolved tags of the series, as stored with the data points. Always non-null; may
      * be empty (no declared tags, or an aggregated read). The returned map is unmodifiable.
      */
-    Map<String, String> getTags();
+    Map<String, JsonValue> getTags();
 
     /**
      * @return whether more data matched the query than this page returned. Present only for
