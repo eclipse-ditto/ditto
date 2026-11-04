@@ -369,6 +369,55 @@ public final class ThingPredicatePredicateVisitorTest {
         ).isTrue();
     }
 
+    @Test
+    public void matchingViaMultiValuedPlaceholderFirstValueEq() {
+        doTest(sutWithPlaceholderResolver.visitEq(KNOWN_PLACEHOLDER_VALUE.toLowerCase()), "test:both")
+                .isTrue();
+    }
+
+    @Test
+    public void matchingViaMultiValuedPlaceholderSecondValueEq() {
+        doTest(sutWithPlaceholderResolver.visitEq(KNOWN_PLACEHOLDER_VALUE.toUpperCase()), "test:both")
+                .isTrue();
+    }
+
+    @Test
+    public void nonMatchingViaMultiValuedPlaceholderEq() {
+        doTest(sutWithPlaceholderResolver.visitEq(KNOWN_PLACEHOLDER_VALUE), "test:both")
+                .isFalse();
+    }
+
+    @Test
+    public void nonMatchingViaMultiValuedPlaceholderSecondValueNe() {
+        doTest(sutWithPlaceholderResolver.visitNe(KNOWN_PLACEHOLDER_VALUE.toUpperCase()), "test:both")
+                .isFalse();
+    }
+
+    @Test
+    public void matchingViaMultiValuedPlaceholderNe() {
+        doTest(sutWithPlaceholderResolver.visitNe(KNOWN_PLACEHOLDER_VALUE), "test:both")
+                .isTrue();
+    }
+
+    @Test
+    public void matchingViaMultiValuedPlaceholderSecondValueIn() {
+        doTest(sutWithPlaceholderResolver.visitIn(Arrays.asList("foo", KNOWN_PLACEHOLDER_VALUE.toUpperCase())),
+                "test:both")
+                .isTrue();
+    }
+
+    @Test
+    public void nonMatchingViaMultiValuedPlaceholderIn() {
+        doTest(sutWithPlaceholderResolver.visitIn(Arrays.asList("foo", KNOWN_PLACEHOLDER_VALUE)), "test:both")
+                .isFalse();
+    }
+
+    @Test
+    public void matchingViaMultiValuedPlaceholderSecondValueLike() {
+        doTest(sutWithPlaceholderResolver.visitLike("BAZ.*"), "test:both")
+                .isTrue();
+    }
+
     private static AbstractBooleanAssert<?> doTest(final Function<String, Predicate<Thing>> functionToTest,
             final JsonValue actualValue) {
         return doTest(functionToTest, "attributes/some-attr", actualValue);

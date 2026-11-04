@@ -22,10 +22,12 @@ import java.util.Optional;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.placeholders.Expression;
 import org.eclipse.ditto.placeholders.PlaceholderResolver;
@@ -282,18 +284,36 @@ public final class ThingPredicatePredicateVisitor implements PredicateVisitor<Fu
                             if (fieldNameSplit.length > 1) {
                                 final String placeholderPrefix = fieldNameSplit[0];
                                 final String placeholderName = fieldNameSplit[1];
-                                return additionalPlaceholderResolvers.stream()
+                                final List<JsonValue> resolvedValues = additionalPlaceholderResolvers.stream()
                                         .filter(pr -> placeholderPrefix.equals(pr.getPrefix()))
                                         .filter(pr -> pr.supports(placeholderName))
                                         .flatMap(pr -> pr.resolveValues(placeholderName).stream())
                                         .map(JsonValue::of)
-                                        .findFirst()
-                                        .orElse(null);
+                                        .collect(Collectors.toList());
+                                return toSingleJsonValue(resolvedValues);
                             } else {
                                 return null;
                             }
                         })
         );
+    }
+
+    /*
+     * A placeholder may resolve to several values, e.g. "feature:id" for an event touching several features. Those are
+     * combined to a JSON array so that the operators apply the same semantics as for an array field of the thing:
+     * a match on any of the values matches, and "ne" only matches if none of the values is equal.
+     */
+    @Nullable
+    private static JsonValue toSingleJsonValue(final List<JsonValue> resolvedValues) {
+        final JsonValue result;
+        if (resolvedValues.isEmpty()) {
+            result = null;
+        } else if (resolvedValues.size() == 1) {
+            result = resolvedValues.get(0);
+        } else {
+            result = JsonFactory.newArrayBuilder(resolvedValues).build();
+        }
+        return result;
     }
 
     private static Stream<Object> mapJsonValueToJava(final JsonValue jsonValue) {

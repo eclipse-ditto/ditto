@@ -24,6 +24,7 @@ final class ThingPredicateTestPlaceholder implements Placeholder<String> {
 
     private static final String UPPER = "upper";
     private static final String LOWER = "lower";
+    private static final String BOTH = "both";
 
     @Override
     public String getPrefix() {
@@ -32,18 +33,20 @@ final class ThingPredicateTestPlaceholder implements Placeholder<String> {
 
     @Override
     public List<String> getSupportedNames() {
-        return Arrays.asList(UPPER, LOWER);
+        return Arrays.asList(UPPER, LOWER, BOTH);
     }
 
     @Override
     public boolean supports(final String name) {
-        return name.equals(UPPER) || name.equals(LOWER);
+        return name.equals(UPPER) || name.equals(LOWER) || name.equals(BOTH);
     }
 
     @Override
     public List<String> resolveValues(final String placeholderSource, final String name) {
         if (LOWER.equals(name)) {
             return Collections.singletonList(placeholderSource.toLowerCase());
+        } else if (BOTH.equals(name)) {
+            return Arrays.asList(placeholderSource.toLowerCase(), placeholderSource.toUpperCase());
         } else {
             return Collections.singletonList(placeholderSource.toUpperCase());
         }
