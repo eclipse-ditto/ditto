@@ -172,8 +172,21 @@ public final class SignalFilter {
     }
 
     private static Predicate<FilteredTopic> applyNamespaceFilter(final Signal<?> signal) {
-        return t -> t.getNamespaces().isEmpty() ||
-                (signal instanceof WithEntityId withEntityId && t.getNamespaces().contains(namespaceFromId(withEntityId)));
+        return t -> matchesNamespaces(t, signal);
+    }
+
+    /**
+     * Checks whether the namespace of the passed {@code signal}'s entity is one of the {@code namespaces} of the passed
+     * {@code filteredTopic}. A topic without namespaces matches signals of every namespace.
+     *
+     * @param filteredTopic the topic whose namespaces to check.
+     * @param signal the signal whose entity namespace to check.
+     * @return whether the topic subscribed for the namespace of the signal.
+     */
+    public static boolean matchesNamespaces(final FilteredTopic filteredTopic, final Signal<?> signal) {
+        return filteredTopic.getNamespaces().isEmpty() ||
+                (signal instanceof WithEntityId withEntityId &&
+                        filteredTopic.getNamespaces().contains(namespaceFromId(withEntityId)));
     }
 
     @Nullable
