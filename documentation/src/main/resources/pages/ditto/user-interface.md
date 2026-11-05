@@ -20,7 +20,7 @@ The Explorer UI gives you a visual interface to:
 * Inspect and manage Policies
 * Configure and monitor Connections
 * Send messages to Things and Features
-* Search Things using RQL filters
+* Search Things using RQL filters, optionally restricted to selected namespaces
 
 You can connect the UI to different Ditto instances (local, sandbox, staging, production) and switch between them instantly.
 
@@ -69,6 +69,7 @@ Environments are stored in your browser's local storage. You can also edit them 
 |---------------------|-------------|
 | `primaryEnvironmentName` | Name of the environment to select by default |
 | `environmentsURL` | URL to a JSON file with environment configurations |
+| `namespaces` | Comma separated namespaces to restrict the Things search to; namespaces not yet configured are added to the namespaces picker |
 
 Example:
 
@@ -121,6 +122,7 @@ type Environment = {
     disableOperations?: boolean,
     authSettings?: AuthSettings,
     searchNamespaces?: string,
+    selectedSearchNamespaces?: string[],
     messageTemplates?: any,
     fieldList?: FieldListItem[],
     filterList?: string[],
