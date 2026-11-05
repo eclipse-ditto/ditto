@@ -65,6 +65,19 @@ public final class ThingEventToThingConverter {
     }
 
     /**
+     * Creates a Thing from the passed ThingEvent like {@link #thingEventToThing(ThingEvent)}, but falls back to an
+     * empty Thing with the event's revision for events which carry no thing data, e.g. feature definition events.
+     *
+     * @param thingEvent the ThingEvent to extract the correlating Thing from
+     * @return the Thing represented by the passed in ThingEvent, or an empty Thing with its revision
+     * @since 4.0.0
+     */
+    public static Thing thingEventToThingOrEmpty(final ThingEvent<?> thingEvent) {
+        return thingEventToThing(thingEvent)
+                .orElseGet(() -> Thing.newBuilder().setRevision(thingEvent.getRevision()).build());
+    }
+
+    /**
      * Merge any thing information in a signal event together with extra fields from signal enrichment.
      * Thing events contain thing information. All other signals do not contain thing information.
      * Extra fields contain thing information if it is not empty.
@@ -80,27 +93,47 @@ public final class ThingEventToThingConverter {
             @Nullable final JsonFieldSelector extraFields,
             final JsonObject extra) {
 
-        final Thing thing;
         final Optional<Thing> thingFromSignal;
         if (signal instanceof ThingEvent) {
             thingFromSignal = thingEventToThing((ThingEvent<?>) signal);
         } else {
             thingFromSignal = Optional.empty();
         }
+        return Optional.of(mergeThingWithExtraFields(thingFromSignal.orElse(null), signal, extraFields, extra));
+    }
+
+    /**
+     * Merge thing information already extracted from a signal, e.g. by {@link #thingEventToThing(ThingEvent)},
+     * together with extra fields from signal enrichment, with priority given to the thing information of the signal.
+     *
+     * @param thingFromSignal the thing information extracted from the signal, or {@code null} if it carries none.
+     * @param signal the signal.
+     * @param extraFields selected extra fields to enrich the signal with.
+     * @param extra value of the extra fields.
+     * @return the merged thing.
+     * @since 4.0.0
+     */
+    public static Thing mergeThingWithExtraFields(@Nullable final Thing thingFromSignal,
+            @Nullable final Signal<?> signal,
+            @Nullable final JsonFieldSelector extraFields,
+            final JsonObject extra) {
+
+        final Thing thing;
         final boolean hasExtra = extraFields != null && !extra.isEmpty();
-        if (thingFromSignal.isPresent() && hasExtra) {
+        if (thingFromSignal != null && hasExtra) {
             // merge
-            final Thing baseThing = thingFromSignal.get();
-            final JsonObject baseThingJson = baseThing.toJson(baseThing.getImplementedSchemaVersion());
+            final JsonObject baseThingJson = thingFromSignal.toJson(thingFromSignal.getImplementedSchemaVersion());
             thing = ThingsModelFactory.newThing(JsonFactory.newObject(baseThingJson, extra));
+        } else if (thingFromSignal != null) {
+            thing = thingFromSignal;
         } else {
-            thing = thingFromSignal.orElseGet(() -> ThingsModelFactory.newThing(extra));
+            thing = ThingsModelFactory.newThing(extra);
         }
 
         if (signal instanceof EventsourcedEvent) {
-            return Optional.of(thing.toBuilder().setRevision(((EventsourcedEvent<?>) signal).getRevision()).build());
+            return thing.toBuilder().setRevision(((EventsourcedEvent<?>) signal).getRevision()).build();
         }
-        return Optional.of(thing);
+        return thing;
     }
 
     private static Map<Class<?>, BiFunction<ThingEvent<?>, ThingBuilder.FromScratch, Thing>> createEventToThingMappers() {

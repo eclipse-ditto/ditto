@@ -43,6 +43,17 @@ public interface FilteredTopicBuilder {
     FilteredTopicBuilder withFilter(@Nullable CharSequence filter);
 
     /**
+     * Sets the given RQL change filter to this builder, which is evaluated against the thing data carried by the
+     * signal only, never against the enriched {@code extraFields}. Ignored for topics which do not support filters
+     * (policy and connection announcements).
+     *
+     * @param changeFilter the optional RQL change filter of the topic to be built.
+     * @return this builder instance to allow method chaining.
+     * @since 4.0.0
+     */
+    FilteredTopicBuilder withChangeFilter(@Nullable CharSequence changeFilter);
+
+    /**
      * Sets the given placeholder pipeline expressions (one repeatable {@code fn-filter} query parameter each) to
      * this builder. All of them must match for the topic to be published (AND semantics). Ignored for topics which
      * do not support filters (policy and connection announcements).

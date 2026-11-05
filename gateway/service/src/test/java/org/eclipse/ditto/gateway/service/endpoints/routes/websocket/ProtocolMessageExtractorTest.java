@@ -164,6 +164,23 @@ public final class ProtocolMessageExtractorTest {
         }
 
         @Test
+        public void startSendingWithChangeFilterFilterAndExtraFields() {
+            final String changeFilter = "exists(features/location)";
+            final String filter = "eq(attributes/foo,1)";
+            final ThingFieldSelector extraFields = ThingFieldSelector.fromString("features/location");
+            final StartStreaming expected = StartStreaming.getBuilder(streamingType, correlationId, authContext)
+                    .withChangeFilter(changeFilter)
+                    .withFilter(filter)
+                    .withExtraFields(extraFields)
+                    .build();
+
+            final String requestParams = MessageFormat.format("?change-filter={0}&filter={1}&extraFields={2}",
+                    changeFilter, filter, extraFields.toString());
+
+            assertThat(underTest.apply(protocolMessageType + requestParams)).contains(expected);
+        }
+
+        @Test
         public void startSendingWithEmptyFilter() {
             final StartStreaming expected = StartStreaming.getBuilder(streamingType, correlationId, authContext)
                     .withFilter("")
