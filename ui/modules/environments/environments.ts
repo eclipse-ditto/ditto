@@ -400,6 +400,12 @@ export async function environmentsJsonChanged(initialPageLoad: boolean, modified
   }
 }
 
+export function refreshEnvEditors() {
+  if (!dom.crudEnvironmentFields.isEditing && !dom.crudEnvironmentJson.isEditing) {
+    updateEnvEditors();
+  }
+}
+
 function updateEnvEditors() {
   if (selectedEnvName) {
     const selectedEnvironment = environments[selectedEnvName];

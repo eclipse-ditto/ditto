@@ -252,6 +252,7 @@ function searchNamespacesChanged(available: string[], selected: string[]) {
   Environments.current().searchNamespaces = available.join(',');
   Environments.current().selectedSearchNamespaces = selected;
   Environments.saveEnvironmentsToLocalStorage();
+  Environments.refreshEnvEditors();
   updateSearchNamespaces();
   ThingsSearch.performLastSearch();
 }
