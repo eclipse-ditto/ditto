@@ -41,7 +41,8 @@ import reactor.core.publisher.Mono;
 
 /**
  * Integration test for {@link PostgresSchemaManager} against a real PostgreSQL (PG 16) via Testcontainers. The upgrade
- * and mixed-version cases run the literal v2 fixture ({@link PostgresSchemaV2}) against the current schema.
+ * and mixed-version cases run the literal v2 and v3 fixtures ({@link PostgresSchemaV2}, {@link PostgresSchemaV3})
+ * against the current schema.
  * <p>
  * Runs under the failsafe phase ({@code *IT}); skipped offline / when no Docker daemon is reachable (the
  * {@link #startContainer() Assume} guard turns an unreachable Docker into a skip, not a failure).
@@ -174,22 +175,22 @@ public final class PostgresSchemaManagerIT {
             assertThat(reloptions(e + "_snaps")).as(e).containsExactlyInAnyOrderElementsOf(PRUNED_TABLE_V3);
             assertThat(reloptions(e + "_journal_seq")).as(e).containsExactlyElementsOf(SCALE_FACTOR_ONLY);
         }
-        assertThat(storedRow()).isEqualTo("3/" + PostgresSchemaManager.checksum(PostgresSchema.descriptor()) + "/2");
+        assertThat(storedRow()).isEqualTo("4/" + PostgresSchemaManager.checksum(PostgresSchema.descriptor()) + "/2");
     }
 
     @Test
-    public void upgradeFromV2DropsTheLifecycleIndexesSetsTheReloptionsInPlaceAndAdvancesTheRowTo3() {
+    public void upgradeFromV2DropsTheLifecycleIndexesSetsTheReloptionsAddsTheRememberTablesAndAdvancesTheRowTo4() {
         reset();
         PostgresSchemaManager.of(connectionFactory, PostgresSchemaV2.descriptor()).bootstrap();
         assertThat(storedRow()).isEqualTo("2/" + PostgresSchemaV2.CHECKSUM + "/2");
-        for (final String e : PostgresSchema.ENTITIES) {
+        for (final String e : PostgresSchemaV3.ENTITIES) {
             assertThat(indexExists(e + "_snaps_lifecycle_idx")).as(e + " before the upgrade").isTrue();
         }
         assertThat(reloptions("things_journal")).containsExactlyElementsOf(SCALE_FACTOR_ONLY);
         final String journalFile = relfilenode("things_journal");
         final String snapsFile = relfilenode("things_snaps");
 
-        // the first v3 pod of a rolling upgrade
+        // the first v4 pod of a rolling upgrade
         PostgresSchemaManager.of(connectionFactory, PostgresSchema.descriptor()).bootstrap();
 
         for (final String e : PostgresSchema.ENTITIES) {
@@ -202,15 +203,68 @@ public final class PostgresSchemaManagerIT {
                 .isEqualTo(journalFile);
         assertThat(relfilenode("things_snaps")).as("setting reloptions does not rewrite the table")
                 .isEqualTo(snapsFile);
-        assertThat(storedRow()).isEqualTo("3/" + PostgresSchemaManager.checksum(PostgresSchema.descriptor()) + "/2");
+        assertThat(tableExists("connection_remember_journal")).as("the upgrade also adds the v4 table set").isTrue();
+        assertThat(storedRow()).isEqualTo("4/" + PostgresSchemaManager.checksum(PostgresSchema.descriptor()) + "/2");
     }
 
     @Test
-    public void v2BootsAgainstAStoredV3SchemaWithoutRecreatingTheLifecycleIndex() {
+    public void upgradeFromV3CreatesTheConnectionRememberTablesAndAdvancesTheRowTo4() {
+        reset();
+        PostgresSchemaManager.of(connectionFactory, PostgresSchemaV3.descriptor()).bootstrap();
+        assertThat(storedRow()).isEqualTo("3/" + PostgresSchemaV3.CHECKSUM + "/2");
+        for (final String table : List.of("connection_remember_journal", "connection_remember_journal_seq",
+                "connection_remember_snaps")) {
+            assertThat(tableExists(table)).as(table + " before the upgrade").isFalse();
+        }
+        final String journalFile = relfilenode("things_journal");
+
+        // the first v4 pod of a rolling upgrade
+        PostgresSchemaManager.of(connectionFactory, PostgresSchema.descriptor()).bootstrap();
+
+        for (final String table : List.of("connection_remember_journal", "connection_remember_journal_seq",
+                "connection_remember_snaps")) {
+            assertThat(tableExists(table)).as(table + ": the upgrade creates it").isTrue();
+        }
+        assertThat(indexExists("connection_remember_journal_tags_idx")).isTrue();
+        assertThat(reloptions("connection_remember_journal")).containsExactlyInAnyOrderElementsOf(PRUNED_TABLE_V3);
+        assertThat(reloptions("connection_remember_snaps")).containsExactlyInAnyOrderElementsOf(PRUNED_TABLE_V3);
+        assertThat(reloptions("connection_remember_journal_seq")).containsExactlyElementsOf(SCALE_FACTOR_ONLY);
+        assertThat(relfilenode("things_journal")).as("the existing tables are not rewritten").isEqualTo(journalFile);
+        assertThat(storedRow()).isEqualTo("4/" + PostgresSchemaManager.checksum(PostgresSchema.descriptor()) + "/2");
+    }
+
+    @Test
+    public void v3BootsAgainstAStoredV4SchemaRunningNoDdl() {
+        reset();
+        PostgresSchemaManager.of(connectionFactory, PostgresSchemaV3.descriptor()).bootstrap();
+        PostgresSchemaManager.of(connectionFactory, PostgresSchema.descriptor()).bootstrap();
+        final String v4Row = storedRow();
+        final ListAppender<ILoggingEvent> managerLog = captureManagerLog();
+        try {
+            // A not-yet-upgraded v3 pod restarts mid-roll: v4 declares v2+ compatible, so it boots, runs no DDL and
+            // leaves the v4 row alone.
+            PostgresSchemaManager.of(connectionFactory, PostgresSchemaV3.descriptor()).bootstrap();
+
+            assertThat(storedRow()).as("the row is not written back to v3").isEqualTo(v4Row)
+                    .startsWith("4/").endsWith("/2");
+            assertThat(managerLog.list.stream()
+                    .filter(event -> event.getLevel() == Level.INFO)
+                    .map(ILoggingEvent::getFormattedMessage))
+                    .anySatisfy(message -> assertThat(message)
+                            .contains("stored schema version 4")
+                            .contains("this code's version 3")
+                            .contains("Running no DDL"));
+        } finally {
+            releaseManagerLog(managerLog);
+        }
+    }
+
+    @Test
+    public void v2BootsAgainstAStoredV4SchemaWithoutRecreatingTheLifecycleIndex() {
         reset();
         PostgresSchemaManager.of(connectionFactory, PostgresSchemaV2.descriptor()).bootstrap();
         PostgresSchemaManager.of(connectionFactory, PostgresSchema.descriptor()).bootstrap();
-        final String v3Row = storedRow();
+        final String v4Row = storedRow();
         final ListAppender<ILoggingEvent> managerLog = captureManagerLog();
         try {
             // A not-yet-upgraded v2 pod restarts mid-roll. Its DDL (CREATE INDEX IF NOT EXISTS <e>_snaps_lifecycle_idx)
@@ -218,17 +272,17 @@ public final class PostgresSchemaManagerIT {
             PostgresSchemaManager.of(connectionFactory, PostgresSchemaV2.descriptor()).bootstrap();
 
             for (final String e : PostgresSchema.ENTITIES) {
-                assertThat(indexExists(e + "_snaps_lifecycle_idx")).as(e + ": v2 DDL must not run against v3")
+                assertThat(indexExists(e + "_snaps_lifecycle_idx")).as(e + ": v2 DDL must not run against v4")
                         .isFalse();
                 assertThat(reloptions(e + "_journal")).as(e).containsExactlyInAnyOrderElementsOf(PRUNED_TABLE_V3);
             }
-            assertThat(storedRow()).as("the row is not written back to v2").isEqualTo(v3Row)
-                    .startsWith("3/").endsWith("/2");
+            assertThat(storedRow()).as("the row is not written back to v2").isEqualTo(v4Row)
+                    .startsWith("4/").endsWith("/2");
             assertThat(managerLog.list.stream()
                     .filter(event -> event.getLevel() == Level.INFO)
                     .map(ILoggingEvent::getFormattedMessage))
                     .anySatisfy(message -> assertThat(message)
-                            .contains("stored schema version 3")
+                            .contains("stored schema version 4")
                             .contains("this code's version 2")
                             .contains("Running no DDL"));
         } finally {

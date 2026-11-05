@@ -21,11 +21,13 @@ import javax.annotation.concurrent.NotThreadSafe;
 import org.eclipse.ditto.internal.utils.persistence.postgres.client.DittoPostgresClient;
 import org.eclipse.ditto.internal.utils.persistence.postgres.client.PostgresClientExtension;
 import org.eclipse.ditto.internal.utils.persistence.postgres.ops.PostgresPersistenceOperations;
+import org.eclipse.ditto.internal.utils.persistence.postgres.payload.PostgresPayloadCodec;
 
 import org.apache.pekko.persistence.SelectedSnapshot;
 import org.apache.pekko.persistence.SnapshotMetadata;
 import org.apache.pekko.persistence.SnapshotSelectionCriteria;
 import org.apache.pekko.persistence.snapshot.japi.SnapshotStore;
+import org.apache.pekko.serialization.SerializationExtension;
 
 import com.typesafe.config.Config;
 
@@ -65,7 +67,8 @@ public final class PostgresSnapshotStore extends SnapshotStore {
      * Constructor invoked reflectively by Pekko's persistence-plugin loader. Pekko tries, in order, a
      * {@code (Config, String)}, then this {@code (Config)}, then a no-arg constructor when materialising a
      * snapshot-store plugin; the single-{@link Config} form receives this plugin's own config block, which carries
-     * the {@code entity} table-prefix key.
+     * the {@code entity} table-prefix key and, optionally, the {@code payload-codec} ({@link PostgresPayloadCodec}:
+     * JSON text by default, the Pekko-serialization envelope for the remember-entities store).
      * <p>
      * The plugin resolves its entity prefix from that block and binds the shared {@link PostgresPersistenceOperations}
      * to the entity's tables, over the single per-actor-system {@link DittoPostgresClient} resolved from
@@ -79,7 +82,9 @@ public final class PostgresSnapshotStore extends SnapshotStore {
     public PostgresSnapshotStore(final Config config) {
         final String entity = checkNotNull(config, "config").getString(ENTITY_KEY);
         final DittoPostgresClient client = PostgresClientExtension.get(context().system()).getClient();
-        this.ops = PostgresSnapshotStoreOps.of(PostgresPersistenceOperations.of(client, entity));
+        final PostgresPayloadCodec codec =
+                PostgresPayloadCodec.fromConfig(config, () -> SerializationExtension.get(context().system()));
+        this.ops = PostgresSnapshotStoreOps.of(PostgresPersistenceOperations.of(client, entity), codec);
     }
 
     /**

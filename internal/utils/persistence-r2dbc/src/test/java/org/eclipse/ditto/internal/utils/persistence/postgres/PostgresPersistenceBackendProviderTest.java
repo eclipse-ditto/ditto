@@ -140,6 +140,19 @@ public final class PostgresPersistenceBackendProviderTest {
     }
 
     @Test
+    public void readJournalEntityRejectsTheRememberStoreTableSet() {
+        // connection_remember is a table set (schema v4) but no entity: its rows are Pekko envelopes under /sharding/
+        // persistence ids, so the ping, cleanup and streaming read journal must never bind to it.
+        final PostgresPersistenceBackendProvider provider = providerWith(
+                PLUGIN_IDS_NO_READ_JOURNAL_ENTITY + "read-journal.entity = \"connection_remember\"\n");
+
+        assertThatExceptionOfType(DittoConfigError.class)
+                .isThrownBy(provider::resolveReadJournalEntity)
+                .withMessageContaining("connection_remember")
+                .withMessageContaining("things|policies|connections|wot");
+    }
+
+    @Test
     public void readJournalBindsToConfiguredEntity() {
         final PostgresPersistenceBackendProvider provider = providerWith(
                 PLUGIN_IDS_NO_READ_JOURNAL_ENTITY + "read-journal.entity = \"policies\"\n");

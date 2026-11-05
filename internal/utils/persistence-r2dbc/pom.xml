@@ -124,6 +124,14 @@
             <artifactId>pekko-testkit_${scala.version}</artifactId>
             <scope>test</scope>
         </dependency>
+        <!-- Cluster sharding: the remember-entities store IT runs Pekko sharding (remember-entities = on, store =
+             eventsourced) on the connection-remember plugin blocks, and the payload-codec test round-trips the store's
+             real Pekko-serialized events and state. Production code never depends on it. -->
+        <dependency>
+            <groupId>org.apache.pekko</groupId>
+            <artifactId>pekko-cluster-sharding_${scala.version}</artifactId>
+            <scope>test</scope>
+        </dependency>
         <dependency>
             <groupId>org.apache.pekko</groupId>
             <artifactId>pekko-slf4j_${scala.version}</artifactId>

@@ -30,6 +30,7 @@ import org.junit.runners.Parameterized;
 
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
+import com.typesafe.config.ConfigResolveOptions;
 import com.typesafe.config.ConfigIncludeContext;
 import com.typesafe.config.ConfigIncluder;
 import com.typesafe.config.ConfigObject;
@@ -487,19 +488,51 @@ public final class PostgresProfileHoconLintTest {
     }
 
     // --------------------------------------------------
-    // Assertion 6: the profile alone switches remember-entities-store to ddata
+    // Assertion 6: the remember-entities store stays eventsourced, on plugins of its own
     // --------------------------------------------------
 
     /**
-     * Assertion 6: the profile itself switches {@code pekko.cluster.sharding.remember-entities-store}
-     * to {@code "ddata"}, so a single-include connectivity deployment does not keep the default
-     * eventsourced remember store (which relies on Mongo remember-entities journals unavailable under
-     * Postgres).
+     * Assertion 6: the profile ships the two {@code connection-remember} plugin blocks (the Postgres peers of
+     * {@code pekko-contrib-mongodb-persistence-connection-remember-*}) with the Pekko-serialization envelope codec and
+     * leaves {@code pekko.cluster.sharding.remember-entities-store} alone, so connectivity keeps its
+     * {@code eventsourced} store on PostgreSQL as on MongoDB. The blocks are not auto-started, as on MongoDB.
      */
     @Test
-    public void profileSwitchesRememberEntitiesStoreToDdata() {
+    public void profileShipsTheRememberPluginsAndLeavesTheRememberEntitiesStoreAlone() {
         final Config profile = ConfigFactory.parseResources("ditto-postgres-persistence.conf").resolve();
-        assertThat(profile.getString("pekko.cluster.sharding.remember-entities-store")).isEqualTo("ddata");
+        assertThat(profile.hasPath("pekko.cluster.sharding.remember-entities-store"))
+                .as("no JVM-wide ddata override").isFalse();
+        assertThat(profile.getString("ditto-postgres-connection-remember-journal.class"))
+                .isEqualTo("org.eclipse.ditto.internal.utils.persistence.postgres.journal.PostgresJournal");
+        assertThat(profile.getString("ditto-postgres-connection-remember-snapshots.class"))
+                .isEqualTo("org.eclipse.ditto.internal.utils.persistence.postgres.snapshot.PostgresSnapshotStore");
+        for (final String block : List.of("ditto-postgres-connection-remember-journal",
+                "ditto-postgres-connection-remember-snapshots")) {
+            assertThat(profile.getString(block + ".entity")).as(block).isEqualTo("connection_remember");
+            assertThat(profile.getString(block + ".payload-codec")).as(block).isEqualTo("pekko-serialization");
+            assertThat(profile.hasPath(block + ".event-adapters")).as(block + ": the codec needs no adapter")
+                    .isFalse();
+            assertThat(profile.hasPath(block + ".plugin-dispatcher"))
+                    .as(block + ": Pekko's default plugin dispatcher, as the MongoDB remember plugins").isFalse();
+        }
+        assertThat(profile.getStringList("pekko.persistence.journal.auto-start-journals"))
+                .doesNotContain("ditto-postgres-connection-remember-journal");
+        assertThat(profile.getStringList("pekko.persistence.snapshot-store.auto-start-snapshot-stores"))
+                .doesNotContain("ditto-postgres-connection-remember-snapshots");
+    }
+
+    /**
+     * Assertion 6, per service: the pg-dev override layer ({@code <svc>-pg-dev.conf} with its includes, parsed WITHOUT
+     * reference.conf and the service base conf) sets no {@code remember-entities-store}, so connectivity keeps the
+     * {@code eventsourced} store its base conf declares — no layer switches it to {@code ddata} any more.
+     */
+    @Test
+    public void pgDevLayerDoesNotOverrideTheRememberEntitiesStore() {
+        final Config pgDevLayer = ConfigFactory.parseResources(buildServiceClassLoader(), pgDevResourceName)
+                .resolve(ConfigResolveOptions.defaults().setAllowUnresolved(true));
+        assertThat(pgDevLayer.hasPath("pekko.cluster.sharding.remember-entities-store"))
+                .as("%s: the pg-dev layer must leave remember-entities-store to the service conf", serviceName)
+                .isFalse();
     }
 
     // --------------------------------------------------

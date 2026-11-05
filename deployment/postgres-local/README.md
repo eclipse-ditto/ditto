@@ -126,7 +126,8 @@ mvn -pl :ditto-things-service,:ditto-policies-service,:ditto-gateway-service,:di
 Quick schema sanity check once the services are up (the persistence schema is auto-created on first boot):
 ```bash
 docker exec ditto-postgres-local psql -U ditto -d ditto -c '\dt'
-#   -> things_journal, things_journal_seq, things_snaps, policies_*, connections_*, wot_*, schema_version
+#   -> things_journal, things_journal_seq, things_snaps, policies_*, connections_*, wot_*, connection_remember_*,
+#      schema_version
 ```
 
 ```bash

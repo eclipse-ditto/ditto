@@ -51,9 +51,10 @@ import reactor.core.publisher.Mono;
  * {@link PostgresPersistenceOperations#insertEvents(java.util.List)} writes all events of a single
  * {@code AtomicWrite} inside ONE transaction. Under PostgreSQL semantics {@code now()} returns the
  * <em>transaction-start</em> instant and is therefore identical for every row of that transaction, whereas
- * {@code clock_timestamp()} is re-evaluated per statement. Ditto produces no multi-event {@code AtomicWrite}s
- * today, but a future {@code persistAll} call-site would collapse every event's {@code written_at} to one
- * instant under {@code now()}. This IT synthesises a 2-event {@code AtomicWrite} by calling
+ * {@code clock_timestamp()} is re-evaluated per statement. Ditto's own actors produce no multi-event
+ * {@code AtomicWrite}s, but Pekko's remember-entities shard store does (up to {@code max-updates-per-write} events),
+ * and under {@code now()} every event's {@code written_at} would collapse to one instant. This IT synthesises a
+ * 2-event {@code AtomicWrite} by calling
  * {@code insertEvents} directly with two rows sharing one pid and asserts the two persisted {@code written_at}
  * values are <em>distinct</em>:
  * </p>

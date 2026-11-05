@@ -30,7 +30,7 @@ import org.eclipse.ditto.internal.utils.persistence.postgres.client.schema.Table
  * </p>
  * <p>
  * <strong>Rule for schema bumps:</strong> every bump of {@link PostgresSchema#VERSION} adds a literal fixture like this
- * one for the version it replaces (next: {@code PostgresSchemaV3} at the bump to v4), pins its checksum in
+ * one for the version it replaces ({@code PostgresSchemaV3} did so at the bump to v4), pins its checksum in
  * {@code SchemaChecksumPreservationTest}, and uses it in the upgrade and mixed-version tests of
  * {@code PostgresSchemaManagerIT}.
  * </p>

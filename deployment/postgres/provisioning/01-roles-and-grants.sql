@@ -17,7 +17,8 @@
 -- (§11 "Role privileges", resolves §6 important #4, finding [G5]).
 --
 --   schema  ditto      -- owned by ditto_ddl; holds *_journal, *_journal_seq,
---                         *_snaps (x4 entity types) and schema_version.
+--                         *_snaps (4 entity types + connectivity's remember-entities
+--                         store) and schema_version.
 --   ditto_ddl  -- DDL role: OWNS the schema and all tables; runs CREATE in the
 --                 bootstrap DDL transaction (PostgresSchemaManager, [H2]).
 --                 Used via the `ddl-credentials` block in the HOCON (§7)

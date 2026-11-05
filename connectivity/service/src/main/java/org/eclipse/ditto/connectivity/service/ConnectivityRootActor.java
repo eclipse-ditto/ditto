@@ -257,11 +257,11 @@ public final class ConnectivityRootActor extends DittoRootActor {
      * cluster-sharding {@code remember-entities} event-sourced store's journal/snapshot plugin IDs from the active
      * persistence backend's provider (the single source of truth — never hardcoded here).
      * <p>
-     * The setters are called unconditionally: on Mongo they carry the dedicated {@code *-remember-*} plugin IDs
-     * (behaviour-identical to the previously HOCON-only configuration), while on the Postgres profile — where
-     * {@code pekko.cluster.sharding.remember-entities-store = ddata} uses DistributedData rather than the
-     * event-sourced journal/snapshot — these plugin IDs are simply ignored. They therefore feed Pekko's
-     * {@code EventSourcedRememberEntitiesShardStore} only in the eventsourced mode and are harmless otherwise.
+     * On MongoDB they are the dedicated {@code pekko-contrib-mongodb-persistence-connection-remember-*} plugins
+     * (behaviour-identical to the previously HOCON-only configuration); on PostgreSQL the dedicated
+     * {@code ditto-postgres-connection-remember-*} plugins. Both feed Pekko's
+     * {@code EventSourcedRememberEntitiesShardStore}, since {@code remember-entities-store} stays {@code eventsourced}
+     * on either backend.
      *
      * @param actorSystem the actor system.
      * @param rememberStorePluginIds the remember-store journal/snapshot plugin IDs from the persistence provider.

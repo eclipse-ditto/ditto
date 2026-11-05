@@ -17,6 +17,8 @@ import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 
 import org.apache.pekko.actor.ActorSystem;
 import org.apache.pekko.testkit.javadsl.TestKit;
+import java.util.List;
+
 import org.eclipse.ditto.internal.utils.persistence.api.PersistencePluginConfig;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -27,8 +29,9 @@ import com.typesafe.config.ConfigFactory;
 
 /**
  * Unit test for {@link PostgresPersistencePluginConfig} (task E2, mirroring the Mongo B1 test): per-entity IDs delegate
- * to the provider, the per-service auto-start IDs match the shipped Postgres profile, and the remember-store IDs are the
- * documented (ddata-inert) safe value. Runs offline against the real shipped {@code ditto-postgres-persistence.conf}.
+ * to the provider, the per-service auto-start IDs match the shipped Postgres profile, and the remember-store IDs name
+ * the profile's {@code connection-remember} plugin blocks. Runs offline against the real shipped
+ * {@code ditto-postgres-persistence.conf}.
  */
 public final class PostgresPersistencePluginConfigTest {
 
@@ -81,14 +84,29 @@ public final class PostgresPersistencePluginConfigTest {
     }
 
     @Test
-    public void rememberStoreIdsForConnectionAreSafeValidPluginIds() {
-        // On Postgres the remember-entities store is ddata, so the IDs are inert; the connection's own real Postgres
-        // plugin IDs are returned as a safe, resolvable value (documented decision).
+    public void rememberStoreIdsForConnectionNameTheDedicatedRememberPlugins() {
+        // Like MongoDB's connection-remember collections: the remember-entities store gets plugins and tables of its
+        // own, so the persistence ping and cleanup never see Pekko's /sharding/... persistence ids.
         final PersistencePluginConfig.RememberStorePluginIds ids =
                 pluginConfig.getRememberStorePluginIds("connection");
 
-        assertThat(ids.journalPluginId()).isEqualTo("ditto-postgres-connections-journal");
-        assertThat(ids.snapshotPluginId()).isEqualTo("ditto-postgres-connections-snapshots");
+        assertThat(ids.journalPluginId()).isEqualTo("ditto-postgres-connection-remember-journal");
+        assertThat(ids.snapshotPluginId()).isEqualTo("ditto-postgres-connection-remember-snapshots");
+    }
+
+    @Test
+    public void rememberStoreIdsResolveToBlocksOfTheShippedProfileAndAreNotAutoStarted() {
+        // what the profile's blocks look like is PostgresProfileHoconLintTest's business; here: the IDs this config
+        // hands to the shard region exist in the profile, and connectivity does not auto-start them (as on MongoDB)
+        final Config profile = ConfigFactory.parseResources("ditto-postgres-persistence.conf").resolve();
+        final PersistencePluginConfig.RememberStorePluginIds ids =
+                pluginConfig.getRememberStorePluginIds("connection");
+
+        for (final String block : List.of(ids.journalPluginId(), ids.snapshotPluginId())) {
+            assertThat(profile.hasPath(block + ".class")).as(block + " is a plugin block of the profile").isTrue();
+        }
+        assertThat(pluginConfig.getAutoStartPluginIds("connectivity"))
+                .doesNotContain(ids.journalPluginId(), ids.snapshotPluginId());
     }
 
     @Test

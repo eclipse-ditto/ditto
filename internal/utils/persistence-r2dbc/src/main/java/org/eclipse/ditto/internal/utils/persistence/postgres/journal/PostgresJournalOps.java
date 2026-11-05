@@ -27,6 +27,8 @@ import javax.annotation.concurrent.ThreadSafe;
 
 import org.eclipse.ditto.internal.utils.persistence.postgres.ops.JournalRow;
 import org.eclipse.ditto.internal.utils.persistence.postgres.ops.PostgresPersistenceOperations;
+import org.eclipse.ditto.internal.utils.persistence.postgres.payload.JsonTextPayloadCodec;
+import org.eclipse.ditto.internal.utils.persistence.postgres.payload.PostgresPayloadCodec;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -47,7 +49,9 @@ import scala.jdk.javaapi.CollectionConverters;
  * Pekko {@code ActorSystem} (the japi {@code AsyncWriteJournal} base class forbids {@code new}). {@link PostgresJournal}
  * is a thin japi adapter that delegates to this class and converts the {@link CompletionStage}s to Scala futures.
  * <p>
- * Holds the high-water-mark, idempotency and lost-write contracts described on {@link PostgresJournal}.
+ * Holds the high-water-mark, idempotency and lost-write contracts described on {@link PostgresJournal}. The
+ * {@link PostgresPayloadCodec} turns each event into the JSON text of the {@code event} column and back: JSON text
+ * as it is for the entity journals, the Pekko-serialization envelope for the remember-entities store.
  * </p>
  */
 @ThreadSafe
@@ -75,13 +79,29 @@ public final class PostgresJournalOps {
     private static final String SQLSTATE_DATA_EXCEPTION_CLASS_PREFIX = "22";
 
     private final PostgresPersistenceOperations operations;
+    private final PostgresPayloadCodec codec;
 
-    private PostgresJournalOps(final PostgresPersistenceOperations operations) {
+    private PostgresJournalOps(final PostgresPersistenceOperations operations, final PostgresPayloadCodec codec) {
         this.operations = operations;
+        this.codec = codec;
     }
 
+    /**
+     * @param operations the shared persistence operations bound to the journal's entity tables.
+     * @return journal ops storing the events as the JSON text they already are ({@link JsonTextPayloadCodec}).
+     */
     public static PostgresJournalOps of(final PostgresPersistenceOperations operations) {
-        return new PostgresJournalOps(checkNotNull(operations, "operations"));
+        return of(operations, JsonTextPayloadCodec.INSTANCE);
+    }
+
+    /**
+     * @param operations the shared persistence operations bound to the journal's entity tables.
+     * @param codec turns each event into the stored JSON text and back.
+     * @return journal ops storing the events through {@code codec}.
+     */
+    public static PostgresJournalOps of(final PostgresPersistenceOperations operations,
+            final PostgresPayloadCodec codec) {
+        return new PostgresJournalOps(checkNotNull(operations, "operations"), checkNotNull(codec, "codec"));
     }
 
     /**
@@ -133,7 +153,7 @@ public final class PostgresJournalOps {
                 && isSqlDataException(r2dbcException)) {
             // SQLSTATE class 22 (data_exception): a deterministic content error PostgreSQL rejected the exact bytes
             // for (e.g. 22P05 when a JSON string value contains the ESCAPED U+0000 sequence Ditto's JsonCharEscaper
-            // emits -- the raw-NUL guard in toJsonText never sees it). Retrying the identical write can never
+            // emits -- the raw-NUL guard in JsonTextPayloadCodec never sees it). Retrying the identical write can never
             // succeed, so this is a per-write REJECTION (the actor continues; Pekko calls onPersistRejected), never
             // a failed Future -> actor-stop -> backoff-restart crash loop.
             LOGGER.warn("Rejecting PostgreSQL journal write for pid <{}> due to a SQLSTATE class-22 data exception "
@@ -270,36 +290,11 @@ public final class PostgresJournalOps {
             tags = Set.of();
         }
         return new PostgresPersistenceOperations.JournalInsert(repr.persistenceId(), repr.sequenceNr(), repr.manifest(),
-                List.copyOf(tags), toJsonText(event));
-    }
-
-    private static String toJsonText(final Object event) {
-        final String jsonText;
-        if (event instanceof org.eclipse.ditto.json.JsonValue jsonValue) {
-            jsonText = jsonValue.toString();
-        } else if (event instanceof CharSequence charSequence) {
-            jsonText = charSequence.toString();
-        } else {
-            throw new IllegalArgumentException("Unable to serialize journal payload of type <" + event.getClass()
-                    + ">; expected a Ditto JsonValue or its JSON text (the event adapter must produce a "
-                    + "JSONB-bindable payload).");
-        }
-        if (jsonText.indexOf(0) >= 0) {
-            // This only catches a RAW NUL byte in the JSON text, giving an early, precise, pre-flight rejection so
-            // writeAtomic never even attempts the insert. It is NOT the general defence against U+0000: Ditto's
-            // JsonCharEscaper escapes a NUL character in an event's string values as the six-character escape
-            // sequence (backslash, 'u', '0', '0', '0', '0') before it ever reaches here, so ordinary event payloads
-            // containing NUL never trip this guard. That escaped form is instead rejected by PostgreSQL itself at
-            // insert time (e.g. SQLSTATE 22P05) and is handled by the SQLSTATE class-22 classification in
-            // recoverWrite, which maps it to a per-write rejection.
-            throw new IllegalArgumentException("Journal payload for the PostgreSQL backend contains U+0000 "
-                    + "(NUL), which PostgreSQL jsonb cannot store. Rejecting the write.");
-        }
-        return jsonText;
+                List.copyOf(tags), codec.encode(event));
     }
 
     private PersistentRepr toRepr(final JournalRow row) {
-        return PersistentRepr.apply(row.eventJson(), row.sequenceNr(), row.pid(),
+        return PersistentRepr.apply(codec.decode(row.eventJson()), row.sequenceNr(), row.pid(),
                 row.manifest() == null ? PersistentRepr.Undefined() : row.manifest(),
                 false, org.apache.pekko.actor.ActorRef.noSender(), PersistentRepr.Undefined());
     }

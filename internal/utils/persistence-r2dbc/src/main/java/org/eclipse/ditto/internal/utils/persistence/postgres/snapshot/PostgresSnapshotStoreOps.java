@@ -23,6 +23,8 @@ import javax.annotation.concurrent.ThreadSafe;
 
 import org.eclipse.ditto.internal.utils.persistence.postgres.ops.PostgresPersistenceOperations;
 import org.eclipse.ditto.internal.utils.persistence.postgres.ops.SnapshotRow;
+import org.eclipse.ditto.internal.utils.persistence.postgres.payload.JsonTextPayloadCodec;
+import org.eclipse.ditto.internal.utils.persistence.postgres.payload.PostgresPayloadCodec;
 
 import org.apache.pekko.persistence.SelectedSnapshot;
 import org.apache.pekko.persistence.SnapshotMetadata;
@@ -31,7 +33,9 @@ import org.apache.pekko.persistence.SnapshotSelectionCriteria;
 /**
  * The plain (non-Actor) logic of {@link PostgresSnapshotStore}, extracted so it can be unit-tested without a Pekko
  * {@code ActorSystem} (the japi {@code SnapshotStore} base class forbids {@code new}). Holds the selection-criteria
- * binding, the two {@code deleteAsync} overloads and the idempotent upsert.
+ * binding, the two {@code deleteAsync} overloads and the idempotent upsert. The {@link PostgresPayloadCodec} turns
+ * each snapshot into the JSON text of the {@code snapshot} column and back: JSON text as it is for the entity
+ * snapshot stores, the Pekko-serialization envelope for the remember-entities store.
  */
 @ThreadSafe
 public final class PostgresSnapshotStoreOps {
@@ -41,13 +45,31 @@ public final class PostgresSnapshotStoreOps {
     private static final long MIN_EPOCH_MILLIS = 0L;
 
     private final PostgresPersistenceOperations operations;
+    private final PostgresPayloadCodec codec;
 
-    private PostgresSnapshotStoreOps(final PostgresPersistenceOperations operations) {
+    private PostgresSnapshotStoreOps(final PostgresPersistenceOperations operations,
+            final PostgresPayloadCodec codec) {
         this.operations = operations;
+        this.codec = codec;
     }
 
+    /**
+     * @param operations the shared persistence operations bound to the store's entity tables.
+     * @return snapshot-store ops storing the snapshots as the JSON text they already are
+     * ({@link JsonTextPayloadCodec}).
+     */
     public static PostgresSnapshotStoreOps of(final PostgresPersistenceOperations operations) {
-        return new PostgresSnapshotStoreOps(checkNotNull(operations, "operations"));
+        return of(operations, JsonTextPayloadCodec.INSTANCE);
+    }
+
+    /**
+     * @param operations the shared persistence operations bound to the store's entity tables.
+     * @param codec turns each snapshot into the stored JSON text and back.
+     * @return snapshot-store ops storing the snapshots through {@code codec}.
+     */
+    public static PostgresSnapshotStoreOps of(final PostgresPersistenceOperations operations,
+            final PostgresPayloadCodec codec) {
+        return new PostgresSnapshotStoreOps(checkNotNull(operations, "operations"), checkNotNull(codec, "codec"));
     }
 
     /** Loads the best snapshot honouring all four {@link SnapshotSelectionCriteria} bounds. */
@@ -58,7 +80,7 @@ public final class PostgresSnapshotStoreOps {
         final Instant maxTs = toInstantUpper(criteria.maxTimestamp());
         final Instant minTs = toInstantLower(criteria.minTimestamp());
         return operations.loadSnapshot(persistenceId, maxSeq, minSeq, maxTs, minTs)
-                .map(PostgresSnapshotStoreOps::toSelectedSnapshot)
+                .map(this::toSelectedSnapshot)
                 .map(Optional::of)
                 .defaultIfEmpty(Optional.empty())
                 .toFuture();
@@ -67,14 +89,14 @@ public final class PostgresSnapshotStoreOps {
     /**
      * Idempotent upsert; {@code written_at} from {@code SnapshotMetadata.timestamp}, not {@code now()}.
      * <p>
-     * Serialization ({@link #toJsonText(Object)} / {@link #extractLifecycle(String)}) is deferred into
+     * Serialization ({@link PostgresPayloadCodec#encode(Object)} / {@link #extractLifecycle(String)}) is deferred into
      * {@code Mono.fromCallable(...)} so that an unserializable snapshot (e.g. a {@code BsonValue} the Mongo adapter
      * would produce) surfaces as a <em>failed Future</em>, which is what Pekko's {@code SnapshotStore} contract
      * expects, rather than as a synchronous throw out of {@code saveAsync} (L-13).
      */
     public CompletionStage<Void> saveAsync(final SnapshotMetadata metadata, final Object snapshot) {
         final Instant writtenAt = Instant.ofEpochMilli(metadata.timestamp());
-        return reactor.core.publisher.Mono.fromCallable(() -> toJsonText(snapshot))
+        return reactor.core.publisher.Mono.fromCallable(() -> codec.encode(snapshot))
                 .flatMap(snapshotJson -> operations.saveSnapshot(metadata.persistenceId(), metadata.sequenceNr(),
                         snapshotJson, extractLifecycle(snapshotJson), writtenAt))
                 .<Void>then(reactor.core.publisher.Mono.empty())
@@ -103,12 +125,13 @@ public final class PostgresSnapshotStoreOps {
                 .toFuture();
     }
 
-    private static SelectedSnapshot toSelectedSnapshot(final SnapshotRow row) {
+    private SelectedSnapshot toSelectedSnapshot(final SnapshotRow row) {
         final SnapshotMetadata metadata = new SnapshotMetadata(row.pid(), row.sequenceNr(),
                 row.writtenAt().toEpochMilli());
-        // The JSONB snapshot text is the raw payload; Pekko hands it to the snapshot adapter, whose
-        // PostgresSnapshotCodec decodes it to JSON before the serializer recovers the domain object.
-        return SelectedSnapshot.create(metadata, row.snapshotJson());
+        // With the JSON text codec the JSONB snapshot text is the raw payload; Pekko hands it to the snapshot adapter,
+        // whose PostgresSnapshotCodec decodes it to JSON before the serializer recovers the domain object. With the
+        // Pekko-serialization codec the payload is the deserialized message itself.
+        return SelectedSnapshot.create(metadata, codec.decode(row.snapshotJson()));
     }
 
     @Nullable
@@ -122,20 +145,6 @@ public final class PostgresSnapshotStoreOps {
         } catch (final RuntimeException e) {
             return null;
         }
-    }
-
-    private static String toJsonText(final Object snapshot) {
-        if (snapshot instanceof org.eclipse.ditto.json.JsonValue jsonValue) {
-            return jsonValue.toString();
-        }
-        if (snapshot instanceof CharSequence charSequence) {
-            return charSequence.toString();
-        }
-        if (snapshot instanceof byte[] bytes) {
-            return new String(bytes, java.nio.charset.StandardCharsets.UTF_8);
-        }
-        throw new IllegalArgumentException("Unable to serialize snapshot of type <" + snapshot.getClass()
-                + ">; expected the PostgresSnapshotCodec's JSON text (JsonValue/String/byte[]).");
     }
 
     private static Instant toInstantUpper(final long epochMillis) {

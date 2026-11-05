@@ -39,7 +39,7 @@ public final class PostgresSchemaTest {
 
     @Test
     public void descriptorDeclaresVersionAndMinCompatibleVersion() {
-        assertThat(PostgresSchema.descriptor().version()).isEqualTo(3);
+        assertThat(PostgresSchema.descriptor().version()).isEqualTo(4);
         assertThat(PostgresSchema.descriptor().minCompatibleVersion()).isEqualTo(2);
     }
 
@@ -54,8 +54,9 @@ public final class PostgresSchemaTest {
     }
 
     @Test
-    public void coversAllFourEntities() {
-        assertThat(PostgresSchema.ENTITIES).containsExactly("things", "policies", "connections", "wot");
+    public void coversAllFiveTableSets() {
+        assertThat(PostgresSchema.ENTITIES)
+                .containsExactly("things", "policies", "connections", "wot", "connection_remember");
         for (final String e : PostgresSchema.ENTITIES) {
             assertThat(DDL).anyMatch(s -> s.contains(e + "_journal ("));
             assertThat(DDL).anyMatch(s -> s.contains(e + "_journal_seq ("));

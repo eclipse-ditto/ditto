@@ -191,7 +191,8 @@ public final class PostgresPersistenceBackendProvider implements PersistenceBack
      * <p>
      * Returns a {@link PostgresPersistencePluginConfig} backed by this provider (so the per-entity journal/snapshot IDs
      * stay single-sourced through {@link #getJournalPluginId}/{@link #getSnapshotPluginId}), exposing the Postgres
-     * profile's per-service auto-start IDs and the (ddata-inert) remember-store IDs. Task E2, mirroring B1.
+     * profile's per-service auto-start IDs and the {@code connection-remember} remember-store IDs that connectivity's
+     * shard region persists through. Task E2, mirroring B1.
      */
     @Override
     public PersistencePluginConfig pluginConfig() {
@@ -337,7 +338,13 @@ public final class PostgresPersistenceBackendProvider implements PersistenceBack
         }
         final String entity = extensionConfig.getString(READ_JOURNAL_ENTITY_PATH);
         // Fail clearly on an unknown entity rather than at first query.
-        PostgresTableNames.of(entity);
+        final String tableSet = PostgresTableNames.of(entity).entityPrefix();
+        if (!PostgresSchema.ENTITY_TABLE_SETS.contains(tableSet)) {
+            // the remember-entities table set holds Pekko envelopes under /sharding/... ids, never Ditto events
+            throw new DittoConfigError("read-journal.entity <" + entity + "> is a table set but no entity: the read "
+                    + "journal (persistence ping, cleanup, streaming) binds to an entity's tables only "
+                    + "(things|policies|connections|wot).");
+        }
         return entity;
     }
 

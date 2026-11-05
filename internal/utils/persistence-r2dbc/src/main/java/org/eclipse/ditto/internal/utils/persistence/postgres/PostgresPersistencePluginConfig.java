@@ -39,14 +39,13 @@ import org.eclipse.ditto.internal.utils.persistence.api.PersistencePluginConfig;
  * the two surfaces (provider + this config) stay in sync — and inherit the provider's explicit, no-{@code pluralize}
  * mapping (a missing mapping is a {@code DittoConfigError}, not a fabricated ID).
  *
- * <h2>Remember-store IDs — ddata, IDs ignored</h2>
- * Unlike the Mongo profile (which runs connectivity's {@code remember-entities-store = "eventsourced"} against dedicated
- * {@code pekko-contrib-mongodb-persistence-connection-remember-*} plugins), the Postgres profile uses the cluster's
- * {@code ddata} remember-entities store. Under {@code ddata}, Pekko ignores the sharding {@code journal-plugin-id} /
- * {@code snapshot-plugin-id}, so the Postgres profile ships NO dedicated {@code connection-remember} plugin block. This
- * accessor therefore returns the connection's own (real, existing) Postgres journal/snapshot plugin IDs as a SAFE,
- * documented value: they are valid plugin IDs (so a validator that resolves them finds them), and they are inert because
- * {@code ddata} never consults them. See {@link #getRememberStorePluginIds(String)}.
+ * <h2>Remember-store IDs</h2>
+ * As the Mongo profile runs connectivity's {@code remember-entities-store = "eventsourced"} against dedicated
+ * {@code pekko-contrib-mongodb-persistence-connection-remember-*} plugins, the Postgres profile ships the dedicated
+ * {@code ditto-postgres-connection-remember-*} blocks (the {@code connection_remember} table set, Pekko-serialization
+ * envelope codec). {@link #getRememberStorePluginIds(String)} names them for the {@code connection} entity;
+ * {@code ConnectivityRootActor} sets them on the shard region's {@code ClusterShardingSettings}. They are not
+ * auto-started, as on MongoDB.
  *
  * @since 4.0.0
  */
@@ -54,9 +53,9 @@ import org.eclipse.ditto.internal.utils.persistence.api.PersistencePluginConfig;
 public final class PostgresPersistencePluginConfig implements PersistencePluginConfig {
 
     // ── shipped ditto-postgres-persistence.conf block names ──────────────────
-    // Verified against ditto-postgres-persistence.conf:
-    //   :76-81  journal.auto-start-journals            (things|policies|connections|wot journals)
-    //   :82-87  snapshot-store.auto-start-snapshot-stores (things|policies|connections|wot snapshots)
+    // Verified against ditto-postgres-persistence.conf (PostgresPersistencePluginConfigTest):
+    //   pekko.persistence.journal.auto-start-journals                   (things|policies|connections|wot journals)
+    //   pekko.persistence.snapshot-store.auto-start-snapshot-stores     (things|policies|connections|wot snapshots)
 
     // things — auto-start
     static final String THINGS_JOURNAL = "ditto-postgres-things-journal";
@@ -70,12 +69,16 @@ public final class PostgresPersistencePluginConfig implements PersistencePluginC
     static final String CONNECTIONS_JOURNAL = "ditto-postgres-connections-journal";
     static final String CONNECTIONS_SNAPSHOTS = "ditto-postgres-connections-snapshots";
 
+    // connectivity — remember-store (the connection_remember table set; not auto-started)
+    static final String CONNECTION_REMEMBER_JOURNAL = "ditto-postgres-connection-remember-journal";
+    static final String CONNECTION_REMEMBER_SNAPSHOTS = "ditto-postgres-connection-remember-snapshots";
+
     // ── static maps built once at class-load time ─────────────────────────────
 
     /**
      * Per-service auto-start sets (service name → immutable list of journal + snapshot IDs). A Postgres service persists
      * a single entity type per actor system, so each service narrows to its single entity's pair — exactly as the
-     * per-service config narrows the full profile list (ditto-postgres-persistence.conf:75).
+     * per-service config narrows the full profile list (the {@code *-pg-dev.conf} auto-start overrides).
      */
     private static final Map<String, List<String>> AUTO_START_IDS_BY_SERVICE = Map.of(
             "things",       List.of(THINGS_JOURNAL, THINGS_SNAPSHOTS),
@@ -84,12 +87,11 @@ public final class PostgresPersistencePluginConfig implements PersistencePluginC
     );
 
     /**
-     * Per-entity remember-store plugin ID pairs. On Postgres the remember-entities store is {@code ddata} so these IDs
-     * are inert (ignored by Pekko); the connection's own real Postgres journal/snapshot IDs are used as a SAFE value so
-     * a validator that resolves them finds existing plugins. See the class javadoc.
+     * Per-entity remember-store plugin ID pairs: the dedicated {@code connection-remember} blocks of the shipped
+     * profile, verified verbatim by {@code PostgresPersistencePluginConfigTest}. See the class javadoc.
      */
     private static final Map<String, RememberStorePluginIds> REMEMBER_STORE_IDS_BY_ENTITY = Map.of(
-            "connection", RememberStorePluginIds.of(CONNECTIONS_JOURNAL, CONNECTIONS_SNAPSHOTS)
+            "connection", RememberStorePluginIds.of(CONNECTION_REMEMBER_JOURNAL, CONNECTION_REMEMBER_SNAPSHOTS)
     );
 
     /**

@@ -121,9 +121,9 @@ public final class PostgresPersistenceOperations {
 
     /**
      * Inserts a batch of journal events for a single {@code AtomicWrite} and upserts the high-water-mark, all in a
-     * single transaction. Ditto never produces multi-event {@code AtomicWrite}s (there are zero
-     * {@code persistAll} call-sites), but the design keys the transaction on the {@code AtomicWrite} so it stays correct
-     * if a multi-event write is ever introduced.
+     * single transaction. Ditto's own actors produce single-event {@code AtomicWrite}s only (no {@code persistAll}
+     * call-site); Pekko's remember-entities shard store on the {@code connection_remember} tables persists up to
+     * {@code max-updates-per-write} events in one, which this transaction keeps atomic.
      *
      * @param events the events of one {@code AtomicWrite} (all sharing one persistence id), in ascending {@code sn}.
      * @return a {@code Mono} completing when the transaction commits.

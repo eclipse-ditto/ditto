@@ -592,7 +592,7 @@ The PostgreSQL backends behave like the MongoDB ones except for the following po
 
 PostgreSQL does not remove a deleted row at once. The row stays in the table and in its indexes as a dead row until a `VACUUM` (normally autovacuum) processes the table; the space then becomes free for new rows of the same table, but the files keep their size. Dead rows that pile up ("bloat") make tables, indexes and backups larger and reads of the affected entities slower. This and the following sections describe how Ditto's cleanup creates dead rows, which autovacuum settings the schemas apply, the server settings that decide whether autovacuum keeps up, what to monitor, and how to get disk space back after a large prune.
 
-The persistence services use the tables `<entity>_journal` (events), `<entity>_snaps` (snapshots) and `<entity>_journal_seq` (highest sequence number per entity) for the entities `things`, `policies`, `connections` and `wot`; every persistence service creates all twelve. The search service uses `search_things`, `search_flat` and `search_sync`. With the provisioning script `deployment/postgres/provisioning/01-roles-and-grants.sql` the tables are in the schema `ditto`, which is on the `search_path` of both Ditto roles. Run the statements below on the primary, in the Ditto database.
+The persistence services use the tables `<entity>_journal` (events), `<entity>_snaps` (snapshots) and `<entity>_journal_seq` (highest sequence number per entity) for the entities `things`, `policies`, `connections` and `wot`, plus the set `connection_remember` for connectivity's cluster-sharding remember-entities store (Pekko's own `/sharding/…` persistence ids, which Pekko prunes itself); every persistence service creates all fifteen. The search service uses `search_things`, `search_flat` and `search_sync`. With the provisioning script `deployment/postgres/provisioning/01-roles-and-grants.sql` the tables are in the schema `ditto`, which is on the `search_path` of both Ditto roles. Run the statements below on the primary, in the Ditto database.
 
 #### How cleanup creates dead rows
 
@@ -621,8 +621,8 @@ The schema bootstrap sets these storage parameters on the tables Ditto deletes f
 
 | Tables | `autovacuum_vacuum_scale_factor` | `autovacuum_vacuum_cost_limit` |
 |---|---|---|
-| `<entity>_journal`, `<entity>_snaps` for `things`, `policies`, `connections`, `wot` | `0.01` | `2000` |
-| `<entity>_journal_seq` for the same entities | `0.01` | not set |
+| `<entity>_journal`, `<entity>_snaps` for `things`, `policies`, `connections`, `wot`, `connection_remember` | `0.01` | `2000` |
+| `<entity>_journal_seq` for the same table sets | `0.01` | not set |
 | `search_things` (its TOAST table, which holds the thing documents, inherits the value), `search_flat` | `0.01` | not set |
 | `search_sync` | not set | not set |
 | Not set means the server's setting; PostgreSQL's defaults: | `0.2` | `-1`, which means `vacuum_cost_limit` (`200`) |

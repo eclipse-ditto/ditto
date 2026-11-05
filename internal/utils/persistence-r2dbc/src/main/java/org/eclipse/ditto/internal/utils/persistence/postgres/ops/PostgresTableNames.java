@@ -24,8 +24,8 @@ import org.eclipse.ditto.internal.utils.persistence.postgres.schema.PostgresSche
 
 /**
  * Resolves the three per-entity table names ({@code <e>_journal}, {@code <e>_journal_seq}, {@code <e>_snaps}) for a
- * single entity prefix (one of {@link PostgresSchema#ENTITIES}: {@code things}, {@code policies}, {@code connections},
- * {@code wot}).
+ * single table-set prefix (one of {@link PostgresSchema#ENTITIES}: {@code things}, {@code policies},
+ * {@code connections}, {@code wot}, and {@code connection_remember} for connectivity's remember-entities store).
  * <p>
  * Centralising this keeps the SQL in {@link PostgresPersistenceOperations} free of string concatenation and guarantees that
  * the journal, the high-water-mark metadata table and the snapshot table for an entity stay in lockstep

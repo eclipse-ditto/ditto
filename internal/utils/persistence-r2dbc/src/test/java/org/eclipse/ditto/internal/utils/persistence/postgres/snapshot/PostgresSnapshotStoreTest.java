@@ -19,6 +19,7 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -27,11 +28,23 @@ import org.eclipse.ditto.internal.utils.persistence.postgres.client.DittoPostgre
 import org.eclipse.ditto.internal.utils.persistence.postgres.ops.PostgresPersistenceOperations;
 import org.eclipse.ditto.internal.utils.persistence.postgres.ops.RecordingConnectionFactory;
 import org.eclipse.ditto.internal.utils.persistence.postgres.ops.StubClientSupport;
+import org.eclipse.ditto.internal.utils.persistence.postgres.payload.PekkoSerializationPayloadCodec;
+import org.eclipse.ditto.json.JsonFactory;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
+import com.typesafe.config.ConfigFactory;
+
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.cluster.sharding.internal.EventSourcedRememberEntitiesShardStore;
 import org.apache.pekko.persistence.SelectedSnapshot;
 import org.apache.pekko.persistence.SnapshotMetadata;
 import org.apache.pekko.persistence.SnapshotSelectionCriteria;
+import org.apache.pekko.serialization.Serialization;
+import org.apache.pekko.serialization.SerializationExtension;
+import org.apache.pekko.testkit.javadsl.TestKit;
+import scala.jdk.javaapi.CollectionConverters;
 
 /**
  * Unit tests for the {@link PostgresSnapshotStore}, exercised through {@link PostgresSnapshotStoreOps} (the plain
@@ -43,6 +56,23 @@ import org.apache.pekko.persistence.SnapshotSelectionCriteria;
 public final class PostgresSnapshotStoreTest {
 
     private static final String PID = "thing:ns:id";
+
+    private static ActorSystem system;
+    private static Serialization serialization;
+
+    @BeforeClass
+    public static void startActorSystem() {
+        system = ActorSystem.create("PostgresSnapshotStoreTest", ConfigFactory.load());
+        serialization = SerializationExtension.get(system);
+    }
+
+    @AfterClass
+    public static void stopActorSystem() {
+        if (system != null) {
+            TestKit.shutdownActorSystem(system);
+            system = null;
+        }
+    }
 
     private PostgresSnapshotStoreOps storeFor(final RecordingConnectionFactory factory) {
         final DittoPostgresClient client = StubClientSupport.clientFor(factory);
@@ -152,6 +182,54 @@ public final class PostgresSnapshotStoreTest {
                 .filter(s -> s.contains("DELETE FROM things_snaps")).findFirst().orElseThrow();
         // criteria form: upper-bounded sn<=maxSeq AND written_at<=maxTs, no lower bound.
         assertThat(sql).contains("WHERE pid = $1 AND sn <= $2 AND written_at <= $3");
+    }
+
+    @Test
+    public void pekkoSerializationCodecSavesTheEnvelopeAndLoadsTheDeserializedState() throws Exception {
+        // The remember-entities store snapshots its State as Pekko-serialized bytes: the connection_remember snapshot
+        // store wraps them in the JSON envelope on save and offers the deserialized State on load.
+        final String pid = "/sharding/connectionShard/3";
+        final Object state = new EventSourcedRememberEntitiesShardStore.State(
+                CollectionConverters.asScala(Set.of("conn-a", "conn-b")).toSet());
+        final RecordingConnectionFactory factory = new RecordingConnectionFactory();
+        final PostgresSnapshotStoreOps store = PostgresSnapshotStoreOps.of(
+                PostgresPersistenceOperations.of(StubClientSupport.clientFor(factory), "connection_remember"),
+                PekkoSerializationPayloadCodec.of(serialization));
+
+        await(store.saveAsync(new SnapshotMetadata(pid, 4L, 9999L), state));
+
+        final RecordingConnectionFactory.Execution insert = factory.executions().stream()
+                .filter(execution -> execution.sql().contains("INSERT INTO connection_remember_snaps"))
+                .findFirst().orElseThrow();
+        final String stored = (String) insert.binds().get(2);
+        assertThat(JsonFactory.newObject(stored).getKeys().stream().map(CharSequence::toString))
+                .containsExactlyInAnyOrder("serializerId", "manifest", "bytes");
+        assertThat(insert.binds().get(3)).as("no lifecycle is derived from an envelope").isNull();
+
+        factory.onSql("FROM connection_remember_snaps", List.of(Map.of(
+                "pid", pid, "sn", 4L, "snapshot", stored, "written_at", Instant.ofEpochMilli(9999L))));
+        final Optional<SelectedSnapshot> loaded = await(store.loadAsync(pid, SnapshotSelectionCriteria.latest()));
+
+        assertThat(loaded).isPresent();
+        assertThat(loaded.get().snapshot()).isEqualTo(state);
+        assertThat(loaded.get().metadata().sequenceNr()).isEqualTo(4L);
+    }
+
+    @Test
+    public void pekkoSerializationCodecReportsAnUnserializableSnapshotAsAFailedFuture() {
+        // as for the JSON text codec: Pekko's SnapshotStore contract wants the failure in the future, not thrown
+        final RecordingConnectionFactory factory = new RecordingConnectionFactory();
+        final PostgresSnapshotStoreOps store = PostgresSnapshotStoreOps.of(
+                PostgresPersistenceOperations.of(StubClientSupport.clientFor(factory), "connection_remember"),
+                PekkoSerializationPayloadCodec.of(serialization));
+
+        final CompletionStage<Void> stage = store.saveAsync(new SnapshotMetadata(PID, 1L, 1L), new Object());
+
+        assertThatCode(() -> stage.toCompletableFuture().get(10, TimeUnit.SECONDS))
+                .isInstanceOf(ExecutionException.class)
+                .hasCauseInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Unable to Pekko-serialize");
+        assertThat(factory.executedContaining("INSERT INTO")).as("nothing reaches the database").isFalse();
     }
 
 }

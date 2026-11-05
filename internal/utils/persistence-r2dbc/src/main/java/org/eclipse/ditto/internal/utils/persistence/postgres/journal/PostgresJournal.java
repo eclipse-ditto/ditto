@@ -22,10 +22,12 @@ import javax.annotation.concurrent.NotThreadSafe;
 import org.eclipse.ditto.internal.utils.persistence.postgres.client.DittoPostgresClient;
 import org.eclipse.ditto.internal.utils.persistence.postgres.client.PostgresClientExtension;
 import org.eclipse.ditto.internal.utils.persistence.postgres.ops.PostgresPersistenceOperations;
+import org.eclipse.ditto.internal.utils.persistence.postgres.payload.PostgresPayloadCodec;
 
 import org.apache.pekko.persistence.AtomicWrite;
 import org.apache.pekko.persistence.PersistentRepr;
 import org.apache.pekko.persistence.journal.japi.AsyncWriteJournal;
+import org.apache.pekko.serialization.SerializationExtension;
 
 import com.typesafe.config.Config;
 
@@ -39,10 +41,12 @@ import scala.jdk.javaapi.FutureConverters;
  * Correctness contract (implemented in {@link PostgresJournalOps}):
  * </p>
  * <ul>
- *     <li><strong>Per-{@code AtomicWrite} transaction.</strong> Ditto produces zero multi-event {@code AtomicWrite}s
- *     (no {@code persistAll} call-site exists anywhere), so the design targets the single-event case but does not
- *     crash on a multi-event write — every {@code PersistentRepr} of an {@code AtomicWrite} is inserted in one
- *     transaction with one {@code Optional<Exception>} result slot per {@code AtomicWrite}.</li>
+ *     <li><strong>Per-{@code AtomicWrite} transaction.</strong> Ditto's own actors produce single-event
+ *     {@code AtomicWrite}s only (no {@code persistAll} call-site); the one multi-event producer is Pekko's
+ *     remember-entities shard store on the {@code connection_remember} plugins, bounded by
+ *     {@code event-sourced-remember-entities-store.max-updates-per-write}. Every {@code PersistentRepr} of an
+ *     {@code AtomicWrite} is inserted in one transaction with one {@code Optional<Exception>} result slot per
+ *     {@code AtomicWrite}.</li>
  *     <li><strong>High-water-mark.</strong> The same transaction upserts
  *     {@code <e>_journal_seq.highest_sn = GREATEST(highest_sn, max(sn))}; {@code doAsyncReadHighestSequenceNr} reads
  *     {@code GREATEST(COALESCE(MAX(sn),0), COALESCE(highest_sn,0))} (never bare {@code MAX(sn)}), so the highest
@@ -67,7 +71,8 @@ public final class PostgresJournal extends AsyncWriteJournal {
      * Constructor invoked reflectively by Pekko's persistence-plugin loader. Pekko tries, in order, a
      * {@code (Config, String)}, then this {@code (Config)}, then a no-arg constructor when materialising a
      * journal plugin; the single-{@link Config} form receives this plugin's own config block, which carries the
-     * {@code entity} table-prefix key.
+     * {@code entity} table-prefix key and, optionally, the {@code payload-codec} ({@link PostgresPayloadCodec}:
+     * JSON text by default, the Pekko-serialization envelope for the remember-entities store).
      * <p>
      * The plugin resolves its entity prefix from that block and binds the shared {@link PostgresPersistenceOperations}
      * to the entity's tables, over the single per-actor-system {@link DittoPostgresClient} resolved from
@@ -82,7 +87,9 @@ public final class PostgresJournal extends AsyncWriteJournal {
     public PostgresJournal(final Config config) {
         final String entity = checkNotNull(config, "config").getString(ENTITY_KEY);
         final DittoPostgresClient client = PostgresClientExtension.get(context().system()).getClient();
-        this.ops = PostgresJournalOps.of(PostgresPersistenceOperations.of(client, entity));
+        final PostgresPayloadCodec codec =
+                PostgresPayloadCodec.fromConfig(config, () -> SerializationExtension.get(context().system()));
+        this.ops = PostgresJournalOps.of(PostgresPersistenceOperations.of(client, entity), codec);
     }
 
     /**

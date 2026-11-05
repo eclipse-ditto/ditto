@@ -28,7 +28,8 @@ import org.eclipse.ditto.internal.utils.persistence.postgres.client.schema.Table
  * <p>
  * Every statement is idempotent ({@code CREATE … IF NOT EXISTS}, {@code DROP INDEX IF EXISTS},
  * {@code ALTER TABLE … SET}). The per-entity tables (one set each for {@code things},
- * {@code policies}, {@code connections}, {@code wot}) have these shapes:
+ * {@code policies}, {@code connections}, {@code wot}, and a fifth set {@code connection_remember} for connectivity's
+ * cluster-sharding remember-entities store) have these shapes:
  * </p>
  * <ul>
  *     <li>{@code <e>_journal} — {@code pid TEXT COLLATE "C"}, {@code sn BIGINT}, {@code seq BIGINT GENERATED ALWAYS AS
@@ -74,19 +75,36 @@ public final class PostgresSchema {
      * v2: v1's {@code (pid, sn DESC)} snaps index dropped — redundant under the loose-index-scan queries.
      * v3: the unused partial snaps index on {@code lifecycle = 'DELETED'} dropped; the journal and snapshot tables get
      * a larger autovacuum cost budget.
+     * v4: the fifth table set {@code connection_remember_*} appended (connectivity's remember-entities store, which
+     * MongoDB keeps in its own {@code connection_remember_*} collections); the first 36 statements are v3's verbatim.
      */
-    public static final int VERSION = 3;
+    public static final int VERSION = 4;
 
     /**
      * The oldest code schema version that can run against the {@link #VERSION} schema (stored as
      * {@code schema_version.min_compatible_version}); see {@code PostgresSchemaDescriptor#minCompatibleVersion()} for
      * the bump rules. v2 is the first version that declares one; it is 2 because v1 code predates the compatibility
-     * check. v3 keeps 2: an index drop and changed storage parameters leave v2 code working against the v3 schema.
+     * check. v3 keeps 2: an index drop and changed storage parameters leave v2 code working against the v3 schema. v4
+     * keeps 2: appended tables leave v2 and v3 code working against the v4 schema (they never touch them).
      */
     public static final int MIN_COMPATIBLE_VERSION = 2;
 
-    /** The per-entity prefixes that get a full journal/journal_seq/snaps table set. */
-    public static final List<String> ENTITIES = List.of("things", "policies", "connections", "wot");
+    /** The table-set prefixes of the four entity types — the only sets a read journal may bind to. */
+    public static final List<String> ENTITY_TABLE_SETS = List.of("things", "policies", "connections", "wot");
+
+    /**
+     * The table set of connectivity's cluster-sharding remember-entities store (since v4): Pekko envelopes under
+     * {@code /sharding/…} persistence ids, never Ditto events — no read journal, ping or cleanup binds to it.
+     */
+    public static final String REMEMBER_TABLE_SET = "connection_remember";
+
+    /**
+     * The prefixes that get a full journal/journal_seq/snaps table set: {@link #ENTITY_TABLE_SETS}, then (since v4)
+     * {@link #REMEMBER_TABLE_SET}. Append only: the order is the DDL order, and the checksum of every shipped version
+     * covers its prefix of this list.
+     */
+    public static final List<String> ENTITIES = List.of("things", "policies", "connections", "wot",
+            REMEMBER_TABLE_SET);
 
     /**
      * Autovacuum storage parameters of the tables cleanup deletes from ({@code <e>_journal}, {@code <e>_snaps}):

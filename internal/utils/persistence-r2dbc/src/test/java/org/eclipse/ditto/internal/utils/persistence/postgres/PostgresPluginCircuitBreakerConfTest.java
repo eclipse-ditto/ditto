@@ -52,11 +52,12 @@ import com.typesafe.config.ConfigResolveOptions;
 public final class PostgresPluginCircuitBreakerConfTest {
 
     private static final List<String> JOURNALS = List.of("ditto-postgres-things-journal",
-            "ditto-postgres-policies-journal", "ditto-postgres-connections-journal", "ditto-postgres-wot-journal");
+            "ditto-postgres-policies-journal", "ditto-postgres-connections-journal", "ditto-postgres-wot-journal",
+            "ditto-postgres-connection-remember-journal");
 
     private static final List<String> SNAPSHOT_STORES = List.of("ditto-postgres-things-snapshots",
             "ditto-postgres-policies-snapshots", "ditto-postgres-connections-snapshots",
-            "ditto-postgres-wot-snapshots");
+            "ditto-postgres-wot-snapshots", "ditto-postgres-connection-remember-snapshots");
 
     private static final String JOURNAL_FALLBACK = "pekko.persistence.journal-plugin-fallback";
     private static final String SNAPSHOT_FALLBACK = "pekko.persistence.snapshot-store-plugin-fallback";
