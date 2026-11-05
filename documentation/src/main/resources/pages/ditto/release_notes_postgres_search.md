@@ -50,9 +50,10 @@ Deployment matrix:
 ## Prerequisite — the `pg_trgm` extension
 
 The PostgreSQL search schema requires the `pg_trgm` extension (used for the `like`/`ilike` trigram indexes). It is a
-*trusted* extension on PostgreSQL ≥ 13, so `CREATE EXTENSION IF NOT EXISTS pg_trgm` on the target database succeeds
-for the DDL role without superuser privileges. The schema bootstrap fails with an actionable error if the role is not
-permitted to create it.
+*trusted* extension on PostgreSQL ≥ 13, so the DDL role creates it itself without superuser privileges once it has
+`CREATE` on the target database (the provisioning script grants it). The schema bootstrap fails with an actionable error
+if the role is not permitted to create it. If you pre-install the extension by hand, pin its schema:
+`CREATE EXTENSION IF NOT EXISTS pg_trgm SCHEMA ditto;`.
 
 ## Prerequisite — a UTF8 database with a UTF-8 `LC_CTYPE`
 

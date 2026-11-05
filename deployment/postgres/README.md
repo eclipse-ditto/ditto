@@ -30,7 +30,7 @@ settings of the schemas, server settings, monitoring queries and alert threshold
 Contents:
 
 - `provisioning/01-roles-and-grants.sql` — two-role provisioning (run once as
-  superuser / db owner).
+  the database owner: a superuser, or the master user of a managed service).
 - Helm TLS wiring: `postgres.tls.*` in `deployment/helm/ditto/values.yaml`,
   rendered by `templates/postgres-tls-secret.yaml` and mounted via the
   `ditto.postgres.tls.{volume,volumeMount}` helpers.
@@ -41,7 +41,8 @@ PostgreSQL 16 or newer (tested: 16, 17, 18). At every start the schema
 bootstrap reads `server_version_num`; on an older server it logs a WARN and
 still starts. Technically, the persistence backend needs PostgreSQL ≥ 10 and
 the search backend PostgreSQL ≥ 13 (from 13 on `pg_trgm` is a trusted
-extension, so the DDL role can create it without superuser).
+extension, so the DDL role can create it without superuser once it has
+`CREATE` on the database, which the provisioning script grants).
 
 ## Search database: encoding and locale
 
@@ -174,20 +175,34 @@ lower `query_wait_timeout` below 5 s.
 The order is load-bearing because PostgreSQL `ALTER DEFAULT PRIVILEGES` applies
 **only to objects created after it runs** — it never back-fills existing tables.
 
-1. **Create roles + set default privileges (as superuser / db owner).**
+1. **Create roles + set default privileges (as the database owner).**
 
    ```bash
-   psql -h <pg-host> -U postgres -d ditto \
+   psql -h <pg-host> -U <database-owner> -d ditto \
         -v ddl_pw="$DITTO_DDL_PASSWORD" \
         -v app_pw="$DITTO_APP_PASSWORD" \
         -f provisioning/01-roles-and-grants.sql
    ```
 
+   Run it as the owner of the `ditto` database: a superuser, or on a managed
+   service (Amazon RDS, Azure Database for PostgreSQL, Cloud SQL) the master /
+   admin user, who is no superuser; both work (verified on Amazon RDS for
+   PostgreSQL 16).
+
    This creates `ditto_ddl` (schema owner, CREATE) and `ditto_app` (DML-only),
+   makes the executing user a member of `ditto_ddl` (without it, PostgreSQL 16+
+   refuses the schema handover to a non-superuser's freshly created role),
    `CREATE SCHEMA ditto AUTHORIZATION ditto_ddl`, revokes CREATE from `ditto_app`
-   and `PUBLIC`, and sets `ALTER DEFAULT PRIVILEGES FOR ROLE ditto_ddl … GRANT
-   SELECT, INSERT, UPDATE, DELETE ON TABLES TO ditto_app`. The default-privileges
-   statement **must** be set here, before the app boots — see comment in the SQL.
+   and `PUBLIC`, grants `ditto_ddl` `CREATE` on the database (needed to create
+   the trusted `pg_trgm` extension at the search service's first start), and
+   sets `ALTER DEFAULT PRIVILEGES FOR ROLE ditto_ddl … GRANT SELECT, INSERT,
+   UPDATE, DELETE ON TABLES TO ditto_app`. The default-privileges statement
+   **must** be set here, before the app boots — see comment in the SQL. If you
+   install `pg_trgm` by hand instead, pin its schema:
+   `CREATE EXTENSION IF NOT EXISTS pg_trgm SCHEMA ditto;` — a plain
+   `CREATE EXTENSION` as a superuser lands in `public`, which is not on the
+   roles' `search_path`, and the trigram index build fails with
+   `operator class "gin_trgm_ops" does not exist`.
    It also sets the role defaults `search_path = ditto` (both roles) and
    `statement_timeout = '60s'` (`ditto_app` only, see
    [Statement timeout](#statement-timeout-role-default-and-pgbouncer)).

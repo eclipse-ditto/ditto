@@ -30,9 +30,12 @@
 --                 `uri` (${POSTGRES_URI}) the actors use on the hot path.
 --
 -- PROVISIONING ORDER (mandatory — see deployment/postgres/README.md):
---   1. Run THIS script ONCE as a superuser / database owner. It establishes the
---      roles, schema ownership, and — critically — the ALTER DEFAULT PRIVILEGES
---      that make every FUTURE table ditto_ddl creates automatically grant DML to
+--   1. Run THIS script ONCE as the owner of the target database: a superuser,
+--      or on a managed service (Amazon RDS, Azure Database for PostgreSQL,
+--      Cloud SQL) the master / admin user, who is no superuser — both work
+--      (verified on Amazon RDS for PostgreSQL 16). It establishes the roles,
+--      schema ownership, and — critically — the ALTER DEFAULT PRIVILEGES that
+--      make every FUTURE table ditto_ddl creates automatically grant DML to
 --      ditto_app. The default privileges MUST be set BEFORE any bootstrap DDL
 --      runs; PostgreSQL only applies default privileges to objects created AFTER
 --      the ALTER DEFAULT PRIVILEGES statement — it does NOT retroactively grant
@@ -45,7 +48,8 @@
 --      provisioning pass is required after the app boots.
 --
 -- Usage (psql variables let you keep passwords out of the file):
---   psql -v ddl_pw='...' -v app_pw='...' -f 01-roles-and-grants.sql
+--   psql -h <host> -U <database owner> -d ditto \
+--        -v ddl_pw='...' -v app_pw='...' -f 01-roles-and-grants.sql
 --
 -- The schema name is `ditto` and the roles are ditto_ddl / ditto_app, matching
 -- the spec; the role passwords are supplied as :ddl_pw / :app_pw psql variables.
@@ -56,6 +60,18 @@
 -- lines (or wrap them) — roles are cluster-global and cannot use IF NOT EXISTS.
 CREATE ROLE ditto_ddl LOGIN PASSWORD :'ddl_pw';
 CREATE ROLE ditto_app LOGIN PASSWORD :'app_pw';
+
+-- --- Membership for the provisioning user -----------------------------------
+-- The user running this script becomes a member of ditto_ddl. Required when
+-- that user is no superuser (the master user of a managed service): since
+-- PostgreSQL 16 a CREATEROLE user gets only ADMIN OPTION on the roles it
+-- creates and can neither SET ROLE to them nor hand them ownership —
+-- CREATE SCHEMA ... AUTHORIZATION ditto_ddl fails with "must be able to SET
+-- ROLE", ALTER DEFAULT PRIVILEGES FOR ROLE ditto_ddl with "permission denied
+-- to change default privileges". The GRANTs and REVOKEs on the schema below
+-- are then performed as its owner through this membership. Harmless for a
+-- superuser; idempotent on a re-run.
+GRANT ditto_ddl TO CURRENT_USER;
 
 -- --- Schema ownership -------------------------------------------------------
 -- The DDL role OWNS the schema, which implicitly grants it CREATE there.
@@ -69,6 +85,22 @@ GRANT USAGE, CREATE ON SCHEMA ditto TO ditto_ddl;  -- explicit; redundant with o
 GRANT USAGE             ON SCHEMA ditto TO ditto_app;  -- runtime may resolve names
 REVOKE CREATE ON SCHEMA ditto FROM ditto_app;       -- no DDL on the runtime path
 REVOKE CREATE ON SCHEMA ditto FROM PUBLIC;          -- lock down implicit PUBLIC CREATE
+
+-- --- Database-level privilege for the DDL role ------------------------------
+-- The search service's first start runs CREATE EXTENSION IF NOT EXISTS pg_trgm
+-- as ditto_ddl (trigram index behind like/ilike). Creating a trusted extension
+-- needs CREATE on the DATABASE, which schema ownership does not give; without
+-- it the search service refuses to start (SQLSTATE 42501, "permission denied
+-- to create extension"). :DBNAME is psql's variable for the connected
+-- database; the grantor must own the database.
+-- The extension lands in the first schema of ditto_ddl's search_path, i.e. in
+-- `ditto` (set below), where both roles resolve gin_trgm_ops. If you install
+-- it by hand instead, pin the schema:
+--   CREATE EXTENSION IF NOT EXISTS pg_trgm SCHEMA ditto;
+-- A superuser's plain CREATE EXTENSION lands in `public`, which is not on the
+-- roles' search_path, and the index build then fails with 'operator class
+-- "gin_trgm_ops" does not exist' (SQLSTATE 42704).
+GRANT CREATE ON DATABASE :"DBNAME" TO ditto_ddl;
 
 -- --- Default privileges for FUTURE tables -----------------------------------
 -- MUST be set BEFORE the bootstrap DDL runs (see PROVISIONING ORDER above):

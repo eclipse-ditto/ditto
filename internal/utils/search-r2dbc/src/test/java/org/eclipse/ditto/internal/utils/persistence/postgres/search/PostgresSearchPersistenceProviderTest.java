@@ -38,7 +38,9 @@ import org.junit.Test;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 
+import io.r2dbc.spi.R2dbcBadGrammarException;
 import io.r2dbc.spi.R2dbcException;
+import io.r2dbc.spi.R2dbcPermissionDeniedException;
 
 /**
  * Unit tests for {@link PostgresSearchPersistenceProvider}: extension resolution via the shipped opt-in profile,
@@ -323,4 +325,60 @@ public final class PostgresSearchPersistenceProviderTest {
                         "ditto.search.index-initialization.custom-indexes",
                         "ditto.search.operator-metrics.custom-metrics.total_things.index-hint");
     }
+
+    @Test
+    public void classifyTrgmFailureNamesTheMissingDatabasePrivilegeBySqlState() {
+        // PostgreSQL's wording for a non-superuser without CREATE on the database
+        final R2dbcException denied = new R2dbcPermissionDeniedException(
+                "permission denied to create extension \"pg_trgm\"", "42501");
+
+        assertThat(PostgresSearchPersistenceProvider.classifyTrgmFailure(denied))
+                .isEqualTo(PostgresSearchPersistenceProvider.TrgmFailure.NOT_PERMITTED);
+        assertThat(PostgresSearchPersistenceProvider.TrgmFailure.NOT_PERMITTED.getMessage())
+                .contains("GRANT CREATE ON DATABASE")
+                .contains("CREATE EXTENSION IF NOT EXISTS pg_trgm SCHEMA ditto;");
+    }
+
+    @Test
+    public void classifyTrgmFailureNamesTheMissingDatabasePrivilegeByMessageWithoutSqlState() {
+        final RuntimeException wrapped = new IllegalStateException("boot failed",
+                new RuntimeException("permission denied to create extension \"pg_trgm\""));
+
+        assertThat(PostgresSearchPersistenceProvider.classifyTrgmFailure(wrapped))
+                .isEqualTo(PostgresSearchPersistenceProvider.TrgmFailure.NOT_PERMITTED);
+    }
+
+    @Test
+    public void classifyTrgmFailureNamesTheExtensionOffTheSearchPath() {
+        // a superuser's plain CREATE EXTENSION put pg_trgm into public; the roles' search_path is ditto
+        final RuntimeException wrapped = new IllegalStateException("boot failed", new R2dbcBadGrammarException(
+                "operator class \"gin_trgm_ops\" does not exist for access method \"gin\"", "42704"));
+
+        assertThat(PostgresSearchPersistenceProvider.classifyTrgmFailure(wrapped))
+                .isEqualTo(PostgresSearchPersistenceProvider.TrgmFailure.NOT_ON_SEARCH_PATH);
+        assertThat(PostgresSearchPersistenceProvider.TrgmFailure.NOT_ON_SEARCH_PATH.getMessage())
+                .contains("ALTER EXTENSION pg_trgm SET SCHEMA ditto;");
+    }
+
+    @Test
+    public void classifyTrgmFailureIgnoresOtherUndefinedObjects() {
+        final R2dbcException otherUndefinedObject =
+                new R2dbcBadGrammarException("type \"jsonbx\" does not exist", "42704");
+
+        assertThat(PostgresSearchPersistenceProvider.classifyTrgmFailure(otherUndefinedObject))
+                .isEqualTo(PostgresSearchPersistenceProvider.TrgmFailure.NONE);
+    }
+
+    @Test
+    public void classifyTrgmFailureIgnoresUnrelatedFailuresAndNullMessages() {
+        assertThat(PostgresSearchPersistenceProvider.classifyTrgmFailure(new RuntimeException((String) null)))
+                .isEqualTo(PostgresSearchPersistenceProvider.TrgmFailure.NONE);
+        assertThat(PostgresSearchPersistenceProvider.classifyTrgmFailure(
+                new IllegalStateException("connection refused", new ConnectException("refused"))))
+                .isEqualTo(PostgresSearchPersistenceProvider.TrgmFailure.NONE);
+        assertThat(PostgresSearchPersistenceProvider.classifyTrgmFailure(
+                new R2dbcBadGrammarException("syntax error at or near \"FROM\"", "42601")))
+                .isEqualTo(PostgresSearchPersistenceProvider.TrgmFailure.NONE);
+    }
+
 }

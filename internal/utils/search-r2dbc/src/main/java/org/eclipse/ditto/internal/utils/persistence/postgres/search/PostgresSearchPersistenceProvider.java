@@ -185,12 +185,9 @@ public final class PostgresSearchPersistenceProvider implements SearchPersistenc
             // A refusal is already actionable; its text mentions pg_trgm, so it must not be re-classified below.
             throw e;
         } catch (final RuntimeException e) {
-            if (indicatesMissingTrgmExtension(e)) {
-                throw new IllegalStateException("PostgreSQL search schema bootstrap failed: the DDL role could not "
-                        + "create the required 'pg_trgm' extension. pg_trgm backs the sf_trgm trigram index used by "
-                        + "like()/ilike() search predicates. It is a trusted extension since PostgreSQL 13, so grant "
-                        + "the DDL role permission to run 'CREATE EXTENSION pg_trgm' on the target database, or have a "
-                        + "superuser pre-install it once: CREATE EXTENSION IF NOT EXISTS pg_trgm;", e);
+            final TrgmFailure trgmFailure = classifyTrgmFailure(e);
+            if (trgmFailure != TrgmFailure.NONE) {
+                throw new IllegalStateException(trgmFailure.getMessage(), e);
             }
             throw e;
         }
@@ -481,30 +478,73 @@ public final class PostgresSearchPersistenceProvider implements SearchPersistenc
     }
 
     /**
-     * @param throwable a bootstrap failure.
-     * @return {@code true} if the failure indicates that the DDL role lacks permission to create the {@code pg_trgm}
-     * extension (SQLSTATE 42501 {@code insufficient_privilege}, or a message referencing extension creation / pg_trgm /
-     * permission-denied-to-create-extension), so the caller can raise an actionable error.
+     * The two ways a deployment can misprovision the {@code pg_trgm} extension the search schema needs, each with the
+     * actionable boot error that names its remedy.
      */
-    private static boolean indicatesMissingTrgmExtension(final Throwable throwable) {
+    enum TrgmFailure {
+        /** The bootstrap failure has nothing to do with the extension. */
+        NONE(""),
+        /**
+         * The DDL role may not create the extension: a trusted extension needs {@code CREATE} on the database, which
+         * schema ownership does not give (SQLSTATE 42501).
+         */
+        NOT_PERMITTED("PostgreSQL search schema bootstrap failed: the DDL role could not create the required "
+                + "'pg_trgm' extension. pg_trgm backs the sf_trgm trigram index used by like()/ilike() search "
+                + "predicates. It is a trusted extension since PostgreSQL 13, so a non-superuser creates it once it "
+                + "has CREATE on the database: as the database owner run GRANT CREATE ON DATABASE <database> TO "
+                + "<ddl role> "
+                + "(deployment/postgres/provisioning/01-roles-and-grants.sql does this); or have a superuser "
+                + "pre-install it once, in the schema the Ditto roles use: "
+                + "CREATE EXTENSION IF NOT EXISTS pg_trgm SCHEMA ditto;"),
+        /**
+         * The extension exists, but in a schema that is not on the DDL role's {@code search_path}, so the trigram index
+         * build cannot resolve {@code gin_trgm_ops} (SQLSTATE 42704). The usual cause is a superuser's plain
+         * {@code CREATE EXTENSION}, which installs into {@code public} while the Ditto roles' {@code search_path} is
+         * {@code ditto}.
+         */
+        NOT_ON_SEARCH_PATH("PostgreSQL search schema bootstrap failed: the 'pg_trgm' extension is installed, but in a "
+                + "schema that is not on the DDL role's search_path, so the operator class gin_trgm_ops of the sf_trgm "
+                + "trigram index (like()/ilike() search predicates) cannot be resolved. A plain CREATE EXTENSION as a "
+                + "superuser installs into 'public'; the Ditto roles' search_path is 'ditto'. Move it: "
+                + "ALTER EXTENSION pg_trgm SET SCHEMA ditto; (as a superuser or the extension's owner), or add its "
+                + "schema to the roles' search_path.");
+
+        private final String message;
+
+        TrgmFailure(final String message) {
+            this.message = message;
+        }
+
+        String getMessage() {
+            return message;
+        }
+    }
+
+    /**
+     * Classifies a bootstrap failure by walking its cause chain.
+     *
+     * @param throwable a bootstrap failure.
+     * @return {@link TrgmFailure#NOT_ON_SEARCH_PATH} for SQLSTATE 42704 ({@code undefined_object}) on
+     * {@code gin_trgm_ops}; {@link TrgmFailure#NOT_PERMITTED} for SQLSTATE 42501 ({@code insufficient_privilege}) or a
+     * message referencing extension creation / pg_trgm / permission-denied-to-create-extension;
+     * {@link TrgmFailure#NONE} otherwise.
+     */
+    static TrgmFailure classifyTrgmFailure(final Throwable throwable) {
         for (Throwable t = throwable; t != null; t = t.getCause()) {
-            if (t instanceof R2dbcException r2dbc) {
-                final String sqlState = r2dbc.getSqlState();
-                if ("42501".equals(sqlState)) {
-                    return true;
-                }
-            }
+            final String sqlState = t instanceof R2dbcException r2dbc ? r2dbc.getSqlState() : null;
             final String message = t.getMessage();
-            if (message != null) {
-                final String lower = message.toLowerCase(Locale.ROOT);
-                if (lower.contains("pg_trgm")
-                        || lower.contains("permission denied to create extension")
-                        || (lower.contains("create extension") && lower.contains("permission"))) {
-                    return true;
-                }
+            final String lower = message == null ? "" : message.toLowerCase(Locale.ROOT);
+            if (lower.contains("gin_trgm_ops") && ("42704".equals(sqlState) || lower.contains("does not exist"))) {
+                return TrgmFailure.NOT_ON_SEARCH_PATH;
+            }
+            if ("42501".equals(sqlState)
+                    || lower.contains("pg_trgm")
+                    || lower.contains("permission denied to create extension")
+                    || (lower.contains("create extension") && lower.contains("permission"))) {
+                return TrgmFailure.NOT_PERMITTED;
             }
         }
-        return false;
+        return TrgmFailure.NONE;
     }
 
 }
