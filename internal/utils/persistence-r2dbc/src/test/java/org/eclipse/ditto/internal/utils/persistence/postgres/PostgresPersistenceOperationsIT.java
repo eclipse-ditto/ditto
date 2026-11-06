@@ -54,7 +54,7 @@ import org.apache.pekko.stream.SystemMaterializer;
 import org.apache.pekko.stream.javadsl.Sink;
 
 /**
- * Integration test for the Postgres persistence-operations collaborators (task E2) and the {@code SELECT 1} health
+ * Integration test for the Postgres persistence-operations collaborators and the {@code SELECT 1} health
  * probe, against a real PostgreSQL (PG 16) via Testcontainers. Runs under failsafe ({@code *IT}); skipped offline / when
  * no Docker daemon is reachable.
  * <p>

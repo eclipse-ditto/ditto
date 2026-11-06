@@ -26,7 +26,7 @@ import com.tngtech.archunit.core.importer.ImportOption;
 
 /**
  * Rule 1 (no <em>switchable</em> Mongo artifact in service code) and Rule 2 (no Postgres in service code) of the
- * pluggable-persistence switchability proof (layer 1), applied to the things service. Symmetric to the connectivity
+ * pluggable-persistence boundary rules, applied to the things service. Symmetric to the connectivity
  * and policies boundary tests.
  * <p>
  * The things service persists through the backend-neutral persistence-API. The refactor routed the

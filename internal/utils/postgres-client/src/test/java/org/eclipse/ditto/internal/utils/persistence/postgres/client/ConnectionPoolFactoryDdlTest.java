@@ -25,7 +25,7 @@ import io.r2dbc.spi.ConnectionFactoryOptions;
 
 /**
  * Unit test proving that {@code ConnectionPoolFactory} actually consumes {@code pool.ddl-credentials} when building the
- * DDL-role connection options used by the schema bootstrap (the H-1 finding: {@code getDdlCredentials()} /
+ * DDL-role connection options used by the schema bootstrap (the finding: {@code getDdlCredentials()} /
  * {@code DdlCredentialsConfig.isConfigured()} had ZERO production consumers, so {@code POSTGRES_DDL_USER}/
  * {@code POSTGRES_DDL_PASSWORD} did nothing).
  * <p>

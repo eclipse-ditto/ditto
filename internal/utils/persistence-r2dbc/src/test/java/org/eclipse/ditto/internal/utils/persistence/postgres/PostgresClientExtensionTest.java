@@ -30,7 +30,7 @@ import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 
 /**
- * Unit test for the single-shared-pool seam (round-2 finding H-8): the journal, snapshot-store and read-journal of a
+ * Unit test for the single-shared-pool seam: the journal, snapshot-store and read-journal of a
  * service must resolve to <strong>one</strong> {@link DittoPostgresClient} / connection pool via
  * {@link PostgresClientExtension}, not three independently-built pools (which made one service instance open up to
  * {@code 3 × pool.max-size} connections while {@code ditto-postgres-persistence.conf} documents {@code max-size} as the
@@ -93,7 +93,7 @@ public final class PostgresClientExtensionTest {
 
         // Materialise the journal + snapshot-store plugins exactly as Pekko does: their (Config) constructors resolve
         // the client via PostgresClientExtension.get(context().system()). If they still each called
-        // DittoPostgresClient.newInstance(...) (the H-8 defect), they would build their own pools and the actor system
+        // DittoPostgresClient.newInstance(...) (the old defect), they would build their own pools and the actor system
         // would hold > 1 pool — but the only client any of them can reach is the shared one below.
         final ActorRef journalRef = Persistence.get(system).journalFor("ditto-postgres-things-journal", ConfigFactory.empty());
         final ActorRef snapshotRef =
@@ -102,7 +102,7 @@ public final class PostgresClientExtensionTest {
         assertThat(snapshotRef).isNotNull();
 
         // The provider's read-journal must resolve the SAME shared client (one pool across journal + snapshot +
-        // read-journal). This is the load-bearing assertion for H-8: before the fix the provider called
+        // read-journal). This is the load-bearing assertion: before the fix the provider called
         // DittoPostgresClient.newInstance(...) and built its OWN third pool, so resolvedReadJournalClient() would be a
         // different instance than the extension's client.
         final PostgresPersistenceBackendProvider provider = new PostgresPersistenceBackendProvider(system,

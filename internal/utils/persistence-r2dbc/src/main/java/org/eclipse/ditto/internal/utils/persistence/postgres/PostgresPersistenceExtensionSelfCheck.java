@@ -15,7 +15,7 @@ package org.eclipse.ditto.internal.utils.persistence.postgres;
 import java.lang.reflect.InvocationTargetException;
 
 /**
- * Layered-extension boot self-check for the thin Postgres <em>persistence</em> extension jar (§6 D2).
+ * Layered-extension boot self-check for the thin Postgres <em>persistence</em> extension jar.
  * <p>
  * The thin {@code ditto-postgres-persistence-extension} jar carries only the persistence-r2dbc classes; the shared
  * {@code ditto-postgres-client-extension} base jar (r2dbc/reactor/netty runtime + postgres-client infra, including the

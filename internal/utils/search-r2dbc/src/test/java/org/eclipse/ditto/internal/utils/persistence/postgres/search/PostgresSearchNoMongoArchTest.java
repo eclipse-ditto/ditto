@@ -24,7 +24,7 @@ import com.tngtech.archunit.core.importer.ClassFileImporter;
 import com.tngtech.archunit.core.importer.ImportOption;
 
 /**
- * ArchUnit closure for the Postgres search backend (Phase F requirement 3, switchability proof): NO class in
+ * ArchUnit closure for the Postgres search backend (boundary rule 3): NO class in
  * {@code search-r2dbc}'s MAIN code may depend on Mongo (com.mongodb / org.bson / the legacy
  * {@code pekko.contrib.persistence.mongodb} plugin / MongoReadJournal). This module IS the Postgres implementation of
  * the neutral {@code SearchPersistenceProvider} SPI (mirrors {@code ThingsearchPersistenceApiNeutralityArchTest} and

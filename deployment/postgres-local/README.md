@@ -74,7 +74,7 @@ Including the Postgres persistence profile therefore switches the snapshot envel
 
 ### Extension JAR placement (two JARs per persistence service — changed)
 
-The Postgres backend is packaged as **layered drop-in JARs** (§6 D2), none of them bundled in the service allinone
+The Postgres backend is packaged as **layered drop-in JARs**, none of them bundled in the service allinone
 JARs. This is a **change from the former single `ditto-internal-utils-persistence-r2dbc-extension` JAR**: the shared
 third-party runtime (r2dbc driver/pool, reactor, netty, scram) now lives in a **base** JAR that the thin backend JARs
 ride on top of, so a persistence service now mounts **two** JARs instead of one:

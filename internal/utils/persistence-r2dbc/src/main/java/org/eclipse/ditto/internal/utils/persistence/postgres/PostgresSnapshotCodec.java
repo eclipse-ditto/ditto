@@ -24,7 +24,7 @@ import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 
 /**
- * PostgreSQL JSONB snapshot storage-envelope codec — the Postgres mirror of {@code MongoSnapshotCodec} (task B5).
+ * PostgreSQL JSONB snapshot storage-envelope codec — the Postgres mirror of {@code MongoSnapshotCodec}.
  * <p>
  * Encapsulates the only PostgreSQL-specific step in snapshot (de)serialization: rendering the backend-neutral
  * {@link JsonObject} produced by the shared {@code SnapshotSerializer} to JSONB text for storage, and recovering it from

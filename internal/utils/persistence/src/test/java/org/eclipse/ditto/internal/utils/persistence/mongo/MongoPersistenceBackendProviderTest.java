@@ -128,14 +128,14 @@ public final class MongoPersistenceBackendProviderTest {
     }
 
     /**
-     * B5 regression guard: {@link MongoPersistenceBackendProvider#snapshotCodec()} must return a non-null
-     * {@link MongoSnapshotCodec} instead of throwing {@link UnsupportedOperationException} (the A1 default).
+     * Regression guard: {@link MongoPersistenceBackendProvider#snapshotCodec()} must return a non-null
+     * {@link MongoSnapshotCodec} instead of throwing {@link UnsupportedOperationException} (the interface default).
      */
     @Test
     public void snapshotCodecReturnsMongoBsonCodec() {
         final SnapshotCodec codec = provider.snapshotCodec();
         assertThat(codec)
-                .as("B5: MongoPersistenceBackendProvider.snapshotCodec() must not throw UOE and must return "
+                .as("MongoPersistenceBackendProvider.snapshotCodec() must not throw UOE and must return "
                         + "a MongoSnapshotCodec instance")
                 .isNotNull()
                 .isInstanceOf(MongoSnapshotCodec.class);

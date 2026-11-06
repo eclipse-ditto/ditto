@@ -25,7 +25,7 @@ import org.eclipse.ditto.internal.utils.persistence.postgres.client.schema.Table
 import org.junit.Test;
 
 /**
- * Refactor-safety net for the {@code internal/utils/postgres-client} extraction (Task B1).
+ * Refactor-safety net for the {@code internal/utils/postgres-client} extraction.
  * <p>
  * Before the extraction the {@code schema_version} table DDL was folded into {@code PostgresSchema.ddlStatements()} as
  * element 0, and the persisted {@code schema_version.checksum} for the {@code ditto-postgres-persistence} component was

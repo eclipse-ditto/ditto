@@ -32,17 +32,16 @@ import com.typesafe.config.ConfigFactory;
 import com.typesafe.config.ConfigParseOptions;
 
 /**
- * D1 validation test: asserts that {@link MongoPersistencePluginConfig#getAutoStartPluginIds(String)} returns the SAME
+ * HOCON drift test: asserts that {@link MongoPersistencePluginConfig#getAutoStartPluginIds(String)} returns the SAME
  * set as the union of {@code pekko.persistence.journal.auto-start-journals} and
  * {@code pekko.persistence.snapshot-store.auto-start-snapshot-stores} from each service's shipped
  * {@code <service>.conf}.
  *
- * <h2>Purpose (Task D1)</h2>
+ * <h2>Purpose</h2>
  * The static lists in Pekko's HOCON remain authoritative — Pekko reads them at boot. The Java constants in
- * {@link MongoPersistencePluginConfig} are used by the D1 validator and the G2 boot self-check. This test is the
- * regression guard that catches DRIFT between the Java constants and the shipped HOCON: if any service's
- * {@code auto-start-*} list is updated in HOCON without a corresponding update to the Java constants (or vice versa),
- * this test fails.
+ * {@link MongoPersistencePluginConfig} mirror them. This test is the regression guard that catches DRIFT between
+ * the Java constants and the shipped HOCON: if any service's {@code auto-start-*} list is updated in HOCON without a
+ * corresponding update to the Java constants (or vice versa), this test fails.
  *
  * <h2>How it loads the config</h2>
  * The service conf files are NOT on the test classpath of this module (the service modules do not depend on
@@ -108,7 +107,7 @@ public final class MongoAutoStartIdsMatchServiceHoconTest {
     @Parameterized.Parameter(1)
     public String confBaseName;
 
-    // ── main D1 assertion ─────────────────────────────────────────────────────
+    // ── main assertion ────────────────────────────────────────────────────────
 
     /**
      * Loads the service's shipped {@code <service>.conf} from the source tree, reads the two
@@ -120,7 +119,7 @@ public final class MongoAutoStartIdsMatchServiceHoconTest {
         final List<String> javaAutoStartIds = pluginConfig.getAutoStartPluginIds(serviceName);
 
         assertThat(javaAutoStartIds)
-                .as("D1: MongoPersistencePluginConfig.getAutoStartPluginIds(\"%s\") must equal "
+                .as("MongoPersistencePluginConfig.getAutoStartPluginIds(\"%s\") must equal "
                                 + "the union of pekko.persistence.journal.auto-start-journals + "
                                 + "pekko.persistence.snapshot-store.auto-start-snapshot-stores "
                                 + "from %s.conf (drift guard)",
@@ -141,7 +140,7 @@ public final class MongoAutoStartIdsMatchServiceHoconTest {
             return; // WoT guard applies only to things
         }
         assertThat(pluginConfig.getAutoStartPluginIds("things"))
-                .as("D1: WoT plugin IDs must NOT be in the things auto-start set "
+                .as("WoT plugin IDs must NOT be in the things auto-start set "
                         + "(intentionally excluded per things.conf — WoT is not auto-started)")
                 .doesNotContain(
                         "pekko-contrib-mongodb-persistence-wot-validation-config-journal",

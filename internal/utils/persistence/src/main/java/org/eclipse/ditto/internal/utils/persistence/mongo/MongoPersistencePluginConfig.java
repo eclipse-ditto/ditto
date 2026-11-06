@@ -28,10 +28,9 @@ import org.eclipse.ditto.internal.utils.persistence.api.PersistencePluginConfig;
  * <h2>ID-sourcing approach — constants matching the shipped HOCON</h2>
  * The auto-start and remember-store IDs are hardcoded as named constants whose values are verified verbatim
  * against the shipped service HOCON (things.conf, policies.conf, connectivity.conf). Hardcoding — rather than
- * reading from the conf at runtime — keeps these values available to the D1 validator and G2 boot self-check
- * without requiring a fully-loaded service config at startup; it also turns a value mismatch into a failing
- * unit test rather than a runtime mystery. Any change to the shipped IDs must update both the HOCON and these
- * constants together.
+ * reading from the conf at runtime — keeps these values available to the HOCON drift test without a fully-loaded
+ * service config; it also turns a value mismatch into a failing unit test rather than a runtime mystery. Any change
+ * to the shipped IDs must update both the HOCON and these constants together.
  *
  * <h2>Per-entity IDs</h2>
  * The {@link #getJournalPluginId(String)} / {@link #getSnapshotPluginId(String)} methods delegate to the

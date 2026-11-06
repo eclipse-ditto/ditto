@@ -58,7 +58,7 @@ public final class ConnectionPoolFactory {
 
     /**
      * The R2DBC pool name. Distinct + role-bearing ({@value}) so the single shared per-service pool is identifiable in
-     * pool-internal logging; its gauges carry the matching {@code pool=shared} discriminating tag (round-2 finding H-9).
+     * pool-internal logging; its gauges carry the matching {@code pool=shared} discriminating tag.
      */
     static final String POOL_NAME = "ditto-postgres-pool-shared";
 
@@ -155,7 +155,7 @@ public final class ConnectionPoolFactory {
         // Parse the r2dbc URL first, then layer explicit overrides so config keys win over URL query params.
         // NOTE: credentials are intentionally NOT layered here. baseOptions() is the shared (URL + SSL + pooling-safe)
         // foundation; the runtime (DML) role is layered by buildOptions() and the schema-bootstrap (DDL) role by
-        // buildDdlOptions(), so each caller picks its own credentials (H-1 DDL credential-layering).
+        // buildDdlOptions(), so each caller picks its own credentials (DDL credential layering).
         final ConnectionFactoryOptions.Builder builder = ConnectionFactoryOptions.parse(config.getUri()).mutate();
 
         // fetch-size=0 -> no server-side portal/cursor; keeps transaction pooling safe. The driver still reads the
@@ -256,7 +256,7 @@ public final class ConnectionPoolFactory {
         final int pendingAcquireMaxSize = poolConfig.getPendingAcquireMaxSize();
         final ConnectionPoolConfiguration.Builder builder = ConnectionPoolConfiguration.builder(connectionFactory)
                 // Distinct, role-bearing pool name: with the shared-pool topology a service builds exactly one pool
-                // (shared across journal+snapshot+read-journal), tagged pool=shared on its gauges (round-2 finding H-9).
+                // (shared across journal+snapshot+read-journal), tagged pool=shared on its gauges.
                 .name(POOL_NAME)
                 .initialSize(poolConfig.getInitialSize())
                 .maxSize(poolConfig.getMaxSize())

@@ -40,7 +40,7 @@ import com.typesafe.config.ConfigResolveOptions;
 import com.typesafe.config.ConfigUtil;
 
 /**
- * HOCON lint over the effective Postgres pg-dev profiles (switchability proof, layer 3).
+ * HOCON lint over the effective Postgres pg-dev profiles.
  *
  * <p>Loads each service's pg-dev config ({@code things-pg-dev.conf}, {@code policies-pg-dev.conf},
  * {@code connectivity-pg-dev.conf}) and asserts that the Postgres profile is truly "Mongo-free":

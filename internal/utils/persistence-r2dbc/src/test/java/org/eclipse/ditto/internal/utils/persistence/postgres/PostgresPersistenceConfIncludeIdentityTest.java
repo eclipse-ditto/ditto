@@ -20,7 +20,7 @@ import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 
 /**
- * Config-identity proof for the postgres-client conf extraction (Task B1).
+ * Config-identity proof for the postgres-client conf extraction.
  * <p>
  * The shared {@code ditto.postgresql.*} client block was factored out of {@code ditto-postgres-persistence.conf} into
  * {@code ditto-postgres-client.conf} (internal/utils/postgres-client), pulled back in via

@@ -33,7 +33,7 @@ import com.typesafe.config.ConfigFactory;
  * Unit tests for {@link MongoPersistencePluginConfig}.
  * <p>
  * These tests assert the exact shipped Mongo plugin IDs per service (auto-start sets) and the connectivity
- * remember-store IDs, and serve as the D1 "auto-start set == shipped static list" check at the unit level.
+ * remember-store IDs, and serve as the "auto-start set == shipped static list" check at the unit level.
  * Expected values are explicit literals that match the shipped HOCON:
  * <ul>
  *     <li>things.conf lines 609–614: things auto-start journal + snapshot (WoT excluded).</li>
@@ -117,7 +117,7 @@ public final class MongoPersistencePluginConfigTest {
                 .isEqualTo("pekko-contrib-mongodb-persistence-connection-snapshots");
     }
 
-    // ── auto-start sets (D1 regression guard) ────────────────────────────────
+    // ── auto-start sets (regression guard) ───────────────────────────────────
 
     @Test
     public void thingsAutoStartSetMatchesShippedHocon() {
@@ -170,7 +170,7 @@ public final class MongoPersistencePluginConfigTest {
                 .isEmpty();
     }
 
-    // ── remember-store plugin IDs (D2 regression guard) ──────────────────────
+    // ── remember-store plugin IDs (regression guard) ─────────────────────────
 
     @Test
     public void connectionRememberStoreJournalMatchesShippedHocon() {

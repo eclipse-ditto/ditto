@@ -47,7 +47,8 @@ import reactor.core.publisher.Sinks;
  * in phase {@code before-service-unbind}. When the bootstrap finally fails for any other reason and
  * {@code exit-on-failure} is set, it starts a coordinated shutdown with {@link BootstrapFailed}, so that the service
  * stops (exit code 1 where {@code exit-jvm} is on) and its orchestrator restarts it. Every failure is rethrown
- * unchanged.
+ * unchanged. {@link #stopServiceOnBootFailure} applies the same rule to the other PostgreSQL boot check, the
+ * persistence provider's plugin-wiring check.
  * </p>
  */
 public final class PostgresSchemaBootstrapper {
@@ -127,10 +128,35 @@ public final class PostgresSchemaBootstrapper {
         if (failure instanceof SchemaBootstrapAbortedException) {
             LOGGER.info("PostgreSQL schema bootstrap of component '{}' aborted: the service is shutting down.",
                     component);
-        } else if (bootstrapConfig.isExitOnFailure()) {
-            LOGGER.warn("PostgreSQL schema bootstrap of component '{}' failed: stopping the service (coordinated "
-                    + "shutdown) so that it is restarted. Set ditto.postgresql.bootstrap.exit-on-failure = false "
-                    + "(POSTGRES_BOOTSTRAP_EXIT_ON_FAILURE) to keep it running without its root actor.", component);
+        } else {
+            stopServiceOnBootFailure(coordinatedShutdown, bootstrapConfig, component, "schema bootstrap");
+        }
+    }
+
+    /**
+     * Applies the {@code exit-on-failure} rule to a failed PostgreSQL boot step other than the schema bootstrap: when
+     * {@code ditto.postgresql.bootstrap.exit-on-failure} is set, starts a coordinated shutdown with
+     * {@link BootstrapFailed} (exit code 1 where {@code exit-jvm} is on), so that the orchestrator restarts the service
+     * and a corrected configuration is picked up; otherwise the JVM keeps running without its root actor. The caller
+     * rethrows its failure either way.
+     *
+     * @param system the service's actor system.
+     * @param bootstrapConfig the bootstrap configuration carrying {@code exit-on-failure}.
+     * @param component the component whose boot failed, as in {@link BootstrapFailed#getComponent()}.
+     * @param step the failed boot step for the log, e.g. {@code "plugin wiring check"}.
+     */
+    public static void stopServiceOnBootFailure(final ActorSystem system,
+            final PostgresConfig.BootstrapConfig bootstrapConfig, final String component, final String step) {
+        stopServiceOnBootFailure(CoordinatedShutdown.get(system), bootstrapConfig, component, step);
+    }
+
+    private static void stopServiceOnBootFailure(final CoordinatedShutdown coordinatedShutdown,
+            final PostgresConfig.BootstrapConfig bootstrapConfig, final String component, final String step) {
+        if (bootstrapConfig.isExitOnFailure()) {
+            LOGGER.warn("PostgreSQL {} of component '{}' failed: stopping the service (coordinated shutdown) so that "
+                    + "it is restarted. Set ditto.postgresql.bootstrap.exit-on-failure = false "
+                    + "(POSTGRES_BOOTSTRAP_EXIT_ON_FAILURE) to keep it running without its root actor.",
+                    step, component);
             coordinatedShutdown.run(new BootstrapFailed(component));
         }
     }
@@ -151,8 +177,9 @@ public final class PostgresSchemaBootstrapper {
     }
 
     /**
-     * The coordinated-shutdown reason after a failed schema bootstrap. Its class name is the key of the
-     * {@code pekko.coordinated-shutdown.reason-overrides} entry in {@code ditto-postgres-client.conf} (exit code 1).
+     * The coordinated-shutdown reason after a failed schema bootstrap or plugin-wiring check. Its class name is the key
+     * of the {@code pekko.coordinated-shutdown.reason-overrides} entry in {@code ditto-postgres-client.conf} (exit
+     * code 1).
      */
     @Immutable
     public static final class BootstrapFailed implements CoordinatedShutdown.Reason {
@@ -164,7 +191,7 @@ public final class PostgresSchemaBootstrapper {
         }
 
         /**
-         * @return the component whose schema bootstrap failed.
+         * @return the component whose boot step failed.
          */
         public String getComponent() {
             return component;
@@ -182,7 +209,7 @@ public final class PostgresSchemaBootstrapper {
 
         @Override
         public String toString() {
-            return "PostgresSchemaBootstrapFailed[component=" + component + "]";
+            return "PostgresBootFailed[component=" + component + "]";
         }
 
     }

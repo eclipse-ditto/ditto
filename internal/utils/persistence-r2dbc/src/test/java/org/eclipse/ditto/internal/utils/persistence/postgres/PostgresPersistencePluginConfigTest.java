@@ -28,7 +28,7 @@ import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 
 /**
- * Unit test for {@link PostgresPersistencePluginConfig} (task E2, mirroring the Mongo B1 test): per-entity IDs delegate
+ * Unit test for {@link PostgresPersistencePluginConfig} (mirroring the Mongo test): per-entity IDs delegate
  * to the provider, the per-service auto-start IDs match the shipped Postgres profile, and the remember-store IDs name
  * the profile's {@code connection-remember} plugin blocks. Runs offline against the real shipped
  * {@code ditto-postgres-persistence.conf}.

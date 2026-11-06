@@ -24,7 +24,7 @@ import org.junit.Test;
 /**
  * Unit tests for {@link MongoSnapshotCodec}.
  * <p>
- * TDD safety-net for B5: verifies the BSON round-trip (encode → decode recovers the original JsonObject),
+ * Safety-net: verifies the BSON round-trip (encode → decode recovers the original JsonObject),
  * rejection of non-BSON decode inputs, and that the {@link MongoPersistenceBackendProvider} returns a
  * non-null, functioning codec instance instead of throwing {@link UnsupportedOperationException}.
  *

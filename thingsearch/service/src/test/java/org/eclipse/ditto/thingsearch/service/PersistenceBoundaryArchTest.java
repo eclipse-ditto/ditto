@@ -25,7 +25,7 @@ import com.tngtech.archunit.core.importer.ImportOption;
 
 /**
  * Rule 1 (no Mongo outside the Mongo zone) and Rule 2 (no Postgres in service code) of the pluggable-persistence
- * switchability proof (layer 1), applied to the thingsearch service.
+ * boundary rules, applied to the thingsearch service.
  * <p>
  * Per Rule 1, the Mongo zone is {@code ...internal.utils.persistence.mongo..} AND the thingsearch search-index
  * packages: the Ditto search index <em>is</em> MongoDB by design, so the thingsearch read/write/update/config

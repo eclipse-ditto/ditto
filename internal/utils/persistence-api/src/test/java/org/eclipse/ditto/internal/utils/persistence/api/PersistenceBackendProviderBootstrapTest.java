@@ -16,6 +16,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.junit.Test;
 
@@ -24,7 +25,7 @@ import org.junit.Test;
  * {@code RootActor} now calls on the {@link PersistenceBackendProvider} <em>interface</em> (not a concrete subclass)
  * before {@code getReadJournal()} and before any persistent actor starts.
  * <p>
- * This is the offline regression guard for the H-1 finding (the Postgres bootstrap previously had zero production call
+ * This is the offline regression guard for a review finding (the Postgres bootstrap previously had zero production call
  * sites). It does not need a database: it pins the contract the RootActors rely on, namely
  * </p>
  * <ul>
@@ -34,6 +35,10 @@ import org.junit.Test;
  *     dispatch a RootActor performs — and</li>
  *     <li>a failing bootstrap propagates its exception (boot fails fast) rather than being swallowed.</li>
  * </ul>
+ * The same seam contract holds for the second boot hook, {@link PersistenceBackendProvider#verifyPluginWiring(String)}:
+ * its default is a no-op, an override is reached through the interface with the service name, and its failure
+ * propagates.
+ * <p>
  * The {@code PostgresProviderBootstrapIT} complements this by exercising the same interface seam against a real
  * container; this test guarantees the seam exists and dispatches correctly even where Docker is unavailable.
  */
@@ -86,6 +91,48 @@ public final class PersistenceBackendProviderBootstrapTest {
         assertThatThrownBy(asInterface::bootstrapSchema)
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("schema cannot be established");
+    }
+
+    @Test
+    public void defaultVerifyPluginWiringIsANoOp() {
+        // A provider that does NOT override verifyPluginWiring() (the Mongo case) inherits the no-op default: the
+        // RootActor's call neither throws nor checks anything, whatever plugins the deployment wires.
+        final PersistenceBackendProvider asInterface = new StubBackendProvider();
+        asInterface.verifyPluginWiring("things");
+    }
+
+    @Test
+    public void overriddenVerifyPluginWiringIsInvokedThroughTheInterfaceWithTheServiceName() {
+        final AtomicInteger calls = new AtomicInteger();
+        final AtomicReference<String> seenServiceName = new AtomicReference<>();
+        final PersistenceBackendProvider checking = new StubBackendProvider() {
+            @Override
+            public void verifyPluginWiring(final String serviceName) {
+                calls.incrementAndGet();
+                seenServiceName.set(serviceName);
+            }
+        };
+
+        final PersistenceBackendProvider asInterface = checking;
+        asInterface.verifyPluginWiring("policies");
+
+        assertThat(calls.get()).as("the override is reached exactly once").isEqualTo(1);
+        assertThat(seenServiceName.get()).isEqualTo("policies");
+    }
+
+    @Test
+    public void failingVerifyPluginWiringPropagatesToFailBoot() {
+        final PersistenceBackendProvider failing = new StubBackendProvider() {
+            @Override
+            public void verifyPluginWiring(final String serviceName) {
+                throw new IllegalStateException("plugins belong to another backend");
+            }
+        };
+
+        final PersistenceBackendProvider asInterface = failing;
+        assertThatThrownBy(() -> asInterface.verifyPluginWiring("things"))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("another backend");
     }
 
     /** Minimal {@link PersistenceBackendProvider} that implements only the non-bootstrap methods; the rest defaults. */

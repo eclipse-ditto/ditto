@@ -26,7 +26,7 @@ import reactor.core.publisher.Mono;
 
 /**
  * PostgreSQL entity-purge {@link EntityPersistenceOperations}, the Postgres mirror of
- * {@code MongoEntitiesPersistenceOperations} (task B2). It deletes <em>all</em> persisted rows of a single entity from
+ * {@code MongoEntitiesPersistenceOperations}. It deletes <em>all</em> persisted rows of a single entity from
  * the three per-entity tables ({@code <e>_journal}, {@code <e>_journal_seq}, {@code <e>_snaps}) via the real SQL
  * {@code DELETE … WHERE pid = '<prefix><entityId>'} primitive on {@link PostgresPersistenceOperations}, selecting by the
  * exact persistence id exactly as the Mongo selection provider's entity pid equality does.

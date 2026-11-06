@@ -24,7 +24,7 @@ import com.tngtech.archunit.core.importer.ClassFileImporter;
 import com.tngtech.archunit.core.importer.ImportOption;
 
 /**
- * Rule 2 of the pluggable-persistence switchability proof (layer 1) applied to the bundled Mongo module
+ * Rule 2 of the pluggable-persistence boundary rules applied to the bundled Mongo module
  * ({@code org.eclipse.ditto.internal.utils.persistence..}, which contains the Mongo zone {@code ...mongo..}): the
  * Mongo module must not depend on Postgres (no io.r2dbc / org.postgresql / the {@code ...persistence.postgres}
  * backend package). The two backends are mutually exclusive and pluggable; the Mongo module must never reach into

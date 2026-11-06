@@ -40,7 +40,7 @@ import io.r2dbc.pool.PoolMetrics;
  * {@value PostgresMetrics#ROLE_SHARED}) which is applied as a low-cardinality discriminating tag to all four gauges, so
  * that more than one pool in a single JVM cannot collapse onto the same Kamon instrument (the gauge {@code set} is
  * last-writer-wins). Its coordinated-shutdown task name and poll thread name are likewise derived from the role, so two
- * pollers never clash on a fixed string (round-2 finding H-9).
+ * pollers never clash on a fixed string.
  */
 public final class PoolMetricsPoller implements AutoCloseable {
 
@@ -125,7 +125,7 @@ public final class PoolMetricsPoller implements AutoCloseable {
     /**
      * @param poolRole the pool role tag value.
      * @return the coordinated-shutdown task name for a poller of this role — unique per role so two pollers never
-     * register the same fixed task name (the H-9 clash).
+     * register the same fixed task name (the clash).
      */
     public static String shutdownTaskName(final String poolRole) {
         return SHUTDOWN_TASK_PREFIX + poolRole;

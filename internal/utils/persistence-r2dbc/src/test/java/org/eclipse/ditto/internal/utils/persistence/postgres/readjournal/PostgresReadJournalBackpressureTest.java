@@ -36,9 +36,9 @@ import org.apache.pekko.stream.javadsl.Sink;
 import org.apache.pekko.stream.javadsl.Source;
 
 /**
- * H-2 / M-2 regression coverage for the PostgreSQL read journal.
+ * Regression coverage for the PostgreSQL read journal's fetch size and replay query shape.
  * <p>
- * H-2: with the connection-pool-wide {@code fetch-size=0} default, the r2dbc-postgresql driver runs a statement as one
+ * (1) with the connection-pool-wide {@code fetch-size=0} default, the r2dbc-postgresql driver runs a statement as one
  * fetch-all {@code Execute}; it reads the rows demand-driven, so the server blocks on the unread socket under a slow
  * consumer. The genuinely unbounded streaming read-journal queries ({@code currentPersistenceIds()},
  * {@code eventsByTag()}) bind a positive per-statement {@code Statement.fetchSize(n)} instead, so a server-side portal
@@ -48,7 +48,7 @@ import org.apache.pekko.stream.javadsl.Source;
  * order sorts the qualifying pids of its windows in memory).
  * </p>
  * <p>
- * M-2: {@code getLatestJournalEntries} must NOT be an N+1 (one inner replay query per pid); a single
+ * (2) {@code getLatestJournalEntries} must NOT be an N+1 (one inner replay query per pid); a single
  * loose-index-scan query (distinct-pid phase + per-pid top-1 {@code CROSS JOIN LATERAL}) returns the newest
  * event per pid. The two newest-event-per-pid tag queries use the same loose-index-scan shape instead of
  * {@code DISTINCT ON (pid) … ORDER BY pid, sn DESC}; their filter semantics are pinned against a real PostgreSQL in

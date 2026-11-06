@@ -30,7 +30,7 @@ import org.junit.Test;
  * <p>
  * The bundle carries the two neutral ops collaborators (either of which may be {@code null} per entity type) and a
  * non-null {@link Closeable} the ops actor closes on {@code postStop}. These tests pin that neutral shape so the
- * backend factories (Mongo B2, Postgres E2) and the C2 ops-actor rewiring share one contract. Fakes are plain
+ * backend factories (MongoDB, PostgreSQL) and the ops-actor wiring share one contract. Fakes are plain
  * anonymous classes to keep this test on the existing junit/assertj-only persistence-api test classpath.
  */
 public final class PersistenceOperationsCollaboratorsTest {

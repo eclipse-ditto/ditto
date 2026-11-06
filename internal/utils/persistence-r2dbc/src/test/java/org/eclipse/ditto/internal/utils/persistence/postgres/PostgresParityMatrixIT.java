@@ -237,7 +237,7 @@ public final class PostgresParityMatrixIT {
         final String pid = "thing:h4:mismatch";
         await(journal.writeMessages(List.of(write(pid, 1L, "{\"v\":1}"))));
 
-        // H-6: a divergent-payload duplicate at the same (pid,sn) is FATAL — the write Future FAILS
+        // A divergent-payload duplicate at the same (pid,sn) is FATAL — the write Future FAILS
         // (-> Pekko WriteMessageFailure, the persistent actor stops). It must NOT complete with a
         // recoverable per-message rejection, which would silently drop the divergent write.
         assertThatThrownBy(() -> await(journal.writeMessages(List.of(write(pid, 1L, "{\"v\":999}")))))

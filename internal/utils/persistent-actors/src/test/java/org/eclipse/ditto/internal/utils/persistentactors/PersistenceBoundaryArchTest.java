@@ -24,7 +24,7 @@ import com.tngtech.archunit.core.importer.ClassFileImporter;
 import com.tngtech.archunit.core.importer.ImportOption;
 
 /**
- * ArchUnit boundary rules of the pluggable-persistence switchability proof (layer 1) applied to the
+ * ArchUnit boundary rules of pluggable persistence applied to the
  * {@code persistent-actors} module.
  * <p>
  * This module sits below the service modules and pulls in both the Mongo zone
@@ -39,7 +39,7 @@ import com.tngtech.archunit.core.importer.ImportOption;
  * <p>
  * The imported classes are scoped to the persistent-actors package and to MAIN classes only
  * ({@link com.tngtech.archunit.core.importer.ImportOption.DoNotIncludeTests}): the cleanup TEST fixtures in this
- * module still couple to {@code MongoReadJournal} (a known carry-forward from task A3); the production rule is about
+ * module still couple to {@code MongoReadJournal} (a known carry-forward); the production rule is about
  * MAIN code, so test fixtures must not trip it.
  * <p>
  * Driven via ArchUnit's core API from JUnit 4 {@code @Test} methods so the module keeps running on its existing

@@ -27,8 +27,8 @@ package org.eclipse.ditto.internal.utils.persistence.api;
  * {@code NamespacePersistenceOperations} / {@code EntityPersistenceOperations} an ops actor needs plus the
  * {@code Closeable} it must close on {@code postStop} — rather than a Pekko {@code Props}, because the ops actor types
  * live in the SERVICE modules and a factory in a backend module cannot build their {@code Props} without a Maven cycle.
- * The {@code RootActor} (C2) feeds this bundle into the existing service ops actor. The Mongo implementation (B2)
- * builds the collaborators around a fresh {@code MongoClientWrapper}; the Postgres implementation (E2) supplies its own.
+ * The {@code RootActor} feeds this bundle into the existing service ops actor. The MongoDB implementation builds the
+ * collaborators around a fresh {@code MongoClientWrapper}; the PostgreSQL implementation supplies its own.
  * <p>
  * <strong>Laziness:</strong> {@link #operations(String)} constructs the backend client (e.g. a
  * {@code MongoClientWrapper}) per call. It MUST therefore be invoked lazily — at ops-actor instantiation time, not when

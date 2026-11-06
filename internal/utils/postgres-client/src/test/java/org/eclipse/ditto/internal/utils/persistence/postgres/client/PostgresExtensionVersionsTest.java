@@ -22,7 +22,7 @@ import java.util.Map;
 import org.junit.Test;
 
 /**
- * Unit test for {@link PostgresExtensionVersions} — the layered-extension same-release boot self-check (§6 D2).
+ * Unit test for {@link PostgresExtensionVersions} — the layered-extension same-release boot self-check.
  */
 public final class PostgresExtensionVersionsTest {
 

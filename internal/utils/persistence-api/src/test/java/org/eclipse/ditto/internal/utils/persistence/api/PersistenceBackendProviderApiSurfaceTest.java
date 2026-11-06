@@ -18,7 +18,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import org.junit.Test;
 
 /**
- * Contract test for the additive, backend-neutral API surface introduced in task A1: the new
+ * Contract test for the additive, backend-neutral API surface of the pluggable-persistence provider: the new
  * {@link PersistenceBackendProvider} collaborator accessors ({@code pluginConfig()}, {@code operations(String)},
  * {@code healthCheck()}, {@code streaming(String)}, {@code snapshotCodec()}).
  * <p>
@@ -71,7 +71,7 @@ public final class PersistenceBackendProviderApiSurfaceTest {
     }
 
     /**
-     * A provider that implements ONLY the pre-A1 abstract methods. If any A1 accessor were abstract (not a default),
+     * A provider that implements ONLY the abstract methods. If any collaborator accessor were abstract (not a default),
      * this class would fail to compile — so it is itself part of the "compile incrementally" assertion.
      */
     private static final class MinimalProvider implements PersistenceBackendProvider {

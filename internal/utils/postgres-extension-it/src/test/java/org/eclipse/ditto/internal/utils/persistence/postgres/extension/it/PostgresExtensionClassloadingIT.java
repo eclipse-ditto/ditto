@@ -27,7 +27,7 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 /**
- * Classloading integration test for the three-JAR layered Postgres extension packaging (§6 D2).
+ * Classloading integration test for the three-JAR layered Postgres extension packaging.
  * <p>
  * The REAL shaded extension jars are copied into {@code target/extensions} by the {@code maven-dependency-plugin} at the
  * {@code pre-integration-test} phase (see this module's pom). Each scenario builds a child {@link URLClassLoader} that

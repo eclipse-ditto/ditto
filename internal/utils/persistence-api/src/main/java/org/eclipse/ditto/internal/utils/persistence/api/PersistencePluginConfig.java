@@ -25,10 +25,11 @@ import java.util.Objects;
  * <ul>
  *     <li>the {@code pekko.persistence.journal.auto-start-journals} /
  *     {@code pekko.persistence.snapshot-store.auto-start-snapshot-stores} plugin IDs a given service ships
- *     ({@link #getAutoStartPluginIds(String)}) — consumed by D1 to author/validate the {@code *-pg-dev.conf} overrides
- *     and by the G2 boot self-check; and</li>
+ *     ({@link #getAutoStartPluginIds(String)}) — consumed by the HOCON drift tests of the {@code *-pg-dev.conf}
+ *     overrides and by the PostgreSQL provider's boot-time plugin-wiring check; and</li>
  *     <li>the dedicated journal + snapshot plugin IDs of the cluster-sharding {@code remember-entities} event-sourced
- *     store for an entity ({@link #getRememberStorePluginIds(String)}) — consumed by D2.</li>
+ *     store for an entity ({@link #getRememberStorePluginIds(String)}) — consumed by connectivity's sharding
+ *     settings.</li>
  * </ul>
  * <p>
  * Service and entity keys are plain {@link String}s, matching the rest of this module

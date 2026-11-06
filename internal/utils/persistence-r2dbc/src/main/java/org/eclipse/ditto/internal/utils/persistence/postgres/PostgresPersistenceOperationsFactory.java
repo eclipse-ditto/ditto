@@ -33,7 +33,7 @@ import org.eclipse.ditto.internal.utils.persistence.postgres.ops.PostgresPersist
  * PostgreSQL implementation of {@link PersistenceOperationsFactory}.
  * <p>
  * For each entity type it builds the persistence-operations collaborators a service's ops actor purges with, preserving
- * the historical per-service wiring exactly (same shape as {@code MongoPersistenceOperationsFactory}, task B2):
+ * the historical per-service wiring exactly (same shape as {@code MongoPersistenceOperationsFactory}):
  * <ul>
  *     <li>{@code thing} &rarr; {@link PostgresNamespacePersistenceOperations} only — mirrors
  *     {@code ThingPersistenceOperationsActor} (pid prefix {@code "thing:"}, supports namespaces),</li>

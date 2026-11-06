@@ -55,7 +55,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 /**
- * Integration test for the H-1 wiring: the persistence schema is bootstrapped through the REAL boot seam — the
+ * Integration test for the bootstrap wiring: the persistence schema is bootstrapped through the REAL boot seam — the
  * backend-agnostic {@link PersistenceBackendProvider#bootstrapSchema()} that each service {@code RootActor} calls during
  * boot — and that seam genuinely creates the schema on a fresh database and FAILS BOOT when it cannot.
  * <p>
@@ -69,7 +69,7 @@ import reactor.core.publisher.Mono;
  * Crucially this test does NOT call {@code provider.bootstrapSchema()} on a concrete
  * {@code PostgresPersistenceBackendProvider} directly. It resolves the provider through
  * {@link PersistenceBackendProvider#get(ActorSystem, Config)} — the exact extension-loading seam the RootActors use —
- * and invokes {@code bootstrapSchema()} on the returned <em>interface</em>. So it crosses the boot seam where the H-1
+ * and invokes {@code bootstrapSchema()} on the returned <em>interface</em>. So it crosses the boot seam where the
  * bug lived: it would fail if the bootstrap were not reachable through that production path.
  * </p>
  * <p>
@@ -151,7 +151,7 @@ public final class PostgresProviderBootstrapIT {
     /**
      * The 'fail boot if the schema cannot be established' guarantee, as the single-attempt fail-fast guard: with the
      * retry disabled, an unreachable database makes the wired boot seam throw at once (so a RootActor calling it would
-     * fail boot) and no tables are silently created. This is the regression guard for the actual H-1 finding — the boot
+     * fail boot) and no tables are silently created. This is the regression guard for the actual finding — the boot
      * path must fail rather than serve traffic against an absent schema.
      */
     @Test

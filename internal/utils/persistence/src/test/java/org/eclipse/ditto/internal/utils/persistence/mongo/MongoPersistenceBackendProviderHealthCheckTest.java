@@ -26,11 +26,11 @@ import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 
 /**
- * Unit test for the B3 task: {@link MongoPersistenceBackendProvider#healthCheck()} overrides the A1 default
+ * Unit test: {@link MongoPersistenceBackendProvider#healthCheck()} overrides the interface default
  * and returns {@link MongoHealthChecker#props()} (a non-null {@link Props} whose actor class is
  * {@link MongoHealthChecker}).
  * <p>
- * The A1 default-UOE contract (interface-level) is covered in
+ * The interface's default-UOE contract (interface-level) is covered in
  * {@code PersistenceBackendProviderApiSurfaceTest#healthCheckDefaultThrowsUnsupported()} and is intentionally
  * NOT duplicated here — the two tests form a complementary pair.
  */
@@ -59,8 +59,8 @@ public final class MongoPersistenceBackendProviderHealthCheckTest {
     }
 
     /**
-     * B3: {@code healthCheck()} must return a non-null {@link Props} wrapping {@link MongoHealthChecker}.
-     * Prior to B3 the inherited A1 default threw {@link UnsupportedOperationException}; after B3 it must
+     * {@code healthCheck()} must return a non-null {@link Props} wrapping {@link MongoHealthChecker}.
+     * Without the override the inherited default threw {@link UnsupportedOperationException}; the override must
      * return the Props that every Ditto service's RootActor already uses for Mongo health monitoring.
      */
     @Test
@@ -68,10 +68,10 @@ public final class MongoPersistenceBackendProviderHealthCheckTest {
         final Props props = provider.healthCheck();
 
         assertThat(props)
-                .as("healthCheck() must not return null (B3)")
+                .as("healthCheck() must not return null")
                 .isNotNull();
         assertThat(props.actorClass())
-                .as("healthCheck() must wire MongoHealthChecker, not some other actor (B3)")
+                .as("healthCheck() must wire MongoHealthChecker, not some other actor")
                 .isEqualTo(MongoHealthChecker.class);
     }
 }

@@ -54,7 +54,7 @@ import com.typesafe.config.Config;
  * <p>
  * <strong>Laziness (load-bearing):</strong> {@link #operations(String)} constructs a fresh {@link MongoClientWrapper}
  * on every call — exactly as {@code MongoClientWrapper.newInstance(mongoDbConfig)} ran at ops-actor instantiation
- * today. It therefore MUST be invoked lazily, at ops-actor instantiation time (C2 calls it inside the ops actor's
+ * today. It therefore MUST be invoked lazily, at ops-actor instantiation time (it runs inside the ops actor's
  * {@code Props} factory lambda), not when the {@code Props} is built. The client is the bundle's
  * {@link PersistenceOperationsCollaborators#closeable()} so each ops actor owns and closes its own client on
  * {@code postStop}; this factory never caches or shares a client across calls.

@@ -29,7 +29,7 @@ import org.eclipse.ditto.json.JsonObject;
  * {@link Object} (the Pekko snapshot store accepts an arbitrary snapshot object — a {@code BsonValue} for Mongo, a JSONB
  * {@code String} for Postgres) and {@link #decode(Object)} accepts the raw value the store loaded back. Neither
  * signature names a backend type, so this interface stays free of {@code org.bson}, {@code io.r2dbc} and
- * {@code org.postgresql}. The Mongo implementation is task B5, the Postgres implementation task E2.
+ * {@code org.postgresql}. The MongoDB and the PostgreSQL backend each ship an implementation.
  *
  * @since 4.0.0
  */

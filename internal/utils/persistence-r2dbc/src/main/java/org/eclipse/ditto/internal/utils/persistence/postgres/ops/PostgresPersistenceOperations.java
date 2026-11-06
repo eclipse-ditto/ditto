@@ -538,13 +538,13 @@ public final class PostgresPersistenceOperations {
     /**
      * The newest journal event per pid, as one streaming loose-index-scan query (the pattern also used by
      * {@link #getNewestSnapshotsAbove}). Replaces the former N+1 — one bounded replay query per pid
-     * (M-2) — with a single unbounded streaming query backed by a server-side portal for backpressure.
+     * — with a single unbounded streaming query backed by a server-side portal for backpressure.
      * <p>
      * Two-phase loose index scan: a distinct-pid phase (index-only PK scan — no payload detoast, no
      * sort) feeds a per-pid top-1 {@code CROSS JOIN LATERAL} backward PK scan, so exactly one event
      * per pid is ever detoasted. The former {@code DISTINCT ON (pid) … ORDER BY pid, sn DESC} shape
      * ordered by a mixed direction no ASC-PK index can satisfy — it externally sorted the ENTIRE
-     * journal including event payloads. Still one statement, NOT an N+1 per-pid replay (M-2).
+     * journal including event payloads. Still one statement, NOT an N+1 per-pid replay.
      */
     public Source<JournalRow, NotUsed> getLatestJournalEntries() {
         return streamingQuerySource("SELECT p.pid, j.sn, j.seq, j.manifest, j.tags, j.event FROM ("

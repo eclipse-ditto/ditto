@@ -90,7 +90,7 @@ public final class PostgresClientExtension implements Extension {
             final PostgresSchemaHealer schemaHealer = PostgresSchemaHealer.of(postgresConfig);
             final DittoPostgresClient client = DittoPostgresClient.newInstance(postgresConfig, schemaHealer);
             // The single shared pool now exists, so surface its occupancy as gauges from here — NOT from the lazy
-            // read-journal path (round-2 finding H-9): a write-heavy service may never call getReadJournal(), so
+            // read-journal path: a write-heavy service may never call getReadJournal(), so
             // starting the poller there left the write path's pool saturation invisible. The extension is created
             // exactly once per actor system (the first time ANY of journal/snapshot/read-journal resolves the client),
             // so exactly one poller is started for the one pool, tagged pool=shared.

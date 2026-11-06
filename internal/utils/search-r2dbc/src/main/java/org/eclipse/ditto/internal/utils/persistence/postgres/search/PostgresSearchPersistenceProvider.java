@@ -161,7 +161,7 @@ public final class PostgresSearchPersistenceProvider implements SearchPersistenc
     public PostgresSearchPersistenceProvider(final ActorSystem actorSystem, final Config extensionConfig) {
         this.actorSystem = Objects.requireNonNull(actorSystem, "actorSystem");
         Objects.requireNonNull(extensionConfig, "extensionConfig");
-        // Layered-extension self-check (§6 D2): the thin search jar requires the base client jar alongside it, and both
+        // Layered-extension self-check: the thin search jar requires the base client jar alongside it, and both
         // must be the same Ditto release. Delegated to the verification-clean helper so the missing-base case yields an
         // actionable error rather than a bare NoClassDefFoundError on a base type used elsewhere here.
         PostgresSearchExtensionSelfCheck.verify();

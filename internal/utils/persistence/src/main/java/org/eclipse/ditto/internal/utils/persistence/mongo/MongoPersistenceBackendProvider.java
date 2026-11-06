@@ -14,7 +14,6 @@ package org.eclipse.ditto.internal.utils.persistence.mongo;
 
 import java.util.Map;
 import java.util.Objects;
-import java.util.Set;
 import java.util.function.Function;
 
 import javax.annotation.Nullable;
@@ -67,18 +66,6 @@ public final class MongoPersistenceBackendProvider implements PersistenceBackend
     private static final String PLUGIN_IDS_PATH = "plugin-ids";
     private static final String JOURNAL_KEY = "journal";
     private static final String SNAPSHOT_KEY = "snapshot";
-
-    /**
-     * The fully-qualified {@code class =} values of the Mongo journal/snapshot Pekko persistence plugins, as shipped in
-     * the service HOCON ({@code pekko-contrib-mongodb-persistence-*.class}). The boot-time
-     * {@code PersistenceBackendSelfCheck} asserts every resolved journal/snapshot plugin class is one of these.
-     */
-    private static final Set<String> EXPECTED_PLUGIN_CLASS_NAMES = Set.of(
-            "pekko.contrib.persistence.mongodb.MongoJournal",
-            "pekko.contrib.persistence.mongodb.MongoSnapshots");
-
-    /** The class name of this provider's read journal, asserted against by the boot-time self-check. */
-    private static final String EXPECTED_READ_JOURNAL_CLASS_NAME = MongoReadJournal.class.getName();
 
     /**
      * The shipped Mongo plugin BLOCK NAMES per entity type — the single in-code source of truth, immune to
@@ -152,7 +139,7 @@ public final class MongoPersistenceBackendProvider implements PersistenceBackend
      * <p>
      * Returns {@link MongoHealthChecker#props()} — the same no-arg {@link Props} factory that every
      * Ditto service's {@code RootActor} uses today via
-     * {@code DefaultHealthCheckingActorFactory.props(options, MongoHealthChecker.props())}. Task B3.
+     * {@code DefaultHealthCheckingActorFactory.props(options, MongoHealthChecker.props())}.
      */
     @Override
     public Props healthCheck() {
@@ -163,7 +150,7 @@ public final class MongoPersistenceBackendProvider implements PersistenceBackend
      * {@inheritDoc}
      * <p>
      * Builds a dedicated {@link MongoReadJournal} and {@link DittoMongoClient} for the streaming actor using exactly the
-     * same arguments the actor used to construct internally before task B4
+     * same arguments the actor used to construct internally before this refactoring
      * ({@code MongoReadJournal.newInstance(config, mongoClient, readJournalConfig, system)}), and returns the
      * backend-neutral {@link SnapshotStreamingActor} props with the Mongo client as the {@link java.io.Closeable} the
      * actor closes on stop. The resources are rebuilt inside the supplier passed to the per-incarnation
@@ -193,7 +180,7 @@ public final class MongoPersistenceBackendProvider implements PersistenceBackend
      * {@inheritDoc}
      * <p>
      * Returns the singleton {@link MongoSnapshotCodec} — the BSON envelope extracted from
-     * {@link AbstractMongoSnapshotAdapter} in task B5. Both the adapter and this accessor share the same stateless
+     * {@link AbstractMongoSnapshotAdapter}. Both the adapter and this accessor share the same stateless
      * codec instance, so the BSON envelope logic lives in exactly one place.
      */
     @Override
@@ -219,16 +206,6 @@ public final class MongoPersistenceBackendProvider implements PersistenceBackend
     @Override
     public BackendFamily backendFamily() {
         return BackendFamily.MONGODB;
-    }
-
-    @Override
-    public Set<String> expectedPluginClassNames() {
-        return EXPECTED_PLUGIN_CLASS_NAMES;
-    }
-
-    @Override
-    public String expectedReadJournalClassName() {
-        return EXPECTED_READ_JOURNAL_CLASS_NAME;
     }
 
     private java.util.Optional<String> getOverride(final String entityType, final String key) {

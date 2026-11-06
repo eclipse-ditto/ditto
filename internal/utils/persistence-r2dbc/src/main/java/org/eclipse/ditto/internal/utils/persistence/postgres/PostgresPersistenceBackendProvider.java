@@ -35,19 +35,19 @@ import org.eclipse.ditto.internal.utils.persistence.postgres.client.DittoPostgre
 import org.eclipse.ditto.internal.utils.persistence.postgres.client.PostgresClientExtension;
 import org.eclipse.ditto.internal.utils.persistence.postgres.client.PostgresHealthChecker;
 import org.eclipse.ditto.internal.utils.persistence.postgres.client.PostgresSchemaBootstrapper;
+import org.eclipse.ditto.internal.utils.persistence.postgres.client.config.DefaultBootstrapConfig;
 import org.eclipse.ditto.internal.utils.persistence.postgres.client.config.DefaultPostgresConfig;
 import org.eclipse.ditto.internal.utils.persistence.postgres.client.config.PostgresConfig;
 import org.eclipse.ditto.internal.utils.persistence.postgres.client.schema.PostgresSchemaManager;
-import org.eclipse.ditto.internal.utils.persistence.postgres.journal.PostgresJournal;
 import org.eclipse.ditto.internal.utils.persistence.postgres.ops.PostgresPersistenceOperations;
 import org.eclipse.ditto.internal.utils.persistence.postgres.ops.PostgresTableNames;
 import org.eclipse.ditto.internal.utils.persistence.postgres.readjournal.PostgresReadJournal;
 import org.eclipse.ditto.internal.utils.persistence.postgres.schema.PostgresSchema;
-import org.eclipse.ditto.internal.utils.persistence.postgres.snapshot.PostgresSnapshotStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.typesafe.config.Config;
+import com.typesafe.config.ConfigFactory;
 
 /**
  * PostgreSQL-backed implementation of {@link PersistenceBackendProvider}.
@@ -92,18 +92,6 @@ public final class PostgresPersistenceBackendProvider implements PersistenceBack
     private static final String SNAPSHOT_KEY = "snapshot";
 
     /**
-     * The fully-qualified {@code class =} values of the Postgres journal/snapshot Pekko persistence plugins, as shipped
-     * in {@code ditto-postgres-persistence.conf} ({@code ditto-postgres-*.class}). The boot-time
-     * {@code PersistenceBackendSelfCheck} asserts every resolved journal/snapshot plugin class is one of these.
-     */
-    private static final Set<String> EXPECTED_PLUGIN_CLASS_NAMES = Set.of(
-            PostgresJournal.class.getName(),
-            PostgresSnapshotStore.class.getName());
-
-    /** The class name of this provider's read journal, asserted against by the boot-time self-check. */
-    private static final String EXPECTED_READ_JOURNAL_CLASS_NAME = PostgresReadJournal.class.getName();
-
-    /**
      * The {@code extension-config} key naming the entity prefix the shared read journal binds to (one of
      * {@link PostgresTableNames}'s known entities). A Ditto service persists a single entity type per actor system
      * (things, policies, connections, wot), so the read journal targets exactly one table set — exactly as
@@ -136,7 +124,7 @@ public final class PostgresPersistenceBackendProvider implements PersistenceBack
     public PostgresPersistenceBackendProvider(final ActorSystem actorSystem, final Config extensionConfig) {
         this.actorSystem = Objects.requireNonNull(actorSystem, "actorSystem");
         this.extensionConfig = Objects.requireNonNull(extensionConfig, "extensionConfig");
-        // Layered-extension self-check (§6 D2): the thin persistence jar requires the base client jar alongside it, and
+        // Layered-extension self-check: the thin persistence jar requires the base client jar alongside it, and
         // both must be the same Ditto release. Delegated to the verification-clean helper so the missing-base case
         // yields an actionable error rather than a bare NoClassDefFoundError on a base type used elsewhere here.
         PostgresPersistenceExtensionSelfCheck.verify();
@@ -164,7 +152,7 @@ public final class PostgresPersistenceBackendProvider implements PersistenceBack
             client = sharedClient;
             // Pool-occupancy gauge polling is owned by PostgresClientExtension (started when the single shared pool is
             // created), NOT here: a write-heavy service may never call getReadJournal(), so starting the poller on this
-            // lazy path left the write path's pool saturation invisible (round-2 finding H-9).
+            // lazy path left the write path's pool saturation invisible.
             final PostgresPersistenceOperations operations = PostgresPersistenceOperations.of(sharedClient, entity);
             readJournal = PostgresReadJournal.of(operations);
         }
@@ -176,23 +164,13 @@ public final class PostgresPersistenceBackendProvider implements PersistenceBack
         return BackendFamily.POSTGRESQL;
     }
 
-    @Override
-    public Set<String> expectedPluginClassNames() {
-        return EXPECTED_PLUGIN_CLASS_NAMES;
-    }
-
-    @Override
-    public String expectedReadJournalClassName() {
-        return EXPECTED_READ_JOURNAL_CLASS_NAME;
-    }
-
     /**
      * {@inheritDoc}
      * <p>
      * Returns a {@link PostgresPersistencePluginConfig} backed by this provider (so the per-entity journal/snapshot IDs
      * stay single-sourced through {@link #getJournalPluginId}/{@link #getSnapshotPluginId}), exposing the Postgres
      * profile's per-service auto-start IDs and the {@code connection-remember} remember-store IDs that connectivity's
-     * shard region persists through. Task E2, mirroring B1.
+     * shard region persists through.
      */
     @Override
     public PersistencePluginConfig pluginConfig() {
@@ -202,10 +180,55 @@ public final class PostgresPersistenceBackendProvider implements PersistenceBack
     /**
      * {@inheritDoc}
      * <p>
+     * Runs {@link PostgresPluginWiringCheck} against the actor system's effective config and this provider's auto-start
+     * plugin IDs for the service. A deployment that selected this provider but still wires MongoDB plugin classes is
+     * logged with the mismatch and stops under the same rule as a failed schema bootstrap
+     * ({@link PostgresSchemaBootstrapper#stopServiceOnBootFailure}: coordinated shutdown, exit code 1 where
+     * {@code exit-jvm} is on, unless {@code ditto.postgresql.bootstrap.exit-on-failure = false}), so that the
+     * orchestrator restarts the service and a corrected configuration is picked up. The failure is rethrown either way,
+     * so the root actor never starts.
+     */
+    @Override
+    public void verifyPluginWiring(final String serviceName) {
+        final PersistencePluginConfig pluginConfig = pluginConfig();
+        try {
+            PostgresPluginWiringCheck.verify(actorSystem.settings().config(), pluginConfig, serviceName);
+        } catch (final DittoConfigError e) {
+            LOGGER.error("PostgreSQL plugin wiring check for service <{}> failed: {}", serviceName, e.getMessage());
+            stopServiceOnBootFailure(e, "plugin wiring check");
+            throw e;
+        }
+        LOGGER.info("PostgreSQL plugin wiring verified for service <{}>: auto-start plugins {} are PostgreSQL plugins.",
+                serviceName, pluginConfig.getAutoStartPluginIds(serviceName));
+    }
+
+    /**
+     * Applies {@link PostgresSchemaBootstrapper#stopServiceOnBootFailure} to a failed boot step of this provider. The
+     * {@code exit-on-failure} switch is read from {@code ditto.postgresql.bootstrap}; when that block cannot be read
+     * either (a second configuration error), the shipped default applies (stop the service) and the secondary error is
+     * attached to the primary failure as suppressed, so the primary failure stays the one the root actor reports.
+     */
+    private void stopServiceOnBootFailure(final Throwable failure, final String step) {
+        PostgresConfig.BootstrapConfig bootstrapConfig;
+        try {
+            bootstrapConfig = loadPostgresConfig().getBootstrapConfig();
+        } catch (final RuntimeException | DittoConfigError configFailure) {
+            LOGGER.error("The PostgreSQL configuration (ditto.postgresql) cannot be read either ({}); applying the "
+                    + "default exit-on-failure rule.", configFailure.getMessage());
+            failure.addSuppressed(configFailure);
+            bootstrapConfig = DefaultBootstrapConfig.of(ConfigFactory.empty());
+        }
+        PostgresSchemaBootstrapper.stopServiceOnBootFailure(actorSystem, bootstrapConfig,
+                PostgresSchema.descriptor().component(), step);
+    }
+
+    /**
+     * {@inheritDoc}
+     * <p>
      * Delegates to a {@link PostgresPersistenceOperationsFactory}, which builds the per-entity namespace/entity purge
      * collaborators (REAL SQL DELETE primitives) around the single shared pool owned by {@link PostgresClientExtension}.
      * The factory holds no client (it resolves the shared pool per call), so it is created once and reused; the bundle's
-     * {@code closeable} is a no-op because the pool is owned by the extension, not the ops actor. Task E2, mirroring B2.
+     * {@code closeable} is a no-op because the pool is owned by the extension, not the ops actor.
      */
     @Override
     public PersistenceOperationsCollaborators operations(final String entityType) {
@@ -217,7 +240,7 @@ public final class PostgresPersistenceBackendProvider implements PersistenceBack
      * <p>
      * Returns {@link PostgresHealthChecker#props()} — a real {@code SELECT 1} health actor on the shared pool, the
      * no-arg {@link Props} factory a service's {@code RootActor} passes to {@code DefaultHealthCheckingActorFactory}
-     * exactly as it passes {@code MongoHealthChecker.props()} today. Task E2, mirroring B3.
+     * exactly as it passes {@code MongoHealthChecker.props()} today.
      */
     @Override
     public Props healthCheck() {
@@ -227,10 +250,10 @@ public final class PostgresPersistenceBackendProvider implements PersistenceBack
     /**
      * {@inheritDoc}
      * <p>
-     * Wires the backend-neutral {@link SnapshotStreamingActor} (persistence-api, B4) with the shared
+     * Wires the backend-neutral {@link SnapshotStreamingActor} (persistence-api) with the shared
      * {@link PostgresReadJournal} from {@link #getReadJournal()} and a {@link NoOpCloseable}: PostgreSQL owns no client
      * the streaming actor must close (the pool is owned by {@link PostgresClientExtension}), so the actor's
-     * {@code postStop} close is a no-op — the legitimate empty-close the plan calls out. Task E2, mirroring B4.
+     * {@code postStop} close is a no-op — the legitimate empty-close the design calls out.
      */
     @Override
     public Props streaming(final String entityType,
@@ -255,7 +278,7 @@ public final class PostgresPersistenceBackendProvider implements PersistenceBack
      * {@inheritDoc}
      * <p>
      * Returns the singleton {@link PostgresSnapshotCodec} — the JSONB envelope (encode→JSONB text, decode←JSONB
-     * shapes). Task E2, mirroring B5.
+     * shapes).
      */
     @Override
     public SnapshotCodec snapshotCodec() {
@@ -284,7 +307,8 @@ public final class PostgresPersistenceBackendProvider implements PersistenceBack
      * created (rather than the first journal write hitting {@code relation does not exist}). Because the bootstrap
      * verifies the live catalog and refuses to boot on a checksum/PK divergence, a successful return is itself the
      * guarantee that the required tables exist; a failure throws and, with
-     * {@code ditto.postgresql.bootstrap.exit-on-failure}, also stops the service.
+     * {@code ditto.postgresql.bootstrap.exit-on-failure}, also stops the service. An invalid {@code ditto.postgresql}
+     * configuration is treated the same way, so a service never stays up without its root actor over a typo.
      * </p>
      *
      * @throws org.eclipse.ditto.internal.utils.persistence.postgres.client.schema.SchemaBootException on a checksum
@@ -299,7 +323,14 @@ public final class PostgresPersistenceBackendProvider implements PersistenceBack
      */
     @Override
     public void bootstrapSchema() {
-        final PostgresConfig config = loadPostgresConfig();
+        final PostgresConfig config;
+        try {
+            config = loadPostgresConfig();
+        } catch (final RuntimeException | DittoConfigError e) {
+            LOGGER.error("The PostgreSQL configuration (ditto.postgresql) is invalid: {}", e.getMessage());
+            stopServiceOnBootFailure(e, "configuration check");
+            throw e;
+        }
         final boolean ddlRoleConfigured = config.getPoolConfig().getDdlCredentials().isConfigured();
         LOGGER.info("Bootstrapping PostgreSQL persistence schema (ddl-credentials {}).",
                 ddlRoleConfigured ? "configured -> dedicated DDL role" : "empty -> reusing runtime role");
@@ -361,7 +392,7 @@ public final class PostgresPersistenceBackendProvider implements PersistenceBack
     /**
      * @return the client backing this provider's read journal once {@link #getReadJournal()} has materialised it,
      * {@code null} otherwise. Package-private to let tests assert the read journal shares the single per-actor-system
-     * pool (H-8) rather than building its own.
+     * pool rather than building its own.
      */
     @Nullable
     DittoPostgresClient resolvedReadJournalClient() {

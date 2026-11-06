@@ -24,7 +24,7 @@ import com.tngtech.archunit.core.importer.ClassFileImporter;
 import com.tngtech.archunit.core.importer.ImportOption;
 
 /**
- * Rule 3 of the pluggable-persistence switchability proof (layer 1): the persistence-API
+ * Rule 3 of the pluggable-persistence boundary rules: the persistence-API
  * ({@code org.eclipse.ditto.internal.utils.persistence.api..}) is backend-neutral. It must reference NEITHER backend:
  * no Mongo (com.mongodb / org.bson / the legacy {@code pekko.contrib.persistence.mongodb} plugin / MongoReadJournal)
  * AND no Postgres (io.r2dbc / org.postgresql / the {@code ...persistence.postgres} backend package).

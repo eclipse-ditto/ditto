@@ -27,7 +27,7 @@ import com.tngtech.archunit.core.importer.ImportOption;
 
 /**
  * Rule 1 (no <em>switchable</em> Mongo artifact outside the Mongo zone) and Rule 2 (no Postgres in service code) of
- * the pluggable-persistence switchability proof (layer 1), applied to the connectivity service.
+ * the pluggable-persistence boundary rules, applied to the connectivity service.
  * <p>
  * Connectivity does its persistence through the backend-neutral persistence-API. The refactor routed the
  * <em>switchable</em> Mongo touchpoints (the read-journal, the {@code pekko-contrib-mongodb-persistence} plugin

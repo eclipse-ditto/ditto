@@ -23,7 +23,7 @@ import java.util.Properties;
 import java.util.Set;
 
 /**
- * Boot-time same-release self-check for the layered Postgres extension jars (§6 D2).
+ * Boot-time same-release self-check for the layered Postgres extension jars.
  * <p>
  * The Postgres backend ships as THREE layered drop-in jars that MUST come from the same Ditto release: the shared base
  * {@code ditto-postgres-client-extension} plus the thin {@code ditto-postgres-persistence-extension} and/or

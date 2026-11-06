@@ -31,7 +31,7 @@ import org.junit.Test;
 import com.typesafe.config.ConfigFactory;
 
 /**
- * Unit test for {@link PostgresPersistenceOperationsFactory} (task E2, mirroring the Mongo B2 wiring test): the
+ * Unit test for {@link PostgresPersistenceOperationsFactory} (mirroring the Mongo wiring test): the
  * per-entityType collaborator shape (thing→namespace-only, policy→both, connection→entity-only), the no-op closeable,
  * and the clear failure on an unknown entity type.
  * <p>

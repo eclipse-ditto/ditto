@@ -196,7 +196,7 @@ public final class PostgresReadJournal implements DittoReadJournal {
     public Source<JournalEntry, NotUsed> getLatestJournalEntries(final int batchSize, final Duration maxIdleTime,
             final Materializer mat) {
         // The newest event per pid as a backend-neutral JournalEntry (pid + manifest + payload JSON), via a single
-        // loose-index-scan streaming query (distinct-pid phase + per-pid top-1 LATERAL) — NOT an N+1 per-pid replay (M-2).
+        // loose-index-scan streaming query (distinct-pid phase + per-pid top-1 LATERAL) — NOT an N+1 per-pid replay.
         return operations.getLatestJournalEntries()
                 .map(row -> JournalEntry.of(row.pid(), row.manifest(), parse(row.eventJson())));
     }

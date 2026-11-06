@@ -27,7 +27,7 @@ import org.apache.pekko.stream.Materializer;
 import org.apache.pekko.stream.javadsl.Sink;
 
 /**
- * PostgreSQL health-check actor — the Postgres mirror of {@code MongoHealthChecker} (task B3). It surfaces backend
+ * PostgreSQL health-check actor — the Postgres mirror of {@code MongoHealthChecker}. It surfaces backend
  * connectivity into Ditto's health subsystem by running a real {@code SELECT 1} against the single shared connection
  * pool owned by {@link PostgresClientExtension} and reporting {@link StatusInfo.Status#UP} on a {@code 1} result,
  * {@link StatusInfo.Status#DOWN} (with the error detail) otherwise.

@@ -22,7 +22,7 @@ import org.eclipse.ditto.internal.utils.persistence.api.PersistencePluginConfig;
 
 /**
  * PostgreSQL implementation of {@link PersistencePluginConfig} — the Postgres mirror of
- * {@code MongoPersistencePluginConfig} (task B1). It yields the per-entity journal/snapshot plugin IDs (delegated to the
+ * {@code MongoPersistencePluginConfig}. It yields the per-entity journal/snapshot plugin IDs (delegated to the
  * owning {@link PostgresPersistenceBackendProvider}), the per-service {@code pekko.persistence.*.auto-start-*} plugin IDs
  * the Postgres profile ships, and the per-entity cluster-sharding remember-store plugin IDs.
  *
@@ -30,8 +30,9 @@ import org.eclipse.ditto.internal.utils.persistence.api.PersistencePluginConfig;
  * The auto-start IDs are hardcoded as named constants whose values are verified verbatim against the shipped Postgres
  * profile {@code ditto-postgres-persistence.conf} ({@code journal.auto-start-journals} /
  * {@code snapshot-store.auto-start-snapshot-stores}). Hardcoding — rather than reading the conf at runtime — keeps these
- * values available to the D1 validator and the G2 boot self-check without a fully-loaded service config, and turns a
- * value drift into a failing unit test. Any change to the shipped IDs must update both the HOCON and these constants.
+ * values available to the HOCON drift tests and to the boot-time {@link PostgresPluginWiringCheck} without a
+ * fully-loaded service config, and turns a value drift into a failing unit test. Any change to the shipped IDs must
+ * update both the HOCON and these constants.
  *
  * <h2>Per-entity IDs</h2>
  * {@link #getJournalPluginId(String)} / {@link #getSnapshotPluginId(String)} delegate to the

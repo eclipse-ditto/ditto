@@ -15,12 +15,9 @@ package org.eclipse.ditto.internal.utils.persistence.api;
 /**
  * The persistence backend family a {@link PersistenceBackendProvider} belongs to.
  * <p>
- * This is the backend-NEUTRAL family indicator the boot-time self-check ({@link PersistenceBackendSelfCheck}) compares
- * against the journal/snapshot plugin {@code class} entries and the read-journal class the effective config resolves. It
- * is intentionally a plain enum carrying no backend type: each provider declares its family <em>plus</em> the expected
- * plugin/read-journal class-name STRINGS (see {@link PersistenceBackendProvider#expectedPluginClassNames()} /
- * {@link PersistenceBackendProvider#expectedReadJournalClassName()}), so the persistence-api module never imports a
- * Mongo or Postgres class to express which backend is active.
+ * A plain enum carrying no backend type, so shared code can branch on the active backend (connectivity's encryption
+ * migration refuses on PostgreSQL, for example) without importing a MongoDB or PostgreSQL class. Each provider declares
+ * its family through {@link PersistenceBackendProvider#backendFamily()}.
  *
  * @since 4.0.0
  */

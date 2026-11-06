@@ -56,7 +56,6 @@ import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.persistence.api.BackendFamily;
 import org.eclipse.ditto.internal.utils.persistence.api.DittoReadJournal;
 import org.eclipse.ditto.internal.utils.persistence.api.PersistenceBackendProvider;
-import org.eclipse.ditto.internal.utils.persistence.api.PersistenceBackendSelfCheck;
 import org.eclipse.ditto.internal.utils.persistence.api.PersistencePluginConfig;
 import org.eclipse.ditto.internal.utils.persistentactors.PersistencePingActor;
 import org.eclipse.ditto.internal.utils.persistentactors.cleanup.PersistenceCleanupActor;
@@ -96,16 +95,16 @@ public final class ConnectivityRootActor extends DittoRootActor {
 
         final PersistenceBackendProvider backendProvider =
                 PersistenceBackendProvider.get(actorSystem, ScopedConfig.dittoExtension(actorSystem.settings().config()));
+        // Boot-time plugin-wiring check, before anything touches the database: a backend that owns one (PostgreSQL)
+        // refuses to boot when the deployment HOCON still wires another backend's journal/snapshot plugins; the
+        // default backend (MongoDB) runs no check.
+        backendProvider.verifyPluginWiring(ConnectivityService.SERVICE_NAME);
         // Bootstrap the persistence backend's schema BEFORE the read journal / persistent-actor shard region start.
         // Mongo is a no-op (default); Postgres creates+verifies its tables, waits a bounded, configured time while the
         // database is not reachable yet, and throws on any other failure, so the service never serves traffic against
         // a database whose tables are absent and were never bootstrapped.
         backendProvider.bootstrapSchema();
         final DittoReadJournal readJournal = backendProvider.getReadJournal();
-        // Boot-time active-backend self-check (switchability proof, layer 2): fail fast if the deployment HOCON wires
-        // a different backend's journal/snapshot plugin classes or read journal than the selected provider's family.
-        PersistenceBackendSelfCheck.verify(actorSystem.settings().config(), backendProvider,
-                ConnectivityService.SERVICE_NAME, readJournal.getClass().getName());
 
         // Create persistence streaming actor (with no cache) and make it known to pubSubMediator.
         final ActorRef persistenceStreamingActor =

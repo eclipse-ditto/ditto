@@ -30,7 +30,7 @@ import com.typesafe.config.ConfigFactory;
 /**
  * Verifies that {@link ConnectivityRootActor} builds the connection shard-region {@link ClusterShardingSettings}
  * with the cluster-sharding {@code remember-entities} store's journal/snapshot plugin IDs sourced from the active
- * persistence backend's provider (Task D2) rather than relying solely on HOCON.
+ * persistence backend's provider rather than relying solely on HOCON.
  * <p>
  * On the default (Mongo) backend the provider returns the dedicated {@code *-remember-*} plugin IDs, so the resulting
  * sharding settings must carry exactly those — keeping the effective Mongo remember-entities behaviour identical.

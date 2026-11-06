@@ -61,7 +61,7 @@ import org.apache.pekko.testkit.TestProbe;
 import org.apache.pekko.testkit.javadsl.TestKit;
 
 /**
- * Integration test for the Postgres snapshot-streaming actor (task E2, the provider's {@code streaming(...)} wiring)
+ * Integration test for the Postgres snapshot-streaming actor (the provider's {@code streaming(...)} wiring)
  * against a real PostgreSQL (PG 16) via Testcontainers. Runs under failsafe ({@code *IT}); skipped offline / when no
  * Docker daemon is reachable.
  * <p>

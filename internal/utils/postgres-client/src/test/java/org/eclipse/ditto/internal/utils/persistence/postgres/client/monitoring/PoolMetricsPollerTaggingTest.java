@@ -26,7 +26,7 @@ import org.junit.Test;
 import io.r2dbc.pool.PoolMetrics;
 
 /**
- * Round-2 finding H-9(b): each polled pool must publish its gauges under a low-cardinality {@code pool}/{@code role}
+ * Each polled pool must publish its gauges under a low-cardinality {@code pool}/{@code role}
  * discriminating tag (NOT {@code pid}), so that more than one pool in a JVM cannot collapse onto the same Kamon
  * instrument (last-writer-wins). It also asserts the per-pool coordinated-shutdown task name is derived from the role
  * so two pollers never register the same fixed task name.
@@ -60,7 +60,7 @@ public final class PoolMetricsPollerTaggingTest {
     @Test
     public void distinctRolesProduceDistinctGaugeTagsAndDistinctShutdownTaskNames() {
         // Two pollers for two distinct roles must NOT collide: their gauges differ by the pool tag value and their
-        // coordinated-shutdown task names are distinct (the H-9 fixed-string-clash regression).
+        // coordinated-shutdown task names are distinct (the fixed-string-clash regression).
         final List<EmittedGauge> journalGauges = new ArrayList<>();
         final List<EmittedGauge> snapshotGauges = new ArrayList<>();
         final PoolMetrics metrics = new StubPoolMetrics();

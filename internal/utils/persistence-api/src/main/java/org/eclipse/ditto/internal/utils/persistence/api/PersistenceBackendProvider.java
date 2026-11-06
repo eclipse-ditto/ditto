@@ -35,7 +35,9 @@ import com.typesafe.config.Config;
  * accessors — {@link #pluginConfig()}, {@link #operations(String)}, {@link #healthCheck()},
  * {@link #streaming(String)} and {@link #snapshotCodec()} — including the factory for backend-specific
  * namespace persistence operations. These accessors default to throwing {@link UnsupportedOperationException}
- * so a backend can wire them incrementally; each backend overrides them as it is implemented.
+ * so a backend can wire them incrementally; each backend overrides them as it is implemented. The two boot hooks,
+ * {@link #bootstrapSchema()} and {@link #verifyPluginWiring(String)}, default to no-ops instead, so the bundled
+ * MongoDB backend runs unchanged.
  *
  * @since 4.0.0
  */
@@ -59,11 +61,9 @@ public interface PersistenceBackendProvider extends DittoExtensionPoint {
     DittoReadJournal getReadJournal();
 
     /**
-     * Returns the backend family this provider belongs to. This is the backend-NEUTRAL family indicator the boot-time
-     * self-check ({@link PersistenceBackendSelfCheck}) uses together with {@link #expectedPluginClassNames()} and
-     * {@link #expectedReadJournalClassName()} to assert the effective config's plugin/read-journal classes match the
-     * selected provider. The Mongo provider returns {@link BackendFamily#MONGODB}, the Postgres provider returns
-     * {@link BackendFamily#POSTGRESQL}.
+     * Returns the backend family this provider belongs to: {@link BackendFamily#MONGODB} for the bundled MongoDB
+     * provider, {@link BackendFamily#POSTGRESQL} for the PostgreSQL provider. Shared code that must behave differently
+     * per backend without naming a backend type branches on it (connectivity's encryption migration, for example).
      * <p>
      * The default throws {@link UnsupportedOperationException} so existing backends compile before they wire it.
      *
@@ -75,50 +75,15 @@ public interface PersistenceBackendProvider extends DittoExtensionPoint {
     }
 
     /**
-     * Returns the set of fully-qualified Pekko persistence plugin class names (the {@code class =} values in the
-     * shipped journal/snapshot plugin HOCON blocks) that legitimately belong to this provider's backend. The boot-time
-     * {@link PersistenceBackendSelfCheck} asserts every resolved journal/snapshot plugin {@code class} is one of these.
-     * The Mongo provider returns the {@code pekko.contrib.persistence.mongodb.*} journal/snapshot class names; the
-     * Postgres provider returns the {@code ...persistence.postgres.*} journal/snapshot class names.
-     * <p>
-     * Expressed as STRINGS (never class literals) so the persistence-api module stays backend-neutral. The default
-     * throws {@link UnsupportedOperationException} so existing backends compile before they wire it.
-     *
-     * @return the expected journal/snapshot plugin class names for this backend.
-     * @throws UnsupportedOperationException until the active backend overrides this accessor.
-     */
-    default java.util.Set<String> expectedPluginClassNames() {
-        throw new UnsupportedOperationException(
-                "expectedPluginClassNames() is not implemented by this persistence backend yet");
-    }
-
-    /**
-     * Returns the fully-qualified class name of this provider's read-journal implementation (the runtime class of
-     * {@link #getReadJournal()}). The boot-time {@link PersistenceBackendSelfCheck} asserts the resolved read journal's
-     * class name equals this value. The Mongo provider returns the Ditto {@code MongoReadJournal} class name, the
-     * Postgres provider returns the {@code PostgresReadJournal} class name.
-     * <p>
-     * Expressed as a STRING (never a class literal) so the persistence-api module stays backend-neutral. The default
-     * throws {@link UnsupportedOperationException} so existing backends compile before they wire it.
-     *
-     * @return the expected read-journal class name for this backend.
-     * @throws UnsupportedOperationException until the active backend overrides this accessor.
-     */
-    default String expectedReadJournalClassName() {
-        throw new UnsupportedOperationException(
-                "expectedReadJournalClassName() is not implemented by this persistence backend yet");
-    }
-
-    /**
      * Returns the active backend's richer plugin-ID surface: the same per-entity journal/snapshot IDs as
      * {@link #getJournalPluginId(String)} / {@link #getSnapshotPluginId(String)} <em>plus</em> the per-service
      * {@code auto-start-*} plugin IDs and the per-entity cluster-sharding remember-store plugin IDs. Consumed by the
-     * HOCON authoring/validation (D1/D2) and the boot self-check (G2).
+     * HOCON drift tests of the shipped profiles and the PostgreSQL provider's boot-time plugin-wiring check.
      * <p>
      * Additive to the existing per-entity getters, which stay as-is; this does not replace or re-route them.
      * <p>
-     * The default throws {@link UnsupportedOperationException} so existing backends compile before they wire it: the
-     * Mongo provider implements it in B1, the Postgres provider in E2.
+     * The default throws {@link UnsupportedOperationException} so existing backends compile before they wire it; the
+     * MongoDB and the PostgreSQL provider both implement it.
      *
      * @return the active backend's plugin-ID config.
      * @throws UnsupportedOperationException until the active backend overrides this accessor.
@@ -131,13 +96,13 @@ public interface PersistenceBackendProvider extends DittoExtensionPoint {
      * Returns the backend-neutral {@link PersistenceOperationsCollaborators} for the given entity type — the
      * {@code NamespacePersistenceOperations} / {@code EntityPersistenceOperations} a service's persistence-operations
      * actor purges with, plus the {@code Closeable} that actor must close on {@code postStop}. A service's
-     * {@code RootActor} (C2) feeds this bundle into the existing ops actor, so the {@code RootActor} stays
+     * {@code RootActor} feeds this bundle into the existing ops actor, so the {@code RootActor} stays
      * backend-agnostic.
      * <p>
      * This is the "factory for backend-specific namespace persistence operations" foreshadowed in this interface's
      * class javadoc; a backend may implement it directly or delegate to a {@link PersistenceOperationsFactory}. The
-     * default throws {@link UnsupportedOperationException} so existing backends compile before they wire it: the Mongo
-     * provider implements it in B2, the Postgres provider in E2.
+     * default throws {@link UnsupportedOperationException} so existing backends compile before they wire it; the Mongo
+     * and the PostgreSQL provider both implement it.
      * <p>
      * <strong>Laziness:</strong> the implementation builds a fresh backend client per call, so this MUST be invoked
      * lazily at ops-actor instantiation time (not at {@code Props}-build time), and the returned bundle must not be
@@ -155,8 +120,8 @@ public interface PersistenceBackendProvider extends DittoExtensionPoint {
      * Returns the {@link Props} of the backend's persistence health-check actor, which a service's {@code RootActor}
      * starts to surface backend connectivity/availability into Ditto's health subsystem.
      * <p>
-     * The default throws {@link UnsupportedOperationException} so existing backends compile before they wire it: the
-     * Mongo provider implements it in B3, the Postgres provider in E2.
+     * The default throws {@link UnsupportedOperationException} so existing backends compile before they wire it; the
+     * MongoDB and the PostgreSQL provider both implement it.
      *
      * @return the {@link Props} of the backend's health-check actor.
      * @throws UnsupportedOperationException until the active backend overrides this accessor.
@@ -174,8 +139,8 @@ public interface PersistenceBackendProvider extends DittoExtensionPoint {
      * and the {@link java.io.Closeable} resource the streaming actor closes on stop. The returned {@link Props} is the
      * backend-neutral {@code SnapshotStreamingActor} wired with those backend collaborators.
      * <p>
-     * The default throws {@link UnsupportedOperationException} so existing backends compile before they wire it: the
-     * Mongo provider implements it in B4, the Postgres provider in E2.
+     * The default throws {@link UnsupportedOperationException} so existing backends compile before they wire it; the
+     * MongoDB and the PostgreSQL provider both implement it.
      *
      * @param entityType the entity type, e.g. {@code "thing"}, {@code "policy"}, {@code "connection"}
      * @param pid2EntityId function mapping a persistence ID to its entity ID (service-specific).
@@ -193,8 +158,8 @@ public interface PersistenceBackendProvider extends DittoExtensionPoint {
      * Returns the backend's snapshot storage-envelope codec (Mongo = BSON, Postgres = JSONB) that wraps the shared
      * {@code SnapshotSerializer} for the active backend.
      * <p>
-     * The default throws {@link UnsupportedOperationException} so existing backends compile before they wire it: the
-     * Mongo provider implements it in B5, the Postgres provider in E2.
+     * The default throws {@link UnsupportedOperationException} so existing backends compile before they wire it; the
+     * MongoDB and the PostgreSQL provider both implement it.
      *
      * @return the backend's snapshot codec.
      * @throws UnsupportedOperationException until the active backend overrides this accessor.
@@ -223,10 +188,38 @@ public interface PersistenceBackendProvider extends DittoExtensionPoint {
      * real bootstrap.
      * </p>
      *
-     * @throws RuntimeException if the schema cannot be bootstrapped or verified (boot must fail).
+     * @throws RuntimeException if the schema cannot be bootstrapped or verified (boot must fail); the PostgreSQL
+     * provider throws {@code DittoConfigError} for an invalid configuration.
      */
     default void bootstrapSchema() {
         // No-op: the default backend (MongoDB) manages its own schema lazily and needs no DDL bootstrap.
+    }
+
+    /**
+     * Verifies that the Pekko persistence plugins the effective config wires for the service belong to this provider's
+     * backend, before any persistent actor starts.
+     * <p>
+     * A service wires its journal and snapshot-store plugins from HOCON (the per-plugin {@code <id>.class} blocks and
+     * the {@code pekko.persistence.*.auto-start-*} lists), while the read journal, cleanup, ping and namespace
+     * operations come from this provider. The two halves are configured separately and can drift when a deployment
+     * switches backends half-way. A service's {@code RootActor} calls this hook exactly once during boot, right before
+     * {@link #bootstrapSchema()}, so a backend that owns such a check can refuse to boot against a mis-wired config
+     * with an actionable error before anything touches the database.
+     * </p>
+     * <p>
+     * The default implementation is a no-op: the bundled default backend (MongoDB) is what every deployment ran before
+     * backends became pluggable, and a MongoDB deployment keeps booting whatever plugin classes it wires, a journal
+     * class of its own included. Only a backend a deployment opts into explicitly overrides it (PostgreSQL does).
+     * </p>
+     *
+     * @param serviceName the lower-case service name, e.g. {@code "things"}, {@code "policies"},
+     * {@code "connectivity"}: the key under which {@link PersistencePluginConfig#getAutoStartPluginIds(String)}
+     * returns this service's auto-start plugin IDs.
+     * @throws org.eclipse.ditto.internal.utils.config.DittoConfigError if the wired plugins do not belong to this
+     * backend (boot must fail).
+     */
+    default void verifyPluginWiring(final String serviceName) {
+        // No-op: the default backend (MongoDB) runs no wiring check, so existing deployments boot unchanged.
     }
 
     /**
