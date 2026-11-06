@@ -89,20 +89,24 @@ public final class ConnectionMongoSnapshotAdapter extends SnapshotSerializer<Con
                 .flatMap(p -> jsonObject.getValue(p).filter(JsonValue::isString).map(JsonValue::asString).stream())
                 .anyMatch(v -> v.contains(JsonFieldsEncryptor.ENCRYPTED_PREFIX));
 
-        if (encryptionConfig.getSymmetricalKey().isEmpty()) {
-            if (hasEncryptedFields) {
-                LOGGER.warn("Encrypted fields will not be decrypted. Missing symmetrical key. " +
-                        "Either configure the one used for encryption or edit connections and update encrypted fields");
-            }
-            return ConnectionMigrationUtil.connectionFromJsonWithMigration(jsonObject);
-        }
-
         if (!hasEncryptedFields) {
             return ConnectionMigrationUtil.connectionFromJsonWithMigration(jsonObject);
         }
 
+        // Mirrors the event adapters: the current key is primary and the old key its fallback; without a current key
+        // (encryption disabled, the last key kept as 'old-symmetrical-key') the old key alone decrypts.
+        final Optional<String> currentKey = encryptionConfig.getSymmetricalKey();
+        final Optional<String> oldKey = encryptionConfig.getOldSymmetricalKey();
+        if (currentKey.isEmpty() && oldKey.isEmpty()) {
+            LOGGER.warn("Encrypted fields will not be decrypted. Missing symmetrical key. Either configure the key "
+                    + "used for encryption as 'symmetrical-key' or 'old-symmetrical-key', or edit the connections "
+                    + "and update the encrypted fields.");
+            return ConnectionMigrationUtil.connectionFromJsonWithMigration(jsonObject);
+        }
+        final String primaryKey = currentKey.orElseGet(oldKey::get);
+        final Optional<String> fallbackKey = currentKey.isPresent() ? oldKey : Optional.empty();
         final JsonObject decrypted = JsonFieldsEncryptor.decrypt(jsonObject, "", encryptionConfig.getJsonPointers(),
-                encryptionConfig.getSymmetricalKey().get(), encryptionConfig.getOldSymmetricalKey());
+                primaryKey, fallbackKey);
         return ConnectionMigrationUtil.connectionFromJsonWithMigration(decrypted);
     }
 

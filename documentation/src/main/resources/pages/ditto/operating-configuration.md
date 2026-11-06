@@ -155,7 +155,8 @@ ditto.connectivity.connection.encryption {
 
 **Behavior:**
 - **Encryption:** Always uses `symmetrical-key` for encrypting new data
-- **Decryption:** Tries `symmetrical-key` first, falls back to `old-symmetrical-key` if decryption fails
+- **Decryption:** Tries `symmetrical-key` first, falls back to `old-symmetrical-key` if decryption fails; with no
+  `symmetrical-key`, `old-symmetrical-key` alone is used
 - **Migration:** Explicit DevOps command re-encrypts existing data from old key to new key (MongoDB persistence backend only)
 
 **Migration Decision Logic:**
@@ -288,7 +289,9 @@ To rotate an encryption key on the MongoDB persistence backend (on PostgreSQL, s
 
 ##### Disabling encryption
 
-To disable encryption while preserving access to already encrypted data (MongoDB persistence backend; on PostgreSQL, see [Key rotation on PostgreSQL](#key-rotation-on-postgresql)):
+To disable encryption while preserving access to already encrypted data (steps 1 and 2 apply on both persistence
+backends; steps 3 and 4 — the migration and the removal of the old key — apply on MongoDB only; on PostgreSQL see
+[Key rotation on PostgreSQL](#key-rotation-on-postgresql)):
 
 1. **Update configuration** with encryption disabled but old key present:
    ```hocon
@@ -344,13 +347,15 @@ migration that rewrites all stored connection data at once:
   holds data encrypted with a removed key fails to recover.
 - **Only one old key:** rotate again only once the current `old-symmetrical-key` could be retired as described above.
   Data encrypted with a key that is no longer configured cannot be decrypted.
-- **Disabling encryption:** no migration decrypts the stored data. Set `encryption-enabled = false` and **keep the
-  former key as `symmetrical-key`** (not as `old-symmetrical-key`). Stored connection data is still decrypted on read,
-  and new or changed connection data is written in plaintext. Keep the key until the stored data of every connection
-  has been rewritten, connection by connection, as described under *Retiring the old key*. Do not set
-  `symmetrical-key = ""` while encrypted data remains: connections recovered from a snapshot that was written while
-  encryption was enabled would then keep the encrypted values, and saving such a connection again unchanged does not
-  decrypt them; you would have to re-send its credentials in plaintext.
+- **Disabling encryption:** do steps 1 and 2 of [Disabling encryption](#disabling-encryption) as on MongoDB:
+  `encryption-enabled = false`, `symmetrical-key = ""` and the former key kept as `old-symmetrical-key`. Stored
+  connection data is still decrypted on read, and new or changed connection data is written in plaintext. No
+  migration decrypts the stored data: keep `old-symmetrical-key` until the stored data of every connection has been
+  rewritten, connection by connection, as described under *Retiring the old key*. Removing the key while encrypted
+  data remains leaves a connection recovered from a snapshot written while encryption was enabled with its
+  encrypted values (unlike a wrong key, no key at all does not fail the recovery; the values simply stay encrypted),
+  and saving it again unchanged does not decrypt them. Configuring the key again as `old-symmetrical-key` makes
+  reads decrypt once more; otherwise you would have to re-send its credentials in plaintext.
 
 ### Rate limiting
 
