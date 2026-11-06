@@ -248,11 +248,24 @@ In [policy actions](basic-policy.html#actions), the following placeholders are a
 ### Scope: RQL expressions when filtering for Ditto Protocol messages
 
 When using [RQL expressions](basic-rql.html) in scope of either [change notifications](basic-changenotifications.html)
-or subscriptions for live messages, the following placeholders are available in general:
+or subscriptions for live messages - via WebSocket, SSE or the `filter` of a connection target - the following
+placeholders are available in general:
+* [entity placeholder](#entity-placeholder)
+* [thing placeholder](#thing-placeholder)
+* [feature placeholder](#feature-placeholder)
 * [topic placeholder](#topic-placeholder)
 * [resource placeholder](#resource-placeholder)
-* [time placeholder](#time-placeholder)
+* [time placeholder](#time-placeholder) - only as the value to compare with, e.g. `lt(_modified,time:now)`
+
 Note that in RQL expressions placeholders must not be surrounded by curly braces.
+
+A placeholder may resolve to several values: `feature:id` resolves to the IDs of all features a signal touches,
+e.g. when a thing with several features is created or when several features are merged at once. An RQL expression
+on such a placeholder behaves like on an array of the thing: `eq`, `in`, `like` etc. match if any of the values
+matches, and `ne` only matches if none of the values is equal - `ne(feature:id,"lamp")` matches all signals which do
+not touch the feature `lamp`.
+
+The `filter` of a subscription for [historical events](basic-history.html) does not support placeholders.
 
 ### Scope: Websocket Signal Enrichment
 When [declaring extra fields](basic-enrichment.html) which should be enriched to a published signal for a Websocket connection, the following placeholders are available in general:
