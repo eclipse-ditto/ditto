@@ -758,6 +758,103 @@ public final class OutboundMappingProcessorActorTest {
             acks.forEach(ack -> assertThat(ack.isWeak()).describedAs("Expect weak ack, got: " + ack).isTrue());
         }};
     }
+    @Test
+    public void topicOfOtherNamespaceDoesNotPublishWhenTopicsOfOwnNamespaceDoNotMatchAfterEnrichment() {
+        new TestKit(actorSystemResource.getActorSystem()) {{
+            // The RQL+extraFields topic of the signal's namespace does not match, the filterless topic is for another
+            // namespace - so no topic may publish the signal
+            final List<Target> targets = List.of(createTestTargetMultiTopics(
+                    Set.of(withNamespaces(topic4(), thingId().getNamespace()), withNamespaces(topic0(), "other"))));
+            final Connection connection = CONNECTION.toBuilder().setTargets(targets).build();
+            final ActorRef underTest = getTestActorRef(connection);
+
+            final OutboundSignal outboundSignal = outboundFeatureTwinEvent(THING,
+                    Feature.newBuilder().withId("unrelatedFeature").build(),
+                    List.of("source1", "multipleExtraFields"), targets, getRef());
+
+            underTest.tell(outboundSignal, getRef());
+            partialRetrieveAndResponse();
+
+            expectOnlyWeakAcks(this);
+            clientActorProbe.expectNoMessage();
+        }};
+    }
+
+    @Test
+    public void topicOfOtherNamespaceDoesNotPublishWhenFnFilterOfOwnNamespaceDoesNotMatch() {
+        new TestKit(actorSystemResource.getActorSystem()) {{
+            // The fn-filter+extraFields topic of the signal's namespace does not match, the filterless topic is for
+            // another namespace - so no topic may publish the signal
+            final FilteredTopic fnFilterTopic = ConnectivityModelFactory.newFilteredTopicBuilder(Topic.TWIN_EVENTS)
+                    .withNamespaces(List.of(thingId().getNamespace()))
+                    .withFnFilters(List.of("header:ditto-originator|fn:filter('ne','x')"))
+                    .withExtraFields(ThingFieldSelector.fromString("definition"))
+                    .build();
+            final List<Target> targets = List.of(createTestTargetMultiTopics(
+                    Set.of(fnFilterTopic, withNamespaces(topic0(), "other"))));
+            final Connection connection = CONNECTION.toBuilder().setTargets(targets).build();
+            final ActorRef underTest = getTestActorRef(connection);
+
+            final OutboundSignal outboundSignal = withOriginator(outboundFeatureTwinEvent(THING,
+                    Feature.newBuilder().withId("feature4").build(),
+                    List.of("source1", "multipleExtraFields"), targets, getRef()), "x");
+
+            underTest.tell(outboundSignal, getRef());
+            partialRetrieveAndResponse();
+
+            expectOnlyWeakAcks(this);
+            clientActorProbe.expectNoMessage();
+        }};
+    }
+
+    @Test
+    public void topicWithoutNamespacesPublishesWhenTopicsOfOwnNamespaceDoNotMatchAfterEnrichment() {
+        new TestKit(actorSystemResource.getActorSystem()) {{
+            // The RQL+extraFields topic of the signal's namespace does not match, but the filterless topic without
+            // namespaces subscribed for every namespace
+            final List<Target> targets = List.of(createTestTargetMultiTopics(
+                    Set.of(withNamespaces(topic4(), thingId().getNamespace()), topic0())));
+            final Connection connection = CONNECTION.toBuilder().setTargets(targets).build();
+            final ActorRef underTest = getTestActorRef(connection);
+
+            final OutboundSignal outboundSignal = outboundFeatureTwinEvent(THING,
+                    Feature.newBuilder().withId("unrelatedFeature").build(),
+                    List.of("multipleExtraFields"), targets, getRef());
+
+            underTest.tell(outboundSignal, getRef());
+            partialRetrieveAndResponse();
+
+            final BaseClientActor.PublishMappedMessage publish =
+                    clientActorProbe.expectMsgClass(BaseClientActor.PublishMappedMessage.class);
+            assertThat(publish.getOutboundSignal().first().getTargets()).contains(targets.getFirst());
+            assertThat(publish.getOutboundSignal().first().getAdaptable().getPayload().getExtra()).isEmpty();
+        }};
+    }
+
+    @Test
+    public void extraFieldsOfTopicOfOtherNamespaceAreNeitherRetrievedNorPublished() {
+        new TestKit(actorSystemResource.getActorSystem()) {{
+            // Only the topic of another namespace has extraFields - it would match the signal, but must neither
+            // trigger the enrichment nor select the extra fields of the published signal
+            final List<Target> targets = List.of(createTestTargetMultiTopics(
+                    Set.of(withNamespaces(topic4(), "other"), withNamespaces(topic0(), thingId().getNamespace()))));
+            final Connection connection = CONNECTION.toBuilder().setTargets(targets).build();
+            final ActorRef underTest = getTestActorRef(connection);
+
+            final OutboundSignal outboundSignal = outboundFeatureTwinEvent(THING,
+                    Feature.newBuilder().withId("feature4").build(),
+                    List.of("multipleExtraFields"), targets, getRef());
+
+            underTest.tell(outboundSignal, getRef());
+
+            final BaseClientActor.PublishMappedMessage publish =
+                    clientActorProbe.expectMsgClass(BaseClientActor.PublishMappedMessage.class);
+            assertThat(publish.getOutboundSignal().first().getTargets()).contains(targets.getFirst());
+            assertThat(publish.getOutboundSignal().first().getAdaptable().getPayload().getExtra()).isEmpty();
+            proxyActorProbe.expectNoMessage();
+        }};
+    }
+
 
     @Test
     public void mixedTopicsTargetFnFilterMatchPublishesWithoutExtraFieldsAndHeadersUnchanged() {
@@ -1153,6 +1250,23 @@ public final class OutboundMappingProcessorActorTest {
      * Returns a copy of {@code outboundSignal} whose source signal carries an explicit {@code ditto-originator}
      * header, as required by any target topic {@code fn-filter} relying on {@code header:ditto-originator}.
      */
+    private static void expectOnlyWeakAcks(final TestKit testKit) {
+        // the sender receives a weak acknowledgement for each requested label of the dropped target
+        final Acknowledgements acks = testKit.expectMsgClass(Acknowledgements.class);
+        assertThat(acks.getSuccessfulAcknowledgements().stream().map(ack -> ack.getLabel().toString()).toList())
+                .containsExactlyInAnyOrder("source1", "multipleExtraFields");
+        acks.forEach(ack -> assertThat(ack.isWeak()).describedAs("Expect weak ack, got: " + ack).isTrue());
+    }
+
+    private static FilteredTopic withNamespaces(final FilteredTopic topic, final String... namespaces) {
+        return ConnectivityModelFactory.newFilteredTopicBuilder(topic.getTopic())
+                .withNamespaces(List.of(namespaces))
+                .withFilter(topic.getFilter().orElse(null))
+                .withFnFilters(topic.getFnFilters())
+                .withExtraFields(topic.getExtraFields().map(ThingFieldSelector::fromJsonFieldSelector).orElse(null))
+                .build();
+    }
+
     private static OutboundSignal withOriginator(final OutboundSignal outboundSignal, final String originator) {
         return OutboundSignalFactory.newOutboundSignal(
                 outboundSignal.getSource().setDittoHeaders(outboundSignal.getSource().getDittoHeaders().toBuilder()
