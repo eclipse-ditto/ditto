@@ -29,6 +29,9 @@ import org.eclipse.ditto.connectivity.service.config.ConnectivityConfig;
 import org.eclipse.ditto.connectivity.service.config.DittoConnectivityConfig;
 import org.eclipse.ditto.connectivity.service.messaging.TestConstants;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
+import org.eclipse.ditto.internal.utils.config.ScopedConfig;
+import org.eclipse.ditto.internal.utils.persistence.api.PersistenceBackendProvider;
+import org.eclipse.ditto.internal.utils.persistence.mongo.MongoPersistenceBackendProvider;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -38,11 +41,12 @@ import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 
 /**
- * Characterises {@link EncryptionMigrationActor} when no MongoDB is reachable. The actor builds its client from the
- * config when it starts, so this also covers that path. Until the connectivity root actor gated the migration on the
- * persistence backend, this is what a deployment on another backend (PostgreSQL) got: the migration command is
- * accepted (202) before any MongoDB I/O, and its failure shows only in the log; a status query fails once the driver's
- * server selection times out. No Docker is needed: nothing listens on 127.0.0.1:1.
+ * Characterises {@link EncryptionMigrationActor} on the bundled MongoDB persistence backend when no MongoDB is
+ * reachable. The actor obtains its payload store from the configured {@link PersistenceBackendProvider} when it
+ * starts — the MongoDB provider builds the store's client from the {@code ditto.mongodb} block of the actor system's
+ * config — so this also covers that path: the migration command is accepted (202) before any MongoDB I/O, and its
+ * failure shows only in the log; a status query fails once the driver's server selection times out. No Docker is
+ * needed: nothing listens on 127.0.0.1:1.
  */
 public final class EncryptionMigrationActorWithoutMongoDbTest {
 
@@ -52,6 +56,7 @@ public final class EncryptionMigrationActorWithoutMongoDbTest {
 
     private static ActorSystem actorSystem;
     private static ConnectivityConfig connectivityConfig;
+    private static PersistenceBackendProvider backendProvider;
 
     @BeforeClass
     public static void setUp() {
@@ -65,7 +70,10 @@ public final class EncryptionMigrationActorWithoutMongoDbTest {
                 .withFallback(TestConstants.CONFIG)
                 .resolve();
         connectivityConfig = DittoConnectivityConfig.of(DefaultScopedConfig.dittoScoped(config));
-        actorSystem = ActorSystem.create("EncryptionMigrationActorWithoutMongoDbTest");
+        // the provider reads ditto.mongodb from the actor system's config, as it does in the service
+        actorSystem = ActorSystem.create("EncryptionMigrationActorWithoutMongoDbTest", config);
+        backendProvider = PersistenceBackendProvider.get(actorSystem,
+                ScopedConfig.dittoExtension(actorSystem.settings().config()));
     }
 
     @AfterClass
@@ -74,6 +82,11 @@ public final class EncryptionMigrationActorWithoutMongoDbTest {
             TestKit.shutdownActorSystem(actorSystem);
             actorSystem = null;
         }
+    }
+
+    @Test
+    public void theConfiguredProviderIsTheBundledMongoDbOne() {
+        assertThat(backendProvider).isInstanceOf(MongoPersistenceBackendProvider.class);
     }
 
     @Test
@@ -102,6 +115,6 @@ public final class EncryptionMigrationActorWithoutMongoDbTest {
     }
 
     private static Props newProps() {
-        return EncryptionMigrationActor.props(connectivityConfig);
+        return EncryptionMigrationActor.props(connectivityConfig, backendProvider);
     }
 }

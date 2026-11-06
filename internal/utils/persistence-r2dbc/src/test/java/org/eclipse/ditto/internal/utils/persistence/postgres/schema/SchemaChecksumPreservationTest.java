@@ -16,6 +16,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -42,12 +44,14 @@ import org.junit.Test;
  * <p>
  * The extraction itself was checksum-neutral, which is what
  * {@link #effectiveDdlPrependsTheSharedSchemaVersionTableToTheComponentStatements()} still proves structurally
- * (version-independently). The pinned literal has since moved three times, deliberately: v2 (snaps
+ * (version-independently). The pinned literal has since moved four times, deliberately: v2 (snaps
  * {@code (pid, sn DESC)} index dropped), v3 (lifecycle partial index dropped, vacuum cost budget raised), v4 (the fifth
- * table set {@code connection_remember_*} for connectivity's remember-entities store appended). v2 and v3 replaced an
- * index creation with an idempotent {@code DROP INDEX IF EXISTS}, v4 appended statements; each changed the DDL text.
- * That is exactly the "deliberate, versioned schema change" the policy above allows — each is carried by a
- * {@link PostgresSchema#VERSION} bump (1 -&gt; 2, 2 -&gt; 3, 3 -&gt; 4), and {@code SchemaVerifier.verifyStoredVersion}
+ * table set {@code connection_remember_*} for connectivity's remember-entities store appended), v5 (the progress table
+ * {@code connections_encryption_migration} of connectivity's encryption migration appended). v2 and v3 replaced an
+ * index creation with an idempotent {@code DROP INDEX IF EXISTS}, v4 and v5 appended statements; each changed the DDL
+ * text. That is exactly the "deliberate, versioned schema change" the policy above allows — each is carried by a
+ * {@link PostgresSchema#VERSION} bump (1 -&gt; 2, 2 -&gt; 3, 3 -&gt; 4, 4 -&gt; 5), and
+ * {@code SchemaVerifier.verifyStoredVersion}
  * treats a stored version OLDER than the code version as an
  * upgrade in flight (pass, then advance the row), so deployed databases upgrade rather than refuse to boot. The later
  * {@code min_compatible_version} column is added by a manager-owned statement outside the effective DDL, so it left
@@ -64,11 +68,12 @@ public final class SchemaChecksumPreservationTest {
      * History: {@code 117464679ca1d6aa9517a42d54c77de4782ba9b8c7870a88425bcd9b4d0991b4} was the v1 value, preserved
      * unchanged across the postgres-client extraction; v2 (snaps {@code (pid, sn DESC)} index dropped) stored
      * {@link PostgresSchemaV2#CHECKSUM}; v3 (lifecycle partial index dropped, journal and snaps vacuum cost budget
-     * raised) stored {@link PostgresSchemaV3#CHECKSUM}; v4 (the {@code connection_remember} table set appended) moved
-     * it to the value below.
+     * raised) stored {@link PostgresSchemaV3#CHECKSUM}; v4 (the {@code connection_remember} table set appended) stored
+     * {@link PostgresSchemaV4#CHECKSUM}; v5 (the {@code connections_encryption_migration} table appended) moved it to
+     * the value below.
      */
     private static final String CURRENT_PERSISTENCE_CHECKSUM =
-            "ea3e594023c1e3bad85c429b9bf45189072b8c64fd6953c3963c41116a0f0712";
+            "67ecd64dc30d164afceb5e8bf44dad97827d0f80dd89b38187cb014e498c278e";
 
     private static final Pattern LIFECYCLE_INDEX =
             Pattern.compile("^CREATE INDEX IF NOT EXISTS (\\w+_snaps_lifecycle_idx) ON .*$");
@@ -77,7 +82,7 @@ public final class SchemaChecksumPreservationTest {
 
     @Test
     public void persistenceChecksumMatchesThePinnedValueForTheCurrentSchemaVersion() {
-        assertThat(PostgresSchema.VERSION).as("bump the pin together with the version").isEqualTo(4);
+        assertThat(PostgresSchema.VERSION).as("bump the pin together with the version").isEqualTo(5);
         assertThat(PostgresSchemaManager.checksum(PostgresSchema.descriptor()))
                 .as("effective DDL must not drift without a deliberate PostgresSchema.VERSION bump")
                 .isEqualTo(CURRENT_PERSISTENCE_CHECKSUM);
@@ -94,6 +99,11 @@ public final class SchemaChecksumPreservationTest {
     }
 
     @Test
+    public void frozenV4DescriptorReproducesTheChecksumV4DatabasesStore() {
+        assertThat(PostgresSchemaManager.checksum(PostgresSchemaV4.descriptor())).isEqualTo(PostgresSchemaV4.CHECKSUM);
+    }
+
+    @Test
     public void v3IsV2WithTheLifecycleIndexDroppedAndTheJournalAndSnapsVacuumBudgetRaised() {
         final List<String> v2 = PostgresSchemaV2.DDL_STATEMENTS;
         final List<String> v3 = PostgresSchemaV3.DDL_STATEMENTS;
@@ -107,18 +117,38 @@ public final class SchemaChecksumPreservationTest {
     @Test
     public void v4AppendsTheConnectionRememberTableSetToV3() {
         final List<String> v3 = PostgresSchemaV3.DDL_STATEMENTS;
-        final List<String> v4 = PostgresSchema.ddlStatements();
+        final List<String> v4 = PostgresSchemaV4.DDL_STATEMENTS;
         assertThat(v4.subList(0, v3.size())).as("v3's statements stay byte-identical").isEqualTo(v3);
         assertThat(v4.subList(v3.size(), v4.size())).as("the fifth table set is appended, in v3's shape")
                 .isEqualTo(PostgresSchemaV3.ddlFor("connection_remember").toList());
 
         final List<TableContract> v3Contracts = PostgresSchemaV3.TABLE_CONTRACTS;
-        final List<TableContract> v4Contracts = PostgresSchema.tableContracts();
+        final List<TableContract> v4Contracts = PostgresSchemaV4.TABLE_CONTRACTS;
         assertThat(v4Contracts.subList(0, v3Contracts.size())).isEqualTo(v3Contracts);
         assertThat(v4Contracts.subList(v3Contracts.size(), v4Contracts.size()))
                 .isEqualTo(PostgresSchemaV3.contractsFor("connection_remember").toList());
+    }
 
-        assertThat(PostgresSchema.MIN_COMPATIBLE_VERSION).as("additive: v2 and v3 code keep running against v4")
+    @Test
+    public void v5AppendsTheEncryptionMigrationTableToV4() {
+        final List<String> v4 = PostgresSchemaV4.DDL_STATEMENTS;
+        final List<String> v5 = PostgresSchema.ddlStatements();
+        assertThat(v4).hasSize(45);
+        assertThat(v5.subList(0, v4.size())).as("v4's statements stay byte-identical").isEqualTo(v4);
+        assertThat(v5.subList(v4.size(), v5.size())).as("one table is appended: the migration progress record")
+                .containsExactly("CREATE TABLE IF NOT EXISTS connections_encryption_migration (id TEXT PRIMARY KEY, "
+                        + "progress JSONB NOT NULL, updated_at TIMESTAMPTZ NOT NULL)");
+
+        final List<TableContract> v4Contracts = PostgresSchemaV4.TABLE_CONTRACTS;
+        final List<TableContract> v5Contracts = PostgresSchema.tableContracts();
+        assertThat(v4Contracts).hasSize(15);
+        assertThat(v5Contracts.subList(0, v4Contracts.size())).isEqualTo(v4Contracts);
+        assertThat(v5Contracts.subList(v4Contracts.size(), v5Contracts.size()))
+                .containsExactly(new TableContract("connections_encryption_migration", "PRIMARY KEY (id)",
+                        Map.of("id", "text", "progress", "jsonb", "updated_at", "timestamp with time zone"),
+                        Set.of()));
+
+        assertThat(PostgresSchema.MIN_COMPATIBLE_VERSION).as("additive: v2, v3 and v4 code keep running against v5")
                 .isEqualTo(2);
     }
 

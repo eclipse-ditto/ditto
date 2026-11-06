@@ -244,6 +244,32 @@ jmh-generator-annprocess). jmh-generator-annprocess overwrites the whole META-IN
             <artifactId>pekko-connectors-kafka-testkit_${scala.version}</artifactId>
             <scope>test</scope>
         </dependency>
+        <!-- PostgreSQL, TEST SCOPE ONLY: EncryptionMigrationPostgresIT runs the connection-secret encryption migration
+             end to end on a Testcontainers PostgreSQL through the real PostgreSQL provider and payload store. Test
+             scope never ships in the allinone; the enforcer below bans every other scope, and the ArchUnit rule
+             PersistenceBoundaryArchTest keeps PostgreSQL types out of this module's MAIN code. -->
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-internal-utils-persistence-r2dbc</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-internal-utils-postgres-client</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <!-- The shared Testcontainers PostgresDbResource fixture, published by postgres-client as a test-jar. -->
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-internal-utils-postgres-client</artifactId>
+            <type>test-jar</type>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>postgresql</artifactId>
+            <scope>test</scope>
+        </dependency>
         <!-- ArchUnit for the pluggable-persistence boundary tests (switchability proof).
              The rules are driven from plain JUnit 4 @Test methods via ArchUnit's core API
              (ClassFileImporter + ImportOption.DoNotIncludeTests + ArchRuleDefinition), so this module keeps
@@ -283,7 +309,14 @@ jmh-generator-annprocess). jmh-generator-annprocess overwrites the whole META-IN
                         The r2dbc persistence module and its shaded extension jar must NEVER leak into a
                         service allinone. PostgreSQL support ships as a separate drop-in extension jar; the
                         service images stay Mongo-only by default. This guard fails the build if anyone adds
-                        ditto-internal-utils-persistence-r2dbc(-extension) as a dependency of this service.
+                        ditto-internal-utils-persistence-r2dbc(-extension) as a compile, runtime or provided
+                        dependency of this service: compile and runtime scope would leak r2dbc into the service
+                        allinone (the shade plugin resolves runtime scope), provided scope would let this
+                        module's main code compile against PostgreSQL types. TEST scope is exempt (the
+                        <includes> below): it never ships, and it carries the PostgreSQL integration test of the
+                        connection-secret encryption migration (EncryptionMigrationPostgresIT).
+                        PersistenceBoundaryArchTest keeps PostgreSQL types out of this module's MAIN code
+                        regardless of scope.
                     -->
                     <execution>
                         <id>enforce-no-r2dbc-in-service</id>
@@ -303,10 +336,24 @@ jmh-generator-annprocess). jmh-generator-annprocess overwrites the whole META-IN
                                         <exclude>io.r2dbc:*</exclude>
                                         <exclude>org.postgresql:r2dbc-postgresql</exclude>
                                     </excludes>
+                                    <!-- Exceptions to the bans above, pattern groupId:artifactId:version:type:scope:
+                                         the same artifacts in TEST scope only (the PostgreSQL IT and its
+                                         Testcontainers fixture). Any other scope still fails the build. -->
+                                    <includes>
+                                        <include>org.eclipse.ditto:ditto-internal-utils-persistence-r2dbc:*:*:test</include>
+                                        <include>org.eclipse.ditto:ditto-internal-utils-postgres-client:*:*:test</include>
+                                        <include>io.r2dbc:*:*:*:test</include>
+                                        <include>org.postgresql:r2dbc-postgresql:*:*:test</include>
+                                    </includes>
                                     <message>
-                                        org.eclipse.ditto:ditto-internal-utils-persistence-r2dbc(-extension) must
-                                        not be a dependency of a service module — it would leak r2dbc into the
-                                        service allinone. PostgreSQL ships as a separate drop-in extension jar.
+                                        org.eclipse.ditto:ditto-internal-utils-persistence-r2dbc(-extension),
+                                        ditto-internal-utils-postgres-client and the r2dbc/PostgreSQL driver must
+                                        not be compile, runtime or provided dependencies of a service module:
+                                        compile and runtime scope would leak r2dbc into the service allinone (the
+                                        shade plugin resolves runtime scope), provided scope would let this module's
+                                        main code compile against PostgreSQL types. PostgreSQL ships as a separate
+                                        drop-in extension jar. Only TEST scope is allowed: it never ships and carries
+                                        the PostgreSQL integration test of the encryption migration.
                                     </message>
                                 </bannedDependencies>
                             </rules>
@@ -468,10 +515,14 @@ jmh-generator-annprocess). jmh-generator-annprocess overwrites the whole META-IN
                         These ITs are excluded from the default build because they need
                         infrastructure that a vanilla `mvn install` does not provide:
 
-                          * EncryptionMigration*IT  - require a running Ditto stack (gateway +
-                            connectivity service + MongoDB) with a specific encryption-key env
-                            profile per IT variant (key-rotation / initial / disable). Enable
-                            with -Pencryption-migration-its.
+                          * EncryptionMigrationIT, EncryptionMigrationInitialEncryptionIT,
+                            EncryptionMigrationDisableIT - the MongoDB stack-level tests: they
+                            require a running Ditto stack (gateway + connectivity service +
+                            MongoDB) with a specific encryption-key env profile per IT variant
+                            (key-rotation / initial / disable). Enable with
+                            -Pencryption-migration-its. (EncryptionMigrationPostgresIT is NOT
+                            excluded: it brings its own Testcontainers PostgreSQL and skips
+                            itself when no Docker daemon is reachable.)
 
                           * MqttClientActorIT       - uses a Mosquitto Testcontainer; one of its
                             parameterised cases (MQTT 3.1.1 + separate publisher client +
@@ -479,7 +530,9 @@ jmh-generator-annprocess). jmh-generator-annprocess overwrites the whole META-IN
                             with -Pmqtt-its once that race is investigated.
                     -->
                     <excludes>
-                        <exclude>**/EncryptionMigration*IT.java</exclude>
+                        <exclude>**/EncryptionMigrationIT.java</exclude>
+                        <exclude>**/EncryptionMigrationInitialEncryptionIT.java</exclude>
+                        <exclude>**/EncryptionMigrationDisableIT.java</exclude>
                         <exclude>**/MqttClientActorIT.java</exclude>
                     </excludes>
                 </configuration>
@@ -501,10 +554,11 @@ jmh-generator-annprocess). jmh-generator-annprocess overwrites the whole META-IN
     <profiles>
         <profile>
             <!--
-                Runs the EncryptionMigration*IT system tests. Requires a running Ditto stack on
-                http://localhost:8080 with DEVOPS_PASSWORD=devopsPw1! and the appropriate
-                CONNECTIVITY_CONNECTION_ENCRYPTION_KEY / CONNECTIVITY_CONNECTION_OLD_ENCRYPTION_KEY
-                configured per IT variant.
+                Runs the three MongoDB stack-level tests EncryptionMigrationIT,
+                EncryptionMigrationInitialEncryptionIT and EncryptionMigrationDisableIT. Requires a
+                running Ditto stack on http://localhost:8080 with DEVOPS_PASSWORD=devopsPw1! and the
+                appropriate CONNECTIVITY_CONNECTION_ENCRYPTION_KEY /
+                CONNECTIVITY_CONNECTION_OLD_ENCRYPTION_KEY configured per IT variant.
 
                 run with:
                   mvn verify -pl :ditto-connectivity-service -Pencryption-migration-its \
@@ -545,7 +599,9 @@ jmh-generator-annprocess). jmh-generator-annprocess overwrites the whole META-IN
                         <artifactId>maven-failsafe-plugin</artifactId>
                         <configuration>
                             <excludes combine.self="override">
-                                <exclude>**/EncryptionMigration*IT.java</exclude>
+                                <exclude>**/EncryptionMigrationIT.java</exclude>
+                                <exclude>**/EncryptionMigrationInitialEncryptionIT.java</exclude>
+                                <exclude>**/EncryptionMigrationDisableIT.java</exclude>
                             </excludes>
                         </configuration>
                     </plugin>

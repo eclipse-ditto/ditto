@@ -23,16 +23,17 @@ import org.apache.pekko.actor.Props;
 import org.eclipse.ditto.base.model.entity.id.EntityId;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.internal.utils.config.DittoConfigError;
-import org.eclipse.ditto.internal.utils.persistence.api.BackendFamily;
 import org.eclipse.ditto.internal.utils.persistence.api.DittoReadJournal;
 import org.eclipse.ditto.internal.utils.persistence.api.PersistenceBackendProvider;
 import org.eclipse.ditto.internal.utils.persistence.api.PersistenceOperationsCollaborators;
 import org.eclipse.ditto.internal.utils.persistence.api.PersistenceOperationsFactory;
 import org.eclipse.ditto.internal.utils.persistence.api.PersistencePluginConfig;
 import org.eclipse.ditto.internal.utils.persistence.api.SnapshotCodec;
+import org.eclipse.ditto.internal.utils.persistence.api.payload.PersistedPayloadStore;
 import org.eclipse.ditto.internal.utils.persistence.api.streaming.SnapshotStreamingActor;
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.DefaultMongoDbConfig;
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.MongoDbConfig;
+import org.eclipse.ditto.internal.utils.persistence.mongo.payload.MongoPersistedPayloadStore;
 import org.eclipse.ditto.internal.utils.persistence.mongo.streaming.MongoReadJournal;
 
 import com.typesafe.config.Config;
@@ -188,6 +189,21 @@ public final class MongoPersistenceBackendProvider implements PersistenceBackend
         return MongoSnapshotCodec.INSTANCE;
     }
 
+    /**
+     * {@inheritDoc}
+     * <p>
+     * Returns a fresh {@link MongoPersistedPayloadStore} over the {@code <entityType>_snaps},
+     * {@code <entityType>_journal} and {@code <entityType>_encryption_migration} collections, built around its own
+     * {@link MongoClientWrapper} from the {@code ditto.mongodb} block of the actor system's config — the same block a
+     * service's own {@code MongoDbConfig} is read from (see {@link #streaming}). One client per call, closed by the
+     * store's {@code close()}; nothing is cached or shared, so the laziness rule of the interface applies: call it from
+     * the using actor's {@code preStart}.
+     */
+    @Override
+    public PersistedPayloadStore payloadStore(final String entityType) {
+        return MongoPersistedPayloadStore.newInstance(entityType, actorSystem);
+    }
+
     private synchronized PersistenceOperationsFactory getOperationsFactory() {
         if (operationsFactory == null) {
             operationsFactory = MongoPersistenceOperationsFactory.of(actorSystem, this);
@@ -201,11 +217,6 @@ public final class MongoPersistenceBackendProvider implements PersistenceBackend
             readJournal = MongoReadJournal.newInstance(actorSystem);
         }
         return readJournal;
-    }
-
-    @Override
-    public BackendFamily backendFamily() {
-        return BackendFamily.MONGODB;
     }
 
     private java.util.Optional<String> getOverride(final String entityType, final String key) {

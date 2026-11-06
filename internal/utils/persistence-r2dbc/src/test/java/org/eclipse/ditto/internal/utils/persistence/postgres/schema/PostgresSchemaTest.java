@@ -28,8 +28,8 @@ import org.junit.Test;
  * ({@code IF NOT EXISTS}), the journal sequence column uses an IDENTITY generator, every persistence id column (on the
  * journal, the high-water-mark table, and the snapshot table) uses {@code COLLATE "C"} for byte-ordered comparisons,
  * the tags column is backed by a GIN index, the snapshot table
- * carries its full primary key and no secondary index, the per-entity high-water-mark table exists, and autovacuum is
- * tuned per table.
+ * carries its full primary key and no secondary index, the per-entity high-water-mark table exists, autovacuum is
+ * tuned per table, and the encryption-migration progress table (v5) is the last statement with its own contract.
  */
 public final class PostgresSchemaTest {
 
@@ -39,7 +39,7 @@ public final class PostgresSchemaTest {
 
     @Test
     public void descriptorDeclaresVersionAndMinCompatibleVersion() {
-        assertThat(PostgresSchema.descriptor().version()).isEqualTo(4);
+        assertThat(PostgresSchema.descriptor().version()).isEqualTo(5);
         assertThat(PostgresSchema.descriptor().minCompatibleVersion()).isEqualTo(2);
     }
 
@@ -62,6 +62,28 @@ public final class PostgresSchemaTest {
             assertThat(DDL).anyMatch(s -> s.contains(e + "_journal_seq ("));
             assertThat(DDL).anyMatch(s -> s.contains(e + "_snaps ("));
         }
+    }
+
+    @Test
+    public void encryptionMigrationProgressTableIsAppendedLastWithItsContract() {
+        // v5: appended after the five table sets, so a v4 database upgrades by one CREATE TABLE and nothing else
+        final List<String> own = PostgresSchema.ddlStatements();
+        assertThat(own.get(own.size() - 1)).isEqualTo("CREATE TABLE IF NOT EXISTS connections_encryption_migration ("
+                + "id TEXT PRIMARY KEY, progress JSONB NOT NULL, updated_at TIMESTAMPTZ NOT NULL)");
+        assertThat(own).filteredOn(s -> s.contains("_encryption_migration")).hasSize(1);
+        assertThat(PostgresSchema.ENCRYPTION_MIGRATION_TABLE).isEqualTo("connections_encryption_migration");
+
+        final var contracts = PostgresSchema.tableContracts();
+        final var contract = contracts.get(contracts.size() - 1);
+        assertThat(contract.tableName()).isEqualTo(PostgresSchema.ENCRYPTION_MIGRATION_TABLE);
+        assertThat(contract.primaryKeyDef()).isEqualTo("PRIMARY KEY (id)");
+        assertThat(contract.columns()).containsOnly(
+                java.util.Map.entry("id", "text"),
+                java.util.Map.entry("progress", "jsonb"),
+                java.util.Map.entry("updated_at", "timestamp with time zone"));
+        assertThat(contract.collatedColumns()).as("no pid column to collate").isEmpty();
+        // one row: no autovacuum storage parameters
+        assertThat(DDL).noneMatch(s -> s.startsWith("ALTER TABLE connections_encryption_migration"));
     }
 
     @Test
@@ -164,9 +186,10 @@ public final class PostgresSchemaTest {
     public void everyTableAndIndexOfTheDdlIsNamedForTheSameVersionFastPath() {
         // E_journal_seq has no named index: the fast path must name tables too, or a dropped one would never be
         // re-created by a same-version boot or a self-heal.
-        final List<String> expected = PostgresSchema.ENTITIES.stream()
-                .flatMap(entity -> Stream.of(entity + "_journal", entity + "_journal_tags_idx",
-                        entity + "_journal_seq", entity + "_snaps"))
+        final List<String> expected = Stream.concat(PostgresSchema.ENTITIES.stream()
+                        .flatMap(entity -> Stream.of(entity + "_journal", entity + "_journal_tags_idx",
+                                entity + "_journal_seq", entity + "_snaps")),
+                        Stream.of(PostgresSchema.ENCRYPTION_MIGRATION_TABLE))
                 .toList();
 
         assertThat(PostgresSchemaManager.namedRelations(PostgresSchema.descriptor())).hasValue(expected);

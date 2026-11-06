@@ -17,150 +17,110 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
-import org.bson.BsonDocument;
-import org.bson.Document;
 import org.eclipse.ditto.connectivity.model.ConnectionConfigurationInvalidException;
 import org.eclipse.ditto.connectivity.service.messaging.persistence.JsonFieldsEncryptor;
-import org.eclipse.ditto.internal.utils.persistence.mongo.DittoBsonJson;
+import org.eclipse.ditto.internal.utils.persistence.api.payload.PersistedJournalEntry;
+import org.eclipse.ditto.internal.utils.persistence.api.payload.PersistedSnapshot;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.mongodb.client.model.Filters;
-import com.mongodb.client.model.ReplaceOneModel;
-import com.mongodb.client.model.WriteModel;
-
 /**
- * Processes MongoDB documents during encryption migration.
+ * Re-encrypts persisted payloads during encryption migration.
  * <p>
- * Provides static methods for transforming snapshot and journal documents, including
- * re-encrypting fields with new keys, decrypting fields to plaintext, and initial encryption
- * of plaintext data.
+ * Provides static methods for transforming the JSON payloads of persisted snapshots and journal entries, including
+ * re-encrypting fields with new keys, decrypting fields to plaintext, and initial encryption of plaintext data. The
+ * entries come from, and go back to, the persistence backend's {@code PersistedPayloadStore}; this class only sees
+ * their JSON.
  */
-public final class DocumentProcessor {
+public final class PayloadReEncryptor {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(DocumentProcessor.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(PayloadReEncryptor.class);
 
-    // MongoDB field names for pekko-persistence-mongodb
-    private static final String SNAPSHOT_SERIALIZED_FIELD = "s2";
-    private static final String JOURNAL_EVENTS_FIELD = "events";
-    private static final String JOURNAL_PAYLOAD_FIELD = "p";
-    private static final String ID_FIELD = "_id";
-
-    private DocumentProcessor() {
+    private PayloadReEncryptor() {
         // Utility class - no instantiation
     }
 
     /**
-     * Processes a snapshot document during migration.
+     * Processes a persisted snapshot during migration.
      * <p>
-     * Reads the serialized snapshot (BSON field "s2"), decrypts/re-encrypts according to
-     * the migration context, and creates a write model for batch updates.
+     * Reads the snapshot payload, decrypts/re-encrypts it according to the migration context, and returns the snapshot
+     * with the new payload for the batch write.
      *
-     * @param doc the MongoDB snapshot document
+     * @param snapshot the persisted snapshot
      * @param context the migration context (keys, pointers, entity prefix)
-     * @param dryRun if true, skip writing changes to MongoDB
+     * @param dryRun if true, skip producing the rewritten snapshot
      * @return the processing result
      */
-    public static DocumentProcessingResult processSnapshotDocument(final Document doc,
+    public static PayloadProcessingResult<PersistedSnapshot> processSnapshot(final PersistedSnapshot snapshot,
             final MigrationContext context, final boolean dryRun) {
-        final String docId = doc.get(ID_FIELD).toString();
-        final String pid = doc.getString("pid");
+        final String cursor = snapshot.cursor();
+        final String pid = snapshot.pid();
         try {
-            final Document s2 = doc.get(SNAPSHOT_SERIALIZED_FIELD, Document.class);
-            if (s2 == null) {
-                return DocumentProcessingResult.skipped();
+            final JsonObject payload = snapshot.payload();
+
+            final Optional<JsonObject> reEncrypted = reEncryptFields(payload, context);
+
+            if (reEncrypted.isEmpty()) {
+                return PayloadProcessingResult.skipped();
             } else {
-                final BsonDocument bsonDoc = s2.toBsonDocument(Document.class,
-                        com.mongodb.MongoClientSettings.getDefaultCodecRegistry());
-                final JsonObject jsonObject = DittoBsonJson.getInstance().serialize(bsonDoc);
-
-                final Optional<JsonObject> reEncrypted = reEncryptFields(jsonObject, context);
-
-                if (reEncrypted.isEmpty()) {
-                    return DocumentProcessingResult.skipped();
-                } else {
-                    if (!dryRun) {
-                        final BsonDocument newBson = DittoBsonJson.getInstance().parse(reEncrypted.get());
-                        doc.put(SNAPSHOT_SERIALIZED_FIELD, Document.parse(newBson.toJson()));
-                        final WriteModel<Document> writeModel = new ReplaceOneModel<>(
-                                Filters.eq(ID_FIELD, doc.get(ID_FIELD)),
-                                doc);
-                        return DocumentProcessingResult.processed(writeModel);
-                    }
-                    return DocumentProcessingResult.processed(null);
+                if (!dryRun) {
+                    return PayloadProcessingResult.processed(snapshot.withPayload(reEncrypted.get()));
                 }
+                return PayloadProcessingResult.processed(null);
             }
         } catch (final Exception e) {
-            LOGGER.warn("Failed to process snapshot {} (pid={}): {}", docId, pid, e.getMessage());
-            return DocumentProcessingResult.failed();
+            LOGGER.warn("Failed to process snapshot {} (pid={}): {}", cursor, pid, e.getMessage());
+            return PayloadProcessingResult.failed();
         }
     }
 
     /**
-     * Processes a journal document during migration.
+     * Processes a persisted journal entry during migration.
      * <p>
-     * Iterates through the "events" array, decrypts/re-encrypts each event payload according to
-     * the migration context, and creates a write model for batch updates.
+     * Iterates through the entry's event payloads, decrypts/re-encrypts each according to the migration context, and
+     * returns the entry with the new payloads for the batch write.
      *
-     * @param doc the MongoDB journal document
+     * @param entry the persisted journal entry
      * @param context the migration context (keys, pointers, entity prefix)
-     * @param dryRun if true, skip writing changes to MongoDB
+     * @param dryRun if true, skip producing the rewritten entry
      * @return the processing result
      */
-    public static DocumentProcessingResult processJournalDocument(final Document doc,
+    public static PayloadProcessingResult<PersistedJournalEntry> processJournalEntry(final PersistedJournalEntry entry,
             final MigrationContext context, final boolean dryRun) {
-        final Object docId = doc.get(ID_FIELD);
-        final String docIdStr = docId.toString();
-        final String pid = doc.getString("pid");
+        final String cursor = entry.cursor();
+        final String pid = entry.pid();
         try {
-            final List<Document> events = doc.getList(JOURNAL_EVENTS_FIELD, Document.class);
-            if (events == null || events.isEmpty()) {
-                return DocumentProcessingResult.skipped();
+            final List<JsonObject> payloads = entry.eventPayloads();
+            if (payloads.isEmpty()) {
+                return PayloadProcessingResult.skipped();
             } else {
                 boolean anyChanged = false;
-                final List<Document> updatedEvents = new ArrayList<>(events.size());
+                final List<JsonObject> updatedPayloads = new ArrayList<>(payloads.size());
 
-                for (final Document event : events) {
-                    final Document payload = event.get(JOURNAL_PAYLOAD_FIELD, Document.class);
-                    if (payload == null) {
-                        updatedEvents.add(event);
-                    } else {
-                        final BsonDocument bsonPayload = payload.toBsonDocument(Document.class,
-                                com.mongodb.MongoClientSettings.getDefaultCodecRegistry());
-                        final JsonObject jsonPayload = DittoBsonJson.getInstance().serialize(bsonPayload);
+                for (final JsonObject payload : payloads) {
+                    final Optional<JsonObject> reEncrypted = reEncryptFields(payload, context);
 
-                        final Optional<JsonObject> reEncrypted = reEncryptFields(jsonPayload, context);
-
-                        if (reEncrypted.isPresent()) {
-                            if (!dryRun) {
-                                final BsonDocument newBson = DittoBsonJson.getInstance().parse(reEncrypted.get());
-                                event.put(JOURNAL_PAYLOAD_FIELD, Document.parse(newBson.toJson()));
-                            }
-                            anyChanged = true;
-                        }
-                        updatedEvents.add(event);
+                    if (reEncrypted.isPresent()) {
+                        anyChanged = true;
                     }
+                    updatedPayloads.add(reEncrypted.orElse(payload));
                 }
 
                 if (anyChanged) {
                     if (!dryRun) {
-                        doc.put(JOURNAL_EVENTS_FIELD, updatedEvents);
-                        final WriteModel<Document> writeModel = new ReplaceOneModel<>(
-                                Filters.eq(ID_FIELD, docId),
-                                doc);
-                        return DocumentProcessingResult.processed(writeModel);
+                        return PayloadProcessingResult.processed(entry.withEventPayloads(updatedPayloads));
                     }
-                    return DocumentProcessingResult.processed(null);
+                    return PayloadProcessingResult.processed(null);
                 } else {
-                    return DocumentProcessingResult.skipped();
+                    return PayloadProcessingResult.skipped();
                 }
             }
         } catch (final Exception e) {
-            LOGGER.warn("Failed to process journal document {} (pid={}): {}", docIdStr, pid, e.getMessage());
-            return DocumentProcessingResult.failed();
+            LOGGER.warn("Failed to process journal document {} (pid={}): {}", cursor, pid, e.getMessage());
+            return PayloadProcessingResult.failed();
         }
     }
 

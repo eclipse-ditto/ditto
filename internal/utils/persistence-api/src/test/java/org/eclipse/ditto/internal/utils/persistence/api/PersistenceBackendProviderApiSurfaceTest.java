@@ -20,7 +20,7 @@ import org.junit.Test;
 /**
  * Contract test for the additive, backend-neutral API surface of the pluggable-persistence provider: the new
  * {@link PersistenceBackendProvider} collaborator accessors ({@code pluginConfig()}, {@code operations(String)},
- * {@code healthCheck()}, {@code streaming(String)}, {@code snapshotCodec()}).
+ * {@code healthCheck()}, {@code streaming(String)}, {@code snapshotCodec()}, {@code payloadStore(String)}).
  * <p>
  * Every new accessor has a {@code default} body that throws {@link UnsupportedOperationException}. This is the
  * "backends compile incrementally" contract from the plan: a current {@link PersistenceBackendProvider} implementation
@@ -59,6 +59,12 @@ public final class PersistenceBackendProviderApiSurfaceTest {
     @Test
     public void snapshotCodecDefaultThrowsUnsupported() {
         assertThatThrownBy(provider::snapshotCodec)
+                .isInstanceOf(UnsupportedOperationException.class);
+    }
+
+    @Test
+    public void payloadStoreDefaultThrowsUnsupported() {
+        assertThatThrownBy(() -> provider.payloadStore("connection"))
                 .isInstanceOf(UnsupportedOperationException.class);
     }
 

@@ -762,7 +762,19 @@ public final class PostgresPersistenceOperations {
     // internal helpers
     // =====================================================================================================
 
-    private Mono<Void> inTransaction(final java.util.function.Function<Connection, Mono<Void>> work) {
+    /**
+     * Runs {@code work} on one pooled connection inside one transaction: {@code BEGIN} before, {@code COMMIT} when
+     * the returned publisher completes, {@code ROLLBACK} (best effort) when it fails or is cancelled, and the
+     * connection goes back to the pool on every path. A missing-table error ({@code 42P01}) with self-heal enabled
+     * recreates the schema and re-runs the WHOLE transaction once, on a fresh connection. The write paths of the
+     * journal and snapshot plugins and the namespace/entity purges run on it; so does the payload store's batch
+     * rewrite, which is why it is public.
+     *
+     * @param work the statements to run on the transaction's connection; its publisher's value is the result.
+     * @param <T> the result type.
+     * @return the result of {@code work}, completing when the transaction has committed.
+     */
+    public <T> Mono<T> inTransaction(final java.util.function.Function<Connection, Mono<T>> work) {
         return inTransactionOnce(work)
                 // On a missing-table error (42P01) with self-heal enabled, recreate the schema and re-run the WHOLE
                 // transaction ONCE. A 42P01 aborts the current transaction, so the retry must start a FRESH transaction
@@ -777,7 +789,7 @@ public final class PostgresPersistenceOperations {
                         : Mono.error(error));
     }
 
-    private Mono<Void> inTransactionOnce(final java.util.function.Function<Connection, Mono<Void>> work) {
+    private <T> Mono<T> inTransactionOnce(final java.util.function.Function<Connection, Mono<T>> work) {
         // 5-arg usingWhen so the cleanup is signal-specific: completion commits then closes, while BOTH the error
         // and the cancel arms roll back (best-effort) before closing. The 3-arg form closes on cancel WITHOUT rolling
         // back, returning an "idle in transaction" connection to the pool (r2mlh-m1). No inline onErrorResume rollback

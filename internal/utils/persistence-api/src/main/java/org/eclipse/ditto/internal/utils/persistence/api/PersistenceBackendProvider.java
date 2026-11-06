@@ -18,6 +18,7 @@ import org.apache.pekko.actor.ActorSystem;
 import org.apache.pekko.actor.Props;
 import org.eclipse.ditto.internal.utils.extension.DittoExtensionIds;
 import org.eclipse.ditto.internal.utils.extension.DittoExtensionPoint;
+import org.eclipse.ditto.internal.utils.persistence.api.payload.PersistedPayloadStore;
 
 import com.typesafe.config.Config;
 
@@ -33,11 +34,11 @@ import com.typesafe.config.Config;
  * <p>
  * Beyond plugin IDs and the read journal, the provider also exposes the backend's collaborator
  * accessors — {@link #pluginConfig()}, {@link #operations(String)}, {@link #healthCheck()},
- * {@link #streaming(String)} and {@link #snapshotCodec()} — including the factory for backend-specific
- * namespace persistence operations. These accessors default to throwing {@link UnsupportedOperationException}
- * so a backend can wire them incrementally; each backend overrides them as it is implemented. The two boot hooks,
- * {@link #bootstrapSchema()} and {@link #verifyPluginWiring(String)}, default to no-ops instead, so the bundled
- * MongoDB backend runs unchanged.
+ * {@link #streaming(String)}, {@link #snapshotCodec()} and {@link #payloadStore(String)} — including the factory for
+ * backend-specific namespace persistence operations. These accessors default to throwing
+ * {@link UnsupportedOperationException} so a backend can wire them incrementally; each backend overrides them as it is
+ * implemented. The two boot hooks, {@link #bootstrapSchema()} and {@link #verifyPluginWiring(String)}, default to
+ * no-ops instead, so the bundled MongoDB backend runs unchanged.
  *
  * @since 4.0.0
  */
@@ -59,20 +60,6 @@ public interface PersistenceBackendProvider extends DittoExtensionPoint {
      * @return the backend's read journal instance, shared across actors in this service
      */
     DittoReadJournal getReadJournal();
-
-    /**
-     * Returns the backend family this provider belongs to: {@link BackendFamily#MONGODB} for the bundled MongoDB
-     * provider, {@link BackendFamily#POSTGRESQL} for the PostgreSQL provider. Shared code that must behave differently
-     * per backend without naming a backend type branches on it (connectivity's encryption migration, for example).
-     * <p>
-     * The default throws {@link UnsupportedOperationException} so existing backends compile before they wire it.
-     *
-     * @return the backend family.
-     * @throws UnsupportedOperationException until the active backend overrides this accessor.
-     */
-    default BackendFamily backendFamily() {
-        throw new UnsupportedOperationException("backendFamily() is not implemented by this persistence backend yet");
-    }
 
     /**
      * Returns the active backend's richer plugin-ID surface: the same per-entity journal/snapshot IDs as
@@ -166,6 +153,29 @@ public interface PersistenceBackendProvider extends DittoExtensionPoint {
      */
     default SnapshotCodec snapshotCodec() {
         throw new UnsupportedOperationException("snapshotCodec() is not implemented by this persistence backend yet");
+    }
+
+    /**
+     * Returns a {@link PersistedPayloadStore} over the persisted payloads of the given entity type — its snapshots,
+     * its journal entries and a progress record — for a bulk rewrite such as connectivity's connection-secret
+     * encryption migration. The store renders the backend's stored payloads as JSON and writes rewritten JSON back, so
+     * the rewriting actor never names a backend type.
+     * <p>
+     * The default throws {@link UnsupportedOperationException} so existing backends compile before they wire it; the
+     * MongoDB and the PostgreSQL provider both implement it.
+     * <p>
+     * <strong>Laziness:</strong> the implementation may build a fresh backend client per call, so this MUST be invoked
+     * lazily from the using actor's {@code preStart} (not at {@code Props}-build time). The returned store belongs to
+     * that one actor instance, must not be cached or shared, and is {@link PersistedPayloadStore#close() closed} in
+     * the actor's {@code postStop}.
+     *
+     * @param entityType the entity type, e.g. {@code "connection"}
+     * @return the payload store for the entity type.
+     * @throws UnsupportedOperationException until the active backend overrides this accessor.
+     */
+    default PersistedPayloadStore payloadStore(final String entityType) {
+        throw new UnsupportedOperationException(
+                "payloadStore(entityType) is not implemented by this persistence backend yet");
     }
 
     /**

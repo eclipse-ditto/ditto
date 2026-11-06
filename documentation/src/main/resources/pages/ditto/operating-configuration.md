@@ -137,8 +137,6 @@ Find the full encryption configuration in [connectivity.conf](https://github.com
 
 Since Ditto 3.9.0, you can rotate encryption keys without downtime or data loss using a dual-key configuration
 and a migration command.
-The migration command needs the MongoDB persistence backend. On the PostgreSQL persistence backend the dual-key
-configuration works, but the migration commands are refused; see [Key rotation on PostgreSQL](#key-rotation-on-postgresql).
 
 ##### Dual-key configuration
 
@@ -157,7 +155,7 @@ ditto.connectivity.connection.encryption {
 - **Encryption:** Always uses `symmetrical-key` for encrypting new data
 - **Decryption:** Tries `symmetrical-key` first, falls back to `old-symmetrical-key` if decryption fails; with no
   `symmetrical-key`, `old-symmetrical-key` alone is used
-- **Migration:** Explicit DevOps command re-encrypts existing data from old key to new key (MongoDB persistence backend only)
+- **Migration:** Explicit DevOps command re-encrypts existing data from old key to new key
 
 **Migration Decision Logic:**
 
@@ -170,7 +168,7 @@ The migration command automatically detects the intended workflow based on confi
 
 ##### Key rotation workflow
 
-To rotate an encryption key on the MongoDB persistence backend (on PostgreSQL, see [Key rotation on PostgreSQL](#key-rotation-on-postgresql)):
+To rotate an encryption key:
 
 1. **Generate a new encryption key** using the methods described above
 
@@ -278,8 +276,7 @@ To rotate an encryption key on the MongoDB persistence backend (on PostgreSQL, s
   {% include note.html content="If the previous migration already completed, was never started, or only ran as a dry run (which does not persist progress), the resume command returns `200 OK` with `phase: \"already_completed\"` instead of starting a new migration. This makes resume safe to call idempotently." %}
 
 **Migration details:**
-- The migration processes both connection snapshots and journal events in MongoDB. It is available only on the MongoDB
-  persistence backend; on any other backend the commands are refused, see [Key rotation on PostgreSQL](#key-rotation-on-postgresql)
+- The migration processes both the stored connection snapshots and the stored journal events
 - Progress is persisted to allow resuming after abort or service restart
 - Migration runs in batches to avoid overwhelming the database
 - The batch size can be configured via `ditto.connectivity.connection.encryption.migration.batch-size`
@@ -289,9 +286,7 @@ To rotate an encryption key on the MongoDB persistence backend (on PostgreSQL, s
 
 ##### Disabling encryption
 
-To disable encryption while preserving access to already encrypted data (steps 1 and 2 apply on both persistence
-backends; steps 3 and 4 — the migration and the removal of the old key — apply on MongoDB only; on PostgreSQL see
-[Key rotation on PostgreSQL](#key-rotation-on-postgresql)):
+To disable encryption while preserving access to already encrypted data:
 
 1. **Update configuration** with encryption disabled but old key present:
    ```hocon
@@ -323,39 +318,6 @@ backends; steps 3 and 4 — the migration and the removal of the old key — app
    ```
 
 4. **After migration completes**, remove the old key from configuration and restart
-
-##### Key rotation on PostgreSQL
-
-The encryption migration commands (`migrateEncryption`, `migrateEncryptionStatus` and `migrateEncryptionAbort`) are
-available only on the MongoDB persistence backend. When the connectivity service runs on the
-[PostgreSQL persistence backend](installation-extending.html#postgresql-persistence-backend) with field encryption
-enabled or an `old-symmetrical-key` set, each of them is refused with an error (`"status": 501`,
-`"error": "signal.unsupported"`) and changes nothing, and the service logs a warning at startup if
-`old-symmetrical-key` is set. With encryption disabled and no `old-symmetrical-key`, nothing answers the commands and
-they time out, as they do on MongoDB with that configuration.
-
-Encryption, and decryption with the dual-key configuration, work on PostgreSQL as on MongoDB. What is missing is the
-migration that rewrites all stored connection data at once:
-
-- **Rotating a key:** do steps 1 to 3 of the [key rotation workflow](#key-rotation-workflow), then **keep
-  `old-symmetrical-key` configured**. Reads fall back to it, and new or changed connection data is encrypted with
-  the current key.
-- **Retiring the old key:** stored connection data moves to the current key only connection by connection: after a
-  connection has changed (for example, it was modified), a new snapshot of it is taken with the current key, and the
-  background cleanup later removes its older events and snapshots (after `history-retention-duration`, 30 days by
-  default). Remove `old-symmetrical-key` only when this has happened for every connection; a connection that still
-  holds data encrypted with a removed key fails to recover.
-- **Only one old key:** rotate again only once the current `old-symmetrical-key` could be retired as described above.
-  Data encrypted with a key that is no longer configured cannot be decrypted.
-- **Disabling encryption:** do steps 1 and 2 of [Disabling encryption](#disabling-encryption) as on MongoDB:
-  `encryption-enabled = false`, `symmetrical-key = ""` and the former key kept as `old-symmetrical-key`. Stored
-  connection data is still decrypted on read, and new or changed connection data is written in plaintext. No
-  migration decrypts the stored data: keep `old-symmetrical-key` until the stored data of every connection has been
-  rewritten, connection by connection, as described under *Retiring the old key*. Removing the key while encrypted
-  data remains leaves a connection recovered from a snapshot written while encryption was enabled with its
-  encrypted values (unlike a wrong key, no key at all does not fail the recovery; the values simply stay encrypted),
-  and saving it again unchanged does not decrypt them. Configuring the key again as `old-symmetrical-key` makes
-  reads decrypt once more; otherwise you would have to re-send its credentials in plaintext.
 
 ### Rate limiting
 

@@ -18,7 +18,9 @@
 --
 --   schema  ditto      -- owned by ditto_ddl; holds *_journal, *_journal_seq,
 --                         *_snaps (4 entity types + connectivity's remember-entities
---                         store) and schema_version.
+--                         store), connections_encryption_migration (the progress
+--                         row of the connection encryption migration) and
+--                         schema_version.
 --   ditto_ddl  -- DDL role: OWNS the schema and all tables; runs CREATE in the
 --                 bootstrap DDL transaction (PostgresSchemaManager, [H2]).
 --                 Used via the `ddl-credentials` block in the HOCON (§7)

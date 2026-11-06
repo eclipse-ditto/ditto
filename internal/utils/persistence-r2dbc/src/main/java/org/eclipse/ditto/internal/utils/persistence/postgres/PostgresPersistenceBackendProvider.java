@@ -22,13 +22,13 @@ import org.apache.pekko.actor.ActorSystem;
 import org.apache.pekko.actor.Props;
 import org.eclipse.ditto.base.model.entity.id.EntityId;
 import org.eclipse.ditto.internal.utils.config.DittoConfigError;
-import org.eclipse.ditto.internal.utils.persistence.api.BackendFamily;
 import org.eclipse.ditto.internal.utils.persistence.api.DittoReadJournal;
 import org.eclipse.ditto.internal.utils.persistence.api.PersistenceBackendProvider;
 import org.eclipse.ditto.internal.utils.persistence.api.PersistenceOperationsCollaborators;
 import org.eclipse.ditto.internal.utils.persistence.api.PersistenceOperationsFactory;
 import org.eclipse.ditto.internal.utils.persistence.api.PersistencePluginConfig;
 import org.eclipse.ditto.internal.utils.persistence.api.SnapshotCodec;
+import org.eclipse.ditto.internal.utils.persistence.api.payload.PersistedPayloadStore;
 import org.eclipse.ditto.internal.utils.persistence.api.streaming.NoOpCloseable;
 import org.eclipse.ditto.internal.utils.persistence.api.streaming.SnapshotStreamingActor;
 import org.eclipse.ditto.internal.utils.persistence.postgres.client.DittoPostgresClient;
@@ -41,6 +41,7 @@ import org.eclipse.ditto.internal.utils.persistence.postgres.client.config.Postg
 import org.eclipse.ditto.internal.utils.persistence.postgres.client.schema.PostgresSchemaManager;
 import org.eclipse.ditto.internal.utils.persistence.postgres.ops.PostgresPersistenceOperations;
 import org.eclipse.ditto.internal.utils.persistence.postgres.ops.PostgresTableNames;
+import org.eclipse.ditto.internal.utils.persistence.postgres.payload.PostgresPersistedPayloadStore;
 import org.eclipse.ditto.internal.utils.persistence.postgres.readjournal.PostgresReadJournal;
 import org.eclipse.ditto.internal.utils.persistence.postgres.schema.PostgresSchema;
 import org.slf4j.Logger;
@@ -157,11 +158,6 @@ public final class PostgresPersistenceBackendProvider implements PersistenceBack
             readJournal = PostgresReadJournal.of(operations);
         }
         return readJournal;
-    }
-
-    @Override
-    public BackendFamily backendFamily() {
-        return BackendFamily.POSTGRESQL;
     }
 
     /**
@@ -283,6 +279,22 @@ public final class PostgresPersistenceBackendProvider implements PersistenceBack
     @Override
     public SnapshotCodec snapshotCodec() {
         return PostgresSnapshotCodec.INSTANCE;
+    }
+
+    /**
+     * {@inheritDoc}
+     * <p>
+     * Returns a {@link PostgresPersistedPayloadStore} over the {@code <prefix>_snaps}, {@code <prefix>_journal} and
+     * {@code <prefix>_encryption_migration} tables of the entity type's table set ({@code connection} &rarr;
+     * {@code connections}, resolved as {@link #operations(String)} resolves it), reading and writing through the
+     * single shared pool owned by {@link PostgresClientExtension}. Like the operations bundle, the store resolves the
+     * shared client per call (cheap — the extension memoises the single pool) and its {@code close()} is a no-op:
+     * closing the shared pool when the migration actor stops would tear it out from under the journal and
+     * snapshot-store plugins that share it.
+     */
+    @Override
+    public PersistedPayloadStore payloadStore(final String entityType) {
+        return PostgresPersistedPayloadStore.newInstance(entityType, actorSystem);
     }
 
     private synchronized PersistenceOperationsFactory getOperationsFactory() {

@@ -46,6 +46,12 @@ import org.eclipse.ditto.internal.utils.persistence.postgres.client.schema.Table
  *     newest-per-pid pick, which no index on {@code lifecycle} could serve (v3 dropped that partial index).</li>
  * </ul>
  * <p>
+ * One more table, {@value #ENCRYPTION_MIGRATION_TABLE} (since v5), holds the progress record of connectivity's
+ * connection-secret encryption migration as a single JSONB row ({@code id TEXT PRIMARY KEY}, {@code progress JSONB},
+ * {@code updated_at TIMESTAMPTZ}): what MongoDB keeps in its {@code connection_encryption_migration} collection. Only
+ * the {@code connections} table set has one; it gets no autovacuum storage parameters (one row).
+ * </p>
+ * <p>
  * A single {@code schema_version(component, version, checksum, min_compatible_version)} table (owned by
  * {@code PostgresSchemaManager}) backs the refuse-to-boot guard. Each table additionally gets autovacuum storage
  * parameters ({@code ALTER TABLE … SET (…)}) issued in the same bootstrap transaction: every table is vacuumed after
@@ -77,15 +83,19 @@ public final class PostgresSchema {
      * a larger autovacuum cost budget.
      * v4: the fifth table set {@code connection_remember_*} appended (connectivity's remember-entities store, which
      * MongoDB keeps in its own {@code connection_remember_*} collections); the first 36 statements are v3's verbatim.
+     * v5: {@code connections_encryption_migration} appended — the progress record of connectivity's encryption
+     * migration, which MongoDB keeps in {@code connection_encryption_migration}; the first 45 statements are v4's
+     * verbatim.
      */
-    public static final int VERSION = 4;
+    public static final int VERSION = 5;
 
     /**
      * The oldest code schema version that can run against the {@link #VERSION} schema (stored as
      * {@code schema_version.min_compatible_version}); see {@code PostgresSchemaDescriptor#minCompatibleVersion()} for
      * the bump rules. v2 is the first version that declares one; it is 2 because v1 code predates the compatibility
      * check. v3 keeps 2: an index drop and changed storage parameters leave v2 code working against the v3 schema. v4
-     * keeps 2: appended tables leave v2 and v3 code working against the v4 schema (they never touch them).
+     * keeps 2: appended tables leave v2 and v3 code working against the v4 schema (they never touch them). v5 keeps 2:
+     * an appended table leaves v2–v4 code working against the v5 schema.
      */
     public static final int MIN_COMPATIBLE_VERSION = 2;
 
@@ -97,6 +107,14 @@ public final class PostgresSchema {
      * {@code /sharding/…} persistence ids, never Ditto events — no read journal, ping or cleanup binds to it.
      */
     public static final String REMEMBER_TABLE_SET = "connection_remember";
+
+    /**
+     * The progress table of connectivity's connection-secret encryption migration (since v5): one JSONB row
+     * ({@code id = 'current'}) per migration, read and written by the PostgreSQL {@code PersistedPayloadStore} of the
+     * {@code connections} table set. The only table outside the journal/journal_seq/snaps sets, and the only one
+     * without a {@code pid} column.
+     */
+    public static final String ENCRYPTION_MIGRATION_TABLE = "connections_encryption_migration";
 
     /**
      * The prefixes that get a full journal/journal_seq/snaps table set: {@link #ENTITY_TABLE_SETS}, then (since v4)
@@ -160,6 +178,11 @@ public final class PostgresSchema {
             "lifecycle", "text",
             "written_at", "timestamp with time zone");
 
+    private static final Map<String, String> ENCRYPTION_MIGRATION_COLUMNS = orderedColumns(
+            "id", "text",
+            "progress", "jsonb",
+            "updated_at", "timestamp with time zone");
+
     private PostgresSchema() {
         throw new AssertionError();
     }
@@ -218,6 +241,8 @@ public final class PostgresSchema {
             statements.add(autovacuum(entity + "_journal_seq", JOURNAL_SEQ_RELOPTIONS));
             statements.add(autovacuum(entity + "_snaps", PRUNED_TABLE_RELOPTIONS));
         }
+        // v5: appended AFTER the five table sets, so the first 45 statements stay v4's verbatim
+        statements.add(createEncryptionMigrationTable());
         return List.copyOf(statements);
     }
 
@@ -235,6 +260,9 @@ public final class PostgresSchema {
             contracts.add(new TableContract(entity + "_snaps", "PRIMARY KEY (pid, sn, written_at)", SNAPS_COLUMNS,
                     COLLATED_PID_COLUMNS));
         }
+        // v5: no pid column, so no collated column to verify
+        contracts.add(new TableContract(ENCRYPTION_MIGRATION_TABLE, "PRIMARY KEY (id)", ENCRYPTION_MIGRATION_COLUMNS,
+                Set.of()));
         return List.copyOf(contracts);
     }
 
@@ -287,6 +315,15 @@ public final class PostgresSchema {
         // application after the newest-per-pid pick ("exclude the pid if its newest snapshot is DELETED"), which no
         // index on lifecycle can serve, and cleanup reads with includeDeleted = true.
         return "DROP INDEX IF EXISTS " + entity + "_snaps_lifecycle_idx";
+    }
+
+    private static String createEncryptionMigrationTable() {
+        // v5: the single progress row of connectivity's encryption migration; one row, so no autovacuum reloptions
+        return "CREATE TABLE IF NOT EXISTS " + ENCRYPTION_MIGRATION_TABLE + " ("
+                + "id TEXT PRIMARY KEY, "
+                + "progress JSONB NOT NULL, "
+                + "updated_at TIMESTAMPTZ NOT NULL"
+                + ")";
     }
 
     private static String autovacuum(final String table, final String reloptions) {

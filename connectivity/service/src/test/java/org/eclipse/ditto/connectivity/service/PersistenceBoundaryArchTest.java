@@ -44,12 +44,13 @@ import com.tngtech.archunit.core.importer.ImportOption;
  * per-service Mongo event-adapter base and the Mongo connection config the service needs to actually run on
  * MongoDB, which is the bundled default backend) - symmetric to the Postgres event adapters, not a switchable leak.
  * <p>
- * The only whitelist is the encryption-migration package {@code ...connectivity.service.messaging.persistence.migration..}.
- * The migration re-encrypts connection secrets by reading and rewriting the MongoDB journal and snapshot collections
- * with the raw Mongo driver and BSON, so it is MongoDB-only by design. {@link ConnectivityRootActor} starts it only when
- * the active persistence backend is MongoDB; on any other backend it starts a responder that refuses the migration
- * commands (outside this package, so Rule 1 covers it) and builds no MongoDB client. The migration actor builds and
- * closes its own {@code MongoClientWrapper}, which no other connectivity class may use (Rule 1b).
+ * There is no whitelist. The connection encryption migration ({@code EncryptionMigrationActor}), which used to read and
+ * rewrite the MongoDB journal and snapshot collections with the raw driver and BSON, now reaches the persisted payloads
+ * through the provider's backend-neutral {@code PersistedPayloadStore}; the MongoDB statements live in the Mongo zone
+ * ({@code ...internal.utils.persistence.mongo.payload}), and the store owns the Mongo client the migration used to
+ * build itself. No connectivity MAIN class may therefore depend on a switchable Mongo artifact (Rule 1) or build the
+ * Mongo-zone client (Rule 1b).
+ * <p>
  * Driven via ArchUnit's core API from JUnit 4 {@code @Test} methods so the module keeps running on its existing
  * JUnit 4 / surefire setup; the imported classes are scoped to MAIN code via
  * {@link com.tngtech.archunit.core.importer.ImportOption.DoNotIncludeTests}.
@@ -57,10 +58,6 @@ import com.tngtech.archunit.core.importer.ImportOption;
  * @since 4.0.0
  */
 public final class PersistenceBoundaryArchTest {
-
-    /** The encryption-migration package - intentionally retains the raw Mongo driver (out of scope). */
-    private static final String MIGRATION_PKG =
-            "org.eclipse.ditto.connectivity.service.messaging.persistence.migration..";
 
     /**
      * The SWITCHABLE Mongo artifacts the pluggable-persistence refactor routed through the provider. Service code
@@ -101,7 +98,7 @@ public final class PersistenceBoundaryArchTest {
 
     /**
      * The Mongo-zone client. It is not a switchable artifact (Rule 1 does not match it), but building one opens a
-     * MongoDB connection pool, which only the MongoDB-only encryption migration may do.
+     * MongoDB connection pool, which only the Mongo zone itself does - behind the provider's accessors.
      */
     private static final DescribedPredicate<JavaClass> IS_MONGO_CLIENT =
             new DescribedPredicate<>("be the Mongo-zone client (MongoClientWrapper or DittoMongoClient)") {
@@ -122,20 +119,17 @@ public final class PersistenceBoundaryArchTest {
     }
 
     /**
-     * Rule 1: no connectivity-service MAIN class may depend on a SWITCHABLE Mongo artifact, except the whitelisted
-     * encryption-migration package (MongoDB-only by design: it uses the Mongo driver and BSON directly, and
-     * {@link ConnectivityRootActor} refuses it on other backends).
+     * Rule 1: no connectivity-service MAIN class may depend on a SWITCHABLE Mongo artifact. The encryption migration
+     * included: it rewrites the persisted payloads through the provider's {@code PersistedPayloadStore}.
      */
     @Test
-    public void connectivityMustNotDependOnSwitchableMongoOutsideWhitelist() {
+    public void connectivityMustNotDependOnSwitchableMongo() {
         noClasses()
-                .that().resideOutsideOfPackage(MIGRATION_PKG)
                 .should().dependOnClassesThat(IS_SWITCHABLE_MONGO)
-                .as("connectivity-service MAIN code (outside the encryption-migration whitelist) "
-                        + "must not depend on any switchable Mongo artifact "
+                .as("connectivity-service MAIN code must not depend on any switchable Mongo artifact "
                         + "(com.mongodb.., org.bson.., pekko.contrib.persistence.mongodb.., MongoReadJournal)")
                 .because("the switchable Mongo touchpoints are routed through the backend-neutral persistence-API; "
-                        + "only the out-of-scope encryption-migration may retain the raw Mongo driver")
+                        + "the encryption migration reaches MongoDB through the provider's PersistedPayloadStore")
                 .check(connectivityServiceMainClasses);
     }
 
@@ -154,19 +148,18 @@ public final class PersistenceBoundaryArchTest {
     }
 
     /**
-     * Rule 1b: only the encryption-migration package may use the Mongo-zone client. The migration actor builds its
-     * client when it starts and closes it when it stops; {@link ConnectivityRootActor} builds none, so no MongoDB
-     * connection pool is opened on a non-MongoDB backend.
+     * Rule 1b: no connectivity-service MAIN class may use the Mongo-zone client. The MongoDB payload store, which the
+     * provider hands to the encryption migration, builds and closes its own client; {@link ConnectivityRootActor} and
+     * the migration actor build none, so no connectivity code opens a MongoDB connection pool on its own.
      */
     @Test
-    public void onlyTheEncryptionMigrationUsesTheMongoClient() {
+    public void connectivityMustNotUseTheMongoClient() {
         noClasses()
-                .that().resideOutsideOfPackage(MIGRATION_PKG)
                 .should().dependOnClassesThat(IS_MONGO_CLIENT)
-                .as("connectivity-service MAIN code outside the encryption-migration package must not use the "
-                        + "Mongo-zone client (MongoClientWrapper, DittoMongoClient)")
-                .because("the MongoDB-only encryption migration builds and closes its own client; no other "
-                        + "connectivity code may open a MongoDB connection pool")
+                .as("connectivity-service MAIN code must not use the Mongo-zone client "
+                        + "(MongoClientWrapper, DittoMongoClient)")
+                .because("the backend's provider builds and owns the clients behind its accessors; no connectivity "
+                        + "code may open a MongoDB connection pool")
                 .check(connectivityServiceMainClasses);
     }
 

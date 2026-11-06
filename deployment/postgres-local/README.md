@@ -127,7 +127,7 @@ Quick schema sanity check once the services are up (the persistence schema is au
 ```bash
 docker exec ditto-postgres-local psql -U ditto -d ditto -c '\dt'
 #   -> things_journal, things_journal_seq, things_snaps, policies_*, connections_*, wot_*, connection_remember_*,
-#      schema_version
+#      connections_encryption_migration, schema_version
 ```
 
 ```bash

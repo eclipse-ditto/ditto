@@ -12,8 +12,6 @@
  */
 package org.eclipse.ditto.connectivity.service;
 
-import java.util.Optional;
-
 import jakarta.jms.JMSRuntimeException;
 import javax.naming.NamingException;
 
@@ -38,7 +36,6 @@ import org.eclipse.ditto.connectivity.service.messaging.ConnectionIdsRetrievalAc
 import org.eclipse.ditto.connectivity.service.messaging.persistence.ConnectionPersistenceOperationsActor;
 import org.eclipse.ditto.connectivity.service.messaging.persistence.ConnectionPersistenceStreamingActorCreator;
 import org.eclipse.ditto.connectivity.service.messaging.persistence.ConnectionSupervisorActor;
-import org.eclipse.ditto.connectivity.service.messaging.persistence.EncryptionMigrationUnsupportedActor;
 import org.eclipse.ditto.connectivity.service.messaging.persistence.migration.EncryptionMigrationActor;
 import org.eclipse.ditto.edge.service.dispatching.EdgeCommandForwarderActor;
 import org.eclipse.ditto.edge.service.dispatching.ShardRegions;
@@ -53,7 +50,6 @@ import org.eclipse.ditto.internal.utils.health.config.HealthCheckConfig;
 import org.eclipse.ditto.internal.utils.health.config.PersistenceConfig;
 import org.eclipse.ditto.internal.utils.namespaces.BlockedNamespaces;
 import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
-import org.eclipse.ditto.internal.utils.persistence.api.BackendFamily;
 import org.eclipse.ditto.internal.utils.persistence.api.DittoReadJournal;
 import org.eclipse.ditto.internal.utils.persistence.api.PersistenceBackendProvider;
 import org.eclipse.ditto.internal.utils.persistence.api.PersistencePluginConfig;
@@ -138,10 +134,10 @@ public final class ConnectivityRootActor extends DittoRootActor {
                 ConnectionPersistenceOperationsActor.props(pubSubMediator, backendProvider,
                         connectivityConfig.getPersistenceOperationsConfig()));
 
-        // Encryption migration (DevOps commands at /user/connectivityRoot/encryptionMigration) rewrites the MongoDB
-        // connection journal and snapshots, so it is MongoDB-only: on other backends a local responder refuses its
-        // commands and no MongoDB client is built.
-        startEncryptionMigration(actorSystem, connectivityConfig, backendProvider.backendFamily());
+        // Encryption migration (DevOps commands at /user/connectivityRoot/encryptionMigration): a cluster singleton
+        // that rewrites the connection journal and snapshots through the provider's PersistedPayloadStore, on every
+        // backend, whenever encryption is enabled or an old key is set.
+        optionallyStartEncryptionMigrationSingleton(actorSystem, connectivityConfig, backendProvider);
 
         RootChildActorStarter.get(actorSystem, ScopedConfig.dittoExtension(config)).execute(getContext());
 
@@ -177,37 +173,35 @@ public final class ConnectivityRootActor extends DittoRootActor {
         }).build().orElse(super.getSupervisionDecider());
     }
 
-    private void startEncryptionMigration(final ActorSystem actorSystem, final ConnectivityConfig connectivityConfig,
-            final BackendFamily backendFamily) {
+    private void optionallyStartEncryptionMigrationSingleton(final ActorSystem actorSystem,
+            final ConnectivityConfig connectivityConfig, final PersistenceBackendProvider backendProvider) {
 
-        final var encryptionConfig = connectivityConfig.getConnectionConfig().getFieldsEncryptionConfig();
-        switch (encryptionMigrationStart(backendFamily, encryptionConfig)) {
-            case MONGODB_SINGLETON -> startEncryptionMigrationSingleton(actorSystem, connectivityConfig);
-            case UNSUPPORTED_RESPONDER -> {
-                encryptionMigrationOldKeyWarning(backendFamily, encryptionConfig).ifPresent(log::warning);
-                startChildActor(EncryptionMigrationActor.ACTOR_NAME,
-                        EncryptionMigrationUnsupportedActor.props(backendFamily));
-            }
-            case NONE -> {
-                // encryption is off and no old key is set: nothing to migrate
-            }
+        if (encryptionMigrationNeeded(connectivityConfig.getConnectionConfig().getFieldsEncryptionConfig())) {
+            // The migration actor obtains its payload store (and the backend client the store owns) from the provider
+            // when it starts (only on the node that runs the singleton) and closes it when it stops; the root actor
+            // builds none.
+            final String managerName = EncryptionMigrationActor.ACTOR_NAME + "Singleton";
+            final ActorRef singletonManager = startClusterSingletonActor(
+                    EncryptionMigrationActor.props(connectivityConfig, backendProvider), managerName);
+
+            final ClusterSingletonProxySettings proxySettings =
+                    ClusterSingletonProxySettings.create(actorSystem).withRole(CLUSTER_ROLE);
+            final Props proxyProps = ClusterSingletonProxy.props(
+                    singletonManager.path().toStringWithoutAddress(), proxySettings);
+            getContext().actorOf(proxyProps, EncryptionMigrationActor.ACTOR_NAME);
         }
     }
 
-    private void startEncryptionMigrationSingleton(final ActorSystem actorSystem,
-            final ConnectivityConfig connectivityConfig) {
-
-        // The migration actor builds its own MongoDB client when it starts (only on the node that runs the
-        // singleton) and closes it when it stops; the root actor builds none.
-        final String managerName = EncryptionMigrationActor.ACTOR_NAME + "Singleton";
-        final ActorRef singletonManager = startClusterSingletonActor(
-                EncryptionMigrationActor.props(connectivityConfig), managerName);
-
-        final ClusterSingletonProxySettings proxySettings =
-                ClusterSingletonProxySettings.create(actorSystem).withRole(CLUSTER_ROLE);
-        final Props proxyProps = ClusterSingletonProxy.props(
-                singletonManager.path().toStringWithoutAddress(), proxySettings);
-        getContext().actorOf(proxyProps, EncryptionMigrationActor.ACTOR_NAME);
+    /**
+     * Whether the connection encryption migration singleton (and its proxy) is started: whenever encryption is enabled
+     * or an old key is set, since then an initial encryption, a key rotation or the disabling of encryption may be
+     * triggered — on every persistence backend.
+     *
+     * @param encryptionConfig the connection fields encryption config.
+     * @return {@code true} if the migration singleton is to be started.
+     */
+    static boolean encryptionMigrationNeeded(final FieldsEncryptionConfig encryptionConfig) {
+        return encryptionConfig.isEncryptionEnabled() || encryptionConfig.getOldSymmetricalKey().isPresent();
     }
 
     private ActorRef startClusterSingletonActor(final Props props, final String name) {
@@ -273,62 +267,6 @@ public final class ConnectivityRootActor extends DittoRootActor {
                 .withRole(ConnectivityMessagingConstants.CLUSTER_ROLE)
                 .withJournalPluginId(rememberStorePluginIds.journalPluginId())
                 .withSnapshotPluginId(rememberStorePluginIds.snapshotPluginId());
-    }
-
-    /**
-     * What the root actor starts for the connection encryption migration, whose DevOps commands are addressed to
-     * {@code /user/connectivityRoot/encryptionMigration}.
-     */
-    enum EncryptionMigrationStart {
-
-        /** Encryption is off and no old key is set: nothing is started (the commands time out, as before). */
-        NONE,
-
-        /** MongoDB backend: the migration cluster singleton (which owns its MongoDB client) and its proxy. */
-        MONGODB_SINGLETON,
-
-        /** Any other backend: a local responder that refuses the commands; no MongoDB client is built. */
-        UNSUPPORTED_RESPONDER
-    }
-
-    /**
-     * Decides what to start for the connection encryption migration. The migration runs only on MongoDB; it is
-     * needed when encryption is enabled or an old key is set.
-     *
-     * @param backendFamily the active persistence backend.
-     * @param encryptionConfig the connection fields encryption config.
-     * @return what to start.
-     */
-    static EncryptionMigrationStart encryptionMigrationStart(final BackendFamily backendFamily,
-            final FieldsEncryptionConfig encryptionConfig) {
-
-        if (!encryptionConfig.isEncryptionEnabled() && encryptionConfig.getOldSymmetricalKey().isEmpty()) {
-            return EncryptionMigrationStart.NONE;
-        }
-        return backendFamily == BackendFamily.MONGODB
-                ? EncryptionMigrationStart.MONGODB_SINGLETON
-                : EncryptionMigrationStart.UNSUPPORTED_RESPONDER;
-    }
-
-    /**
-     * Returns the boot warning for an old key that the migration cannot retire: present only on a non-MongoDB
-     * backend with {@code old-symmetrical-key} set.
-     *
-     * @param backendFamily the active persistence backend.
-     * @param encryptionConfig the connection fields encryption config.
-     * @return the warning, or empty.
-     */
-    static Optional<String> encryptionMigrationOldKeyWarning(final BackendFamily backendFamily,
-            final FieldsEncryptionConfig encryptionConfig) {
-
-        if (backendFamily == BackendFamily.MONGODB || encryptionConfig.getOldSymmetricalKey().isEmpty()) {
-            return Optional.empty();
-        }
-        final String backend = EncryptionMigrationUnsupportedActor.backendName(backendFamily);
-        return Optional.of("Connection encryption: 'old-symmetrical-key' is set, but encryption migration is " +
-                "only supported on the MongoDB persistence backend, not on the active " + backend + " backend. " +
-                "Keep 'old-symmetrical-key' configured: connection data encrypted with it is not re-encrypted in " +
-                "bulk and still needs it to be read.");
     }
 
 }

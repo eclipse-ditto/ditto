@@ -16,18 +16,17 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.Map;
 
-import org.eclipse.ditto.connectivity.service.ConnectivityRootActor.EncryptionMigrationStart;
 import org.eclipse.ditto.connectivity.service.config.DefaultFieldsEncryptionConfig;
 import org.eclipse.ditto.connectivity.service.config.FieldsEncryptionConfig;
-import org.eclipse.ditto.internal.utils.persistence.api.BackendFamily;
 import org.junit.Test;
 
 import com.typesafe.config.ConfigFactory;
 
 /**
- * Tests what {@link ConnectivityRootActor} starts for the connection encryption migration: the MongoDB migration
- * singleton only on MongoDB, the refusing responder (and no MongoDB client) on any other backend, nothing when
- * encryption is off and no old key is set; and when it warns at boot.
+ * Tests the condition on which {@link ConnectivityRootActor} starts the connection encryption migration singleton and
+ * its proxy: whenever encryption is enabled or an old key is set (an initial encryption, a key rotation or the
+ * disabling of encryption may be triggered), on every persistence backend; nothing when encryption is off and no old
+ * key is set.
  */
 public final class ConnectivityRootActorEncryptionMigrationTest {
 
@@ -35,65 +34,28 @@ public final class ConnectivityRootActorEncryptionMigrationTest {
     private static final String OTHER_KEY = "anotherBase64Key256bitsLongForAESGCM32Bytes=";
 
     @Test
-    public void mongoDbWithEncryptionEnabledStartsTheMigrationSingleton() {
-        assertThat(ConnectivityRootActor.encryptionMigrationStart(BackendFamily.MONGODB, encryption(true, KEY, "")))
-                .isEqualTo(EncryptionMigrationStart.MONGODB_SINGLETON);
+    public void encryptionEnabledWithoutAnOldKeyNeedsTheMigration() {
+        // initial encryption of plaintext secrets
+        assertThat(ConnectivityRootActor.encryptionMigrationNeeded(encryption(true, KEY, ""))).isTrue();
     }
 
     @Test
-    public void mongoDbWithOnlyAnOldKeyStartsTheMigrationSingleton() {
-        // the documented "disable encryption" set-up
-        assertThat(ConnectivityRootActor.encryptionMigrationStart(BackendFamily.MONGODB, encryption(false, "", KEY)))
-                .isEqualTo(EncryptionMigrationStart.MONGODB_SINGLETON);
+    public void encryptionEnabledWithAnOldKeyNeedsTheMigration() {
+        // key rotation
+        assertThat(ConnectivityRootActor.encryptionMigrationNeeded(encryption(true, OTHER_KEY, KEY))).isTrue();
     }
 
     @Test
-    public void postgreSqlWithEncryptionEnabledStartsTheRefusingResponder() {
-        assertThat(ConnectivityRootActor.encryptionMigrationStart(BackendFamily.POSTGRESQL,
-                encryption(true, OTHER_KEY, KEY)))
-                .isEqualTo(EncryptionMigrationStart.UNSUPPORTED_RESPONDER);
-        assertThat(ConnectivityRootActor.encryptionMigrationStart(BackendFamily.POSTGRESQL,
-                encryption(true, KEY, "")))
-                .isEqualTo(EncryptionMigrationStart.UNSUPPORTED_RESPONDER);
+    public void encryptionDisabledWithAnOldKeyNeedsTheMigration() {
+        // the documented "disable encryption" set-up: decrypt with the old key, write plaintext
+        assertThat(ConnectivityRootActor.encryptionMigrationNeeded(encryption(false, "", KEY))).isTrue();
     }
 
     @Test
-    public void postgreSqlWithOnlyAnOldKeyStartsTheRefusingResponder() {
-        assertThat(ConnectivityRootActor.encryptionMigrationStart(BackendFamily.POSTGRESQL,
-                encryption(false, "", KEY)))
-                .isEqualTo(EncryptionMigrationStart.UNSUPPORTED_RESPONDER);
-    }
-
-    @Test
-    public void withoutEncryptionAndOldKeyNothingStartsOnAnyBackend() {
-        for (final BackendFamily backendFamily : BackendFamily.values()) {
-            assertThat(ConnectivityRootActor.encryptionMigrationStart(backendFamily, encryption(false, "", "")))
-                    .as(backendFamily.name())
-                    .isEqualTo(EncryptionMigrationStart.NONE);
-        }
-    }
-
-    @Test
-    public void postgreSqlWithAnOldKeyWarnsAtBoot() {
-        assertThat(ConnectivityRootActor.encryptionMigrationOldKeyWarning(BackendFamily.POSTGRESQL,
-                encryption(true, OTHER_KEY, KEY)))
-                .contains("Connection encryption: 'old-symmetrical-key' is set, but encryption migration is only " +
-                        "supported on the MongoDB persistence backend, not on the active PostgreSQL backend. Keep " +
-                        "'old-symmetrical-key' configured: connection data encrypted with it is not re-encrypted " +
-                        "in bulk and still needs it to be read.");
-        assertThat(ConnectivityRootActor.encryptionMigrationOldKeyWarning(BackendFamily.POSTGRESQL,
-                encryption(false, "", KEY)))
-                .isPresent();
-    }
-
-    @Test
-    public void noBootWarningWithoutAnOldKeyOrOnMongoDb() {
-        assertThat(ConnectivityRootActor.encryptionMigrationOldKeyWarning(BackendFamily.POSTGRESQL,
-                encryption(true, KEY, "")))
-                .isEmpty();
-        assertThat(ConnectivityRootActor.encryptionMigrationOldKeyWarning(BackendFamily.MONGODB,
-                encryption(true, OTHER_KEY, KEY)))
-                .isEmpty();
+    public void encryptionDisabledWithoutAnOldKeyNeedsNoMigration() {
+        assertThat(ConnectivityRootActor.encryptionMigrationNeeded(encryption(false, "", ""))).isFalse();
+        // a current key alone, with encryption off, is not a migration set-up either
+        assertThat(ConnectivityRootActor.encryptionMigrationNeeded(encryption(false, KEY, ""))).isFalse();
     }
 
     private static FieldsEncryptionConfig encryption(final boolean enabled, final String key, final String oldKey) {

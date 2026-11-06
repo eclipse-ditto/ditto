@@ -20,19 +20,27 @@ import org.apache.pekko.actor.ActorSystem;
 import org.apache.pekko.testkit.javadsl.TestKit;
 import org.eclipse.ditto.internal.utils.config.DittoConfigError;
 import org.eclipse.ditto.internal.utils.persistence.api.DittoReadJournal;
+import org.eclipse.ditto.internal.utils.persistence.api.payload.PersistedPayloadStore;
+import org.eclipse.ditto.internal.utils.persistence.postgres.client.PostgresClientExtension;
+import org.eclipse.ditto.internal.utils.persistence.postgres.payload.PostgresPersistedPayloadStore;
 import org.eclipse.ditto.internal.utils.persistence.postgres.readjournal.PostgresReadJournal;
+import org.eclipse.ditto.internal.utils.persistence.postgres.schema.PostgresSchema;
 import org.junit.After;
 import org.junit.Test;
 
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 
+import io.r2dbc.pool.ConnectionPool;
+
 /**
  * Unit test for {@link PostgresPersistenceBackendProvider}:
  * <ul>
  *     <li>explicit {@code plugin-ids.<entity>.{journal|snapshot}} resolution (NO pluralize heuristic),</li>
  *     <li>a missing mapping fails clearly with a {@link DittoConfigError},</li>
- *     <li>{@code getReadJournal()} is {@code synchronized}-lazy and returns the same instance on repeated calls.</li>
+ *     <li>{@code getReadJournal()} is {@code synchronized}-lazy and returns the same instance on repeated calls,</li>
+ *     <li>{@code payloadStore(entityType)} binds to the entity type's table set on the shared pool, which its
+ *     {@code close()} leaves open.</li>
  * </ul>
  * All assertions run offline — building the read journal opens an R2DBC pool but never connects (no live PostgreSQL),
  * so {@code ssl.mode=disable} keeps the boot guard quiet.
@@ -301,6 +309,40 @@ public final class PostgresPersistenceBackendProviderTest {
                 .isThrownBy(() -> provider.streaming("wot-validation-config", id -> null, entityId -> null))
                 .withMessageContaining("wot")
                 .withMessageContaining("things");
+    }
+
+    @Test
+    public void payloadStoreForConnectionBindsToTheConnectionsTables() {
+        final PostgresPersistenceBackendProvider provider = providerWith(FULL_PLUGIN_IDS);
+
+        final PostgresPersistedPayloadStore store =
+                (PostgresPersistedPayloadStore) provider.payloadStore("connection");
+
+        assertThat(store.tables().snapsTable()).isEqualTo("connections_snaps");
+        assertThat(store.tables().journalTable()).isEqualTo("connections_journal");
+        assertThat(store.progressTable()).isEqualTo(PostgresSchema.ENCRYPTION_MIGRATION_TABLE);
+    }
+
+    @Test
+    public void payloadStoreForAnUnknownEntityTypeFailsClearly() {
+        final PostgresPersistenceBackendProvider provider = providerWith(FULL_PLUGIN_IDS);
+
+        assertThatExceptionOfType(IllegalArgumentException.class)
+                .isThrownBy(() -> provider.payloadStore("gateway"))
+                .withMessageContaining("gateway");
+    }
+
+    @Test
+    public void payloadStoreCloseLeavesTheSharedPoolOpen() {
+        final PostgresPersistenceBackendProvider provider = providerWith(FULL_PLUGIN_IDS);
+        final PersistedPayloadStore store = provider.payloadStore("connection");
+        final ConnectionPool sharedPool = PostgresClientExtension.get(system).getClient().getConnectionPool();
+
+        store.close();
+
+        // the store reads through the single shared pool, which only the extension disposes (coordinated shutdown)
+        assertThat(sharedPool.isDisposed()).isFalse();
+        assertThatCode(() -> provider.payloadStore("connection")).doesNotThrowAnyException();
     }
 
     @Test

@@ -15,31 +15,21 @@ package org.eclipse.ditto.connectivity.service.messaging.persistence.migration;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import javax.annotation.Nullable;
-
 import org.apache.pekko.NotUsed;
 import org.apache.pekko.stream.javadsl.Source;
-import org.bson.Document;
-import org.bson.conversions.Bson;
-import org.bson.types.ObjectId;
-
-import com.mongodb.client.model.Filters;
-import com.mongodb.client.model.Sorts;
-import com.mongodb.reactivestreams.client.MongoCollection;
+import org.eclipse.ditto.connectivity.service.messaging.persistence.JsonFieldsEncryptor;
+import org.eclipse.ditto.internal.utils.persistence.api.payload.PersistedJournalEntry;
+import org.eclipse.ditto.internal.utils.persistence.api.payload.PersistedPayloadStore;
+import org.eclipse.ditto.internal.utils.persistence.api.payload.PersistedSnapshot;
 
 /**
  * Factory for building Pekko Streams sources for encryption migration.
  * <p>
- * Provides static methods to construct MongoDB query streams with appropriate filters,
- * sorting, throttling, and resume capabilities for snapshot and journal migrations.
+ * Provides static methods that wire the persistence backend's {@link PersistedPayloadStore} streams with the
+ * encryptable-field filter, resume cursor and throttling for snapshot and journal migrations. The backend decides how
+ * the filter and the cursor are evaluated; this class only names the fields the payloads must hold.
  */
 public final class MigrationStreamFactory {
-
-    // MongoDB field names for pekko-persistence-mongodb
-    private static final String SNAPSHOT_SERIALIZED_FIELD = "s2";
-    private static final String JOURNAL_EVENTS_FIELD = "events";
-    private static final String JOURNAL_PAYLOAD_FIELD = "p";
-    private static final String ID_FIELD = "_id";
 
     // Entity type prefix used for journal event encryption
     private static final String JOURNAL_ENTITY_TYPE_PREFIX = "connection";
@@ -53,36 +43,30 @@ public final class MigrationStreamFactory {
     /**
      * Builds a Pekko Streams source for snapshot migration.
      * <p>
-     * The source queries the snapshot collection with filters for:
+     * The source streams the snapshots from the store with:
      * <ul>
-     *   <li>Resume support: Skip documents already processed (based on lastProcessedSnapshotId)</li>
-     *   <li>Encryptable fields: Only fetch documents containing fields that can be encrypted</li>
+     *   <li>Resume support: Skip snapshots already processed (based on lastProcessedSnapshotId)</li>
+     *   <li>Encryptable fields: Only fetch snapshots containing fields that can be encrypted</li>
      * </ul>
-     * Documents are sorted by _id (ascending) and fetched with the specified batch size.
+     * Snapshots arrive in a stable, backend-defined order and are fetched with the specified batch size; the saved
+     * cursor continues behind the last processed entry.
      *
-     * @param snapshotCollection the MongoDB snapshot collection
+     * @param store the persistence backend's payload store
      * @param progress the current migration progress (for resume support)
      * @param pointers the JSON pointers to encrypt/decrypt
-     * @param batchSize the MongoDB fetch batch size
+     * @param batchSize the backend fetch batch size
      * @param maxDocumentsPerMinute throttling limit (0 = disabled)
-     * @return a Pekko Streams source of snapshot documents
+     * @return a Pekko Streams source of persisted snapshots
      */
-    public static Source<Document, NotUsed> buildSnapshotStream(
-            final MongoCollection<Document> snapshotCollection,
+    public static Source<PersistedSnapshot, NotUsed> buildSnapshotStream(
+            final PersistedPayloadStore store,
             final MigrationProgress progress,
             final List<String> pointers,
             final int batchSize,
             final int maxDocumentsPerMinute) {
 
-        final Bson resumeFilter = buildResumeFilter(progress.lastProcessedSnapshotId());
-        final Bson encryptableFieldsFilter = buildEncryptableFieldsFilter(
-                SNAPSHOT_SERIALIZED_FIELD, SNAPSHOT_ENTITY_TYPE_PREFIX, pointers);
-        final Bson filter = Filters.and(resumeFilter, encryptableFieldsFilter);
-
-        final Source<Document, NotUsed> source = Source.fromPublisher(
-                snapshotCollection.find(filter)
-                        .sort(Sorts.ascending(ID_FIELD))
-                        .batchSize(batchSize));
+        final Source<PersistedSnapshot, NotUsed> source = store.streamSnapshots(progress.lastProcessedSnapshotId(),
+                requiredFieldPointers(SNAPSHOT_ENTITY_TYPE_PREFIX, pointers), batchSize);
 
         return applyThrottling(source, maxDocumentsPerMinute);
     }
@@ -90,84 +74,46 @@ public final class MigrationStreamFactory {
     /**
      * Builds a Pekko Streams source for journal migration.
      * <p>
-     * The source queries the journal collection with filters for:
+     * The source streams the journal entries from the store with:
      * <ul>
-     *   <li>Resume support: Skip documents already processed (based on lastProcessedJournalId)</li>
-     *   <li>Encryptable fields: Only fetch documents with event payloads containing encryptable fields</li>
+     *   <li>Resume support: Skip entries already processed (based on lastProcessedJournalId)</li>
+     *   <li>Encryptable fields: Only fetch entries with event payloads containing encryptable fields</li>
      * </ul>
-     * Documents are sorted by _id (ascending) and fetched with the specified batch size.
+     * Entries arrive in a stable, backend-defined order and are fetched with the specified batch size; the saved
+     * cursor continues behind the last processed entry.
      *
-     * @param journalCollection the MongoDB journal collection
+     * @param store the persistence backend's payload store
      * @param progress the current migration progress (for resume support)
      * @param pointers the JSON pointers to encrypt/decrypt
-     * @param batchSize the MongoDB fetch batch size
+     * @param batchSize the backend fetch batch size
      * @param maxDocumentsPerMinute throttling limit (0 = disabled)
-     * @return a Pekko Streams source of journal documents
+     * @return a Pekko Streams source of persisted journal entries
      */
-    public static Source<Document, NotUsed> buildJournalStream(
-            final MongoCollection<Document> journalCollection,
+    public static Source<PersistedJournalEntry, NotUsed> buildJournalStream(
+            final PersistedPayloadStore store,
             final MigrationProgress progress,
             final List<String> pointers,
             final int batchSize,
             final int maxDocumentsPerMinute) {
 
-        final Bson resumeFilter = buildResumeFilter(progress.lastProcessedJournalId());
-        final Bson encryptableFieldsFilter = buildEncryptableFieldsFilter(
-                JOURNAL_EVENTS_FIELD + "." + JOURNAL_PAYLOAD_FIELD,
-                JOURNAL_ENTITY_TYPE_PREFIX, pointers);
-        final Bson filter = Filters.and(resumeFilter, encryptableFieldsFilter);
-
-        final Source<Document, NotUsed> source = Source.fromPublisher(
-                journalCollection.find(filter)
-                        .sort(Sorts.ascending(ID_FIELD))
-                        .batchSize(batchSize));
+        final Source<PersistedJournalEntry, NotUsed> source = store.streamJournalEntries(
+                progress.lastProcessedJournalId(),
+                requiredFieldPointers(JOURNAL_ENTITY_TYPE_PREFIX, pointers), batchSize);
 
         return applyThrottling(source, maxDocumentsPerMinute);
     }
 
     /**
-     * Builds a MongoDB resume filter to skip already-processed documents.
-     * <p>
-     * Handles both ObjectId and string-based _id formats. If the lastProcessedId is not
-     * a valid ObjectId, falls back to string comparison.
+     * Builds the full JSON pointers of the encryptable fields as the payload JSON has them: the configured pointers
+     * prefixed with the entity type prefix the same way {@link JsonFieldsEncryptor} prefixes them when encrypting
+     * (e.g. {@code /uri} stays {@code /uri} for snapshots and becomes {@code /connection/uri} for journal events).
      *
-     * @param lastProcessedId the ID of the last processed document, or null to start from the beginning
-     * @return a Bson filter for resume support
-     */
-    private static Bson buildResumeFilter(@Nullable final String lastProcessedId) {
-        if (lastProcessedId == null) {
-            return Filters.empty();
-        }
-
-        try {
-            return Filters.gt(ID_FIELD, new ObjectId(lastProcessedId));
-        } catch (final IllegalArgumentException e) {
-            // Non-ObjectId _id format — use string comparison as fallback
-            return Filters.gt(ID_FIELD, lastProcessedId);
-        }
-    }
-
-    /**
-     * Builds a MongoDB filter that matches only documents containing at least one of the
-     * encryptable fields. This avoids fetching documents (e.g. empty events) that have
-     * no fields to encrypt/decrypt.
-     *
-     * @param documentPrefix the BSON path prefix to the document (e.g. "s2" for snapshots,
-     *        "events.p" for journal payloads)
      * @param entityTypePrefix the entity type prefix applied to pointers (e.g. "connection" for journal)
      * @param pointers the configured JSON pointers to encrypt
-     * @return a Bson filter requiring at least one encryptable field to exist
+     * @return the full pointers, at least one of which a payload must hold to be streamed
      */
-    static Bson buildEncryptableFieldsFilter(final String documentPrefix,
-            final String entityTypePrefix, final List<String> pointers) {
-        final String prefix = entityTypePrefix.isEmpty()
-                ? documentPrefix
-                : documentPrefix + "." + entityTypePrefix;
-        final List<Bson> existsFilters = pointers.stream()
-                .map(pointer -> pointer.replace("/", "."))
-                .map(dotPath -> Filters.exists(prefix + dotPath))
-                .collect(Collectors.toList());
-        return Filters.or(existsFilters);
+    static List<String> requiredFieldPointers(final String entityTypePrefix, final List<String> pointers) {
+        return JsonFieldsEncryptor.prefixPointers(entityTypePrefix, pointers).collect(Collectors.toList());
     }
 
     /**
@@ -179,9 +125,10 @@ public final class MigrationStreamFactory {
      *
      * @param source the source stream
      * @param maxDocsPerMinute maximum documents per minute, 0 means no throttling
+     * @param <T> the element type
      * @return throttled source if enabled, original source otherwise
      */
-    static Source<Document, NotUsed> applyThrottling(final Source<Document, NotUsed> source,
+    static <T> Source<T, NotUsed> applyThrottling(final Source<T, NotUsed> source,
             final int maxDocsPerMinute) {
         if (maxDocsPerMinute <= 0) {
             return source;

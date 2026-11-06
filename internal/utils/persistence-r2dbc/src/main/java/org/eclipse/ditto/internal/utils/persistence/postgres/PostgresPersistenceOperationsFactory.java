@@ -104,6 +104,20 @@ public final class PostgresPersistenceOperationsFactory implements PersistenceOp
     }
 
     /**
+     * Resolves the table-set prefix of an entity type the way {@link #operations(String)} does: {@code thing} &rarr;
+     * {@code things}, {@code policy} &rarr; {@code policies}, {@code connection} &rarr; {@code connections}. The one
+     * place this mapping lives; the payload store resolves its tables through it.
+     *
+     * @param entityType the entity type, e.g. {@code "connection"}.
+     * @return the table prefix, one of {@code PostgresSchema.ENTITY_TABLE_SETS}.
+     * @throws NullPointerException if {@code entityType} is {@code null}.
+     * @throws IllegalArgumentException if no PostgreSQL table set is known for the entity type.
+     */
+    public static String tablePrefixForEntityType(final String entityType) {
+        return EntityWiring.forEntityType(entityType).tablePrefix;
+    }
+
+    /**
      * Per-entity wiring, kept identical to the historical per-service ops actors (and to the Mongo factory's
      * {@code EntityWiring}). {@code tablePrefix} is the plural table prefix ({@code things}/{@code policies}/
      * {@code connections}); {@code pidPrefix} is the singular persistence-id prefix ({@code thing:}/{@code policy:}/
@@ -139,7 +153,8 @@ public final class PostgresPersistenceOperationsFactory implements PersistenceOp
                     return CONNECTION_WIRING;
                 default:
                     throw new IllegalArgumentException(
-                            "No Postgres persistence-operations wiring known for entity type <" + entityType + ">");
+                            "No PostgreSQL table set known for entity type <" + entityType + ">; expected one of "
+                                    + "thing, policy, connection.");
             }
         }
     }
