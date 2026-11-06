@@ -51,6 +51,7 @@ import org.eclipse.ditto.base.model.common.ByteBufferUtils;
 import org.eclipse.ditto.base.model.common.ResponseType;
 import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.ConnectivityModelFactory;
+import org.eclipse.ditto.connectivity.model.Enforcement;
 import org.eclipse.ditto.connectivity.model.HeaderMapping;
 import org.eclipse.ditto.connectivity.model.PayloadMapping;
 import org.eclipse.ditto.connectivity.model.ReplyTarget;
@@ -166,11 +167,45 @@ public final class KafkaConsumerActorTest extends AbstractConsumerActorTest<Cons
         final KafkaConsumerStreamFactory consumerStreamFactory =
                 new KafkaConsumerStreamFactory(ConnectivityConfig.of(actorSystem.settings().config())
                         .getConnectionConfig().getKafkaConfig().getConsumerConfig().getThrottlingConfig(),
-                        sourceSupplier, null, consumerData, false);
+                        sourceSupplier,
+                        null,
+                        consumerData, false);
         final ConnectivityConfig connectivityConfig = ConnectivityConfig.of(actorSystem.settings().config());
         return KafkaConsumerActor.props(CONNECTION,
                 consumerStreamFactory,
                 new ConsumerData(connectionSource, address, address + 0),
+                inboundMappingSink,
+                mock(ConnectivityStatusResolver.class),
+                connectivityConfig);
+    }
+
+    @Override
+    protected Props getConsumerActorPropsWithEnforcement(final Sink<Object, NotUsed> inboundMappingSink,
+            final Enforcement enforcement, final String address) {
+        final org.eclipse.ditto.connectivity.model.Source connectionSource = ConnectivityModelFactory.newSourceBuilder()
+                .address(address)
+                .authorizationContext(TestConstants.Authorization.AUTHORIZATION_CONTEXT)
+                .enforcement(enforcement)
+                .headerMapping(TestConstants.HEADER_MAPPING)
+                .payloadMapping(ConnectivityModelFactory.emptyPayloadMapping())
+                .replyTarget(ReplyTarget.newBuilder()
+                        .address("foo")
+                        .expectedResponseTypes(ResponseType.ERROR, ResponseType.RESPONSE, ResponseType.NACK)
+                        .build())
+                .build();
+        final AtMostOnceKafkaConsumerSourceSupplier sourceSupplier = mock(AtMostOnceKafkaConsumerSourceSupplier.class);
+        when(sourceSupplier.get()).thenReturn(source);
+        final ConsumerData consumerData = new ConsumerData(connectionSource, address, "xy");
+        final KafkaConsumerStreamFactory consumerStreamFactory =
+                new KafkaConsumerStreamFactory(ConnectivityConfig.of(actorSystem.settings().config())
+                        .getConnectionConfig().getKafkaConfig().getConsumerConfig().getThrottlingConfig(),
+                        sourceSupplier,
+                        null,
+                        consumerData, false);
+        final ConnectivityConfig connectivityConfig = ConnectivityConfig.of(actorSystem.settings().config());
+        return KafkaConsumerActor.props(CONNECTION,
+                consumerStreamFactory,
+                consumerData,
                 inboundMappingSink,
                 mock(ConnectivityStatusResolver.class),
                 connectivityConfig);
