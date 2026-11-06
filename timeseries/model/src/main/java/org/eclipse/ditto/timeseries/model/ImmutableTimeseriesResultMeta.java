@@ -1,0 +1,173 @@
+/*
+ * Copyright (c) 2026 Contributors to the Eclipse Foundation
+ *
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
+ *
+ * SPDX-License-Identifier: EPL-2.0
+ */
+package org.eclipse.ditto.timeseries.model;
+
+import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
+
+import java.util.Collections;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+
+import javax.annotation.Nullable;
+import javax.annotation.concurrent.Immutable;
+
+import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonObjectBuilder;
+import org.eclipse.ditto.json.JsonValue;
+
+/**
+ * An immutable implementation of {@link TimeseriesResultMeta}.
+ */
+@Immutable
+final class ImmutableTimeseriesResultMeta implements TimeseriesResultMeta {
+
+    private final int count;
+    @Nullable private final String unit;
+    private final String dataType;
+    private final Map<String, JsonValue> tags;
+    @Nullable private final Boolean hasMore;
+    @Nullable private final String nextCursor;
+
+    private ImmutableTimeseriesResultMeta(final int count,
+            @Nullable final String unit,
+            final String dataType,
+            final Map<String, JsonValue> tags,
+            @Nullable final Boolean hasMore,
+            @Nullable final String nextCursor) {
+
+        this.count = count;
+        this.unit = unit;
+        this.dataType = dataType;
+        this.tags = tags;
+        this.hasMore = hasMore;
+        this.nextCursor = nextCursor;
+    }
+
+    static TimeseriesResultMeta of(final int count,
+            @Nullable final String unit,
+            final String dataType,
+            final Map<String, JsonValue> tags,
+            @Nullable final Boolean hasMore,
+            @Nullable final String nextCursor) {
+
+        checkNotNull(dataType, "dataType");
+        if (count < 0) {
+            throw new IllegalArgumentException("count must not be negative but was: " + count);
+        }
+        return new ImmutableTimeseriesResultMeta(count, unit, dataType,
+                TagValues.copyOf(tags, "tags"), hasMore, nextCursor);
+    }
+
+    static TimeseriesResultMeta fromJson(final JsonObject jsonObject) {
+        checkNotNull(jsonObject, "jsonObject");
+
+        final int count = jsonObject.getValueOrThrow(JsonFields.COUNT);
+        final String unit = jsonObject.getValue(JsonFields.UNIT).orElse(null);
+        final String dataType = jsonObject.getValueOrThrow(JsonFields.DATA_TYPE);
+        final Map<String, JsonValue> tags = jsonObject.getValue(JsonFields.TAGS)
+                .map(tagsJson -> TagValues.fromJson(tagsJson, JsonFields.TAGS.getPointer().toString()))
+                .orElseGet(Collections::emptyMap);
+        final Boolean hasMore = jsonObject.getValue(JsonFields.HAS_MORE).orElse(null);
+        final String nextCursor = jsonObject.getValue(JsonFields.NEXT_CURSOR).orElse(null);
+
+        return of(count, unit, dataType, tags, hasMore, nextCursor);
+    }
+
+    @Override
+    public int getCount() {
+        return count;
+    }
+
+    @Override
+    public Optional<String> getUnit() {
+        return Optional.ofNullable(unit);
+    }
+
+    @Override
+    public String getDataType() {
+        return dataType;
+    }
+
+    @Override
+    public Map<String, JsonValue> getTags() {
+        return tags;
+    }
+
+    @Override
+    public Optional<Boolean> getHasMore() {
+        return Optional.ofNullable(hasMore);
+    }
+
+    @Override
+    public Optional<String> getNextCursor() {
+        return Optional.ofNullable(nextCursor);
+    }
+
+    @Override
+    public JsonObject toJson() {
+        final JsonObjectBuilder builder = JsonFactory.newObjectBuilder()
+                .set(JsonFields.COUNT, count)
+                .set(JsonFields.DATA_TYPE, dataType);
+
+        if (unit != null) {
+            builder.set(JsonFields.UNIT, unit);
+        }
+        if (!tags.isEmpty()) {
+            builder.set(JsonFields.TAGS, TagValues.toJson(tags));
+        }
+        if (hasMore != null) {
+            builder.set(JsonFields.HAS_MORE, hasMore);
+        }
+        if (nextCursor != null) {
+            builder.set(JsonFields.NEXT_CURSOR, nextCursor);
+        }
+
+        return builder.build();
+    }
+
+    @Override
+    public boolean equals(@Nullable final Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (!(o instanceof ImmutableTimeseriesResultMeta)) {
+            return false;
+        }
+        final ImmutableTimeseriesResultMeta that = (ImmutableTimeseriesResultMeta) o;
+        return count == that.count &&
+                Objects.equals(unit, that.unit) &&
+                Objects.equals(dataType, that.dataType) &&
+                Objects.equals(tags, that.tags) &&
+                Objects.equals(hasMore, that.hasMore) &&
+                Objects.equals(nextCursor, that.nextCursor);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(count, unit, dataType, tags, hasMore, nextCursor);
+    }
+
+    @Override
+    public String toString() {
+        return getClass().getSimpleName() + " [" +
+                "count=" + count +
+                ", unit=" + unit +
+                ", dataType=" + dataType +
+                ", tags=" + tags +
+                ", hasMore=" + hasMore +
+                ", nextCursor=" + nextCursor +
+                "]";
+    }
+}

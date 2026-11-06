@@ -85,6 +85,7 @@ To inspect all available configuration options, please inspect Ditto's service c
 * [things-search.conf](https://github.com/eclipse-ditto/ditto/blob/master/thingsearch/service/src/main/resources/search.conf)
 * [connectivity.conf](https://github.com/eclipse-ditto/ditto/blob/master/connectivity/service/src/main/resources/connectivity.conf)
 * [gateway.conf](https://github.com/eclipse-ditto/ditto/blob/master/gateway/service/src/main/resources/gateway.conf)
+* [timeseries.conf](https://github.com/eclipse-ditto/ditto/blob/master/timeseries/service/src/main/resources/timeseries.conf)
 
 
 ### Configuration via environment variables

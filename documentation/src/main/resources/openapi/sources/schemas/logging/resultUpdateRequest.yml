@@ -20,3 +20,5 @@ properties:
     $ref: './moduleUpdatedLogLevel.yml'
   connectivity:
     $ref: './moduleUpdatedLogLevel.yml'
+  timeseries:
+    $ref: './moduleUpdatedLogLevel.yml'

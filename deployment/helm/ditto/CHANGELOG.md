@@ -15,6 +15,14 @@ sections: `Added`, `Changed`, `Deprecated`, `Removed`, `Fixed`, `Security`.
 
 ## [Unreleased]
 
+## [4.11.0]
+
+### Added
+- New optional `timeseries` service (`timeseries.enabled`, default `false`) with its Deployment, ConfigMap,
+  PodDisruptionBudget and PodMonitor. Enabling it also sets `DITTO_DEVOPS_FEATURE_TIMESERIES_ENABLED` on the things,
+  gateway and connectivity services, which switches on the ingest of WoT-annotated properties and the
+  `/api/2/timeseries` endpoints.
+
 ## [4.10.0]
 
 ### Added
