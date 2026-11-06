@@ -354,6 +354,17 @@ public final class ThingSupervisorActor extends AbstractPersistenceSupervisor<Th
     @Override
     protected CompletableFuture<Object> handleTargetActorAndEnforcerException(final Signal<?> signal,
             final Throwable throwable) {
+        if (isMaterializerShutdownException(throwable)) {
+            // Safety-net: the passivate-guard in AbstractPersistenceSupervisor should prevent this race,
+            // log so we can observe if it still happens.
+            log.withCorrelationId(signal)
+                    .warning("Materializer was shut down during enforcement despite passivate-guard. " +
+                                    "Mapping to ThingUnavailableException. Signal type: <{}>, cause: <{}>",
+                            signal.getType(), throwable.getClass().getSimpleName());
+            return CompletableFuture.failedFuture(getUnavailableExceptionBuilder(entityId)
+                    .dittoHeaders(signal.getDittoHeaders())
+                    .build());
+        }
         if (RollbackCreatedPolicy.shouldRollbackBasedOnException(signal, throwable)) {
             final Throwable cause = throwable.getCause();
             log.withCorrelationId(signal)
@@ -368,6 +379,23 @@ public final class ThingSupervisorActor extends AbstractPersistenceSupervisor<Th
                     .debug("Target actor exception received: <{}>", throwable.getClass().getSimpleName());
             return CompletableFuture.failedFuture(throwable);
         }
+    }
+
+    /**
+     * Detects the "materialize after shutdown" race documented in https://github.com/eclipse-ditto/ditto/issues/2599
+     */
+    private boolean isMaterializerShutdownException(final Throwable throwable) {
+        if (!materializer.isShutdown()) {
+            return false;
+        }
+        Throwable cur = throwable;
+        while (cur != null) {
+            if (cur instanceof IllegalStateException) {
+                return true;
+            }
+            cur = cur.getCause();
+        }
+        return false;
     }
 
     private void handleRollbackCreatedPolicy(final RollbackCreatedPolicy rollback) {

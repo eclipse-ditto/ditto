@@ -638,8 +638,16 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
     }
 
     private void passivate(final Control passivationTrigger) {
-        getContext().cancelReceiveTimeout();
-        getContext().getParent().tell(new ShardRegion.Passivate(PoisonPill.getInstance()), getSelf());
+        // Only opCounter is checked: sudo commands bypass the enforcer (see forwardSudoCommandToChildIfAvailable)
+        // so they do not drive the materializer-shutdown race this guard protects against.
+        if (opCounter == 0) {
+            log.debug("Passivating: no ongoing ops.");
+            getContext().cancelReceiveTimeout();
+            getContext().getParent().tell(new ShardRegion.Passivate(PoisonPill.getInstance()), getSelf());
+        } else {
+            log.debug("Ignoring passivate request: <{}> ops in-flight. " +
+                    "Will re-check on next activity-check cycle.", opCounter);
+        }
     }
 
     private void paRecovered(final Control paRecoveredTrigger) {
