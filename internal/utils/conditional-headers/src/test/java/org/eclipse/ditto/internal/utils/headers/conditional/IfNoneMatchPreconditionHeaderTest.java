@@ -54,8 +54,23 @@ public class IfNoneMatchPreconditionHeaderTest {
     public void doesNotMeetConditionForEqualOpaqueTagForWeak() {
         final IfNoneMatchPreconditionHeader ifNoneMatchPreconditionHeader =
                 createIfNoneMatchPreconditionHeader(EntityTagMatchers.fromCommaSeparatedString("W/\"4711\""));
-        assertThat(ifNoneMatchPreconditionHeader.meetsConditionFor(EntityTag.fromString("\"4711\""))).isTrue();
+        assertThat(ifNoneMatchPreconditionHeader.meetsConditionFor(EntityTag.fromString("\"4711\""))).isFalse();
         assertThat(ifNoneMatchPreconditionHeader.meetsConditionFor(EntityTag.fromString("W/\"4711\""))).isFalse();
+    }
+
+    @Test
+    public void weakEntityTagInListMatchesStrongCurrentEntityTag() {
+        final IfNoneMatchPreconditionHeader ifNoneMatchPreconditionHeader =
+                createIfNoneMatchPreconditionHeader(fromCommaSeparatedString("\"foo\",W/\"rev:13\""));
+        assertThat(ifNoneMatchPreconditionHeader.meetsConditionFor(EntityTag.fromString("\"rev:13\""))).isFalse();
+        assertThat(ifNoneMatchPreconditionHeader.meetsConditionFor(EntityTag.fromString("\"rev:14\""))).isTrue();
+    }
+
+    @Test
+    public void weakEntityTagInHeaderMatchesStrongCurrentEntityTag() {
+        final IfNoneMatchPreconditionHeader ifNoneMatchPreconditionHeader =
+                createIfNoneMatchPreconditionHeader(EntityTagMatchers.fromCommaSeparatedString("W/\"rev:13\""));
+        assertThat(ifNoneMatchPreconditionHeader.meetsConditionFor(EntityTag.fromString("\"rev:13\""))).isFalse();
     }
 
     @Test
