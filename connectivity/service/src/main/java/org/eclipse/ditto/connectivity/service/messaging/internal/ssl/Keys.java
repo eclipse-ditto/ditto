@@ -27,6 +27,7 @@ import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.X509EncodedKeySpec;
 import java.util.Base64;
 import java.util.Collection;
+import java.util.List;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.regex.Matcher;
@@ -44,15 +45,16 @@ final class Keys {
     private static final String PUBLIC_KEY_LABEL = "PUBLIC KEY";
     private static final Pattern PUBLIC_KEY_REGEX = Pattern.compile(pemRegex(PUBLIC_KEY_LABEL));
 
-    private static final KeyFactory RSA_KEY_FACTORY;
+    // A key factory only reads keys of its own algorithm. RSA comes first, so RSA keys load as before.
+    private static final List<KeyFactory> KEY_FACTORIES;
     private static final CertificateFactory X509_CERTIFICATE_FACTORY;
 
     static {
         try {
-            RSA_KEY_FACTORY = KeyFactory.getInstance("RSA");
+            KEY_FACTORIES = List.of(KeyFactory.getInstance("RSA"), KeyFactory.getInstance("EC"));
             X509_CERTIFICATE_FACTORY = CertificateFactory.getInstance("X.509");
         } catch (final NoSuchAlgorithmException e) {
-            throw new Error("FATAL: failed to load RSA key or key manager factory", e);
+            throw new Error("FATAL: failed to load RSA or EC key factory", e);
         } catch (final CertificateException e) {
             throw new Error("FATAL: failed to load X.509 certificate factory", e);
         }
@@ -62,6 +64,7 @@ final class Keys {
 
     /**
      * Loads a {@link java.security.PrivateKey} from the given string. The private key must be given in PKCS#8 format.
+     * RSA and EC keys are supported.
      *
      * @param privateKeyPem private key in PKCS#8 format
      * @param exceptionMapper maps ssl exceptions to ditto exceptions providing context information
@@ -72,15 +75,13 @@ final class Keys {
         final Supplier<DittoRuntimeExceptionBuilder<?>> errorSupplier =
                 () -> exceptionMapper.badPrivateKeyFormat(PRIVATE_KEY_LABEL, "PKCS #8")
                         .description("Please format your client key as PEM-encoded unencrypted PKCS #8.");
-        try {
-            return RSA_KEY_FACTORY.generatePrivate(matchKey(matcher, PKCS8EncodedKeySpec::new, errorSupplier));
-        } catch (final InvalidKeySpecException e) {
-            throw errorSupplier.get().cause(e).build();
-        }
+        return generateKey(matchKey(matcher, PKCS8EncodedKeySpec::new, errorSupplier), KeyFactory::generatePrivate,
+                errorSupplier);
     }
 
     /**
      * Loads a {@link java.security.PublicKey} from the given string. The public key must be given in PKCS#8 format.
+     * RSA and EC keys are supported.
      *
      * @param publicKeyPem public key in PKCS#8 format
      * @param exceptionMapper maps ssl exceptions to ditto exceptions providing context information
@@ -91,11 +92,21 @@ final class Keys {
         final Supplier<DittoRuntimeExceptionBuilder<?>> errorSupplier =
                 () -> exceptionMapper.badPublicKeyFormat(PUBLIC_KEY_LABEL, "PKCS #8")
                         .description("Please format your public key as PEM-encoded unencrypted PKCS #8.");
-        try {
-            return RSA_KEY_FACTORY.generatePublic(matchKey(matcher, X509EncodedKeySpec::new, errorSupplier));
-        } catch (final InvalidKeySpecException e) {
-            throw errorSupplier.get().cause(e).build();
+        return generateKey(matchKey(matcher, X509EncodedKeySpec::new, errorSupplier), KeyFactory::generatePublic,
+                errorSupplier);
+    }
+
+    private static <K> K generateKey(final KeySpec keySpec, final KeyFactoryMethod<K> keyFactoryMethod,
+            final Supplier<DittoRuntimeExceptionBuilder<?>> errorSupplier) {
+        InvalidKeySpecException lastException = null;
+        for (final KeyFactory keyFactory : KEY_FACTORIES) {
+            try {
+                return keyFactoryMethod.generate(keyFactory, keySpec);
+            } catch (final InvalidKeySpecException e) {
+                lastException = e;
+            }
         }
+        throw errorSupplier.get().cause(lastException).build();
     }
 
     private static <T extends KeySpec> T matchKey(final Matcher matcher, final Function<byte[], T> toKeySpec,
@@ -146,5 +157,11 @@ final class Keys {
 
     private static byte[] decodeBase64(final String content) {
         return Base64.getDecoder().decode(content.replace("\\s", ""));
+    }
+
+    @FunctionalInterface
+    private interface KeyFactoryMethod<K> {
+
+        K generate(KeyFactory keyFactory, KeySpec keySpec) throws InvalidKeySpecException;
     }
 }
