@@ -21,6 +21,8 @@ global:
   logging:
     customConfigFile:
       enabled: true
+  featureFlags:
+    timeseriesEnabled: true
 
 ## ----------------------------------------------------------------------------
 ## policies configuration

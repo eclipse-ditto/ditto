@@ -114,11 +114,15 @@ final class ThingEventLeafExtractor {
     private static void flatten(final String featureId, final JsonPointer base, final JsonValue value,
             final List<PropertyLeaf> leaves) {
 
+        // JsonNull reports isObject() and isArray() as true, so it is excluded first.
+        if (value.isNull() || value.isArray()) {
+            return;
+        }
         if (value.isObject()) {
             for (final JsonField field : value.asObject()) {
                 flatten(featureId, base.addLeaf(field.getKey()), field.getValue(), leaves);
             }
-        } else if (!value.isArray() && !value.isNull()) {
+        } else {
             leaves.add(new PropertyLeaf(featureId, base, value));
         }
     }

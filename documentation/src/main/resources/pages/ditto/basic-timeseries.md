@@ -87,7 +87,7 @@ GET /api/2/timeseries/things/{thingId}?paths=<p1>,<p2>,...
 | `fill` | `linear` interpolates empty interior buckets; `previous` carries the last value forward. |
 | `tz` | Zone the bucket grid aligns to (DST-aware). |
 | `limit`, `cursor`, `order` | Keyset pagination and sort direction on raw reads. |
-| `tagFilter` | Comma-separated `key:value` tag predicates. A value is read like an RQL literal: `floor:2` matches the number 2, `floor:"2"` the string. |
+| `tagFilter` | Comma-separated `key:value` tag predicates. A value is read like an RQL literal: `floor:2` matches the number 2 and the string "2", `floor:"2"` only the string. |
 | `timeFormat` | `ms` emits epoch millis instead of ISO-8601. |
 
 At most **100 paths** per request.
@@ -135,7 +135,7 @@ The optional `filter` is an [RQL](basic-rql.html) predicate over ingest-time tag
 filter=and(eq(attributes/building,'A'),ge(attributes/floor,2))
 ```
 
-Field references are tag keys. Only tags are addressable: a filter cannot reach a point's thing ID, path or value, so it cannot be used to sidestep authorization. Like `groupBy`, filtering on a field requires `READ` on it.
+Field references are tag keys. Values are compared with their RQL type, so `eq(attributes/floor,2)` does not match a tag stored as the string "2" (unlike `tagFilter`). Only tags are addressable: a filter cannot reach a point's thing ID, path or value, so it cannot be used to sidestep authorization. Like `groupBy`, filtering on a field requires `READ` on it.
 
 ### Response shape
 

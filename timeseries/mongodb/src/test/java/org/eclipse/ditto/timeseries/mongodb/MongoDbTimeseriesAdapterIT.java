@@ -370,21 +370,37 @@ public final class MongoDbTimeseriesAdapterIT {
     }
 
     @Test
-    public void tagFilterMatchesTheStoredTagWithItsJsonType() throws Exception {
+    public void numericTagFilterMatchesNumberAndStringTagsButStringFilterOnlyStrings() throws Exception {
         final Instant t = Instant.parse("2026-01-14T10:00:00Z");
         adapter.writeBatch(Arrays.asList(
                 dataPointWithTags(t, 1.0, Map.of("floor", JsonValue.of(2))),
                 dataPointWithTags(t.plusSeconds(1), 2.0, Map.of("floor", JsonValue.of("2")))))
                 .toCompletableFuture().get();
+        final TimeseriesQuery query = buildQuery(
+                Instant.parse("2026-01-14T09:00:00Z"), Instant.parse("2026-01-14T11:00:00Z"));
 
-        final TimeseriesQuery numeric = buildQuery(
-                Instant.parse("2026-01-14T09:00:00Z"), Instant.parse("2026-01-14T11:00:00Z"))
-                .withTagFilters(Map.of("floor", JsonValue.of(2)));
-        final List<TimeseriesDataValue> data =
-                adapter.query(numeric).toCompletableFuture().get().get(0).getData();
+        final List<TimeseriesDataValue> numeric = adapter.query(
+                query.withTagFilters(Map.of("floor", JsonValue.of(2)))).toCompletableFuture().get().get(0).getData();
+        final List<TimeseriesDataValue> string = adapter.query(
+                query.withTagFilters(Map.of("floor", JsonValue.of("2")))).toCompletableFuture().get().get(0).getData();
+
+        assertThat(numeric).hasSize(2);
+        assertThat(string).hasSize(1);
+        assertThat(string.get(0).getValue().orElseThrow().asDouble()).isEqualTo(2.0);
+    }
+
+    @Test
+    public void tagFilterKeyWithLeadingSlashMatches() throws Exception {
+        final Instant t = Instant.parse("2026-01-14T10:00:00Z");
+        adapter.writeBatch(List.of(dataPointWithTags(t, 1.0, Map.of("attributes/building", JsonValue.of("A")))))
+                .toCompletableFuture().get();
+
+        final List<TimeseriesDataValue> data = adapter.query(buildQuery(
+                        Instant.parse("2026-01-14T09:00:00Z"), Instant.parse("2026-01-14T11:00:00Z"))
+                        .withTagFilters(Map.of("/attributes/building", JsonValue.of("A"))))
+                .toCompletableFuture().get().get(0).getData();
 
         assertThat(data).hasSize(1);
-        assertThat(data.get(0).getValue().orElseThrow().asDouble()).isEqualTo(1.0);
     }
 
     @Test

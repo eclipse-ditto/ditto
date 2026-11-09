@@ -232,6 +232,10 @@ global:
     #  entity still get resource-specific errors (e.g. things:attributes.notfound, things:thing.notmodifiable with 403).
     #  Set this to false to restore the legacy behaviour where all requesters get the resource-specific errors.
     hideInaccessibleEntityExistenceEnabled: true
+    # timeseriesEnabled controls whether the things, gateway and connectivity services ingest WoT-annotated properties
+    #  into the timeseries service and serve the timeseries APIs. Enable it only together with `timeseries.enabled`,
+    #  which deploys the timeseries service.
+    timeseriesEnabled: false
   # logging the logging configuration for Ditto
   logging:
     # sysout holds the logging to SYSOUT config

@@ -179,7 +179,7 @@ public final class MongoDbTimeseriesAdapter implements TimeseriesAdapter {
             return failedStage(e);
         }
         // MongoClients construction is lazy, so without this probe an unreachable backend would
-        // still report UP and keep the readiness probe green.
+        // still report UP.
         return asVoidStage(database.runCommand(new Document("ping", 1)))
                 .whenComplete((ignored, throwable) -> {
                     if (throwable == null) {
@@ -210,6 +210,25 @@ public final class MongoDbTimeseriesAdapter implements TimeseriesAdapter {
     @Override
     public HealthStatus getHealth() {
         return state.get().health;
+    }
+
+    @Override
+    public CompletionStage<HealthStatus> checkHealth() {
+        final State current = state.get();
+        if (current.health != HealthStatus.UP || current.database == null) {
+            return CompletableFuture.completedFuture(current.health);
+        }
+        final long timeoutMillis = current.config.getQueryTimeout().toMillis();
+        return collectAll(current.database.runCommand(new Document("ping", 1)))
+                .toCompletableFuture()
+                .orTimeout(timeoutMillis, TimeUnit.MILLISECONDS)
+                .handle((result, error) -> {
+                    if (error != null) {
+                        LOGGER.warn("MongoDB timeseries backend did not answer a ping: {}", error.toString());
+                        return HealthStatus.DOWN;
+                    }
+                    return HealthStatus.UP;
+                });
     }
 
     @Override
@@ -739,10 +758,21 @@ public final class MongoDbTimeseriesAdapter implements TimeseriesAdapter {
         // Time Series collection's metaField, so these predicates are index-supported.
         final List<Bson> filters = new ArrayList<>(tagFilters.size() + 1);
         filters.add(range);
-        tagFilters.forEach((key, value) ->
-                filters.add(Filters.eq("meta." + TimeseriesBsonMapper.META_TAGS + "." + key,
-                        TimeseriesBsonMapper.convertScalarValue(value))));
+        tagFilters.forEach((key, value) -> filters.add(tagFilter(key, value)));
         return Filters.and(filters);
+    }
+
+    /**
+     * A number or boolean also matches the same value stored as a string: constant tags are always strings, and a
+     * {@code thing-json} tag is a string when the Thing field holds one.
+     */
+    private static Bson tagFilter(final String key, final JsonValue value) {
+        final String field = "meta." + TimeseriesBsonMapper.META_TAGS + "." + key;
+        final Object typed = TimeseriesBsonMapper.convertScalarValue(value);
+        if (value.isString()) {
+            return Filters.eq(field, typed);
+        }
+        return Filters.in(field, typed, value.toString());
     }
 
     private static Bson rangeFilter(final ThingId thingId, final JsonPointer path,
