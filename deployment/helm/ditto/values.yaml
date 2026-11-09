@@ -401,22 +401,23 @@ dbconfig:
   # uriSecret: my-uri-secret
 
 ## ----------------------------------------------------------------------------
-## postgres configures the (phase-2) PostgreSQL persistence backend TLS material.
-##  Mounted read-only into the persistence services (policies, things,
-##  connectivity) so the r2dbc-postgresql client can do sslMode=verify-full
-##  against PostgreSQL (or a TLS-terminating PgBouncer).
-##  These paths line up 1:1 with the persistence-backend ssl.{root-cert,cert,key}
-##  HOCON keys (spec §7) that the DittoPostgresClient (WU4) reads:
+## postgres configures the (phase-2) PostgreSQL backend TLS material.
+##  Mounted read-only into the PostgreSQL-backed services (policies, things,
+##  connectivity and things-search) so the r2dbc-postgresql client can do
+##  sslMode=verify-full against PostgreSQL (or a TLS-terminating PgBouncer).
+##  These paths line up 1:1 with the ssl.{root-cert,cert,key} HOCON keys of the
+##  PostgreSQL client configuration (ditto.postgresql.ssl.*) the services read:
 ##    mountPath/ca.crt          -> ssl.root-cert (r2dbc "sslRootCert")
 ##    mountPath/tls.crt         -> ssl.cert      (r2dbc "sslCert", optional mTLS)
 ##    mountPath/tls.key (PKCS#8)-> ssl.key       (r2dbc "sslKey",  optional mTLS)
 postgres:
   tls:
-    # enabled mounts the PG/PgBouncer TLS material into the persistence services.
+    # enabled mounts the PG/PgBouncer TLS material into the PostgreSQL-backed services
+    #  (policies, things, connectivity and things-search).
     #  Leave false while the backend is still MongoDB (phase 1).
     enabled: false
     # mountPath is the read-only directory the cert material is mounted at.
-    #  Must match the persistence-backend ssl.root-cert path (POSTGRES_SSL_ROOT_CERT).
+    #  Must match the ditto.postgresql.ssl.root-cert path (POSTGRES_SSL_ROOT_CERT).
     mountPath: /etc/ditto/pg-tls
     # caCert is the PEM the server cert must chain to (r2dbc "sslRootCert").
     #  For CA rotation supply a MULTI-CA PEM BUNDLE here (concatenate old + new
@@ -424,7 +425,7 @@ postgres:
     #  cut over to a cert signed by the new CA before the old CA is removed.
     #  NOTE: r2dbc reads the cert ONCE when the ConnectionFactory is built, so a
     #  changed bundle only takes effect after a POD RESTART (rolling restart of
-    #  the persistence deployments). See deployment/postgres/README.md.
+    #  the PostgreSQL-backed deployments). See deployment/postgres/README.md.
     #  Inline PEM (rendered into a managed Secret):
     caCert: ""
     # existingSecret: if set, this pre-created Secret is mounted instead of a
@@ -998,7 +999,7 @@ things:
   #    mountPath: /opt/ditto/extensions
   # extraInitContainers adds arbitrary init containers to the things pod (injected after the built-in ones).
   # Example: stage the PostgreSQL persistence extension JARs into /opt/ditto/extensions/ (opt-in; default off).
-  # The Postgres backend ships as TWO layered JARs (§6 D2): the shared base ditto-postgres-client-extension
+  # The Postgres backend ships as TWO layered JARs: the shared base ditto-postgres-client-extension
   # (r2dbc driver/pool, reactor, netty, scram) plus the thin ditto-postgres-persistence-extension (event-sourcing
   # classes only). Stage BOTH — from the SAME Ditto release — into the shared emptyDir volume declared above so the
   # Ditto process finds them on the /opt/ditto/extensions classpath. (A search service on Postgres stages
@@ -1576,12 +1577,12 @@ thingsSearch:
   #    mountPath: /opt/ditto/extensions
   # extraInitContainers adds arbitrary init containers to the things-search pod (injected after the built-in ones).
   # Example: stage the PostgreSQL SEARCH extension JARs into /opt/ditto/extensions/ (opt-in; default off).
-  # Running thing-search on Postgres ships as TWO layered JARs (§6 D2): the SAME shared base ditto-postgres-client-extension
-  # the persistence services use (r2dbc driver/pool, reactor, netty, scram) plus the thin ditto-postgres-search-extension
-  # (search read/write/aggregation classes only). Stage BOTH — from the SAME Ditto release — into the shared emptyDir
-  # volume declared above so the Ditto process finds them on the /opt/ditto/extensions classpath. A search service left on
-  # MongoDB stages nothing. (The persistence services stage ditto-postgres-client-extension + ditto-postgres-persistence-extension
-  # instead — see things.extraInitContainers.)
+  # Running things-search on Postgres ships as TWO layered JARs: the SAME shared base
+  # ditto-postgres-client-extension the persistence services use (r2dbc driver/pool, reactor, netty, scram) plus the
+  # thin ditto-postgres-search-extension (search read/write/aggregation classes only). Stage BOTH — from the SAME Ditto
+  # release — into the shared emptyDir volume declared above so the Ditto process finds them on the
+  # /opt/ditto/extensions classpath. A search service left on MongoDB stages nothing. (The persistence services stage
+  # ditto-postgres-client-extension + ditto-postgres-persistence-extension instead — see things.extraInitContainers.)
   #
   # extraInitContainers:
   #   - name: stage-postgres-search-extension

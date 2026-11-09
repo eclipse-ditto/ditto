@@ -15,6 +15,28 @@ sections: `Added`, `Changed`, `Deprecated`, `Removed`, `Fixed`, `Security`.
 
 ## [Unreleased]
 
+## [4.11.0]
+
+Adds the Helm side of the opt-in PostgreSQL persistence and search backends. Everything is off by default: a
+deployment on MongoDB renders the same manifests as with the previous chart version and needs no change.
+
+### Added
+- New `postgres.tls` block (default `enabled: false`) for Ditto services on the opt-in PostgreSQL backend: `caCert`
+  (PEM, may be a multi-CA bundle for staged CA rotation) is rendered into a new managed `<fullname>-postgres-tls`
+  Secret (i.e. `<release>-ditto-postgres-tls` unless the release name contains `ditto` or `fullnameOverride` is set)
+  by the new template `postgres-tls-secret.yaml`, or `existingSecret` names a pre-created Secret holding the key
+  `ca.crt` instead; `mTLS.enabled` with `mTLS.clientCert` / `mTLS.clientKey` (PKCS#8) adds the client certificate
+  as `tls.crt` / `tls.key`. When enabled, the policies, things, connectivity and things-search deployments mount the
+  Secret read-only at `postgres.tls.mountPath` (default `/etc/ditto/pg-tls`), so that, with
+  `POSTGRES_SSL_MODE=verify-full`, `POSTGRES_SSL_ROOT_CERT=/etc/ditto/pg-tls/ca.crt` lets the r2dbc client verify
+  PostgreSQL or a TLS-terminating PgBouncer.
+- New `policies.extraInitContainers`, `things.extraInitContainers`, `thingsSearch.extraInitContainers` and
+  `connectivity.extraInitContainers` (default empty), rendered after the built-in init containers of the respective
+  deployment. `values.yaml` shows how to combine them with `extraVolumes` / `extraVolumeMounts` to stage the
+  PostgreSQL extension JARs into `/opt/ditto/extensions`, and carries commented `POSTGRES_POOL_MAX_SIZE` examples
+  under `extraEnv`. Activating a PostgreSQL backend itself stays a file-based overlay
+  (`HOSTING_ENVIRONMENT=filebased`); chart-native PostgreSQL configuration values are a later step.
+
 ## [4.9.0]
 
 ### Added

@@ -72,7 +72,7 @@ We truncate at 63 chars because some Kubernetes name fields are limited to this 
 {{- end -}}
 
 {{/*
-PostgreSQL TLS volume (read-only) for the persistence services.
+PostgreSQL TLS volume (read-only) for the persistence services and things-search.
 Mounts either the managed `<fullname>-postgres-tls` Secret or postgres.tls.existingSecret.
 Renders nothing unless postgres.tls.enabled.
 */}}
@@ -86,9 +86,9 @@ Renders nothing unless postgres.tls.enabled.
 {{- end -}}
 
 {{/*
-PostgreSQL TLS volumeMount (read-only) for the persistence services.
-Mounted at postgres.tls.mountPath so files line up with the ssl.{root-cert,cert,key}
-persistence-backend config keys: <mountPath>/ca.crt, /tls.crt, /tls.key.
+PostgreSQL TLS volumeMount (read-only) for the persistence services and things-search.
+Mounted at postgres.tls.mountPath so files line up with the ditto.postgresql.ssl.{root-cert,cert,key}
+paths: <mountPath>/ca.crt, /tls.crt, /tls.key.
 */}}
 {{- define "ditto.postgres.tls.volumeMount" -}}
 {{- if .Values.postgres.tls.enabled }}
