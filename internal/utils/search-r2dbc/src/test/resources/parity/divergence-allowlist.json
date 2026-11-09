@@ -39,7 +39,7 @@
     {
       "id": "sudo-wildcard-value-mongo-degenerate-path",
       "source": "task G1 controller adjudication (entry #8)",
-      "description": "sudo + feature-wildcard value predicates: Mongo GetFilterBsonVisitor.matchWildcardFeatureValue degrades to a dotted top-level path matching nothing (empty result); Postgres answers features/* value predicates semantically. PG is a strict superset; no auth impact (sudo bypasses auth by definition). Fixing Mongo upstream is out of scope (Phase-A golden BSON tests pin Mongo behavior byte-identical) and mimicking the degenerate behavior in Postgres would deliberately produce wrong results."
+      "description": "sudo + feature-wildcard value predicates: Mongo GetFilterBsonVisitor.matchWildcardFeatureValue degrades to a dotted top-level path (e.g. properties.status) that no document has. For an ordinary operand that path matches nothing (empty result); for a null-including operand (in(…, null), ge(null), le(null)), whose Mongo semantics is null = missing, the same missing path matches EVERY thing, and its negation nothing. Postgres answers features/* value predicates semantically (per visible feature). No auth impact (sudo bypasses auth by definition). Fixing Mongo upstream is out of scope (Phase-A golden BSON tests pin Mongo behavior byte-identical) and mimicking the degenerate behavior in Postgres would deliberately produce wrong results."
     }
   ]
 }

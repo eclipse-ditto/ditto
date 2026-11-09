@@ -86,10 +86,13 @@ import com.typesafe.config.ConfigFactory;
  *     positions are therefore covered by the SORT battery (strict order parity) but excluded from walk corpora.</li>
  *     <li><strong>Allowlist entry #8 ({@code sudo-wildcard-value-mongo-degenerate-path}, G1 adjudication):</strong>
  *     under SUDO, Mongo's {@code GetFilterBsonVisitor.matchWildcardFeatureValue} degrades to a top-level dotted
- *     path (e.g. {@code properties.status}) that matches NOTHING, while Postgres answers {@code features/*} value
- *     predicates semantically — PG is a strict superset; no auth impact (sudo bypasses auth by definition). The
- *     affected wildcard VALUE-predicate cases run under ALL auth situations: the sudo run PINS Mongo's empty
- *     result / zero count against Postgres' exact expected hits, every non-sudo situation asserts strict
+ *     path (e.g. {@code properties.status}) that no document has. For an ordinary operand that path matches
+ *     NOTHING, while Postgres answers {@code features/*} value predicates semantically — PG is a strict superset.
+ *     For a null-including operand ({@code in(…, null)}, {@code ge(null)}, {@code le(null)}; Mongo's null = missing)
+ *     the same degenerate path matches EVERY thing and its negation nothing, while Postgres still answers per
+ *     visible feature. No auth impact (sudo bypasses auth by definition). The affected wildcard VALUE-predicate
+ *     cases run under ALL auth situations: the sudo run PINS each backend's observed page (Mongo's empty result /
+ *     zero count or its every-thing page, Postgres' exact semantic hits), every non-sudo situation asserts strict
  *     parity.</li>
  * </ul>
  */

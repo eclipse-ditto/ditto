@@ -1403,6 +1403,497 @@
         }
       },
       "comment": "Pins each backend's OBSERVED walk over container-valued sort keys: the divergent cursor sort-value encodings (Mongo: whole array; Postgres: null for rank-4/5 boundaries) plus type-bracketed resume predicates make each backend drop a DIFFERENT subset mid-walk. The unpaged-reference invariant is deliberately not applied to pinned walks (see SearchBackendParityIT.runCursorWalkComparison)."
+    },
+    {
+      "name": "in-attr-nullattr-value-null",
+      "filter": "in(attributes/nullAttr,\"real-value\",null)",
+      "comment": "null-operand Mongo-parity battery (SB-01), attribute path: in(p,v,null) is Mongo {$in:[v,null]} -- matches the listed value (nenull-realvals), a JSON-null leaf (nenull-nullvals) AND a MISSING leaf (every thing without the key); only a leaf with a different value (nenull-stringvals) is excluded. No exists() clause (only eq(null)/ne add one).",
+      "expectNonEmptySudo": true
+    },
+    {
+      "name": "in-attr-nullattr-null",
+      "filter": "in(attributes/nullAttr,null)",
+      "comment": "null-operand Mongo-parity battery (SB-01), attribute path: in(p,null) is Mongo {$in:[null]} = {p:null} -- matches a JSON-null leaf (nenull-nullvals) AND a MISSING leaf, unlike Ditto's eq(p,null) which adds exists() and matches only the JSON-null leaf.",
+      "expectNonEmptySudo": true
+    },
+    {
+      "name": "ge-attr-nullattr-null",
+      "filter": "ge(attributes/nullAttr,null)",
+      "comment": "null-operand Mongo-parity battery (SB-01), attribute path: ge(p,null) is Mongo {$gte:null} = {p:null} -- matches a JSON-null leaf (nenull-nullvals) AND a MISSING leaf; NOT Ditto's eq(p,null), which requires the leaf to exist.",
+      "expectNonEmptySudo": true
+    },
+    {
+      "name": "le-attr-nullattr-null",
+      "filter": "le(attributes/nullAttr,null)",
+      "comment": "null-operand Mongo-parity battery (SB-01), attribute path: le(p,null) is Mongo {$lte:null} = {p:null} -- matches a JSON-null leaf (nenull-nullvals) AND a MISSING leaf; NOT Ditto's eq(p,null), which requires the leaf to exist.",
+      "expectNonEmptySudo": true
+    },
+    {
+      "name": "gt-attr-nullattr-null",
+      "filter": "gt(attributes/nullAttr,null)",
+      "comment": "null-operand Mongo-parity battery (SB-01), attribute path: gt(p,null) is Mongo {$gt:null}, which matches NOTHING (no value is strictly greater than null) -- empty on both backends under every auth situation; not-gt-attr-nullattr-null proves 'nothing' is not 'everything'."
+    },
+    {
+      "name": "lt-attr-nullattr-null",
+      "filter": "lt(attributes/nullAttr,null)",
+      "comment": "null-operand Mongo-parity battery (SB-01), attribute path: lt(p,null) is Mongo {$lt:null}, which matches NOTHING (no value is strictly smaller than null) -- empty on both backends under every auth situation; not-lt-attr-nullattr-null proves 'nothing' is not 'everything'."
+    },
+    {
+      "name": "not-gt-attr-nullattr-null",
+      "filter": "not(gt(attributes/nullAttr,null))",
+      "comment": "null-operand Mongo-parity battery (SB-01), attribute path: not(gt(p,null)) negates a never-matching predicate -- every visible thing matches on both backends (Mongo nor({$gt:null}) ∧ global read; Postgres NOT false ∧ global read).",
+      "expectNonEmptySudo": true
+    },
+    {
+      "name": "not-lt-attr-nullattr-null",
+      "filter": "not(lt(attributes/nullAttr,null))",
+      "comment": "null-operand Mongo-parity battery (SB-01), attribute path: not(lt(p,null)) negates a never-matching predicate -- every visible thing matches on both backends (Mongo nor({$lt:null}) ∧ global read; Postgres NOT false ∧ global read); the companion of lt-attr-nullattr-null, proving 'nothing' is not 'everything'.",
+      "expectNonEmptySudo": true
+    },
+    {
+      "name": "not-in-attr-nullattr-value-null",
+      "filter": "not(in(attributes/nullAttr,\"real-value\",null))",
+      "comment": "null-operand Mongo-parity battery (SB-01), attribute path: not(in(p,v,null)) is the complement of value-or-null-or-missing -- only a leaf that EXISTS with a different value (nenull-stringvals) matches.",
+      "expectNonEmptySudo": true
+    },
+    {
+      "name": "in-feature-nullprop-value-null",
+      "filter": "in(features/f1/properties/nullProp,\"real-value\",null)",
+      "comment": "null-operand Mongo-parity battery (SB-01), specific-feature-property path: in(p,v,null) is Mongo {$in:[v,null]} -- matches the listed value (nenull-realvals), a JSON-null leaf (nenull-nullvals) AND a MISSING leaf (every thing without the key); only a leaf with a different value (nenull-stringvals) is excluded. No exists() clause (only eq(null)/ne add one). Under the limited auth situation (a policy that revokes features) the feature-bearing things turn into non-matches of the positive form and matches of the negation; feature-less things are unaffected -- parity holds on both backends.",
+      "expectNonEmptySudo": true
+    },
+    {
+      "name": "in-feature-nullprop-null",
+      "filter": "in(features/f1/properties/nullProp,null)",
+      "comment": "null-operand Mongo-parity battery (SB-01), specific-feature-property path: in(p,null) is Mongo {$in:[null]} = {p:null} -- matches a JSON-null leaf (nenull-nullvals) AND a MISSING leaf, unlike Ditto's eq(p,null) which adds exists() and matches only the JSON-null leaf.",
+      "expectNonEmptySudo": true
+    },
+    {
+      "name": "ge-feature-nullprop-null",
+      "filter": "ge(features/f1/properties/nullProp,null)",
+      "comment": "null-operand Mongo-parity battery (SB-01), specific-feature-property path: ge(p,null) is Mongo {$gte:null} = {p:null} -- matches a JSON-null leaf (nenull-nullvals) AND a MISSING leaf; NOT Ditto's eq(p,null), which requires the leaf to exist.",
+      "expectNonEmptySudo": true
+    },
+    {
+      "name": "le-feature-nullprop-null",
+      "filter": "le(features/f1/properties/nullProp,null)",
+      "comment": "null-operand Mongo-parity battery (SB-01), specific-feature-property path: le(p,null) is Mongo {$lte:null} = {p:null} -- matches a JSON-null leaf (nenull-nullvals) AND a MISSING leaf; NOT Ditto's eq(p,null), which requires the leaf to exist.",
+      "expectNonEmptySudo": true
+    },
+    {
+      "name": "gt-feature-nullprop-null",
+      "filter": "gt(features/f1/properties/nullProp,null)",
+      "comment": "null-operand Mongo-parity battery (SB-01), specific-feature-property path: gt(p,null) is Mongo {$gt:null}, which matches NOTHING (no value is strictly greater than null) -- empty on both backends under every auth situation; not-gt-feature-nullprop-null proves 'nothing' is not 'everything'."
+    },
+    {
+      "name": "lt-feature-nullprop-null",
+      "filter": "lt(features/f1/properties/nullProp,null)",
+      "comment": "null-operand Mongo-parity battery (SB-01), specific-feature-property path: lt(p,null) is Mongo {$lt:null}, which matches NOTHING (no value is strictly smaller than null) -- empty on both backends under every auth situation; not-lt-feature-nullprop-null proves 'nothing' is not 'everything'."
+    },
+    {
+      "name": "not-gt-feature-nullprop-null",
+      "filter": "not(gt(features/f1/properties/nullProp,null))",
+      "comment": "null-operand Mongo-parity battery (SB-01), specific-feature-property path: not(gt(p,null)) negates a never-matching predicate -- every visible thing matches on both backends (Mongo nor({$gt:null}) ∧ global read; Postgres NOT false ∧ global read).",
+      "expectNonEmptySudo": true
+    },
+    {
+      "name": "not-lt-feature-nullprop-null",
+      "filter": "not(lt(features/f1/properties/nullProp,null))",
+      "comment": "null-operand Mongo-parity battery (SB-01), specific-feature-property path: not(lt(p,null)) negates a never-matching predicate -- every visible thing matches on both backends (Mongo nor({$lt:null}) ∧ global read; Postgres NOT false ∧ global read); the companion of lt-feature-nullprop-null, proving 'nothing' is not 'everything'.",
+      "expectNonEmptySudo": true
+    },
+    {
+      "name": "not-in-feature-nullprop-value-null",
+      "filter": "not(in(features/f1/properties/nullProp,\"real-value\",null))",
+      "comment": "null-operand Mongo-parity battery (SB-01), specific-feature-property path: not(in(p,v,null)) is the complement of value-or-null-or-missing -- only a leaf that EXISTS with a different value (nenull-stringvals) matches. Under the limited auth situation (a policy that revokes features) the feature-bearing things turn into non-matches of the positive form and matches of the negation; feature-less things are unaffected -- parity holds on both backends.",
+      "expectNonEmptySudo": true
+    },
+    {
+      "name": "in-wildcard-nullprop-value-null",
+      "filter": "in(features/*/properties/nullProp,\"real-value\",null)",
+      "comment": "null-operand Mongo-parity battery (SB-01), wildcard-feature-property path: in(p,v,null) matches a thing with at least one VISIBLE feature whose nullProp is the listed value, JSON null or MISSING (elemMatch per feature); nenull-stringvals (only feature f1 holds a different value) and feature-less things are excluded. Crossed with allowlist entry #8 (sudo-wildcard-value-mongo-degenerate-path): under SUDO Mongo degrades the wildcard to the top-level dotted path properties.nullProp, which NO document has, so a null-including operand matches EVERY thing (null = missing) while Postgres answers the features/* predicate semantically (per visible feature). Every non-sudo situation asserts strict parity.",
+      "expectNonEmptyAuth": "full",
+      "divergence": "sudo-wildcard-value-mongo-degenerate-path",
+      "expected": {
+        "mongo": {
+          "sudo": [
+            "org.eclipse.ditto.parity:arrays",
+            "org.eclipse.ditto.parity:empties",
+            "org.eclipse.ditto.parity:feature-agree",
+            "org.eclipse.ditto.parity:feature-disagree",
+            "org.eclipse.ditto.parity:nenull-nullvals",
+            "org.eclipse.ditto.parity:nenull-realvals",
+            "org.eclipse.ditto.parity:nenull-stringvals",
+            "org.eclipse.ditto.parity:range-above",
+            "org.eclipse.ditto.parity:range-straddle",
+            "org.eclipse.ditto.parity:rank-bool-false",
+            "org.eclipse.ditto.parity:rank-bool-true",
+            "org.eclipse.ditto.parity:rank-double",
+            "org.eclipse.ditto.parity:rank-emptyarr",
+            "org.eclipse.ditto.parity:rank-int",
+            "org.eclipse.ditto.parity:rank-long",
+            "org.eclipse.ditto.parity:rank-missing",
+            "org.eclipse.ditto.parity:rank-null",
+            "org.eclipse.ditto.parity:rank-str-apple",
+            "org.eclipse.ditto.parity:rank-str-banana",
+            "org.eclipse.ditto.parity:rankdiv-arrarr",
+            "org.eclipse.ditto.parity:rankdiv-arrmix",
+            "org.eclipse.ditto.parity:rankdiv-num",
+            "org.eclipse.ditto.parity:rankdiv-obj-a",
+            "org.eclipse.ditto.parity:rankdiv-obj-b",
+            "org.eclipse.ditto.parity:scalars-blue"
+          ]
+        },
+        "postgres": {
+          "sudo": [
+            "org.eclipse.ditto.parity:feature-agree",
+            "org.eclipse.ditto.parity:feature-disagree",
+            "org.eclipse.ditto.parity:nenull-nullvals",
+            "org.eclipse.ditto.parity:nenull-realvals",
+            "org.eclipse.ditto.parity:scalars-blue",
+            "org.eclipse.ditto.parity:scalars-green",
+            "org.eclipse.ditto.parity:scalars-red",
+            "org.eclipse.ditto.parity:zsort-a",
+            "org.eclipse.ditto.parity:zsort-b",
+            "org.eclipse.ditto.parity:zsort-c",
+            "org.eclipse.ditto.parity:zsort-d",
+            "org.eclipse.ditto.parity:zsort-e"
+          ]
+        }
+      }
+    },
+    {
+      "name": "in-wildcard-nullprop-null",
+      "filter": "in(features/*/properties/nullProp,null)",
+      "comment": "null-operand Mongo-parity battery (SB-01), wildcard-feature-property path: in(p,null) matches a thing with at least one VISIBLE feature whose nullProp is JSON null or MISSING; nenull-realvals and nenull-stringvals (their only feature holds a value) and feature-less things are excluded. Crossed with allowlist entry #8 (sudo-wildcard-value-mongo-degenerate-path): under SUDO Mongo degrades the wildcard to the top-level dotted path properties.nullProp, which NO document has, so a null-including operand matches EVERY thing (null = missing) while Postgres answers the features/* predicate semantically (per visible feature). Every non-sudo situation asserts strict parity.",
+      "expectNonEmptyAuth": "full",
+      "divergence": "sudo-wildcard-value-mongo-degenerate-path",
+      "expected": {
+        "mongo": {
+          "sudo": [
+            "org.eclipse.ditto.parity:arrays",
+            "org.eclipse.ditto.parity:empties",
+            "org.eclipse.ditto.parity:feature-agree",
+            "org.eclipse.ditto.parity:feature-disagree",
+            "org.eclipse.ditto.parity:nenull-nullvals",
+            "org.eclipse.ditto.parity:nenull-realvals",
+            "org.eclipse.ditto.parity:nenull-stringvals",
+            "org.eclipse.ditto.parity:range-above",
+            "org.eclipse.ditto.parity:range-straddle",
+            "org.eclipse.ditto.parity:rank-bool-false",
+            "org.eclipse.ditto.parity:rank-bool-true",
+            "org.eclipse.ditto.parity:rank-double",
+            "org.eclipse.ditto.parity:rank-emptyarr",
+            "org.eclipse.ditto.parity:rank-int",
+            "org.eclipse.ditto.parity:rank-long",
+            "org.eclipse.ditto.parity:rank-missing",
+            "org.eclipse.ditto.parity:rank-null",
+            "org.eclipse.ditto.parity:rank-str-apple",
+            "org.eclipse.ditto.parity:rank-str-banana",
+            "org.eclipse.ditto.parity:rankdiv-arrarr",
+            "org.eclipse.ditto.parity:rankdiv-arrmix",
+            "org.eclipse.ditto.parity:rankdiv-num",
+            "org.eclipse.ditto.parity:rankdiv-obj-a",
+            "org.eclipse.ditto.parity:rankdiv-obj-b",
+            "org.eclipse.ditto.parity:scalars-blue"
+          ]
+        },
+        "postgres": {
+          "sudo": [
+            "org.eclipse.ditto.parity:feature-agree",
+            "org.eclipse.ditto.parity:feature-disagree",
+            "org.eclipse.ditto.parity:nenull-nullvals",
+            "org.eclipse.ditto.parity:scalars-blue",
+            "org.eclipse.ditto.parity:scalars-green",
+            "org.eclipse.ditto.parity:scalars-red",
+            "org.eclipse.ditto.parity:zsort-a",
+            "org.eclipse.ditto.parity:zsort-b",
+            "org.eclipse.ditto.parity:zsort-c",
+            "org.eclipse.ditto.parity:zsort-d",
+            "org.eclipse.ditto.parity:zsort-e"
+          ]
+        }
+      }
+    },
+    {
+      "name": "ge-wildcard-nullprop-null",
+      "filter": "ge(features/*/properties/nullProp,null)",
+      "comment": "null-operand Mongo-parity battery (SB-01), wildcard-feature-property path: ge(p,null) ($gte:null) matches a thing with at least one VISIBLE feature whose nullProp is JSON null or MISSING; nenull-realvals, nenull-stringvals and feature-less things are excluded. Crossed with allowlist entry #8 (sudo-wildcard-value-mongo-degenerate-path): under SUDO Mongo degrades the wildcard to the top-level dotted path properties.nullProp, which NO document has, so a null-including operand matches EVERY thing (null = missing) while Postgres answers the features/* predicate semantically (per visible feature). Every non-sudo situation asserts strict parity.",
+      "expectNonEmptyAuth": "full",
+      "divergence": "sudo-wildcard-value-mongo-degenerate-path",
+      "expected": {
+        "mongo": {
+          "sudo": [
+            "org.eclipse.ditto.parity:arrays",
+            "org.eclipse.ditto.parity:empties",
+            "org.eclipse.ditto.parity:feature-agree",
+            "org.eclipse.ditto.parity:feature-disagree",
+            "org.eclipse.ditto.parity:nenull-nullvals",
+            "org.eclipse.ditto.parity:nenull-realvals",
+            "org.eclipse.ditto.parity:nenull-stringvals",
+            "org.eclipse.ditto.parity:range-above",
+            "org.eclipse.ditto.parity:range-straddle",
+            "org.eclipse.ditto.parity:rank-bool-false",
+            "org.eclipse.ditto.parity:rank-bool-true",
+            "org.eclipse.ditto.parity:rank-double",
+            "org.eclipse.ditto.parity:rank-emptyarr",
+            "org.eclipse.ditto.parity:rank-int",
+            "org.eclipse.ditto.parity:rank-long",
+            "org.eclipse.ditto.parity:rank-missing",
+            "org.eclipse.ditto.parity:rank-null",
+            "org.eclipse.ditto.parity:rank-str-apple",
+            "org.eclipse.ditto.parity:rank-str-banana",
+            "org.eclipse.ditto.parity:rankdiv-arrarr",
+            "org.eclipse.ditto.parity:rankdiv-arrmix",
+            "org.eclipse.ditto.parity:rankdiv-num",
+            "org.eclipse.ditto.parity:rankdiv-obj-a",
+            "org.eclipse.ditto.parity:rankdiv-obj-b",
+            "org.eclipse.ditto.parity:scalars-blue"
+          ]
+        },
+        "postgres": {
+          "sudo": [
+            "org.eclipse.ditto.parity:feature-agree",
+            "org.eclipse.ditto.parity:feature-disagree",
+            "org.eclipse.ditto.parity:nenull-nullvals",
+            "org.eclipse.ditto.parity:scalars-blue",
+            "org.eclipse.ditto.parity:scalars-green",
+            "org.eclipse.ditto.parity:scalars-red",
+            "org.eclipse.ditto.parity:zsort-a",
+            "org.eclipse.ditto.parity:zsort-b",
+            "org.eclipse.ditto.parity:zsort-c",
+            "org.eclipse.ditto.parity:zsort-d",
+            "org.eclipse.ditto.parity:zsort-e"
+          ]
+        }
+      }
+    },
+    {
+      "name": "le-wildcard-nullprop-null",
+      "filter": "le(features/*/properties/nullProp,null)",
+      "comment": "null-operand Mongo-parity battery (SB-01), wildcard-feature-property path: le(p,null) ($lte:null) matches a thing with at least one VISIBLE feature whose nullProp is JSON null or MISSING; nenull-realvals, nenull-stringvals and feature-less things are excluded. Crossed with allowlist entry #8 (sudo-wildcard-value-mongo-degenerate-path): under SUDO Mongo degrades the wildcard to the top-level dotted path properties.nullProp, which NO document has, so a null-including operand matches EVERY thing (null = missing) while Postgres answers the features/* predicate semantically (per visible feature). Every non-sudo situation asserts strict parity.",
+      "expectNonEmptyAuth": "full",
+      "divergence": "sudo-wildcard-value-mongo-degenerate-path",
+      "expected": {
+        "mongo": {
+          "sudo": [
+            "org.eclipse.ditto.parity:arrays",
+            "org.eclipse.ditto.parity:empties",
+            "org.eclipse.ditto.parity:feature-agree",
+            "org.eclipse.ditto.parity:feature-disagree",
+            "org.eclipse.ditto.parity:nenull-nullvals",
+            "org.eclipse.ditto.parity:nenull-realvals",
+            "org.eclipse.ditto.parity:nenull-stringvals",
+            "org.eclipse.ditto.parity:range-above",
+            "org.eclipse.ditto.parity:range-straddle",
+            "org.eclipse.ditto.parity:rank-bool-false",
+            "org.eclipse.ditto.parity:rank-bool-true",
+            "org.eclipse.ditto.parity:rank-double",
+            "org.eclipse.ditto.parity:rank-emptyarr",
+            "org.eclipse.ditto.parity:rank-int",
+            "org.eclipse.ditto.parity:rank-long",
+            "org.eclipse.ditto.parity:rank-missing",
+            "org.eclipse.ditto.parity:rank-null",
+            "org.eclipse.ditto.parity:rank-str-apple",
+            "org.eclipse.ditto.parity:rank-str-banana",
+            "org.eclipse.ditto.parity:rankdiv-arrarr",
+            "org.eclipse.ditto.parity:rankdiv-arrmix",
+            "org.eclipse.ditto.parity:rankdiv-num",
+            "org.eclipse.ditto.parity:rankdiv-obj-a",
+            "org.eclipse.ditto.parity:rankdiv-obj-b",
+            "org.eclipse.ditto.parity:scalars-blue"
+          ]
+        },
+        "postgres": {
+          "sudo": [
+            "org.eclipse.ditto.parity:feature-agree",
+            "org.eclipse.ditto.parity:feature-disagree",
+            "org.eclipse.ditto.parity:nenull-nullvals",
+            "org.eclipse.ditto.parity:scalars-blue",
+            "org.eclipse.ditto.parity:scalars-green",
+            "org.eclipse.ditto.parity:scalars-red",
+            "org.eclipse.ditto.parity:zsort-a",
+            "org.eclipse.ditto.parity:zsort-b",
+            "org.eclipse.ditto.parity:zsort-c",
+            "org.eclipse.ditto.parity:zsort-d",
+            "org.eclipse.ditto.parity:zsort-e"
+          ]
+        }
+      }
+    },
+    {
+      "name": "gt-wildcard-nullprop-null",
+      "filter": "gt(features/*/properties/nullProp,null)",
+      "comment": "null-operand Mongo-parity battery (SB-01), wildcard-feature-property path: gt(p,null) is Mongo {$gt:null}, which matches NOTHING (no value is strictly greater than null) -- empty on both backends under every auth situation; not-gt-wildcard-nullprop-null proves 'nothing' is not 'everything'."
+    },
+    {
+      "name": "lt-wildcard-nullprop-null",
+      "filter": "lt(features/*/properties/nullProp,null)",
+      "comment": "null-operand Mongo-parity battery (SB-01), wildcard-feature-property path: lt(p,null) is Mongo {$lt:null}, which matches NOTHING (no value is strictly smaller than null) -- empty on both backends under every auth situation; not-lt-wildcard-nullprop-null proves 'nothing' is not 'everything'."
+    },
+    {
+      "name": "not-gt-wildcard-nullprop-null",
+      "filter": "not(gt(features/*/properties/nullProp,null))",
+      "comment": "null-operand Mongo-parity battery (SB-01), wildcard-feature-property path: not(gt(p,null)) negates a never-matching predicate -- every visible thing matches on both backends (Mongo nor({$gt:null}) ∧ global read; Postgres NOT false ∧ global read). Under SUDO the wildcard degenerate path matches nothing on Mongo too, so no divergence here.",
+      "expectNonEmptySudo": true
+    },
+    {
+      "name": "not-lt-wildcard-nullprop-null",
+      "filter": "not(lt(features/*/properties/nullProp,null))",
+      "comment": "null-operand Mongo-parity battery (SB-01), wildcard-feature-property path: not(lt(p,null)) negates a never-matching predicate -- every visible thing matches on both backends (Mongo nor({$lt:null}) ∧ global read; Postgres NOT false ∧ global read). Under SUDO the wildcard degenerate path matches nothing on Mongo too, so no divergence here; the companion of lt-wildcard-nullprop-null, proving 'nothing' is not 'everything'.",
+      "expectNonEmptySudo": true
+    },
+    {
+      "name": "not-in-wildcard-nullprop-value-null",
+      "filter": "not(in(features/*/properties/nullProp,\"real-value\",null))",
+      "comment": "null-operand Mongo-parity battery (SB-01), wildcard-feature-property path: not(in(p,v,null)) is the complement of 'some visible feature has the value, null or no nullProp' -- feature-less things and nenull-stringvals match. Under SUDO Mongo's degenerate path matches every thing, so its negation is EMPTY. Crossed with allowlist entry #8 (sudo-wildcard-value-mongo-degenerate-path): under SUDO Mongo degrades the wildcard to the top-level dotted path properties.nullProp, which NO document has, so a null-including operand matches EVERY thing (null = missing) while Postgres answers the features/* predicate semantically (per visible feature). Every non-sudo situation asserts strict parity.",
+      "expectNonEmptyAuth": "full",
+      "divergence": "sudo-wildcard-value-mongo-degenerate-path",
+      "expected": {
+        "mongo": {
+          "sudo": []
+        },
+        "postgres": {
+          "sudo": [
+            "org.eclipse.ditto.parity:arrays",
+            "org.eclipse.ditto.parity:empties",
+            "org.eclipse.ditto.parity:nenull-stringvals",
+            "org.eclipse.ditto.parity:range-above",
+            "org.eclipse.ditto.parity:range-straddle",
+            "org.eclipse.ditto.parity:rank-bool-false",
+            "org.eclipse.ditto.parity:rank-bool-true",
+            "org.eclipse.ditto.parity:rank-double",
+            "org.eclipse.ditto.parity:rank-emptyarr",
+            "org.eclipse.ditto.parity:rank-int",
+            "org.eclipse.ditto.parity:rank-long",
+            "org.eclipse.ditto.parity:rank-missing",
+            "org.eclipse.ditto.parity:rank-null",
+            "org.eclipse.ditto.parity:rank-str-apple",
+            "org.eclipse.ditto.parity:rank-str-banana",
+            "org.eclipse.ditto.parity:rankdiv-arrarr",
+            "org.eclipse.ditto.parity:rankdiv-arrmix",
+            "org.eclipse.ditto.parity:rankdiv-num",
+            "org.eclipse.ditto.parity:rankdiv-obj-a",
+            "org.eclipse.ditto.parity:rankdiv-obj-b",
+            "org.eclipse.ditto.parity:unicode",
+            "org.eclipse.ditto.parity:walker-d100",
+            "org.eclipse.ditto.parity:walker-d35",
+            "org.eclipse.ditto.parity:walker-i42a",
+            "org.eclipse.ditto.parity:walker-i42b"
+          ]
+        }
+      }
+    },
+    {
+      "name": "in-definition-value-null",
+      "filter": "in(definition,\"org.example:NeNull:1.0.0\",null)",
+      "comment": "null-operand Mongo-parity battery (SB-01), /definition path (slash-mapped simple field): in(p,v,null) is Mongo {$in:[v,null]} -- matches the listed value (nenull-realvals), a JSON-null leaf (nenull-nullvals) AND a MISSING leaf (every thing without the key); only a leaf with a different value (nenull-stringvals) is excluded. No exists() clause (only eq(null)/ne add one).",
+      "expectNonEmptySudo": true
+    },
+    {
+      "name": "in-definition-null",
+      "filter": "in(definition,null)",
+      "comment": "null-operand Mongo-parity battery (SB-01), /definition path (slash-mapped simple field): in(p,null) is Mongo {$in:[null]} = {p:null} -- matches a JSON-null leaf (nenull-nullvals) AND a MISSING leaf, unlike Ditto's eq(p,null) which adds exists() and matches only the JSON-null leaf.",
+      "expectNonEmptySudo": true
+    },
+    {
+      "name": "ge-definition-null",
+      "filter": "ge(definition,null)",
+      "comment": "null-operand Mongo-parity battery (SB-01), /definition path (slash-mapped simple field): ge(p,null) is Mongo {$gte:null} = {p:null} -- matches a JSON-null leaf (nenull-nullvals) AND a MISSING leaf; NOT Ditto's eq(p,null), which requires the leaf to exist.",
+      "expectNonEmptySudo": true
+    },
+    {
+      "name": "le-definition-null",
+      "filter": "le(definition,null)",
+      "comment": "null-operand Mongo-parity battery (SB-01), /definition path (slash-mapped simple field): le(p,null) is Mongo {$lte:null} = {p:null} -- matches a JSON-null leaf (nenull-nullvals) AND a MISSING leaf; NOT Ditto's eq(p,null), which requires the leaf to exist.",
+      "expectNonEmptySudo": true
+    },
+    {
+      "name": "gt-definition-null",
+      "filter": "gt(definition,null)",
+      "comment": "null-operand Mongo-parity battery (SB-01), /definition path (slash-mapped simple field): gt(p,null) is Mongo {$gt:null}, which matches NOTHING (no value is strictly greater than null) -- empty on both backends under every auth situation; not-gt-definition-null proves 'nothing' is not 'everything'."
+    },
+    {
+      "name": "lt-definition-null",
+      "filter": "lt(definition,null)",
+      "comment": "null-operand Mongo-parity battery (SB-01), /definition path (slash-mapped simple field): lt(p,null) is Mongo {$lt:null}, which matches NOTHING (no value is strictly smaller than null) -- empty on both backends under every auth situation; not-lt-definition-null proves 'nothing' is not 'everything'."
+    },
+    {
+      "name": "not-gt-definition-null",
+      "filter": "not(gt(definition,null))",
+      "comment": "null-operand Mongo-parity battery (SB-01), /definition path (slash-mapped simple field): not(gt(p,null)) negates a never-matching predicate -- every visible thing matches on both backends (Mongo nor({$gt:null}) ∧ global read; Postgres NOT false ∧ global read).",
+      "expectNonEmptySudo": true
+    },
+    {
+      "name": "not-lt-definition-null",
+      "filter": "not(lt(definition,null))",
+      "comment": "null-operand Mongo-parity battery (SB-01), /definition path (slash-mapped simple field): not(lt(p,null)) negates a never-matching predicate -- every visible thing matches on both backends (Mongo nor({$lt:null}) ∧ global read; Postgres NOT false ∧ global read); the companion of lt-definition-null, proving 'nothing' is not 'everything'.",
+      "expectNonEmptySudo": true
+    },
+    {
+      "name": "not-in-definition-value-null",
+      "filter": "not(in(definition,\"org.example:NeNull:1.0.0\",null))",
+      "comment": "null-operand Mongo-parity battery (SB-01), /definition path (slash-mapped simple field): not(in(p,v,null)) is the complement of value-or-null-or-missing -- only a leaf that EXISTS with a different value (nenull-stringvals) matches.",
+      "expectNonEmptySudo": true
+    },
+    {
+      "name": "in-thingid-value-null",
+      "filter": "in(thingId,\"org.eclipse.ditto.parity:scalars-red\",null)",
+      "comment": "null-operand Mongo-parity battery (SB-01), root-mapped thingId (Mongo _id, Postgres column; never null, never missing): in(thingId,v,null) matches exactly the listed id -- the null member can match nothing.",
+      "expectNonEmptySudo": true
+    },
+    {
+      "name": "ge-thingid-null",
+      "filter": "ge(thingId,null)",
+      "comment": "null-operand Mongo-parity battery (SB-01), root-mapped thingId: ge(thingId,null) = {_id:null} matches NOTHING because _id is never null nor missing (the thing-level counterparts ge-attr-nullattr-null etc. DO match missing leaves)."
+    },
+    {
+      "name": "gt-thingid-null",
+      "filter": "gt(thingId,null)",
+      "comment": "null-operand Mongo-parity battery (SB-01), root-mapped thingId: gt(thingId,null) matches NOTHING on both backends."
+    },
+    {
+      "name": "not-gt-namespace-null",
+      "filter": "not(gt(namespace,null))",
+      "comment": "null-operand Mongo-parity battery (SB-01), root-mapped namespace: not(gt(namespace,null)) matches every visible thing (negation of a never-matching predicate).",
+      "expectNonEmptySudo": true
+    },
+    {
+      "name": "in-namespace-value-null",
+      "filter": "in(namespace,\"org.eclipse.ditto.parity\",null)",
+      "comment": "null-operand Mongo-parity battery (SB-01), root-mapped namespace: in(namespace,v,null) matches exactly the things of the listed namespace -- the null member can match nothing (namespace is never null nor missing).",
+      "expectNonEmptySudo": true
+    },
+    {
+      "name": "and-in-nullattr-value-null-eq-color-red",
+      "filter": "and(in(attributes/nullAttr,\"real-value\",null),eq(attributes/color,\"red\"))",
+      "comment": "null-operand Mongo-parity battery (SB-01), selective-leg shape: and(in(p,v,null), eq(color,red)) -- scalars-red and parityb-red (nullAttr MISSING, color red) match; the in() with a null member is not a point leg, eq(color) is.",
+      "expectNonEmptySudo": true
+    },
+    {
+      "name": "and-in-nullattr-value-null-exists-size",
+      "filter": "and(in(attributes/nullAttr,\"real-value\",null),exists(attributes/size))",
+      "comment": "null-operand Mongo-parity battery (SB-01), selective-leg shape: and(in(p,v,null), exists(size)) -- no point leg at all (in() carries null, exists never is one); every thing with a size attribute and a missing/null/listed nullAttr matches.",
+      "expectNonEmptySudo": true
+    },
+    {
+      "name": "and-eq-color-red-in-nullattr-null",
+      "filter": "and(eq(attributes/color,\"red\"),in(attributes/nullAttr,null))",
+      "comment": "null-operand Mongo-parity battery (SB-01), selective-leg shape: and(eq(color,red), in(p,null)) -- eq(color) is the point leg; in(p,null) (null OR missing) must not be hoisted; scalars-red and parityb-red match.",
+      "expectNonEmptySudo": true
+    },
+    {
+      "name": "count-in-attr-nullattr-value-null",
+      "mode": "count",
+      "filter": "in(attributes/nullAttr,\"real-value\",null)",
+      "comment": "null-operand Mongo-parity battery (SB-01), count mode: in(p,v,null) counts the listed value, the JSON-null leaf and every MISSING leaf (everything but nenull-stringvals).",
+      "expectNonEmptySudo": true
+    },
+    {
+      "name": "not-ge-attr-nullattr-null",
+      "filter": "not(ge(attributes/nullAttr,null))",
+      "comment": "null-operand Mongo-parity battery (SB-01), attribute path: not(ge(p,null)) is the complement of null-or-missing -- only a leaf that EXISTS with a non-null value matches (nenull-realvals, nenull-stringvals), like ne(p,null).",
+      "expectNonEmptySudo": true
     }
   ]
 }

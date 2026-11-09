@@ -15,6 +15,9 @@ package org.eclipse.ditto.internal.utils.persistence.postgres.search.query;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -27,8 +30,10 @@ import org.eclipse.ditto.internal.utils.persistence.postgres.search.query.ast.Sq
 import org.eclipse.ditto.internal.utils.persistence.postgres.search.query.ast.SqlBindType;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.rql.model.ParsedPlaceholder;
 import org.eclipse.ditto.rql.query.criteria.Criteria;
 import org.eclipse.ditto.rql.query.criteria.CriteriaFactory;
+import org.eclipse.ditto.rql.query.criteria.Predicate;
 import org.eclipse.ditto.rql.query.expression.ThingsFieldExpressionFactory;
 import org.junit.Test;
 
@@ -152,6 +157,221 @@ public final class RqlToSqlTranslationTest {
         final RenderedSql r = sudo(cf.fieldCriteria(fef.filterByNamespace(), cf.ne(null)));
         assertThat(r.sql()).isEqualTo("st.namespace IS NOT NULL");
         assertThat(r.bindValues()).isEmpty();
+    }
+
+    // ============================================================================ null operands (SB-01, Mongo parity)
+
+    /**
+     * The flat probe of {@code in(attributes/x, …, null)}, {@code ge/le(attributes/x, null)}: null-rank row OR no row.
+     */
+    private static final String NULL_OR_MISSING_X =
+            "(EXISTS (SELECT 1 FROM search_flat sf WHERE (sf.thing_id = st.thing_id AND sf.wpath = $1 AND "
+                    + "sf.type_rank = $2)) OR NOT EXISTS (SELECT 1 FROM search_flat sf WHERE "
+                    + "(sf.thing_id = st.thing_id AND sf.wpath = $3)))";
+
+    @Test
+    public void inWithNullMemberMatchesValuesNullRankAndMissing() {
+        // Mongo {$in: ["a", null]} (no exists clause) matches the listed value, a BSON null AND an absent field.
+        // Before the fix the null member fell into the generic bind path as the TEXT 'null' (String.valueOf(null)).
+        final RenderedSql r = sudo(cf.fieldCriteria(fef.filterByAttribute("x"), cf.in(Arrays.asList("a", null))));
+        assertThat(r.sql()).isEqualTo(
+                "(EXISTS (SELECT 1 FROM search_flat sf WHERE (sf.thing_id = st.thing_id AND sf.wpath = $1 AND "
+                        + "(sf.val_text = ANY($2::text[]) OR sf.type_rank = $3))) OR NOT EXISTS (SELECT 1 FROM "
+                        + "search_flat sf WHERE (sf.thing_id = st.thing_id AND sf.wpath = $4)))");
+        assertThat(flatBinds(r)).containsExactly("/attributes/x", "a", 1, "/attributes/x"); // TYPE_NULL
+        assertThat(flatBinds(r)).doesNotContain("null");
+    }
+
+    @Test
+    public void inWithOnlyNullIsNullRankOrMissingWithoutAnEmptyValueGroup() {
+        // in(p, null) alone: no value group at all (Sql.or of nothing used to be the failure mode), just
+        // null-or-missing.
+        final RenderedSql r =
+                sudo(cf.fieldCriteria(fef.filterByAttribute("x"), cf.in(Collections.singletonList(null))));
+        assertThat(r.sql()).isEqualTo(NULL_OR_MISSING_X);
+        assertThat(flatBinds(r)).containsExactly("/attributes/x", 1, "/attributes/x");
+    }
+
+    @Test
+    public void inWithNullMemberKeepsTypedValueGroupsAndStripsOnlyTheNull() {
+        final RenderedSql r = sudo(cf.fieldCriteria(fef.filterByAttribute("x"),
+                cf.in(Arrays.asList(1, null, "a", true, null))));
+        assertThat(r.sql()).contains("(sf.val_num = ANY($2::numeric[]) OR sf.val_text = ANY($3::text[]) OR "
+                + "sf.val_bool = ANY($4::boolean[]) OR sf.type_rank = $5)");
+        assertThat(flatBinds(r)).containsExactly("/attributes/x", BigDecimal.valueOf(1), "a", true, 1, "/attributes/x");
+    }
+
+    @Test
+    public void inWithTheStringNullStaysATextComparison() {
+        // The other half of the guard (cf. neStringLiteralNullStillUsesGenericTextBind): the Java String "null" is a
+        // genuine RQL string value — no null-rank group, no NOT EXISTS, the text bind "null" itself.
+        final RenderedSql r = sudo(cf.fieldCriteria(fef.filterByAttribute("x"), cf.in(List.of("null"))));
+        assertThat(r.sql()).isEqualTo("EXISTS (SELECT 1 FROM search_flat sf WHERE "
+                + "(sf.thing_id = st.thing_id AND sf.wpath = $1 AND sf.val_text = ANY($2::text[])))");
+        assertThat(flatBinds(r)).containsExactly("/attributes/x", "null");
+    }
+
+    @Test
+    public void inWithNoValuesRendersFalse() {
+        // cf.in(List.of()) has no RQL spelling but is a valid Criteria; Mongo's {$in: []} matches nothing. A bare
+        // false, no probe, no bind — flat and column form alike (Sql.or of no operands used to throw here).
+        final RenderedSql r = sudo(cf.fieldCriteria(fef.filterByAttribute("x"), cf.in(List.of())));
+        assertThat(r.sql()).isEqualTo("false");
+        assertThat(r.bindValues()).isEmpty();
+        assertThat(sudo(cf.fieldCriteria(fef.filterByThingId(), cf.in(List.of()))).sql()).isEqualTo("false");
+    }
+
+    @Test
+    public void geAndLeNullMatchNullRankOrMissingNotEqNullsExistence() {
+        // Mongo {$gte: null} / {$lte: null} are {f: null}: null OR missing — unlike Ditto's eq(null), which adds
+        // exists.
+        for (final Predicate predicate : List.of(cf.ge(null), cf.le(null))) {
+            final RenderedSql r = sudo(cf.fieldCriteria(fef.filterByAttribute("x"), predicate));
+            assertThat(r.sql()).as("%s", predicate).isEqualTo(NULL_OR_MISSING_X);
+            assertThat(flatBinds(r)).as("%s", predicate).containsExactly("/attributes/x", 1, "/attributes/x");
+        }
+        assertThat(sudo(cf.fieldCriteria(fef.filterByAttribute("x"), cf.eq(null))).sql())
+                .doesNotContain("NOT EXISTS");
+    }
+
+    @Test
+    public void geAndLeNullOnRootColumnRenderIsNull() {
+        // The column mirror of eq(null)'s IS NULL; thing_id/namespace are never null, so this is never true.
+        assertThat(sudo(cf.fieldCriteria(fef.filterByThingId(), cf.ge(null))).sql()).isEqualTo("st.thing_id IS NULL");
+        assertThat(sudo(cf.fieldCriteria(fef.filterByNamespace(), cf.le(null))).sql())
+                .isEqualTo("st.namespace IS NULL");
+    }
+
+    @Test
+    public void gtAndLtNullNeverMatchAndRenderNoProbe() {
+        // Mongo {$gt: null} / {$lt: null} match nothing: a bare false, no EXISTS, no auth recheck, no bind.
+        for (final Predicate predicate : List.of(cf.gt(null), cf.lt(null))) {
+            final RenderedSql attribute = sudo(cf.fieldCriteria(fef.filterByAttribute("x"), predicate));
+            assertThat(attribute.sql()).as("%s", predicate).isEqualTo("false");
+            assertThat(attribute.bindValues()).as("%s", predicate).isEmpty();
+            assertThat(sudo(cf.fieldCriteria(fef.filterByThingId(), predicate)).sql()).isEqualTo("false");
+            assertThat(sudo(cf.fieldCriteria(fef.filterByFeatureProperty("*", "p"), predicate)).sql())
+                    .isEqualTo("false");
+        }
+        // restricted: still false — no auth term can turn a never-matching predicate into a match
+        final RenderedSql restricted = render(CreateSqlVisitor.apply(
+                cf.fieldCriteria(fef.filterByAttribute("x"), cf.gt(null)), SUBJECTS).predicate());
+        assertThat(restricted.sql()).isEqualTo("(false AND st.global_read && $1::text[])");
+    }
+
+    @Test
+    public void notGtNullMatchesEverything() {
+        // "nothing" negated is "everything" — the companion the parity corpus pins non-empty.
+        final RenderedSql r = sudo(cf.nor(cf.fieldCriteria(fef.filterByAttribute("x"), cf.gt(null))));
+        assertThat(r.sql()).isEqualTo("NOT false");
+    }
+
+    @Test
+    public void inWithNullMemberOnRootColumnKeepsOnlyTheValues() {
+        // thing_id/namespace are never null nor missing (Mongo _id/_namespace likewise): the null member matches
+        // nothing.
+        final RenderedSql r = sudo(cf.fieldCriteria(fef.filterByThingId(), cf.in(Arrays.asList("ns:a", null))));
+        assertThat(r.sql()).isEqualTo("st.thing_id = ANY($1::text[])");
+        assertThat(flatBinds(r)).containsExactly("ns:a");
+        assertThat(sudo(cf.fieldCriteria(fef.filterByNamespace(), cf.in(Collections.singletonList(null)))).sql())
+                .isEqualTo("false");
+    }
+
+    @Test
+    public void wildcardInWithNullMemberMatchesPerVisibleFeatureValueNullOrNoProperty() {
+        // Mongo elemMatch(f, and({properties.p: {$in: ["a", null]}}, auth)): SOME feature visible to the subjects has
+        // p = "a", p = null or NO p at all. Anchor: the feature boundary row a (wpath '/features/*', one per feature)
+        // with the auth on a.f_id; the property rows b of the SAME feature match or do not exist.
+        final RenderedSql r = render(GetFilterSqlVisitor.apply(fef.filterByFeatureProperty("*", "p"),
+                new CreateSqlPredicateVisitor(List.of()).visitIn(Arrays.asList("a", null)), SUBJECTS));
+        assertThat(r.sql()).startsWith("EXISTS (SELECT 1 FROM search_flat a WHERE (a.thing_id = st.thing_id AND "
+                + "a.wpath = $1 AND (EXISTS (SELECT 1 FROM search_flat b WHERE (b.thing_id = a.thing_id AND "
+                + "b.f_id = a.f_id AND b.wpath = $2 AND (b.val_text = ANY($3::text[]) OR b.type_rank = $4))) OR "
+                + "NOT EXISTS (SELECT 1 FROM search_flat b WHERE (b.thing_id = a.thing_id AND b.f_id = a.f_id AND "
+                + "b.wpath = $5))) AND ");
+        assertThat(r.sql()).contains("jsonb_extract_path(st.features_auth, a.f_id");
+        assertThat(flatBinds(r).subList(0, 5)).containsExactly(
+                "/features/*", "/features/*/properties/p", "a", 1, "/features/*/properties/p");
+        assertThat(flatBinds(r)).doesNotContain("null");
+    }
+
+    @Test
+    public void wildcardGeNullUnderSudoHasNoAuthTerm() {
+        final RenderedSql r = sudo(cf.fieldCriteria(fef.filterByFeatureProperty("*", "p"), cf.ge(null)));
+        assertThat(r.sql()).isEqualTo("EXISTS (SELECT 1 FROM search_flat a WHERE (a.thing_id = st.thing_id AND "
+                + "a.wpath = $1 AND (EXISTS (SELECT 1 FROM search_flat b WHERE (b.thing_id = a.thing_id AND "
+                + "b.f_id = a.f_id AND b.wpath = $2 AND b.type_rank = $3)) OR NOT EXISTS (SELECT 1 FROM search_flat b "
+                + "WHERE (b.thing_id = a.thing_id AND b.f_id = a.f_id AND b.wpath = $4)))))");
+        assertThat(flatBinds(r)).containsExactly("/features/*", "/features/*/properties/p", 1,
+                "/features/*/properties/p");
+    }
+
+    @Test
+    public void wildcardDesiredPropertyInWithNullMemberAnchorsOnTheFeatureBoundaryRow() {
+        // features/*/desiredProperties/p dispatches to the same matchWildcardFeatureValue as properties/p: boundary
+        // row anchor, same-feature probes on the desiredProperties wpath, no 'null' bind.
+        final RenderedSql r = sudo(cf.fieldCriteria(fef.filterByFeatureDesiredProperty("*", "p"),
+                cf.in(Arrays.asList("a", null))));
+        assertThat(r.sql()).isEqualTo("EXISTS (SELECT 1 FROM search_flat a WHERE (a.thing_id = st.thing_id AND "
+                + "a.wpath = $1 AND (EXISTS (SELECT 1 FROM search_flat b WHERE (b.thing_id = a.thing_id AND "
+                + "b.f_id = a.f_id AND b.wpath = $2 AND (b.val_text = ANY($3::text[]) OR b.type_rank = $4))) OR "
+                + "NOT EXISTS (SELECT 1 FROM search_flat b WHERE (b.thing_id = a.thing_id AND b.f_id = a.f_id AND "
+                + "b.wpath = $5)))))");
+        assertThat(flatBinds(r)).containsExactly("/features/*", "/features/*/desiredProperties/p", "a", 1,
+                "/features/*/desiredProperties/p");
+        assertThat(flatBinds(r)).doesNotContain("null");
+    }
+
+    @Test
+    public void metadataGeNullMatchesNullRankOrMissing() {
+        // _metadata/k is a thing-level flat probe like an attribute: null-rank row OR no row at all, no 'null' bind.
+        final RenderedSql r = sudo(cf.fieldCriteria(fef.filterBy("_metadata/k"), cf.ge(null)));
+        assertThat(r.sql()).isEqualTo(NULL_OR_MISSING_X);
+        assertThat(flatBinds(r)).containsExactly("/_metadata/k", 1, "/_metadata/k");
+        assertThat(flatBinds(r)).doesNotContain("null");
+    }
+
+    @Test
+    public void nullOperandsKeepTheThingLevelAuthRecheck() {
+        // (null-or-missing) AND auth — Mongo and({f: null}, authBson); the auth is on the doc row, not the flat row.
+        final RenderedSql r = render(CreateSqlVisitor.apply(
+                cf.fieldCriteria(fef.filterByAttribute("x"), cf.in(Arrays.asList("a", null))), SUBJECTS).predicate());
+        assertThat(r.sql()).startsWith("(((EXISTS (SELECT 1 FROM search_flat sf WHERE");
+        assertThat(r.sql()).contains(") OR NOT EXISTS (SELECT 1 FROM search_flat sf WHERE (sf.thing_id = st.thing_id "
+                + "AND sf.wpath = $4))) AND (NOT COALESCE(");
+        assertThat(r.sql()).endsWith(" AND st.global_read && $" + (r.bindValues().size()) + "::text[])");
+    }
+
+    @Test
+    public void placeholderResolvedToNullGetsBareNullSemanticsInEqAndNullOperandSemanticsElsewhere() {
+        // Mongo resolves AFTER its null checks: eq(f, <unresolvable>) is a bare {f: null} (null OR missing, no exists),
+        // ne(f, <unresolvable>) stays and(ne null, exists), ge/in behave like their literal-null forms. Postgres
+        // resolves FIRST and then dispatches on the resolved null — never the TEXT literal 'null'.
+        final ParsedPlaceholder unresolvable = ParsedPlaceholder.of("time:bogus"); // prefix known, name unsupported
+        final ParsedPlaceholder unknownPrefix = ParsedPlaceholder.of("nobody:resolves_this");
+
+        assertThat(sudo(cf.fieldCriteria(fef.filterByAttribute("x"), cf.eq(unresolvable))).sql())
+                .isEqualTo(NULL_OR_MISSING_X);
+        assertThat(sudo(cf.fieldCriteria(fef.filterByAttribute("x"), cf.eq(unknownPrefix))).sql())
+                .isEqualTo(NULL_OR_MISSING_X);
+        assertThat(sudo(cf.fieldCriteria(fef.filterByAttribute("x"), cf.ne(unresolvable))).sql())
+                .isEqualTo(sudo(cf.fieldCriteria(fef.filterByAttribute("x"), cf.ne(null))).sql());
+        assertThat(sudo(cf.fieldCriteria(fef.filterByAttribute("x"), cf.ge(unresolvable))).sql())
+                .isEqualTo(NULL_OR_MISSING_X);
+        assertThat(sudo(cf.fieldCriteria(fef.filterByAttribute("x"), cf.gt(unresolvable))).sql()).isEqualTo("false");
+        final RenderedSql in = sudo(cf.fieldCriteria(fef.filterByAttribute("x"), cf.in(List.of("a", unresolvable))));
+        assertThat(in.sql()).contains("(sf.val_text = ANY($2::text[]) OR sf.type_rank = $3))) OR NOT EXISTS");
+        assertThat(flatBinds(in)).doesNotContain("null");
+    }
+
+    @Test
+    public void resolvablePlaceholderStaysAnOrdinaryTextBind() {
+        // positive control: time:now resolves through the TimePlaceholder resolver CreateSqlVisitor installs
+        final RenderedSql r =
+                sudo(cf.fieldCriteria(fef.filterByAttribute("x"), cf.eq(ParsedPlaceholder.of("time:now"))));
+        assertThat(r.sql()).isEqualTo("EXISTS (SELECT 1 FROM search_flat sf WHERE "
+                + "(sf.thing_id = st.thing_id AND sf.wpath = $1 AND sf.val_text = $2))");
+        assertThat(r.bindValues().get(1)).isInstanceOf(String.class).isNotEqualTo("null");
     }
 
     @Test
@@ -574,6 +794,19 @@ public final class RqlToSqlTranslationTest {
 
     private static RenderedSql render(final org.eclipse.ditto.internal.utils.persistence.postgres.search.query.ast.SqlNode node) {
         return Sql.render(node);
+    }
+
+    /** The bind values with array binds ({@code in} lists) expanded to their elements, so "no 'null' bind" is total. */
+    private static List<Object> flatBinds(final RenderedSql rendered) {
+        final List<Object> flat = new ArrayList<>();
+        for (final Object value : rendered.bindValues()) {
+            if (value instanceof Object[] array) {
+                flat.addAll(Arrays.asList(array));
+            } else {
+                flat.add(value);
+            }
+        }
+        return flat;
     }
 
     private static long countOccurrences(final String haystack, final String needle) {

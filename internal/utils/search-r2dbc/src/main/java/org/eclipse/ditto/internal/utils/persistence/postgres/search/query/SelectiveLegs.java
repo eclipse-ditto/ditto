@@ -17,7 +17,10 @@ package org.eclipse.ditto.internal.utils.persistence.postgres.search.query;
  */
 public enum SelectiveLegs {
 
-    /** Only point legs ({@code eq(non-null)}, {@code in(non-empty)}): the rule before the system index sf_multi. */
+    /**
+     * Only point legs ({@code eq(non-null)}, {@code in(non-empty)} without a null member): the rule before the system
+     * index sf_multi.
+     */
     POINT,
 
     /**

@@ -51,7 +51,9 @@ import org.eclipse.ditto.rql.query.expression.visitors.FilterFieldExpressionVisi
  * <b>Candidates.</b> Only on a flattened, non-wildcard path:
  * </p>
  * <ul>
- *     <li>a <em>point leg</em>: {@code eq(non-null)} or {@code in(non-empty)}; the first one counts;</li>
+ *     <li>a <em>point leg</em>: {@code eq(non-null)} or {@code in(non-empty)} without a null member; the first one
+ *     counts. A null operand (also a placeholder that resolves to null) matches things with NO row at the path
+ *     (MongoDB: null = missing), which no leg built from flat rows can produce;</li>
  *     <li>a <em>range leg</em> (only with {@link SelectiveLegs#POINT_AND_RANGE}): a {@code ge}/{@code gt} and a
  *     {@code le}/{@code lt} with numeric values on the same path; the first path that has both, with its first lower
  *     and first upper bound. The translator renders each bound as its own {@code EXISTS}, and an array is flattened to
@@ -63,8 +65,9 @@ import org.eclipse.ditto.rql.query.expression.visitors.FilterFieldExpressionVisi
  *     {@code ord = 1} exists. The {@code ord = 1} rows are served by the system index {@code sf_multi}.</li>
  * </ul>
  * <p>
- * One-sided ranges, non-numeric bounds, {@code ne}, {@code like}/{@code ilike}, {@code eq(null)},
- * {@code exists}/{@code empty}, root-mapped and {@code features/*} fields are never legs.
+ * One-sided ranges, non-numeric bounds (so also {@code ge}/{@code gt}/{@code le}/{@code lt} of {@code null}),
+ * {@code ne}, {@code like}/{@code ilike}, {@code eq(null)}, {@code in(…, null)}, {@code exists}/{@code empty},
+ * root-mapped and {@code features/*} fields are never legs.
  * </p>
  * <p>
  * <b>Choice.</b> A point leg alone is materialised. A range leg alone is never materialised: the statement keeps the
@@ -298,8 +301,10 @@ final class SelectiveLegCte {
             }
             final SqlPredicate sqlPredicate = predicate.accept(new CreateSqlPredicateVisitor(
                     List.of(PlaceholderFactory.newPlaceholderResolver(TIME_PLACEHOLDER, new Object()))));
-            // eq/in/ge/gt/le/lt never scope-negate; the guard documents the invariant the probe already enforces.
-            if (sqlPredicate.scopedNegation()) {
+            // eq/in/ge/gt/le/lt never scope-negate (the probe already enforces that); a predicate that also matches
+            // MISSING things (a placeholder resolved to null in eq, a null member the probe could not see because it
+            // was a placeholder) or never matches is not a superset leg either — the resolved form is authoritative.
+            if (sqlPredicate.scopedNegation() || sqlPredicate.matchesMissing() || sqlPredicate.neverMatches()) {
                 return Legs.NONE;
             }
             return switch (kind) {
@@ -328,7 +333,10 @@ final class SelectiveLegCte {
         }
     }
 
-    /** Point legs: eq(non-null)/in(non-empty). Bounds: ge/gt (lower) and le/lt (upper) with a numeric value. */
+    /**
+     * Point legs: eq(non-null)/in(non-empty, no null member). Bounds: ge/gt (lower) and le/lt (upper) with a numeric
+     * value. A null operand (null = missing on MongoDB) is never a leg.
+     */
     private static final class LegKindProbe implements PredicateVisitor<LegKind> {
 
         private static final LegKindProbe INSTANCE = new LegKindProbe();
@@ -340,7 +348,15 @@ final class SelectiveLegCte {
 
         @Override
         public LegKind visitIn(final List<?> values) {
-            return values.isEmpty() ? LegKind.NONE : LegKind.POINT;
+            if (values.isEmpty()) {
+                return LegKind.NONE;
+            }
+            for (final Object value : values) {
+                if (value == null) {
+                    return LegKind.NONE;
+                }
+            }
+            return LegKind.POINT;
         }
 
         @Override

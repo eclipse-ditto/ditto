@@ -20,6 +20,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.eclipse.ditto.internal.utils.persistence.postgres.search.query.ast.RenderedSql;
+import org.eclipse.ditto.rql.model.ParsedPlaceholder;
 import org.eclipse.ditto.rql.query.SortDirection;
 import org.eclipse.ditto.rql.query.SortOption;
 import org.eclipse.ditto.rql.query.criteria.Criteria;
@@ -303,6 +304,49 @@ public final class SelectiveLegCteTest {
         assertThat(unlimited.bindValues().subList(0, 12)).isEqualTo(count.bindValues().subList(0, 12));
     }
 
+    @Test
+    public void anInWithANullMemberIsNotAPointLeg() {
+        // in(p, "x", null) also matches things with NO row at p (Mongo null = missing); a leg materialised from flat
+        // rows can never produce those, so hoisting it would drop them (the CTE must stay a superset pre-filter).
+        for (final SelectiveLegs legs : List.of(POINT, RANGE)) {
+            assertThat(count(inNullable("c", "x", null), legs).sql()).as("%s", legs)
+                    .doesNotContain("WITH ").doesNotContain("sel_");
+            assertThat(count(inNullable("c", (Object) null), legs).sql()).as("%s", legs)
+                    .doesNotContain("WITH ").doesNotContain("sel_");
+            // the next point conjunct takes over
+            final RenderedSql next = count(and(inNullable("c", "x", null), eq("d", "y")), legs);
+            assertThat(next.sql()).as("%s", legs).startsWith(POINT_ONLY);
+            assertThat(next.bindValues().subList(0, 2)).as("%s", legs).containsExactly("/attributes/d", "y");
+            // without the null member the same in() is a point leg as before
+            assertThat(count(inNullable("c", "x"), legs).sql()).as("%s", legs)
+                    .startsWith("WITH sel_leg AS MATERIALIZED (SELECT sfc.thing_id FROM search_flat sfc WHERE "
+                            + "(sfc.wpath = $1 AND sfc.val_text = ANY($2::text[]))) ");
+        }
+    }
+
+    @Test
+    public void aPlaceholderThatResolvesToNullIsNotAPointLeg() {
+        // eq(p, <unresolvable placeholder>) is Mongo's bare {p: null} (null OR missing) — not a point lookup either.
+        final Object unresolvable = ParsedPlaceholder.of("time:bogus");
+        for (final SelectiveLegs legs : List.of(POINT, RANGE)) {
+            assertThat(count(eq("c", unresolvable), legs).sql()).as("%s", legs)
+                    .doesNotContain("WITH ").doesNotContain("sel_");
+            assertThat(count(and(eq("c", unresolvable), eq("d", "y")), legs).sql()).as("%s", legs)
+                    .startsWith(POINT_ONLY);
+            assertThat(count(and(inNullable("c", "x", unresolvable), eq("d", "y")), legs).sql()).as("%s", legs)
+                    .startsWith(POINT_ONLY);
+        }
+    }
+
+    @Test
+    public void gtAndLtNullAreNeverLegsAndRenderFalse() {
+        for (final SelectiveLegs legs : List.of(POINT, RANGE)) {
+            final RenderedSql r = count(and(gt("p", null), le("p", 9), eq("c", "x")), legs);
+            assertThat(r.sql()).as("%s", legs).startsWith(POINT_ONLY).contains("(false AND EXISTS");
+            assertThat(r.sql()).as("%s", legs).doesNotContain("sel_pick");
+        }
+    }
+
     private void assertSameInBothModes(final Criteria criteria) {
         final RenderedSql point = count(criteria, POINT);
         final RenderedSql range = count(criteria, RANGE);
@@ -336,6 +380,11 @@ public final class SelectiveLegCteTest {
 
     private Criteria in(final String attribute, final Object... values) {
         return field(attribute, cf.in(List.of(values)));
+    }
+
+    /** {@code in} with values that may include {@code null} ({@code List.of} rejects null elements). */
+    private Criteria inNullable(final String attribute, final Object... values) {
+        return field(attribute, cf.in(Arrays.asList(values)));
     }
 
     private Criteria ge(final String attribute, final Object value) {
