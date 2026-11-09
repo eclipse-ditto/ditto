@@ -55,8 +55,11 @@ jobs:
       - name: Build with Maven
         run: mvn package javadoc:jar source:jar --batch-mode --errors --quiet -DcreateJavadoc=true -Dpekko.test.single-expect-default=10s --file pom.xml -Dbuild.environment=Github
 
-  # The PostgreSQL integration tests (Testcontainers) of the PostgreSQL modules, once per tested PostgreSQL major
-  # version. The image is passed to the tests with -Dditto.test.postgres.image; the build job above stays as it is.
+  # The PostgreSQL integration tests (Testcontainers), once per tested PostgreSQL major version: every IT of the
+  # PostgreSQL modules (POSTGRES_IT_MODULES; postgres-extension-it is the classloading IT of the three shaded extension
+  # JARs and needs no Docker) and, in a step of its own, connectivity's PostgreSQL IT by name (CONNECTIVITY_IT: -Dit.test
+  # is reactor-wide, and a plain module entry would also run the module's MongoDB ITs). The image is passed to the tests
+  # with -Dditto.test.postgres.image; the build job above stays as it is.
   postgres-its:
     name: postgres-its (PostgreSQL ${{ matrix.postgres }})
     runs-on: ubuntu-latest
@@ -66,7 +69,9 @@ jobs:
       matrix:
         postgres: [ '16', '17', '18' ]
     env:
-      POSTGRES_IT_MODULES: internal/utils/postgres-client,internal/utils/persistence-r2dbc,internal/utils/search-r2dbc
+      POSTGRES_IT_MODULES: internal/utils/postgres-client,internal/utils/persistence-r2dbc,internal/utils/search-r2dbc,internal/utils/postgres-extension-it
+      CONNECTIVITY_IT_MODULE: connectivity/service
+      CONNECTIVITY_IT: EncryptionMigrationPostgresIT
       POSTGRES_IMAGE: postgres:${{ matrix.postgres }}
 
     steps:
@@ -86,11 +91,23 @@ jobs:
           java-version: 25
           cache: 'maven'
 
-      - name: Install the PostgreSQL modules and their dependencies without tests
-        run: mvn install -pl "${POSTGRES_IT_MODULES}" -am -DskipTests --batch-mode --errors --quiet --file pom.xml -Dbuild.environment=Github
+      # -am also builds the three shaded extension JARs the classloading IT copies from the local repository.
+      # -DskipITs as well as -DskipTests: failsafe does not read -DskipTests (its skipTests parameter is not bound to
+      # that property), so without it this install would already run every IT of the reactor once, with the default
+      # image.
+      - name: Install the tested modules and their dependencies without tests
+        id: install
+        run: mvn install -pl "${POSTGRES_IT_MODULES},${CONNECTIVITY_IT_MODULE}" -am -DskipTests -DskipITs --batch-mode --errors --quiet --file pom.xml -Dbuild.environment=Github
 
       - name: Run the PostgreSQL integration tests
         run: mvn verify -pl "${POSTGRES_IT_MODULES}" -Dtest=NONE -Dsurefire.failIfNoSpecifiedTests=false -Dditto.test.postgres.image="${POSTGRES_IMAGE}" -Dpekko.test.single-expect-default=10s --batch-mode --errors --file pom.xml -Dbuild.environment=Github
+
+      # -Dfailsafe.failIfNoSpecifiedTests=true (failsafe's default, stated on purpose): the build fails when the name
+      # matches no test, so a renamed or missing IT cannot pass silently. Runs after a failed module step too, so that
+      # both results are known.
+      - name: Run the PostgreSQL integration test of the connectivity service
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: mvn verify -pl "${CONNECTIVITY_IT_MODULE}" -Dit.test="${CONNECTIVITY_IT}" -Dfailsafe.failIfNoSpecifiedTests=true -Dtest=NONE -Dsurefire.failIfNoSpecifiedTests=false -Dditto.test.postgres.image="${POSTGRES_IMAGE}" -Dpekko.test.single-expect-default=10s --batch-mode --errors --file pom.xml -Dbuild.environment=Github
 
       # The ITs skip instead of failing when Docker or a container is unavailable, so a green verify alone proves
       # nothing: require that every module ran ITs and skipped none.
@@ -98,7 +115,7 @@ jobs:
         if: success() || failure()
         run: |
           status=0
-          for module in ${POSTGRES_IT_MODULES//,/ }; do
+          for module in ${POSTGRES_IT_MODULES//,/ } "${CONNECTIVITY_IT_MODULE}"; do
             summary="${module}/target/failsafe-reports/failsafe-summary.xml"
             if [ ! -f "${summary}" ]; then
               echo "::error::${module}: no failsafe summary, no integration test ran"
