@@ -58,7 +58,7 @@ public enum SystemSearchIndex {
 
     /**
      * @return the same index as a plain, transactional {@code CREATE INDEX IF NOT EXISTS}: for an empty or offline
-     * table only (tests, the benchmark loader); the service never runs it.
+     * table only (tests); the service never runs it.
      */
     public String createStatement() {
         return "CREATE INDEX IF NOT EXISTS " + indexName + " ON " + TABLE + " " + definition;

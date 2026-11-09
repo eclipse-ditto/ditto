@@ -30,10 +30,9 @@ import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.thingsearch.persistence.api.model.SearchIndexDocument;
 
 /**
- * Flattens a thing payload into {@code search_flat} rows (plan §3.2 amended, Task C1 adjudications). This is the
- * production counterpart of the Phase-0 bench {@code Flattener} spike; it operates directly on Ditto's
- * {@link JsonObject}/{@link JsonArray}/{@link JsonValue} tree instead of the bench's synthetic {@code Map}/
- * {@code List} corpus fixtures, since that is the shape {@link SearchIndexDocument#thing()} actually has.
+ * Flattens a thing payload into {@code search_flat} rows (plan §3.2 amended, Task C1 adjudications). It operates
+ * directly on Ditto's {@link JsonObject}/{@link JsonArray}/{@link JsonValue} tree, since that is the shape
+ * {@link SearchIndexDocument#thing()} actually has.
  * <p>
  * <b>Source of truth:</b> flattening reads {@link SearchIndexDocument#thing()} ONLY. It never reads
  * {@link SearchIndexDocument.FeatureEntry#content()} — see that field's contract javadoc: {@code content()} is not

@@ -56,8 +56,8 @@ import org.eclipse.ditto.internal.utils.persistence.postgres.client.schema.Table
  * </p>
  * <p>
  * <strong>Idempotency deviation from the plan §3.2 illustrative SQL:</strong> every {@code CREATE TABLE}/{@code CREATE
- * INDEX} here additionally carries {@code IF NOT EXISTS} (the plan sketch omits it, as it targets a freshly-dropped
- * bench database). This matches the event-sourcing {@code PostgresSchema} pattern and is required so a re-bootstrap of
+ * INDEX} here additionally carries {@code IF NOT EXISTS} (the plan sketch omits it, as it targets a fresh
+ * database). This matches the event-sourcing {@code PostgresSchema} pattern and is required so a re-bootstrap of
  * an already-provisioned database is a no-op rather than an error; the live-catalog verifier still catches a divergent
  * pre-existing table that {@code IF NOT EXISTS} would silently keep.
  * </p>

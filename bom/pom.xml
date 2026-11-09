@@ -84,10 +84,9 @@
         <r2dbc-pool.version>1.0.2.RELEASE</r2dbc-pool.version>
         <r2dbc-proxy.version>1.1.5.RELEASE</r2dbc-proxy.version>
         <!--
-            PostgreSQL JDBC driver — test-scope only, used by the benchmark harnesses
-            (internal/utils/persistence-bench and the search-r2dbc Phase-0 bench) for
-            CopyManager-based bulk loading. NOT used by the production r2dbc-based
-            PostgreSQL persistence backend.
+            PostgreSQL JDBC driver — test-scope only, used by search-r2dbc's PathIndexMaintenanceIT to
+            inspect prepared-statement plans over a plain JDBC connection. NOT used by the production
+            r2dbc-based PostgreSQL persistence backend.
         -->
         <postgresql-jdbc.version>42.7.7</postgresql-jdbc.version>
         <!--
@@ -349,19 +348,11 @@
                 <artifactId>postgresql</artifactId>
                 <version>${testcontainers.version}</version>
             </dependency>
-            <!--
-                Test scope only: plain JDBC + sync Mongo drivers for the driver-level benchmark
-                harnesses — persistence-bench, and the search-r2dbc Phase-0 COPY loader.
-            -->
+            <!-- Test scope only: the plain PostgreSQL JDBC driver (search-r2dbc's PathIndexMaintenanceIT). -->
             <dependency>
                 <groupId>org.postgresql</groupId>
                 <artifactId>postgresql</artifactId>
                 <version>${postgresql-jdbc.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.mongodb</groupId>
-                <artifactId>mongodb-driver-sync</artifactId>
-                <version>${mongo-java-driver.version}</version>
             </dependency>
             <!--
                 reactor-core pinned to 3.5.20 so allinone jars (first on classpath) provide

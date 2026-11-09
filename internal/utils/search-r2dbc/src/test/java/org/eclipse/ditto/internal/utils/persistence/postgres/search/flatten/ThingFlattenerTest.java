@@ -37,9 +37,8 @@ import org.eclipse.ditto.thingsearch.persistence.api.model.SearchIndexDocument;
 import org.junit.Test;
 
 /**
- * TDD spec for {@link ThingFlattener}, superseding the bench {@code FlattenerTest} it was ported from: the 9 bench
- * shape cases, plus the RFC-6901 escaping cases and a {@link SearchIndexDocument}-level integration case that the
- * bench never needed (it flattened raw {@code Map}/{@code List} test fixtures, not real {@code JsonObject} payloads).
+ * TDD spec for {@link ThingFlattener}: the shape cases of its flattening rules, the RFC-6901 escaping cases and a
+ * {@link SearchIndexDocument}-level integration case on real {@code JsonObject} payloads.
  */
 public class ThingFlattenerTest {
 

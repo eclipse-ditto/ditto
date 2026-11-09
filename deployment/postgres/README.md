@@ -14,8 +14,9 @@
 
 Operational artifacts for the phase-2 PostgreSQL persistence backend (custom
 Pekko plugin on the r2dbc driver). For the design see
-`docs/superpowers/specs/postgres-persistence-backend.md` — §7 (HOCON config),
-§11 (role privileges + schema). `policies`, `things` and `connectivity` use this
+`.claude/concepts/postgresql-persistence-design.md` — §6 (configuration at a
+glance), §3.2 (schema lifecycle: two roles, provisioning for managed
+services). `policies`, `things` and `connectivity` use this
 backend; `thingsearch` can use the separate PostgreSQL search backend
 (`documentation/src/main/resources/pages/ditto/installation-extending.md`), which
 shares the client and pool settings and counts toward the same
@@ -351,11 +352,10 @@ its entities are pinged. A window costs the same wherever it lies and however th
 tagged entities are spread, also when they are a small minority clustered in one
 part of the id space (one namespace among many): a window over untagged ids
 simply delivers nothing, and a walk takes (all entity ids / batch size)
-statements. Measured at 1,000,000 entities with 2 events each, 500 ids per
-window, warm cache: about 1 ms per window and 2–3 s for the whole walk without
-the throttle, flat from the first to the last window, with every entity tagged
-(heap in id order or not) and with 1 % tagged clustered at the end
-(`internal/utils/persistence-bench/src/test/resources/bench/results/ping-keyset-paging-1m.md`).
+statements. With short event histories and a warm cache a window costs about a
+millisecond when every entity is tagged (heap in id order or not) and the same
+when 1 % are tagged and clustered at the end, flat from the first to the last
+window.
 
 What a window and a walk cost grows with the number of events each entity keeps
 in the journal: a window reads the index entries of its ids and, to check the
@@ -363,15 +363,12 @@ tag, every journal row of each untagged entity in it, so a walk reads every
 journal row of every entity it examines, once per walk. That matters with very
 many entities of which few are always-alive. For example, 10,000,000 policies
 with 500 ids per window are about 20,000 statements per walk, run one after the
-other on one connection: about 20–30 s of database time with 2 events per entity
-and a warm cache, up to about 160 s cold, and correspondingly more with long
-event histories (hundreds of events per policy with the default history
-retention). At 2 events per entity each statement stays far below
-`statement_timeout`; with long histories a window that is not in the cache can
-take seconds, because it reads every row of its untagged entities (measured at
-250,000 things with about 140 events each, 87 % of them untagged, in an 8 GiB
-container: 572 ms per window at the median and 1.04 s at most, see
-`internal/utils/persistence-bench/src/test/resources/bench/results/ping-partly-tagged-walks-250k-repeat.md`): lower
+other on one connection: tens of seconds of database time with 2 events per
+entity and a warm cache, minutes cold, and correspondingly more with long event
+histories (hundreds of events per policy with the default history retention).
+At 2 events per entity each statement stays far below `statement_timeout`; with
+long untagged histories a window that is not in the cache takes seconds, because
+it reads every row of its untagged entities: lower
 `read-journal-batch-size` well before a window approaches `statement_timeout`,
 and size the ping `interval` so that this read once per interval is acceptable.
 
@@ -384,13 +381,12 @@ sorts them, highest priority first and equal priorities in id order; only then i
 the first connection pinged. Every statement costs what an ID-order window costs,
 whatever share of the journal carries the tag. (Before, one statement read every
 tagged row; with millions of tagged rows PostgreSQL chose a sequential scan of the
-whole journal, which `statement_timeout` cancelled on every retry.) Measured:
-3.3 s for 1,000,000 ids with 2 events each (2,001 statements) and 183 s for
-250,000 entities with about 140 events each (501 statements, the slowest 799 ms),
-in the evidence file above. The price is memory in the connectivity service: one
-id and its priority per tagged connection until the walk has pinged them, about
-100–120 bytes each, about 12 MB for 100,000 connections. (MongoDB keeps the same
-set on the server while it sorts.)
+whole journal, which `statement_timeout` cancelled on every retry.) A whole walk
+takes seconds with short event histories and minutes with long ones, each
+statement staying well below `statement_timeout`. The price is memory in the
+connectivity service: one id and its priority per tagged connection until the
+walk has pinged them, about 100–120 bytes each, about 12 MB for 100,000
+connections. (MongoDB keeps the same set on the server while it sorts.)
 
 **Changes during a walk.**
 

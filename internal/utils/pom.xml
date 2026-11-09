@@ -43,7 +43,6 @@
         <module>postgres-client-extension</module>
         <module>persistence-r2dbc</module>
         <module>postgres-persistence-extension</module>
-        <module>persistence-bench</module>
         <module>persistence</module>
         <module>search-r2dbc</module>
         <module>postgres-search-extension</module>

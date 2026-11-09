@@ -25,12 +25,11 @@
     <name>Eclipse Ditto :: Internal :: Utils :: Search R2DBC</name>
 
     <!--
-        The PostgreSQL things-search backend (plan phases B-H). The production main tree carries the search schema
+        The PostgreSQL things-search backend. The production main tree carries the search schema
         descriptor, the descriptor-driven bootstrap wiring, and the PostgresSearchPersistenceProvider; it depends ONLY
         on the shared postgres-client infrastructure and the neutral thingsearch persistence-api SPI (NO Mongo, NO
-        event-sourcing persistence-r2dbc). The src/test tree ALSO still hosts the Phase-0 de-risking bench spike (a
-        synthetic twin-corpus generator, the target search_things / search_flat DDL, and a JDBC COPY-based bulk loader).
-        See docs/superpowers/specs/2026-07-03-postgres-search-plan.md.
+        event-sourcing persistence-r2dbc).
+        See `.claude/concepts/postgresql-persistence-design.md`, §4 Search backend.
     -->
 
     <dependencies>
@@ -129,18 +128,17 @@
             <artifactId>assertj-core</artifactId>
             <scope>test</scope>
         </dependency>
-        <!-- PostgreSQL JDBC driver — used ONLY for CopyManager-based bulk loading in this bench harness.
-             The production PostgreSQL backend (persistence-r2dbc) deliberately avoids JDBC in favour of
-             the pure r2dbc SPI stack; this test-scope driver does not change that. -->
+        <!-- PostgreSQL JDBC driver — TEST-SCOPE ONLY: PathIndexMaintenanceIT opens a plain JDBC connection to PREPARE
+             a statement and EXPLAIN it under both plan_cache_mode settings (over r2dbc the statement's $1 would be
+             taken for a bind of its own). The production PostgreSQL backend deliberately avoids JDBC in favour of the
+             pure r2dbc SPI stack; this test-scope driver does not change that. -->
         <dependency>
             <groupId>org.postgresql</groupId>
             <artifactId>postgresql</artifactId>
             <scope>test</scope>
         </dependency>
-        <!-- Testcontainers: drives the small-corpus DDL/flattening/COPY smoke IT (*IT runs under failsafe,
-             skipped offline via Assume, mirroring persistence-r2dbc's PostgresDbResource convention). The
-             1M bulk-load bench (CorpusLoadBench) targets a long-lived, manually started container instead
-             (see src/test/resources/bench/README.md) so the loaded corpus survives across bench tasks. -->
+        <!-- Testcontainers: drives this module's *IT classes under failsafe; they skip offline via Assume, mirroring
+             persistence-r2dbc's PostgresDbResource convention. -->
         <dependency>
             <groupId>org.testcontainers</groupId>
             <artifactId>postgresql</artifactId>
