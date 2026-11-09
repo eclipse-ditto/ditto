@@ -36,6 +36,12 @@ deployment on MongoDB renders the same manifests as with the previous chart vers
   PostgreSQL extension JARs into `/opt/ditto/extensions`, and carries commented `POSTGRES_POOL_MAX_SIZE` examples
   under `extraEnv`. Activating a PostgreSQL backend itself stays a file-based overlay
   (`HOSTING_ENVIRONMENT=filebased`); chart-native PostgreSQL configuration values are a later step.
+## [4.10.0]
+
+### Added
+- New `gateway.config.streaming.maxSessionLag` (default `0s`, disabled), passed to the gateway as
+  `GATEWAY_STREAMING_MAX_SESSION_LAG`. When set, a websocket or SSE session whose mailbox delays messages longer
+  than this is closed instead of letting its backlog grow until the gateway runs out of heap.
 
 ## [4.9.0]
 

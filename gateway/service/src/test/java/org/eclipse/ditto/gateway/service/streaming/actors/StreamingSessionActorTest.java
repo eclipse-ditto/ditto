@@ -25,6 +25,8 @@ import java.util.concurrent.LinkedBlockingDeque;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import javax.annotation.Nullable;
+
 import org.apache.pekko.actor.Actor;
 import org.apache.pekko.actor.ActorRef;
 import org.apache.pekko.actor.PoisonPill;
@@ -39,6 +41,7 @@ import org.apache.pekko.stream.javadsl.SourceQueueWithComplete;
 import org.apache.pekko.stream.testkit.TestSubscriber;
 import org.apache.pekko.stream.testkit.javadsl.TestSink;
 import org.apache.pekko.testkit.TestActor;
+import org.apache.pekko.testkit.TestActorRef;
 import org.apache.pekko.testkit.TestProbe;
 import org.eclipse.ditto.base.model.acks.AcknowledgementLabel;
 import org.eclipse.ditto.base.model.acks.AcknowledgementLabelNotDeclaredException;
@@ -49,11 +52,14 @@ import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
 import org.eclipse.ditto.base.model.auth.DittoAuthorizationContextType;
 import org.eclipse.ditto.base.model.common.BinaryValidationResult;
 import org.eclipse.ditto.base.model.common.HttpStatus;
+import org.eclipse.ditto.base.model.exceptions.InvalidRqlExpressionException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.translator.HeaderTranslator;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
+import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
 import org.eclipse.ditto.base.model.signals.acks.AcknowledgementCorrelationIdMissingException;
+import org.eclipse.ditto.gateway.api.GatewayServiceUnavailableException;
 import org.eclipse.ditto.gateway.api.GatewayWebsocketSessionAbortedException;
 import org.eclipse.ditto.gateway.api.GatewayWebsocketSessionClosedException;
 import org.eclipse.ditto.gateway.api.GatewayWebsocketSessionExpiredException;
@@ -79,8 +85,10 @@ import org.eclipse.ditto.jwt.model.JwtInvalidException;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.policies.model.signals.commands.query.RetrievePolicy;
 import org.eclipse.ditto.protocol.TopicPath;
+import org.eclipse.ditto.things.model.FeatureProperties;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThingResponse;
+import org.eclipse.ditto.things.model.signals.events.FeaturePropertiesModified;
 import org.eclipse.ditto.things.model.signals.events.ThingDeleted;
 import org.eclipse.ditto.thingsearch.model.signals.commands.query.QueryThings;
 import org.junit.Before;
@@ -381,6 +389,53 @@ public final class StreamingSessionActorTest {
     }
 
     @Test
+    public void closeSessionWhenLagProbeArrivesLaterThanMaxSessionLag() {
+        final var testKit = actorSystemResource.newTestKit();
+        final var underTest = testKit.watch(actorSystemResource.newActor(getPropsWithMaxSessionLag("10s")));
+
+        underTest.tell(new StreamingSessionActor.LagProbe(System.nanoTime() - Duration.ofSeconds(11L).toNanos()),
+                ActorRef.noSender());
+
+        testKit.expectTerminated(underTest);
+        sinkProbe.ensureSubscription();
+        assertThat(sinkProbe.expectError()).isInstanceOf(GatewayServiceUnavailableException.class);
+    }
+
+    @Test
+    public void startLagProbeTimerWhenMaxSessionLagIsSet() {
+        final TestActorRef<StreamingSessionActor> underTest =
+                TestActorRef.create(actorSystemResource.getActorSystem(), getPropsWithMaxSessionLag("2s"));
+
+        assertThat(underTest.underlyingActor().getTimers().isTimerActive(StreamingSessionActor.LagProbe.class))
+                .isTrue();
+    }
+
+    @Test
+    public void doNotStartLagProbeTimerWhenMaxSessionLagIsDisabled() {
+        final TestActorRef<StreamingSessionActor> underTest =
+                TestActorRef.create(actorSystemResource.getActorSystem(), getProps());
+
+        assertThat(underTest.underlyingActor().getTimers().isTimerActive(StreamingSessionActor.LagProbe.class))
+                .isFalse();
+    }
+
+    @Test
+    public void rearmLagProbeTimerAfterOnTimeProbe() {
+        final var testKit = actorSystemResource.newTestKit();
+        final TestActorRef<StreamingSessionActor> underTest =
+                TestActorRef.create(actorSystemResource.getActorSystem(), getPropsWithMaxSessionLag("2s"));
+        testKit.watch(underTest);
+        final var timers = underTest.underlyingActor().getTimers();
+        timers.cancel(StreamingSessionActor.LagProbe.class);
+        assertThat(timers.isTimerActive(StreamingSessionActor.LagProbe.class)).isFalse();
+
+        underTest.tell(new StreamingSessionActor.LagProbe(System.nanoTime()), ActorRef.noSender());
+
+        assertThat(timers.isTimerActive(StreamingSessionActor.LagProbe.class)).isTrue();
+        testKit.expectNoMessage(Duration.ofMillis(200L));
+    }
+
+    @Test
     public void blockIncomingCommandForInaccessibleNamespaceWhenResponseIsRequired() {
         final NamespaceAccessValidatorFactory namespaceAccessValidatorFactory =
                 Mockito.mock(NamespaceAccessValidatorFactory.class);
@@ -562,6 +617,48 @@ public final class StreamingSessionActorTest {
         commandRouterProbe.expectNoMessage();
     }
 
+    @Test
+    public void filterWithThingAndFeaturePlaceholdersIsResolved() {
+        setUpMockForTwinEventsSubscription();
+        final var underTest = actorSystemResource.newActor(getProps());
+        subscribeForTwinEvents(underTest, "and(eq(thing:name,'thing'),eq(feature:id,'lamp'))");
+
+        final var matchingSignal = FeaturePropertiesModified.of(ThingId.of("org.eclipse.test:thing"), "lamp",
+                FeatureProperties.newBuilder().set("on", true).build(), 1L, null,
+                DittoHeaders.newBuilder()
+                        .readGrantedSubjects(List.of(AuthorizationSubject.newInstance("ditto:ditto")))
+                        .build(),
+                null);
+        final var otherFeatureSignal = FeaturePropertiesModified.of(ThingId.of("org.eclipse.test:thing"), "other",
+                FeatureProperties.newBuilder().set("on", true).build(), 1L, null,
+                matchingSignal.getDittoHeaders(), null);
+        underTest.tell(matchingSignal, ActorRef.noSender());
+        underTest.tell(otherFeatureSignal, ActorRef.noSender());
+
+        assertThat(matchesSessionFilter(sinkProbe.requestNext())).isTrue();
+        assertThat(matchesSessionFilter(sinkProbe.requestNext())).isFalse();
+    }
+
+    @Test
+    public void filterWithUnsupportedPlaceholderIsRejected() {
+        setUpMockForTwinEventsSubscription();
+        final var underTest = actorSystemResource.newActor(getProps());
+        final var startStreaming = StartStreaming.getBuilder(StreamingType.EVENTS, testName.getMethodName(),
+                        authorizationContext)
+                .withFilter("eq(policy:id,'org.eclipse.test:policy')")
+                .build();
+
+        underTest.tell(startStreaming, ActorRef.noSender());
+
+        assertThat(sinkProbe.requestNext().getJsonifiable()).isInstanceOf(InvalidRqlExpressionException.class);
+    }
+
+    private static boolean matchesSessionFilter(final SessionedJsonifiable sessionedJsonifiable) {
+        final var signal = (Signal<?>) sessionedJsonifiable.getJsonifiable();
+        final var session = sessionedJsonifiable.getSession().orElseThrow();
+        return session.matchesFilter(session.mergeThingWithExtra(signal, JsonObject.empty()), signal);
+    }
+
     private static String getTokenString() {
         return getTokenString(Instant.now().plusSeconds(60L));
     }
@@ -582,6 +679,19 @@ public final class StreamingSessionActorTest {
                 mockSub,
                 commandRouterProbe.ref(),
                 DefaultStreamingConfig.of(ConfigFactory.empty()),
+                HeaderTranslator.empty(),
+                Props.create(Actor.class, () -> new TestActor(new LinkedBlockingDeque<>())),
+                Props.create(Actor.class, () -> new TestActor(new LinkedBlockingDeque<>())),
+                mockValidator,
+                mockAuthenticationResultProvider,
+                null);
+    }
+
+    private Props getPropsWithMaxSessionLag(final String maxSessionLag) {
+        return StreamingSessionActor.props(getConnect(getAcknowledgementLabels()),
+                mockSub,
+                commandRouterProbe.ref(),
+                DefaultStreamingConfig.of(ConfigFactory.parseString("streaming.max-session-lag = " + maxSessionLag)),
                 HeaderTranslator.empty(),
                 Props.create(Actor.class, () -> new TestActor(new LinkedBlockingDeque<>())),
                 Props.create(Actor.class, () -> new TestActor(new LinkedBlockingDeque<>())),
@@ -614,12 +724,18 @@ public final class StreamingSessionActorTest {
     }
 
     private void subscribeForTwinEvents(final ActorRef underTest) {
+        subscribeForTwinEvents(underTest, null);
+    }
+
+    private void subscribeForTwinEvents(final ActorRef underTest, @Nullable final String filter) {
         final var authorizationContext =
                 AuthorizationContext.newInstance(DittoAuthorizationContextType.PRE_AUTHENTICATED_HTTP,
                         AuthorizationSubject.newInstance("ditto:ditto"));
 
         final var startStreaming =
-                StartStreaming.getBuilder(StreamingType.EVENTS, testName.getMethodName(), authorizationContext).build();
+                StartStreaming.getBuilder(StreamingType.EVENTS, testName.getMethodName(), authorizationContext)
+                        .withFilter(filter)
+                        .build();
         underTest.tell(startStreaming, ActorRef.noSender());
 
         final var sessionedJsonifiable = sinkProbe.requestNext();

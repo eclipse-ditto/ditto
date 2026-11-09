@@ -86,6 +86,7 @@ import org.eclipse.ditto.connectivity.service.messaging.mappingoutcome.MappingOu
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.ConnectionMonitor;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.DefaultConnectionMonitorRegistry;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.logs.InfoProviderFactory;
+import org.eclipse.ditto.connectivity.service.messaging.persistence.SignalFilter;
 import org.eclipse.ditto.connectivity.service.messaging.validation.ConnectionValidator;
 import org.eclipse.ditto.connectivity.service.util.ConnectivityMdcEntryKey;
 import org.eclipse.ditto.edge.service.headers.DittoHeadersValidator;
@@ -103,10 +104,8 @@ import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonKey;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.placeholders.ExpressionResolver;
-import org.eclipse.ditto.placeholders.PipelineElement;
 import org.eclipse.ditto.placeholders.PlaceholderFactory;
 import org.eclipse.ditto.placeholders.PlaceholderResolver;
 import org.eclipse.ditto.placeholders.TimePlaceholder;
@@ -542,11 +541,7 @@ public final class OutboundMappingProcessorActor
 
         return Optional.of(
                 extraFieldsSelectors.stream()
-                .flatMap(selector -> selector.getPointers().stream())
-                .map(JsonPointer::toString)
-                .map(expressionResolver::resolve)
-                .flatMap(PipelineElement::toStream)
-                .map(JsonPointer::of)
+                .flatMap(selector -> Resolvers.resolveExtraFields(expressionResolver, selector))
                 .toList())
                 .filter(jsonPointers -> !jsonPointers.isEmpty())
                 .map(JsonFactory::newFieldSelector)
@@ -933,17 +928,20 @@ public final class OutboundMappingProcessorActor
 
     /**
      * Pairs each target of an outbound signal with its topics, if any with an extra field.
+     * Only topics of the signal's streaming type which subscribed for the namespace of the signal are considered.
      *
      * @param outboundSignal The outbound signal.
      * @return A list of pairs, one per target.
-     * If the target has at least one topic with extra fields, the target is paired with a set of its topics.
+     * If the target has at least one considered topic with extra fields, the target is paired with the set of its
+     * considered topics.
      * Otherwise (no extra fields), it is paired with an empty set.
      * If the signal has no streaming type, all targets are paired with an empty set.
      */
     private static List<Pair<Target, Set<FilteredTopic>>> pairTargetsWithTopics(
             final OutboundSignal outboundSignal) {
 
-        final Optional<StreamingType> streamingTypeOptional = StreamingType.fromSignal(outboundSignal.getSource());
+        final Signal<?> signal = outboundSignal.getSource();
+        final Optional<StreamingType> streamingTypeOptional = StreamingType.fromSignal(signal);
         if (streamingTypeOptional.isPresent()) {
             // Find targets with a matching topic with extra fields
             final StreamingType streamingType = streamingTypeOptional.get();
@@ -951,14 +949,15 @@ public final class OutboundMappingProcessorActor
                     new ArrayList<>(outboundSignal.getTargets().size());
 
             for (final Target target : outboundSignal.getTargets()) {
-                if (target.getTopics().stream()
-                        .anyMatch(filteredTopic -> filteredTopic.getExtraFields().isPresent() &&
-                                streamingType == StreamingType.fromTopic(filteredTopic.getTopic().getPubSubTopic()))) {
-                    targetsPairedWithTopics.add(Pair.create(target, target.getTopics().stream()
-                            .filter(filteredTopic -> streamingType ==
-                                    StreamingType.fromTopic(filteredTopic.getTopic().getPubSubTopic()))
-                            .collect(Collectors.toSet())
-                    ));
+                // only topics subscribed for the signal's namespace may be re-evaluated and select the extra fields,
+                // like in SignalFilter - otherwise a topic of another namespace could publish the signal
+                final Set<FilteredTopic> relevantTopics = target.getTopics().stream()
+                        .filter(filteredTopic -> streamingType ==
+                                StreamingType.fromTopic(filteredTopic.getTopic().getPubSubTopic()))
+                        .filter(filteredTopic -> SignalFilter.matchesNamespaces(filteredTopic, signal))
+                        .collect(Collectors.toSet());
+                if (relevantTopics.stream().anyMatch(filteredTopic -> filteredTopic.getExtraFields().isPresent())) {
+                    targetsPairedWithTopics.add(Pair.create(target, relevantTopics));
                 } else {
                     targetsPairedWithTopics.add(Pair.create(target, Collections.emptySet()));
                 }

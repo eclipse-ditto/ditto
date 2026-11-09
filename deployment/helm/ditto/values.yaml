@@ -2684,6 +2684,11 @@ gateway:
         # limit is the maximum number of messages the SSE session is allowed to receive within the configured
         #  throttling interval e.g. 100 msgs/s
         limit: 100
+    # streaming contains configuration shared by websocket and SSE sessions
+    streaming:
+      # maxSessionLag closes a websocket/SSE session whose mailbox delays messages longer than this - 0s disables,
+      #  otherwise at least 1s and well above the gateway's GC pause times
+      maxSessionLag: 0s
     # edge contains edge service configuration
     edge:
       # askWithRetry contains configuration regarding "ask with retry" for gateway service

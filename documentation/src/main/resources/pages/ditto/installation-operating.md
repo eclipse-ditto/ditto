@@ -504,6 +504,16 @@ basis.
 Please consult the available `throttling` configuration sections in the 
 [Ditto service configuration files](#ditto-configuration).
 
+Each WebSocket or SSE session processes the events it receives one at a time. If a session cannot keep up, its
+messages queue up in gateway memory. Set `ditto.gateway.streaming.max-session-lag` (env
+`GATEWAY_STREAMING_MAX_SESSION_LAG`, Helm value `gateway.config.streaming.maxSessionLag`) to close any session whose
+messages wait longer than this, for example `30s`, before the backlog exhausts the gateway heap. The default `0s`
+disables the check; any other value must be at least `1s`.
+
+The measured delay also includes stop-the-world GC pauses and dispatcher saturation of the gateway. A pause longer
+than `max-session-lag` makes every session on that gateway late at the same moment, so all of them are closed and
+their clients reconnect at once. Set the value well above the gateway's observed GC pause times.
+
 
 ## Restricting entity creation
 

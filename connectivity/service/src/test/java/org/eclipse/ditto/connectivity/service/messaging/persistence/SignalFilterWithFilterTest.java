@@ -46,9 +46,12 @@ import org.eclipse.ditto.messages.model.MessageDirection;
 import org.eclipse.ditto.messages.model.MessageHeaders;
 import org.eclipse.ditto.messages.model.signals.commands.SendThingMessage;
 import org.eclipse.ditto.protocol.TopicPath;
+import org.eclipse.ditto.things.model.Feature;
+import org.eclipse.ditto.things.model.Features;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingFieldSelector;
 import org.eclipse.ditto.things.model.ThingId;
+import org.eclipse.ditto.things.model.signals.events.FeaturesCreated;
 import org.eclipse.ditto.things.model.signals.events.ThingModified;
 import org.junit.Test;
 import org.mockito.Mockito;
@@ -346,6 +349,89 @@ public final class SignalFilterWithFilterTest {
 
         final List<Target> filteredTargets = signalFilter.filter(signal);
         Assertions.assertThat(filteredTargets).hasSize(1).contains(target);
+    }
+
+    /**
+     * Test that the feature:id placeholder of an event touching several features compares all feature IDs, not only
+     * the first one. Issue #2618
+     */
+    @Test
+    public void applySignalFilterWithMultiValuedFeatureIdPlaceholder() {
+        final Target eqFirst = filteredTarget("eq(feature:id,'lamp')");
+        final Target eqSecond = filteredTarget("eq(feature:id,'temperature')");
+        final Target inSecond = filteredTarget("in(feature:id,'foo','temperature')");
+        final Target likeSecond = filteredTarget("like(feature:id,'temp*')");
+        final Target neSecond = filteredTarget("ne(feature:id,'temperature')");
+        final Target neOther = filteredTarget("ne(feature:id,'other')");
+        final Target eqOther = filteredTarget("eq(feature:id,'other')");
+        final Connection connection = TestConstants.createConnection(CONNECTION_ID, eqFirst, eqSecond, inSecond,
+                likeSecond, neSecond, neOther, eqOther);
+        final SignalFilter signalFilter = new SignalFilter(connection, connectionMonitorRegistry);
+        final Signal<?> signal = FeaturesCreated.of(THING_ID,
+                Features.newBuilder()
+                        .set(Feature.newBuilder().withId("lamp").build())
+                        .set(Feature.newBuilder().withId("temperature").build())
+                        .build(),
+                1L, null,
+                DittoHeaders.newBuilder().readGrantedSubjects(Collections.singletonList(AUTHORIZED)).build(),
+                null);
+
+        final List<Target> filteredTargets = signalFilter.filter(signal);
+        Assertions.assertThat(filteredTargets).containsExactlyInAnyOrder(eqFirst, eqSecond, inSecond, likeSecond,
+                neOther);
+    }
+
+    /**
+     * Test that filter fields covered by extra fields with the feature:id placeholder are not evaluated before the
+     * enrichment.
+     */
+    @Test
+    public void applySignalFilterWithFeatureIdPlaceholderInExtraFields() {
+        final Target enrichedFeature = enrichedTarget("features/{{ feature:id }}/desiredProperties",
+                "eq(features/" + TestConstants.Feature.FEATURE_ID + "/desiredProperties/property,'test')");
+        final Target otherFeature = enrichedTarget("features/{{ feature:id }}/desiredProperties",
+                "eq(features/Other/desiredProperties/property,'test')");
+        final Connection connection = TestConstants.createConnection(CONNECTION_ID, enrichedFeature, otherFeature);
+        final SignalFilter signalFilter = new SignalFilter(connection, connectionMonitorRegistry);
+        final Signal<?> signal = TestConstants.featurePropertiesModified(Collections.singletonList(AUTHORIZED));
+
+        final List<Target> filteredTargets = signalFilter.filter(signal);
+        Assertions.assertThat(filteredTargets).containsExactly(enrichedFeature);
+    }
+
+    /**
+     * Test that a filter on an ancestor of an extra field is not evaluated before the enrichment.
+     */
+    @Test
+    public void applySignalFilterOnAncestorOfExtraFields() {
+        final Target target = enrichedTarget("features/" + TestConstants.Feature.FEATURE_ID +
+                        "/desiredProperties/property",
+                "exists(features/" + TestConstants.Feature.FEATURE_ID + "/desiredProperties)");
+        final Connection connection = TestConstants.createConnection(CONNECTION_ID, target);
+        final SignalFilter signalFilter = new SignalFilter(connection, connectionMonitorRegistry);
+        final Signal<?> signal = TestConstants.featurePropertiesModified(Collections.singletonList(AUTHORIZED));
+
+        final List<Target> filteredTargets = signalFilter.filter(signal);
+        Assertions.assertThat(filteredTargets).containsExactly(target);
+    }
+
+    private static Target filteredTarget(final String filter) {
+        return ConnectivityModelFactory.newTargetBuilder().address("address")
+                .authorizationContext(newAuthContext(DittoAuthorizationContextType.UNSPECIFIED, AUTHORIZED))
+                .topics(ConnectivityModelFactory.newFilteredTopicBuilder(TWIN_EVENTS)
+                        .withFilter(filter)
+                        .build())
+                .build();
+    }
+
+    private static Target enrichedTarget(final String extraFields, final String filter) {
+        return ConnectivityModelFactory.newTargetBuilder().address("address")
+                .authorizationContext(newAuthContext(DittoAuthorizationContextType.UNSPECIFIED, AUTHORIZED))
+                .topics(ConnectivityModelFactory.newFilteredTopicBuilder(TWIN_EVENTS)
+                        .withExtraFields(ThingFieldSelector.fromString(extraFields))
+                        .withFilter(filter)
+                        .build())
+                .build();
     }
 
     // ===== fn-filter only =====

@@ -18,8 +18,8 @@ import java.io.OutputStream;
 import java.nio.BufferOverflowException;
 import java.nio.ByteBuffer;
 import java.text.MessageFormat;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
@@ -33,6 +33,7 @@ import org.eclipse.ditto.json.JsonNumber;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonParseException;
 import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.json.SerializationContext;
 
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.core.JsonToken;
@@ -141,11 +142,7 @@ public final class JacksonCborFactory implements CborFactory {
         final ByteArrayOutputStream baos = new ByteArrayOutputStream(guessedSerializedSize);
 
         try (final JacksonSerializationContext serializationContext = new JacksonSerializationContext(baos)) {
-            writeStartObjectWithLength(serializationContext, jsonFieldMap.size());
-            for (final JsonField jsonField : jsonFieldMap.values()) {
-                jsonField.writeKeyAndValue(serializationContext);
-            }
-            serializationContext.getJacksonGenerator().writeEndObject();
+            writeObject(jsonFieldMap, serializationContext);
         }
         return baos.toByteArray();
     }
@@ -156,13 +153,41 @@ public final class JacksonCborFactory implements CborFactory {
         final ByteArrayOutputStream baos = new ByteArrayOutputStream(guessedSerializedSize);
 
         try (final JacksonSerializationContext serializationContext = new JacksonSerializationContext(baos)) {
-            serializationContext.getJacksonGenerator().writeStartArray(list.size());
+            writeArray(list, serializationContext);
+        }
+        return baos.toByteArray();
+    }
+
+    @Override
+    public void writeObject(final Map<String, JsonField> jsonFieldMap,
+            final SerializationContext serializationContext) throws IOException {
+        if (serializationContext instanceof JacksonSerializationContext) {
+            final JacksonSerializationContext jacksonSerializationContext =
+                    (JacksonSerializationContext) serializationContext;
+            writeStartObjectWithLength(jacksonSerializationContext, jsonFieldMap.size());
+            for (final JsonField jsonField : jsonFieldMap.values()) {
+                jsonField.writeKeyAndValue(jacksonSerializationContext);
+            }
+            jacksonSerializationContext.getJacksonGenerator().writeEndObject();
+        } else {
+            CborFactory.super.writeObject(jsonFieldMap, serializationContext);
+        }
+    }
+
+    @Override
+    public void writeArray(final List<JsonValue> list, final SerializationContext serializationContext)
+            throws IOException {
+        if (serializationContext instanceof JacksonSerializationContext) {
+            final JsonGenerator jacksonGenerator =
+                    ((JacksonSerializationContext) serializationContext).getJacksonGenerator();
+            jacksonGenerator.writeStartArray(list.size());
             for (final JsonValue jsonValue : list) {
                 jsonValue.writeValue(serializationContext);
             }
-            serializationContext.getJacksonGenerator().writeEndArray();
+            jacksonGenerator.writeEndArray();
+        } else {
+            CborFactory.super.writeArray(list, serializationContext);
         }
-        return baos.toByteArray();
     }
 
     private static int determineSize(final JsonValue jsonValue) {
@@ -250,41 +275,23 @@ public final class JacksonCborFactory implements CborFactory {
     }
 
     private static JsonObject parseObject(final CBORParser parser, final ByteBuffer byteBuffer) throws IOException {
-        final LinkedHashMap<String, JsonField> map = new LinkedHashMap<>();
-        final long startOffset = parser.currentTokenLocation().getByteOffset();
+        final Map<String, JsonField> map = new LinkedHashMap<>();
         while (parser.nextToken() == JsonToken.FIELD_NAME) {
             final String key = parser.currentName();
             final JsonField jsonField = JsonField.newInstance(key, parseValue(parser, byteBuffer));
             map.put(key, jsonField);
         }
-        final long endOffset = parser.currentTokenLocation().getByteOffset();
-        return JsonFactory.createJsonObject(map, getBytesFromInputSource(startOffset, endOffset, byteBuffer));
+        // No copy of the object's bytes is kept as its CBOR representation: on every nesting level, that copied each
+        // byte once per level and made each level hold a copy of it.
+        return JsonFactory.createJsonObjectTakingOwnership(map);
     }
 
     private static JsonArray parseArray(final CBORParser parser, final ByteBuffer byteBuffer) throws IOException {
-        final LinkedList<JsonValue> list = new LinkedList<>();
-        final long startOffset = parser.currentTokenLocation().getByteOffset();
+        final List<JsonValue> list = new ArrayList<>();
         while (parser.nextToken() != JsonToken.END_ARRAY) {
-            final JsonValue jsonValue = parseValue(parser, byteBuffer, parser.currentToken());
-            list.add(jsonValue);
+            list.add(parseValue(parser, byteBuffer, parser.currentToken()));
         }
-        final long endOffset = parser.currentTokenLocation().getByteOffset();
-        return JsonFactory.createJsonArray(list, getBytesFromInputSource(startOffset, endOffset, byteBuffer));
-    }
-
-    private static byte[] getBytesFromInputSource(final long startOffset, final long endOffset,
-            final ByteBuffer byteBuffer) {
-        assert endOffset > startOffset;
-        assert endOffset < Integer.MAX_VALUE;
-
-        final int length = (int) (endOffset - startOffset);
-        final byte[] bytes = new byte[length];
-
-        final ByteBuffer duplicate = byteBuffer.duplicate();
-        duplicate.position((int) startOffset);
-        duplicate.get(bytes);
-
-        return bytes;
+        return JsonFactory.createJsonArrayTakingOwnership(list);
     }
 
     /**

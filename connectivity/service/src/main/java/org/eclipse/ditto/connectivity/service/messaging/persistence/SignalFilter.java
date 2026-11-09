@@ -20,10 +20,12 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.base.model.auth.AuthorizationContext;
+import org.eclipse.ditto.base.model.common.Placeholders;
 import org.eclipse.ditto.base.model.entity.id.EntityId;
 import org.eclipse.ditto.base.model.entity.id.WithEntityId;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
@@ -39,6 +41,7 @@ import org.eclipse.ditto.connectivity.model.FilteredTopic;
 import org.eclipse.ditto.connectivity.model.Target;
 import org.eclipse.ditto.connectivity.model.Topic;
 import org.eclipse.ditto.connectivity.model.signals.announcements.ConnectivityAnnouncement;
+import org.eclipse.ditto.connectivity.service.messaging.Resolvers;
 import org.eclipse.ditto.connectivity.service.messaging.TargetTopicFilter;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.ConnectionMonitor;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.ConnectionMonitorRegistry;
@@ -169,8 +172,21 @@ public final class SignalFilter {
     }
 
     private static Predicate<FilteredTopic> applyNamespaceFilter(final Signal<?> signal) {
-        return t -> t.getNamespaces().isEmpty() ||
-                (signal instanceof WithEntityId withEntityId && t.getNamespaces().contains(namespaceFromId(withEntityId)));
+        return t -> matchesNamespaces(t, signal);
+    }
+
+    /**
+     * Checks whether the namespace of the passed {@code signal}'s entity is one of the {@code namespaces} of the passed
+     * {@code filteredTopic}. A topic without namespaces matches signals of every namespace.
+     *
+     * @param filteredTopic the topic whose namespaces to check.
+     * @param signal the signal whose entity namespace to check.
+     * @return whether the topic subscribed for the namespace of the signal.
+     */
+    public static boolean matchesNamespaces(final FilteredTopic filteredTopic, final Signal<?> signal) {
+        return filteredTopic.getNamespaces().isEmpty() ||
+                (signal instanceof WithEntityId withEntityId &&
+                        filteredTopic.getNamespaces().contains(namespaceFromId(withEntityId)));
     }
 
     @Nullable
@@ -208,7 +224,7 @@ public final class SignalFilter {
         final PlaceholderResolver<Object> timePlaceholderResolver = PlaceholderFactory
                 .newPlaceholderResolver(TIME_PLACEHOLDER, new Object());
         final Set<JsonPointer> extraFields = filteredTopic.getExtraFields()
-                .map(JsonFieldSelector::getPointers)
+                .map(selector -> resolveExtraFields(selector, signal, connectionId))
                 .orElse(Collections.emptySet());
         final Thing thingToMatch;
         if (signal instanceof ThingEvent) {
@@ -226,6 +242,20 @@ public final class SignalFilter {
         return Thing3ValuePredicateVisitor.couldBeTrue(criteria, extraFields, thingToMatch,
                 topicPathPlaceholderResolver, entityIdPlaceholderResolver, thingPlaceholderResolver,
                 featurePlaceholderResolver, resourcePlaceholderResolver, timePlaceholderResolver);
+    }
+
+    /**
+     * Resolves the placeholders in the extra fields like OutboundMappingProcessorActor does for the enrichment, so that
+     * the filter fields they cover are already known as such before the enrichment.
+     */
+    private static Set<JsonPointer> resolveExtraFields(final JsonFieldSelector extraFields, final Signal<?> signal,
+            final ConnectionId connectionId) {
+
+        if (Placeholders.containsAnyPlaceholder(extraFields.toString())) {
+            return Resolvers.resolveExtraFields(Resolvers.forSignal(signal, connectionId), extraFields)
+                    .collect(Collectors.toSet());
+        }
+        return extraFields.getPointers();
     }
 
     /**

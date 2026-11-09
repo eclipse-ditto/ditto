@@ -170,6 +170,15 @@ public final class ThingsSseRouteBuilder extends RouteDirectives implements SseR
      */
     private static final Duration LOCAL_ASK_TIMEOUT = Duration.ofSeconds(5L);
 
+    /*
+     * The filter of a history subscription is not evaluated by a streaming session, but by the things service which
+     * does not resolve the additional placeholders of a streaming session - so it must not accept them.
+     */
+    private static final QueryFilterCriteriaFactory HISTORY_QUERY_FILTER_CRITERIA_FACTORY =
+            QueryFilterCriteriaFactory.modelBased(RqlPredicateParser.getInstance(),
+                    TopicPathPlaceholder.getInstance(), ResourcePlaceholder.getInstance(),
+                    TimePlaceholder.getInstance());
+
     private final ActorRef streamingActor;
     private final StreamingConfig streamingConfig;
     private final QueryFilterCriteriaFactory queryFilterCriteriaFactory;
@@ -225,13 +234,8 @@ public final class ThingsSseRouteBuilder extends RouteDirectives implements SseR
             final HeaderTranslator headerTranslator) {
 
         checkNotNull(streamingActor, "streamingActor");
-        final var queryFilterCriteriaFactory =
-                QueryFilterCriteriaFactory.modelBased(RqlPredicateParser.getInstance(),
-                        TopicPathPlaceholder.getInstance(), ResourcePlaceholder.getInstance(),
-                        TimePlaceholder.getInstance());
-
-        return new ThingsSseRouteBuilder(actorSystem, streamingActor, streamingConfig, queryFilterCriteriaFactory,
-                pubSubMediator, headerTranslator);
+        return new ThingsSseRouteBuilder(actorSystem, streamingActor, streamingConfig,
+                StreamingSession.getFilterCriteriaFactory(), pubSubMediator, headerTranslator);
     }
 
     @Override
@@ -406,8 +410,11 @@ public final class ThingsSseRouteBuilder extends RouteDirectives implements SseR
             final var sseSourceStage = facadeStage.thenCompose(facade -> dittoHeadersStage.thenCompose(
                     dittoHeaders -> sseAuthorizationEnforcer.checkAuthorization(ctx, dittoHeaders).thenApply(unused -> {
                         if (filterString != null) {
+                            final boolean isHistory = null != fromHistoricalRevision ||
+                                    null != fromHistoricalTimestamp;
                             // will throw an InvalidRqlExpressionException if the RQL expression was not valid:
-                            queryFilterCriteriaFactory.filterCriteria(filterString, dittoHeaders);
+                            (isHistory ? HISTORY_QUERY_FILTER_CRITERIA_FACTORY : queryFilterCriteriaFactory)
+                                    .filterCriteria(filterString, dittoHeaders);
                         }
 
                         final String connectionCorrelationId = dittoHeaders.getCorrelationId()

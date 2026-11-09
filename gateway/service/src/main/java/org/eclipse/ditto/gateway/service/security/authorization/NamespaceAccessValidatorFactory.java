@@ -31,10 +31,11 @@ import org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault;
 @AllValuesAreNonnullByDefault
 public final class NamespaceAccessValidatorFactory {
 
-    private final List<NamespaceAccessConfig> namespaceAccessConfigs;
+    private final List<NamespaceAccessValidator.NamespaceAccessRule> namespaceAccessRules;
 
     public NamespaceAccessValidatorFactory(final List<NamespaceAccessConfig> namespaceAccessConfigs) {
-        this.namespaceAccessConfigs = namespaceAccessConfigs;
+        // parsed once, as the namespace patterns of each rule are compiled to regular expressions
+        namespaceAccessRules = NamespaceAccessValidator.toRules(namespaceAccessConfigs);
     }
 
     /**
@@ -47,7 +48,7 @@ public final class NamespaceAccessValidatorFactory {
      */
     public NamespaceAccessValidator createValidator(final DittoHeaders dittoHeaders,
             @Nullable final JsonWebToken jwt, final String resourceType) {
-        return new NamespaceAccessValidator(filterByResourceType(resourceType), dittoHeaders, jwt);
+        return NamespaceAccessValidator.of(filterByResourceType(resourceType), dittoHeaders, jwt);
     }
 
     /**
@@ -60,12 +61,12 @@ public final class NamespaceAccessValidatorFactory {
      */
     public NamespaceAccessValidator createValidator(final DittoHeaders dittoHeaders, final String resourceType) {
         final JsonWebToken jwt = extractJwtFromHeaders(dittoHeaders).orElse(null);
-        return new NamespaceAccessValidator(filterByResourceType(resourceType), dittoHeaders, jwt);
+        return NamespaceAccessValidator.of(filterByResourceType(resourceType), dittoHeaders, jwt);
     }
 
-    private List<NamespaceAccessConfig> filterByResourceType(final String resourceType) {
-        return namespaceAccessConfigs.stream()
-                .filter(c -> c.getResourceTypes().isEmpty() || c.getResourceTypes().contains(resourceType))
+    private List<NamespaceAccessValidator.NamespaceAccessRule> filterByResourceType(final String resourceType) {
+        return namespaceAccessRules.stream()
+                .filter(rule -> rule.appliesTo(resourceType))
                 .toList();
     }
 

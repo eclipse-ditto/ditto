@@ -17,6 +17,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Stream;
 
 import javax.annotation.Nullable;
 
@@ -31,7 +32,9 @@ import org.eclipse.ditto.connectivity.model.ConnectionId;
 import org.eclipse.ditto.connectivity.service.placeholders.ConnectivityPlaceholders;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.placeholders.ExpressionResolver;
+import org.eclipse.ditto.placeholders.PipelineElement;
 import org.eclipse.ditto.placeholders.Placeholder;
 import org.eclipse.ditto.placeholders.PlaceholderFactory;
 import org.eclipse.ditto.placeholders.PlaceholderResolver;
@@ -138,6 +141,25 @@ public final class Resolvers {
                         ))
                         .toArray(PlaceholderResolver[]::new)
         );
+    }
+
+    /**
+     * Resolve the placeholders in extra fields, e.g. {@code features/{{ feature:id }}/properties}. An extra field
+     * resolving to several values results in several JSON pointers, an unresolvable one in none.
+     *
+     * @param expressionResolver the expression resolver to resolve the placeholders with.
+     * @param extraFields the extra fields.
+     * @return the JSON pointers of the resolved extra fields.
+     * @since 3.9.9
+     */
+    public static Stream<JsonPointer> resolveExtraFields(final ExpressionResolver expressionResolver,
+            final JsonFieldSelector extraFields) {
+
+        return extraFields.getPointers().stream()
+                .map(JsonPointer::toString)
+                .map(expressionResolver::resolve)
+                .flatMap(PipelineElement::toStream)
+                .map(JsonPointer::of);
     }
 
     /**

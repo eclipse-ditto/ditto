@@ -14,6 +14,7 @@ package org.eclipse.ditto.base.model.headers;
 
 import java.text.MessageFormat;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.json.JsonArray;
@@ -46,7 +47,10 @@ final class JsonArrayValueValidator extends AbstractHeaderValueValidator {
 
     @Override
     protected void validateValue(final HeaderDefinition definition, final CharSequence value) {
-        if (containsNonStringArrayValues(tryToParseJsonArray(definition, value.toString()))) {
+        @Nullable final JsonArray memoizedJsonArray = Header.getParsedArrayOrNull(value);
+        final JsonArray jsonArray =
+                null != memoizedJsonArray ? memoizedJsonArray : tryToParseJsonArray(definition, value.toString());
+        if (containsNonStringArrayValues(jsonArray)) {
             final String msgTemplate = "JSON array for <{0}> contained non-string values!";
             final String invalidHeaderKey = definition.getKey();
             throw DittoHeaderInvalidException.newBuilder()

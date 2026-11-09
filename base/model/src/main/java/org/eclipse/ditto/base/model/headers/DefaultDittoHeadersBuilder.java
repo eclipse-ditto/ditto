@@ -74,7 +74,9 @@ final class DefaultDittoHeadersBuilder extends AbstractDittoHeadersBuilder<Defau
      * @throws NullPointerException if {@code jsonObject} is {@code null}.
      */
     static DefaultDittoHeadersBuilder of(final JsonObject jsonObject) {
-        return of(toMap(jsonObject));
+        // the Map constructor validates the values - of Headers which already hold the JSON values of jsonObject
+        final Map<String, String> headers = ImmutableDittoHeaders.fromBuilder(toHeaders(jsonObject));
+        return new DefaultDittoHeadersBuilder(headers);
     }
 
     /**
@@ -102,7 +104,8 @@ final class DefaultDittoHeadersBuilder extends AbstractDittoHeadersBuilder<Defau
      * @throws NullPointerException if {@code jsonObject} is {@code null}.
      */
     static DefaultDittoHeadersBuilder ofTrusted(final JsonObject jsonObject) {
-        return ofTrusted(toMap(jsonObject));
+        // the Headers keep the JSON values of jsonObject, so serializing them again does not parse their strings back
+        return new DefaultDittoHeadersBuilder((DittoHeaders) ImmutableDittoHeaders.fromBuilder(toHeaders(jsonObject)));
     }
 
     /**

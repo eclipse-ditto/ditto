@@ -82,7 +82,7 @@ export function ready() {
 }
 
 function onEnvironmentChanged(modifiedField) {
-  if (!['pinnedThings', 'filterList', 'messageTemplates', 'recentPolicyIds'].includes(modifiedField)) {
+  if (Environments.changesContext(modifiedField)) {
     cancelActiveProbe();
     if (Things.isHistoryModeActive()) {
       Things.setHistoryMode(false);

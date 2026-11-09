@@ -23,6 +23,7 @@ import * as Environments from '../environments/environments.js';
 import * as Utils from '../utils.js';
 import { sanitizeHTML } from '../utils.js';
 import * as Fields from './fields.js';
+import * as SearchNamespaces from './searchNamespaces.js';
 import * as Things from './things.js';
 import * as ThingsSSE from './thingsSSE.js';
 
@@ -31,6 +32,8 @@ export class ThingsSearchGlobalVars {
 }
 
 let theSearchCursor;
+
+let latestRequest = 0;
 
 const dom = {
   searchFilterCount: null,
@@ -124,6 +127,7 @@ export function performLastSearch() {
  * @param {Array} thingIds Array of thingIds
  */
 export function getThings(thingIds) {
+  const request = ++latestRequest;
   dom.searchFilterCount.textContent = '';
   dom.thingsTableBody.textContent = '';
   const fieldsQueryParameter = Fields.getQueryParameter();
@@ -131,11 +135,17 @@ export function getThings(thingIds) {
     API.callDittoREST('GET',
         `/things?${fieldsQueryParameter}&ids=${thingIds}&option=sort(%2BthingId)`)
         .then((thingJsonArray) => {
+          if (request !== latestRequest) {
+            return;
+          }
           fillThingsTable(thingJsonArray);
           dom.searchFilterCount.textContent = '#: ' + thingJsonArray.length;
           notifyAll(thingIds, fieldsQueryParameter);
         })
         .catch((error) => {
+          if (request !== latestRequest) {
+            return;
+          }
           resetAndClearViews();
           notifyAll();
         });
@@ -155,21 +165,37 @@ function resetAndClearViews(retainThing = false) {
   }
 }
 
+export function availableSearchNamespaces(): string[] {
+  return SearchNamespaces.parseValidNamespaces(Environments.current().searchNamespaces);
+}
+
+export function activeSearchNamespaces(): string[] {
+  return SearchNamespaces.activeNamespaces(availableSearchNamespaces(), Environments.current().selectedSearchNamespaces);
+}
+
 /**
  * Calls Ditto search API to perform a count and adds the count to the UI.
  * @param {string} filter Ditto search filter (rql)
+ * @param {string[]} namespaces namespaces to count in
+ * @param {number} request the search request the count belongs to
  */
-function countThings(filter: string) {
+function countThings(filter: string, namespaces: string[], request: number) {
   dom.searchFilterCount.textContent = '';
-  const namespaces = Environments.current().searchNamespaces
+  const queryParameters = [
+    (filter && filter !== '') ? 'filter=' + encodeURIComponent(filter) : '',
+    SearchNamespaces.namespacesQueryParameter(namespaces),
+  ].filter((parameter) => parameter !== '');
   API.callDittoREST('GET',
-    '/search/things/count' +
-    ((filter && filter !== '') ? '?filter=' + encodeURIComponent(filter) : '') +
-    ((namespaces && namespaces !== '') ? '&namespaces=' + namespaces : ''), null, null
+    '/search/things/count' + (queryParameters.length > 0 ? '?' + queryParameters.join('&') : ''), null, null
   ).then((countResult) => {
+    if (request !== latestRequest) {
+      return;
+    }
     dom.searchFilterCount.textContent = '#: ' + countResult;
   }).catch((error) => {
-    notifyAll();
+    if (request === latestRequest) {
+      notifyAll();
+    }
   });
 }
 
@@ -181,20 +207,25 @@ function countThings(filter: string) {
 function searchThings(filter: string, isMore = false) {
   document.body.style.cursor = 'progress';
 
-  const namespaces = Environments.current().searchNamespaces;
+  const request = isMore ? latestRequest : ++latestRequest;
+  const namespaces = activeSearchNamespaces();
+  const namespacesQueryParameter = SearchNamespaces.namespacesQueryParameter(namespaces);
   const fieldsQueryParameter = Fields.getQueryParameter();
   API.callDittoREST('GET',
       '/search/things?' + fieldsQueryParameter +
       ((filter && filter !== '') ? '&filter=' + encodeURIComponent(filter) : '') +
-      ((namespaces && namespaces !== '') ? '&namespaces=' + namespaces : '') +
+      (namespacesQueryParameter !== '' ? '&' + namespacesQueryParameter : '') +
       '&option=sort(%2BthingId)' +
       // ',size(3)' +
       (isMore ? ',cursor(' + theSearchCursor + ')' : ''), null, null
   ).then((searchResult) => {
+    if (request !== latestRequest) {
+      return;
+    }
     if (isMore) {
       removeMoreFromThingList();
     } else {
-      countThings(filter);
+      countThings(filter, namespaces, request);
       resetAndClearViews(true);
     }
     fillThingsTable(searchResult.items);
@@ -203,6 +234,9 @@ function searchThings(filter: string, isMore = false) {
       notifyAll(searchResult.items.map(thingJson => thingJson.thingId), fieldsQueryParameter);
     }
   }).catch((error) => {
+    if (request !== latestRequest) {
+      return;
+    }
     resetAndClearViews();
     notifyAll();
   }).finally(() => {
