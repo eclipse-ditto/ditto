@@ -1804,7 +1804,8 @@ By default, background cleanup is enabled for all entities. The retention durati
 is `3d` (3 days) for things and `30d` (30 days) for policies and connectivity; the Helm chart sets `30d` for all
 three (`<service>.config.cleanup.history.retentionDuration`).
 
-On PostgreSQL, deleted events and snapshots take disk space until the tables are vacuumed, see
+On PostgreSQL, deleted events and snapshots stay in the tables as dead rows until the tables are vacuumed, and vacuuming
+makes their space reusable without shrinking the files, see
 [Operating PostgreSQL](operating-postgresql.html#dead-rows-and-autovacuum).
 
 In order to use Ditto's [history capabilities](basic-history.html), the configuration has to be adjusted accordingly.

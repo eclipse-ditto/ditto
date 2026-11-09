@@ -37,19 +37,19 @@ is a trusted extension, see [Prerequisites of the search backend](operating-post
 before it touches the schema, and refuses to start otherwise; CloudNativePG's `initdb` default `LC_CTYPE` `C` does not
 qualify. See [Provisioning the database](#provisioning-the-database).
 
-{% include note.html content="Data migration from MongoDB is the operator's responsibility. No automated migration tooling is provided for the persistence services. The search index is a rebuildable projection of the things data: point the search service at an empty PostgreSQL database and let background sync re-index, see [Migration = re-index only](operating-postgresql.html#prerequisites-migration-and-known-limitations)." %}
+{% include note.html content="Data migration from MongoDB is the operator's responsibility. No automated migration tooling is provided for the persistence services. The search index is a rebuildable projection of the things data: point the search service at an empty PostgreSQL database and fill the index, namespace by namespace, with the force-update command, see [Cutover to the PostgreSQL search index](operating-postgresql.html#cutover-to-the-postgresql-search-index)." %}
 
 ## The extension JARs
 
 The extension JARs are **not** included in the default Ditto images. The PostgreSQL backends ship as **layered drop-in
-JARs** built from three Maven modules — a shared **base** JAR carrying all third-party runtime (R2DBC driver/pool,
-reactor, netty, scram) and **thin** backend JARs carrying only Ditto implementation classes:
+JARs** built from three Maven modules — a shared **base** JAR carrying the third-party runtime the service images lack
+(R2DBC driver/pool, reactor, reactor-netty, scram) and **thin** backend JARs carrying only Ditto implementation classes:
 
-| Module / JAR                                  | Contents                                                                                                                  | Mounted by                                        |
-|-----------------------------------------------|---------------------------------------------------------------------------------------------------------------------------|---------------------------------------------------|
-| `ditto-postgres-client-extension` (base)      | shared `postgres-client` infra + ALL third-party (r2dbc-postgresql, r2dbc-pool, reactor, netty incl. resolver-dns, scram) | every service on PostgreSQL                       |
-| `ditto-postgres-persistence-extension` (thin) | only the event-sourcing persistence classes                                                                               | policies / things / connectivity                  |
-| `ditto-postgres-search-extension` (thin)      | only the thing-search classes                                                                                             | things-search (only if search runs on PostgreSQL) |
+| Module / JAR                                  | Contents                                                                                                                                                       | Mounted by                                        |
+|-----------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------|---------------------------------------------------|
+| `ditto-postgres-client-extension` (base)      | shared `postgres-client` infra + the third-party runtime the images lack (r2dbc-postgresql, r2dbc-pool, reactor, reactor-netty, the netty DNS resolver, scram) | every service on PostgreSQL                       |
+| `ditto-postgres-persistence-extension` (thin) | only the event-sourcing persistence classes                                                                                                                    | policies / things / connectivity                  |
+| `ditto-postgres-search-extension` (thin)      | only the thing-search classes                                                                                                                                  | things-search (only if search runs on PostgreSQL) |
 
 A service therefore mounts **two** JARs: the base plus the matching thin JAR. A search service left on MongoDB mounts
 nothing.
@@ -97,7 +97,10 @@ DIFFERENT Ditto releases: …`). The check compares the extension JARs with each
 passes quietly when fewer than two markers are found. The release images are built from the tagged sources with
 `-Drevision=<release tag>`, so build the extension JARs from the same tag with the same `-Drevision`, or take them from
 the same release; a build without `-Drevision` produces `0-SNAPSHOT` JARs, which pass the check against each other
-whatever image they are mounted into.
+whatever image they are mounted into. Build them from a clean tree (`mvn clean install -DskipTests -DskipITs`, or
+`clean` before the `package` command above): the extension poms force the thin JAR to be rebuilt, and `build-images.sh`
+refuses to bake a shaded extension JAR whose classes differ from its module JAR, so an incremental build can no longer
+ship the previous build's classes unnoticed.
 
 ### A thin JAR without its base
 
@@ -229,7 +232,7 @@ added to the same file instead of being set through an environment variable.
    creates them as `ditto_ddl` and `ditto_app`:
 
    ```bash
-   psql -h <pg-host> -U <database-owner> -d ditto \
+   psql -h <pg-host> -U <database-owner> -d ditto -v ON_ERROR_STOP=1 \
         -v ddl_pw="$DITTO_DDL_PASSWORD" \
         -v app_pw="$DITTO_APP_PASSWORD" \
         -f deployment/postgres/provisioning/01-roles-and-grants.sql
@@ -483,7 +486,8 @@ higher). The content of the overlay is the same as the extension config above. P
    two JARs; a search deployment takes `ditto-postgres-client-extension` plus `ditto-postgres-search-extension`.
 
 3. **TLS.** `postgres.tls.enabled: true` with `postgres.tls.caCert` (a PEM, or a multi-CA bundle for a staged CA
-   rotation) or `postgres.tls.existingSecret` mounts the CA, and the optional mTLS material, read-only at
+   rotation; the chart renders it into the Secret `<fullname>-postgres-tls`) or `postgres.tls.existingSecret` (keys
+   `ca.crt`, plus `tls.crt`/`tls.key` for mTLS) mounts the CA, and the optional mTLS material, read-only at
    `postgres.tls.mountPath` (`/etc/ditto/pg-tls`) into the policies, things, connectivity and things-search pods. The client reads the
    files only through the `ssl.*` keys, so set `POSTGRES_SSL_ROOT_CERT=/etc/ditto/pg-tls/ca.crt` (and
    `POSTGRES_SSL_CERT` / `POSTGRES_SSL_KEY` for mTLS) via `extraEnv`. Details, CA rotation and the PKCS#8 requirement:

@@ -58,13 +58,13 @@ ditto.extensions.signal-enrichment-provider = org.eclipse.ditto.gateway.service.
 
 For simple configuration changes, use [system properties](operating-configuration.html). For extensive changes, create a [HOCON](https://github.com/lightbend/config/blob/main/HOCON.md) file named `<ditto-service-name>-extension.conf` and place it in the Docker container's working directory:
 
-| Service | Extension config path |
-|---------|----------------------|
-| Policies | `/opt/ditto/policies-extension.conf` |
-| Things | `/opt/ditto/things-extension.conf` |
-| Search | `/opt/ditto/search-extension.conf` |
+| Service      | Extension config path                    |
+|--------------|------------------------------------------|
+| Policies     | `/opt/ditto/policies-extension.conf`     |
+| Things       | `/opt/ditto/things-extension.conf`       |
+| Search       | `/opt/ditto/search-extension.conf`       |
 | Connectivity | `/opt/ditto/connectivity-extension.conf` |
-| Gateway | `/opt/ditto/gateway-extension.conf` |
+| Gateway      | `/opt/ditto/gateway-extension.conf`      |
 
 These files can contain any configuration from the [service config files](operating-configuration.html).
 
