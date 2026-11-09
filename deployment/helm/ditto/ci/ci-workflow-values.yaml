@@ -14,10 +14,6 @@
 # profile for installing Ditto
 # - with Ingress enabled and low cpu requests
 
-global:
-  featureFlags:
-    timeseriesEnabled: true
-
 ## ingress configuration
 ingress:
   enabled: true
@@ -85,7 +81,8 @@ gateway:
 ## ----------------------------------------------------------------------------
 ## timeseries configuration
 timeseries:
-  enabled: true
+  # no released ditto-timeseries image exists yet that the chart install could pull
+  enabled: false
   resources:
     cpu: 0.15
     memoryMi: 512
