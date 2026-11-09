@@ -45,12 +45,96 @@ print_usage() {
   printf "  -P  push the built docker images\n" "$1"
   printf "  -h  display help\n" "$1"
   printf "  BAKE_POSTGRES_EXTENSIONS=true (env) bakes the PostgreSQL extension JARs of this build into the\n"
-  printf "      things, policies, connectivity and things-search images (snapshot dockerfiles only)\n"
+  printf "      things, policies, connectivity and things-search images (snapshot dockerfiles only).\n"
+  printf "      Refuses to bake a shaded extension JAR whose classes differ from the module JAR it bundles\n"
+  printf "      (stale after an incremental build): rebuild with mvn clean install -DskipTests -DskipITs\n"
+  printf "  CHECK_ONLY=1 (env) with BAKE_POSTGRES_EXTENSIONS=true: run only that staleness check, build nothing\n"
 }
 
 print_used_proxies() {
   printf "Using HTTP_PROXY=%s\n" "$HTTP_PROXY_LOCAL"
   printf "Using HTTPS_PROXY=%s\n" "$HTTPS_PROXY_LOCAL"
+}
+
+# The shaded PostgreSQL extension JARs and the Ditto module JAR each one bundles (its shade whitelist):
+# EXTENSION_MODULE_DIR:MODULE_DIR:MODULE_ARTIFACT_ID, all under internal/utils/.
+POSTGRES_EXTENSIONS=(
+  "postgres-client-extension:postgres-client:ditto-internal-utils-postgres-client"
+  "postgres-persistence-extension:persistence-r2dbc:ditto-internal-utils-persistence-r2dbc"
+  "postgres-search-extension:search-r2dbc:ditto-internal-utils-search-r2dbc"
+)
+
+# Prints every .class entry of a JAR as "<path> <length> <crc-32>" (columns 8, 1 and 7 of `unzip -lv`). The
+# CRC-32 is that of the uncompressed bytes, so entries of two JARs compare regardless of how each was deflated.
+list_class_entries() {
+  unzip -lv "$1" | awk 'NF >= 8 && $NF ~ /\.class$/ { print $NF, $1, $7 }'
+}
+
+# Refuses to bake a shaded extension JAR whose classes are not those of the module JAR it bundles.
+#
+# An incremental `mvn install` (no `clean`) on a tree with earlier build output can leave the shaded JARs stale
+# while every build step reports success: the extension module's own sources rarely change, so jar:jar finds the
+# artifact already in target/ "up to date" and keeps it -- but that artifact is the PREVIOUS shaded JAR (shade
+# replaces the thin JAR in place). shade:shade then merges it with the freshly built module JAR and keeps the
+# first copy of every overlapping class, i.e. the stale one. The images would run the previous build's classes.
+# The extension poms set maven-jar-plugin's forceCreation to remove the cause; this check catches every other way
+# of getting there (a partial `-pl` build of the module alone, a copied-in JAR, ...).
+#
+# Compares length + CRC-32 of EVERY class of the module JAR with the shaded JAR's copy. Any difference or
+# missing class fails the build before the first docker build. Only runs when BAKE_POSTGRES_EXTENSIONS=true.
+check_postgres_extension_jars() {
+  local entry extension module artifact shaded_jar module_jar jar module_classes shaded_classes stale stale_count
+  local failed=0
+  printf "\nChecking the shaded PostgreSQL extension JARs against the module JARs they bundle ...\n"
+  for entry in "${POSTGRES_EXTENSIONS[@]}"; do
+    IFS=: read -r extension module artifact <<< "$entry"
+    shaded_jar="$SCRIPTDIR/internal/utils/$extension/target/ditto-$extension-$SERVICE_VERSION.jar"
+    module_jar="$SCRIPTDIR/internal/utils/$module/target/$artifact-$SERVICE_VERSION.jar"
+    for jar in "$shaded_jar" "$module_jar"; do
+      if [ ! -f "$jar" ]; then
+        printf "  ERROR: <%s> does not exist -- the tree is not built.\n" "${jar#"$SCRIPTDIR/"}" >&2
+        failed=1
+        continue 2
+      fi
+    done
+    module_classes=$(list_class_entries "$module_jar" | awk 'END { print NR }')
+    shaded_classes=$(list_class_entries "$shaded_jar" | awk 'END { print NR }')
+    if [ "$module_classes" -eq 0 ] || [ "$shaded_classes" -eq 0 ]; then
+      printf "  ERROR: could not list the classes of <%s> (%s) and <%s> (%s).\n" \
+        "${module_jar#"$SCRIPTDIR/"}" "$module_classes" "${shaded_jar#"$SCRIPTDIR/"}" "$shaded_classes" >&2
+      failed=1
+      continue
+    fi
+    # "S <class> <length> <crc>" lines of the shaded JAR first, then "M ..." lines of the module JAR: a module
+    # class without an identical shaded copy is stale (or missing).
+    stale=$( { list_class_entries "$shaded_jar" | sed 's/^/S /'; list_class_entries "$module_jar" | sed 's/^/M /'; } |
+      awk '$1 == "S" { shaded[$2] = $3 " " $4; next }
+           !($2 in shaded) { print "      " $2 " (missing in the shaded JAR)"; next }
+           shaded[$2] != $3 " " $4 { print "      " $2 " (differs)" }')
+    if [ -z "$stale" ]; then
+      printf "  OK    %s: all %s classes of %s match\n" "${shaded_jar#"$SCRIPTDIR/"}" "$module_classes" "$artifact"
+    else
+      stale_count=$(printf '%s\n' "$stale" | awk 'NF { n++ } END { print n + 0 }')
+      {
+        printf "  STALE %s:\n" "${shaded_jar#"$SCRIPTDIR/"}"
+        printf "        %s of %s classes of %s are not the module JAR's (first 10):\n" \
+          "$stale_count" "$module_classes" "${module_jar#"$SCRIPTDIR/"}"
+        printf '%s\n' "$stale" | head -n 10
+      } >&2
+      failed=1
+    fi
+  done
+  if [ "$failed" -ne 0 ]; then
+    {
+      printf "\nERROR: refusing to bake stale PostgreSQL extension JARs into the images (the services would run the\n"
+      printf "classes of a previous build while every build step reported success). Rebuild the tree with\n"
+      printf "\n    mvn clean install -DskipTests -DskipITs\n\n"
+      printf "and run %s again. An incremental 'mvn install' without 'clean' is what leaves the shaded JARs stale.\n" "$0"
+    } >&2
+    return 1
+  fi
+  printf "\n"
+  return 0
 }
 
 build_docker_image() {
@@ -122,6 +206,14 @@ build_ditto_ui_docker_image() {
 }
 
 build_all_docker_images() {
+  # Stale shaded extension JARs are refused BEFORE the first docker build, once for all images.
+  if [[ "$BAKE_POSTGRES_EXTENSIONS" == "true" ]]; then
+    check_postgres_extension_jars || exit 1
+  fi
+  if [ -n "$CHECK_ONLY" ]; then
+    printf "CHECK_ONLY is set: building no image.\n"
+    return 0
+  fi
   for i in "${SERVICES[@]}"; do
     build_docker_image "$i"
   done

@@ -61,6 +61,21 @@
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
+                <configuration>
+                    <!--
+                        Always rebuild the thin project JAR that shade:shade below takes as its input. Without this, an
+                        incremental `mvn install` (no `clean`) finds the artifact already in target/ "up to date" (this
+                        module's own sources rarely change) and keeps it; but that artifact is the PREVIOUS shaded JAR
+                        (shade replaces the main artifact in place). shade:shade then merges it with the freshly built
+                        persistence-r2dbc JAR and keeps the first copy of every overlapping class, i.e. the stale one,
+                        while every build step reports success. build-images.sh refuses such a JAR; this removes the cause.
+                    -->
+                    <forceCreation>true</forceCreation>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-shade-plugin</artifactId>
                 <executions>
                     <execution>
