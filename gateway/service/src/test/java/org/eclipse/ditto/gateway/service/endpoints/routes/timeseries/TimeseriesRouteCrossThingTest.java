@@ -275,7 +275,7 @@ public final class TimeseriesRouteCrossThingTest extends EndpointTestBase {
         final var result = underTest.run(HttpRequest.GET(
                 "/timeseries/things/" + NAMESPACE + ":heatsource-1?paths=" + PATH
                         + "&from=2026-07-01T00:00:00Z&to=2026-07-02T00:00:00Z"
-                        + "&tagFilter=" + urlEncode("floor:2,building:A,room:\"2\"")));
+                        + "&tagFilter=" + urlEncode("floor:2,building:A,room:\"2\",version:1.10")));
 
         result.assertStatusCode(StatusCodes.OK);
         final JsonObject tagFilters = JsonObject.of(result.entityString())
@@ -285,6 +285,7 @@ public final class TimeseriesRouteCrossThingTest extends EndpointTestBase {
         assertThat(tagFilters.getValue("floor")).contains(JsonValue.of(2));
         assertThat(tagFilters.getValue("building")).contains(JsonValue.of("A"));
         assertThat(tagFilters.getValue("room")).contains(JsonValue.of("2"));
+        assertThat(tagFilters.getValue("version")).contains(JsonValue.of("1.10"));
     }
 
     @Test

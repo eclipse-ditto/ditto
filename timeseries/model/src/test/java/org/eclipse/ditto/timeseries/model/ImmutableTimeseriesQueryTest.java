@@ -599,4 +599,20 @@ public final class ImmutableTimeseriesQueryTest {
 
         assertThat(query.getTagFilters()).containsEntry("attributes/owner", JsonValue.of("alice"));
     }
+
+    @Test
+    public void leadingSlashOfTagFilterKeyIsDropped() {
+        final TimeseriesQuery query = TimeseriesQuery.of(THING_ID, SINGLE_PATH, FROM, TO, null, null, null, null, null)
+                .withTagFilters(Collections.singletonMap("/attributes/owner", JsonValue.of("alice")));
+
+        assertThat(query.getTagFilters()).containsOnlyKeys("attributes/owner");
+    }
+
+    @Test
+    public void tagFilterKeyOfOnlyASlashIsRejected() {
+        final TimeseriesQuery query = TimeseriesQuery.of(THING_ID, SINGLE_PATH, FROM, TO, null, null, null, null, null);
+
+        assertThatExceptionOfType(TimeseriesQueryInvalidException.class)
+                .isThrownBy(() -> query.withTagFilters(Collections.singletonMap("/", JsonValue.of("alice"))));
+    }
 }

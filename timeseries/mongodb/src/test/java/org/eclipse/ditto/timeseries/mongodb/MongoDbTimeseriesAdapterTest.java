@@ -148,6 +148,28 @@ public final class MongoDbTimeseriesAdapterTest {
     }
 
     @Test
+    public void checkHealthIsUpWhenMongoDbAnswersThePing() {
+        when(mongoDatabase.runCommand(any(Bson.class))).thenReturn(completingPublisher(new Document("ok", 1)));
+
+        assertThat(newInitialisedAdapter().checkHealth().toCompletableFuture().join()).isEqualTo(HealthStatus.UP);
+    }
+
+    @Test
+    public void checkHealthIsDownWhenThePingFails() {
+        when(mongoDatabase.runCommand(any(Bson.class)))
+                .thenReturn(failingPublisher(new IllegalStateException("MongoDB unreachable")));
+
+        assertThat(newInitialisedAdapter().checkHealth().toCompletableFuture().join())
+                .isEqualTo(HealthStatus.DOWN);
+    }
+
+    @Test
+    public void checkHealthIsDownBeforeInitialize() {
+        assertThat(new MongoDbTimeseriesAdapter().checkHealth().toCompletableFuture().join())
+                .isEqualTo(HealthStatus.DOWN);
+    }
+
+    @Test
     public void shutdownTransitionsToDown() {
         final MongoDbTimeseriesAdapter adapter = newInitialisedAdapter();
 
@@ -489,6 +511,36 @@ public final class MongoDbTimeseriesAdapterTest {
                 adapter.query(query).toCompletableFuture().join();
 
         assertThat(results.get(0).getData()).hasSize(1);
+    }
+
+    @Test
+    public void numericTagFilterAlsoMatchesTheStringForm() {
+        stubFindReturning(mongoCollection);
+        final MongoDbTimeseriesAdapter adapter = newInitialisedAdapter();
+
+        adapter.query(buildQuery().withTagFilters(Map.of("deploymentId", JsonValue.of(123))))
+                .toCompletableFuture().join();
+
+        assertThat(renderedFindFilter()).contains("\"meta.tags.deploymentId\": {\"$in\": [123, \"123\"]}");
+    }
+
+    @Test
+    public void stringTagFilterMatchesOnlyTheString() {
+        stubFindReturning(mongoCollection);
+        final MongoDbTimeseriesAdapter adapter = newInitialisedAdapter();
+
+        adapter.query(buildQuery().withTagFilters(Map.of("deploymentId", JsonValue.of("123"))))
+                .toCompletableFuture().join();
+
+        assertThat(renderedFindFilter()).contains("\"meta.tags.deploymentId\": \"123\"");
+    }
+
+    private String renderedFindFilter() {
+        final ArgumentCaptor<Bson> captor = ArgumentCaptor.forClass(Bson.class);
+        verify(mongoCollection).find(captor.capture());
+        return captor.getValue()
+                .toBsonDocument(Document.class, com.mongodb.MongoClientSettings.getDefaultCodecRegistry())
+                .toJson();
     }
 
     // --- Cursor pagination (raw reads) ---

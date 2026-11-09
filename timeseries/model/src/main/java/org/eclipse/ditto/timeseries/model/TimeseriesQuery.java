@@ -312,8 +312,8 @@ public interface TimeseriesQuery extends Jsonifiable<JsonObject> {
      * every key/value pair are returned. Modelled as a wither rather than another {@code of(...)}
      * parameter to keep the factory signatures manageable.
      *
-     * @param tagFilters the tag key/value pairs to match (logical AND), compared with the stored tag including
-     * its JSON type; may be empty to clear.
+     * @param tagFilters the tag key/value pairs to match (logical AND); a leading {@code /} of a key is dropped. A
+     * string value matches a string tag, a number or boolean also matches its string form; may be empty to clear.
      * @return a copy of this query carrying the given tag filters.
      * @throws NullPointerException if {@code tagFilters} is {@code null}.
      * @throws TimeseriesQueryInvalidException if a key is empty or contains {@code .} or {@code $}, or a value is

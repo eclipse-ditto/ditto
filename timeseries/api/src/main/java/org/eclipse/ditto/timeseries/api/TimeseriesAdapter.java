@@ -100,6 +100,16 @@ public interface TimeseriesAdapter {
      */
     HealthStatus getHealth();
 
+    /**
+     * Checks the health of the adapter against its backend, so that it also reflects an outage after a successful
+     * {@link #initialize}. Defaults to {@link #getHealth()}.
+     *
+     * @return a {@code CompletionStage} with the health status; never completes exceptionally.
+     */
+    default CompletionStage<HealthStatus> checkHealth() {
+        return CompletableFuture.completedFuture(getHealth());
+    }
+
     // --- Ingestion ---
 
     /**

@@ -398,20 +398,22 @@ final class ImmutableTimeseriesQuery implements TimeseriesQuery {
     @Override
     public TimeseriesQuery withTagFilters(final Map<String, JsonValue> newTagFilters) {
         checkNotNull(newTagFilters, "tagFilters");
+        final Map<String, JsonValue> normalized = new LinkedHashMap<>(newTagFilters.size());
         for (final Map.Entry<String, JsonValue> entry : newTagFilters.entrySet()) {
-            final String key = entry.getKey();
+            // Stored tag keys have no leading slash, the same as the field of a cross-Thing filter.
+            final String key = entry.getKey().startsWith("/") ? entry.getKey().substring(1) : entry.getKey();
             if (key.isEmpty() || key.indexOf('.') >= 0 || key.indexOf('$') >= 0) {
-                throw TimeseriesQueryInvalidException.newBuilder("The tag filter key <" + key +
+                throw TimeseriesQueryInvalidException.newBuilder("The tag filter key <" + entry.getKey() +
                         "> is invalid: it must not be empty or contain '.' or '$'.").build();
             }
             if (entry.getValue() == null || !TagValues.isTagValue(entry.getValue())) {
                 throw TimeseriesQueryInvalidException.newBuilder("The tag filter value of <" + key +
                         "> must be a string, number or boolean but was: " + entry.getValue()).build();
             }
+            normalized.put(key, entry.getValue());
         }
         return new ImmutableTimeseriesQuery(thingId, paths, from, to, step, aggregation, fillStrategy,
-                limit, timezone, percentile, cursor, order,
-                Collections.unmodifiableMap(new LinkedHashMap<>(newTagFilters)));
+                limit, timezone, percentile, cursor, order, Collections.unmodifiableMap(normalized));
     }
 
     @Override

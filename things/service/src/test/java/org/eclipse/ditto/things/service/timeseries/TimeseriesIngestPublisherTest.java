@@ -169,6 +169,36 @@ public final class TimeseriesIngestPublisherTest {
     }
 
     @Test
+    public void tagsResolveOnlyRegularThingFields() {
+        new TestKit(actorSystem) {{
+            final TestProbe shardProbe = new TestProbe(actorSystem);
+            final WotThingModelResolver resolver = resolverWith(annotatedSubmodel("ALL", Map.of(
+                    "building", "{{ thing-json:attributes/building }}",
+                    "revision", "{{ thing-json:_revision }}",
+                    "source", "{{ thing-json:_metadata/attributes/building/source }}")));
+            final Thing thing = thingWithDefinitionAndAttributes().toBuilder()
+                    .setRevision(7L)
+                    .setMetadata(ThingsModelFactory.newMetadataBuilder()
+                            .set(JsonPointer.of("attributes/building/source"), JsonValue.of("import"))
+                            .build())
+                    .build();
+
+            final ActorRef publisher = actorSystem.actorOf(
+                    TimeseriesIngestPublisher.props(shardProbe.ref(), resolver, Duration.ofSeconds(2)));
+
+            publisher.tell(new TimeseriesIngestPublisher.IngestRequest(
+                    sampleEvent(JsonValue.of(21.5)), thing), getRef());
+
+            final IngestDataPoints command = shardProbe.expectMsgClass(IngestDataPoints.class);
+            shardProbe.reply(IngestDataPointsResponse.of(THING_ID, command.getDittoHeaders()));
+
+            assertThat(command.getDataPoints().get(0).getTags())
+                    .containsOnlyKeys("building")
+                    .containsEntry("building", JsonValue.of("A"));
+        }};
+    }
+
+    @Test
     public void unresolvableTagPlaceholderIsDroppedNotStoredEmpty() {
         new TestKit(actorSystem) {{
             final TestProbe shardProbe = new TestProbe(actorSystem);

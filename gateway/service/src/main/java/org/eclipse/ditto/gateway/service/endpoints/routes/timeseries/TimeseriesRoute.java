@@ -492,7 +492,8 @@ public final class TimeseriesRoute extends AbstractRoute {
     private static JsonValue parseTagFilterValue(final String value) {
         try {
             final JsonValue literal = JsonFactory.readFrom(value);
-            if (literal.isNumber() || literal.isBoolean() || literal.isString()) {
+            // A number written in a non-canonical form, e.g. 1.10, is matched as the text the user wrote.
+            if (literal.isString() || literal.toString().equals(value)) {
                 return literal;
             }
         } catch (final RuntimeException e) {

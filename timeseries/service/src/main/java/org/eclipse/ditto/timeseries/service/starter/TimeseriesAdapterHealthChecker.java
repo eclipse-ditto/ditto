@@ -12,6 +12,10 @@
  */
 package org.eclipse.ditto.timeseries.service.starter;
 
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
+
+import org.apache.pekko.actor.ActorRef;
 import org.apache.pekko.actor.Props;
 import org.apache.pekko.japi.pf.ReceiveBuilder;
 import org.eclipse.ditto.internal.utils.health.AbstractHealthCheckingActor;
@@ -20,7 +24,8 @@ import org.eclipse.ditto.timeseries.api.HealthStatus;
 import org.eclipse.ditto.timeseries.api.TimeseriesAdapter;
 
 /**
- * Reports the health of the {@link TimeseriesAdapter}, so that a service whose adapter is not usable is not ready.
+ * Reports the health of the {@link TimeseriesAdapter} in the service's {@code /health} status. It does not affect
+ * {@code /ready}, which is based on cluster membership.
  */
 final class TimeseriesAdapterHealthChecker extends AbstractHealthCheckingActor {
 
@@ -37,12 +42,25 @@ final class TimeseriesAdapterHealthChecker extends AbstractHealthCheckingActor {
 
     @Override
     protected Receive matchCustomMessages() {
-        return ReceiveBuilder.create().build();
+        return ReceiveBuilder.create()
+                .match(HealthStatus.class, this::applyHealth)
+                .build();
     }
 
     @Override
     protected void triggerHealthRetrieval() {
-        final HealthStatus health = adapter.getHealth();
+        final ActorRef self = getSelf();
+        CompletionStage<HealthStatus> check;
+        try {
+            check = adapter.checkHealth();
+        } catch (final RuntimeException e) {
+            check = CompletableFuture.failedFuture(e);
+        }
+        check.handle((health, error) -> error == null ? health : HealthStatus.DOWN)
+                .thenAccept(health -> self.tell(health, ActorRef.noSender()));
+    }
+
+    private void applyHealth(final HealthStatus health) {
         updateHealth(StatusInfo.fromStatus(health == HealthStatus.DOWN ? StatusInfo.Status.DOWN : StatusInfo.Status.UP,
                 "timeseries adapter: " + health));
     }
