@@ -18,15 +18,15 @@ Pekko plugin on the r2dbc driver). For the design see
 glance), §3.2 (schema lifecycle: two roles, provisioning for managed
 services). `policies`, `things` and `connectivity` use this
 backend; `thingsearch` can use the separate PostgreSQL search backend
-(`documentation/src/main/resources/pages/ditto/installation-extending.md`), which
+(`documentation/src/main/resources/pages/ditto/installation-postgresql.md`), which
 shares the client and pool settings and counts toward the same
 [connection budget](#connection-budget).
 
 Vacuum, table bloat and disk space (how cleanup creates dead rows, the autovacuum
 settings of the schemas, server settings, monitoring queries and alert thresholds,
 `VACUUM` after a mass prune, `pg_repack` and `VACUUM FULL`) are described in
-`documentation/src/main/resources/pages/ditto/installation-extending.md`, section
-"Operating PostgreSQL".
+`documentation/src/main/resources/pages/ditto/operating-postgresql.md`, from the
+section "Dead rows and autovacuum" on.
 
 Contents:
 
@@ -126,9 +126,9 @@ opened close after 30 minutes idle (r2dbc-pool's default, which
 **Overriding per service.** Set `POSTGRES_POOL_MAX_SIZE` on that service only
 (its pending queue follows at 2 × the new value unless
 `POSTGRES_POOL_PENDING_ACQUIRE_MAX_SIZE` is set), or
-`ditto.postgresql.pool.max-size` in the service's activation config (see "2.
-Create a service activation config" in
-`documentation/src/main/resources/pages/ditto/installation-extending.md`). The
+`ditto.postgresql.pool.max-size` in the service's activation config (see "The
+activation config" in
+`documentation/src/main/resources/pages/ditto/installation-postgresql.md`). The
 Helm chart has no dedicated value; use the service's `extraEnv`:
 
 ```yaml
@@ -543,8 +543,8 @@ next one through.
 Consequence of the same-version rule: a manually dropped table or index is re-created at the next start, but a
 manually changed or reset reloption (e.g. `autovacuum_vacuum_scale_factor`) is not re-applied until the next
 schema version bump or a self-heal that runs the DDL. Which storage parameters the schemas set, and which manual
-changes a DDL run sets back: "Autovacuum settings applied by the schema" in the section "Operating PostgreSQL" of
-`installation-extending.md`.
+changes a DDL run sets back: "Autovacuum settings applied by the schema" in
+`documentation/src/main/resources/pages/ditto/operating-postgresql.md`.
 
 A row written before the `min_compatible_version` column existed has it `NULL`, which counts as
 `min_compatible_version = version`. The first boot of an image with this check adds the column and
@@ -566,8 +566,8 @@ every table and index exists, and its DDL runs under the same 500 ms `lock_timeo
 The self-heal runs in policies, things and connectivity only; things-search
 re-creates a missing table at its next start. What a heal does, why it masks
 data loss, and how to monitor and disable it:
-`documentation/src/main/resources/pages/ditto/installation-extending.md`,
-section "Operating PostgreSQL".
+`documentation/src/main/resources/pages/ditto/operating-postgresql.md`,
+section "Schema self-heal".
 
 ### Rolling upgrades
 

@@ -1805,7 +1805,7 @@ is `3d` (3 days) for things and `30d` (30 days) for policies and connectivity; t
 three (`<service>.config.cleanup.history.retentionDuration`).
 
 On PostgreSQL, deleted events and snapshots take disk space until the tables are vacuumed, see
-[Operating PostgreSQL](installation-extending.html#dead-rows-and-autovacuum).
+[Operating PostgreSQL](operating-postgresql.html#dead-rows-and-autovacuum).
 
 In order to use Ditto's [history capabilities](basic-history.html), the configuration has to be adjusted accordingly.
 

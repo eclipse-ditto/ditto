@@ -50,12 +50,14 @@ Eclipse Ditto provides five microservices (Things, Policies, Gateway, Connectivi
 
 - [Building Ditto](https://www.eclipse.dev/ditto/installation-building.html.md): How to build Ditto from source
 - [Running Ditto](https://www.eclipse.dev/ditto/installation-running.html.md): Running Ditto via Docker Compose or Kubernetes/Helm
+- [Running Ditto on PostgreSQL](https://www.eclipse.dev/ditto/installation-postgresql.html.md): Installing and activating the opt-in PostgreSQL persistence and search backends (extension JARs, activation config, provisioning, environment variables, Docker Compose, Helm)
 - [Operating Ditto](https://www.eclipse.dev/ditto/installation-operating.html.md): Configuration, monitoring, and operational aspects
 - [Extending Ditto](https://www.eclipse.dev/ditto/installation-extending.html.md): Custom protocol adapters and other extension points
 - [Operating - Authentication](https://www.eclipse.dev/ditto/operating-authentication.html.md): Configuring authentication (pre-authentication, OpenID Connect / OAuth 2.0, JWT)
 - [Operating - Configuration](https://www.eclipse.dev/ditto/operating-configuration.html.md): Configuring Ditto via environment variables, system properties, and config files
 - [Operating - DevOps Commands](https://www.eclipse.dev/ditto/operating-devops.html.md): DevOps piggyback commands for logging, dynamic config, namespace management, and cleanup
 - [Operating - MongoDB](https://www.eclipse.dev/ditto/operating-mongodb.html.md): MongoDB database configuration, tuning, and indexes
+- [Operating - PostgreSQL](https://www.eclipse.dev/ditto/operating-postgresql.html.md): Operating the PostgreSQL backends: schema lifecycle and upgrades, self-heal, connection budget, TLS, PgBouncer, search tunables and indexes, differences from MongoDB, vacuum and disk space
 - [Operating - Monitoring & Tracing](https://www.eclipse.dev/ditto/operating-monitoring.html.md): Monitoring, logging, and tracing (Prometheus, Grafana, OpenTelemetry, ELK)
 - [Operating - Security Hardening](https://www.eclipse.dev/ditto/operating-security-hardening.html.md): Security hardening recommendations for production deployments
 
