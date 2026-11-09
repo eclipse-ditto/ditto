@@ -40,8 +40,12 @@ import org.eclipse.ditto.rql.query.expression.visitors.ExistsFieldExpressionVisi
  *       row, so the deeper-{@code path} anti-probe via {@code starts_with} is required to avoid a false positive).</li>
  * </ul>
  * Concrete paths carry the thing-level auth recheck ({@code matchEmptyKey}); root-mapped columns do not (§3.3
- * exception 1). <b>Divergence (documented):</b> the wildcard-feature and "any feature" empty cases omit the deeper-object
- * anti-probe (inexpressible across the {@code /features/*} address) — a niche 3.9.0 corner.
+ * exception 1). The wildcard-feature forms ({@code matchWildcardFeatureEmptyKey}, Mongo
+ * {@code elemMatch(f, and(createEmptyBson(path), auth))}) anchor on the feature boundary row {@code a}
+ * ({@code wpath = '/features/*'}, exactly one per feature, auth on {@code a.f_id}) and probe the rows {@code b} of the
+ * SAME feature at the wildcard wpath: an empty marker — the deeper-{@code path} anti-probe scoped to that feature via
+ * {@code c.wpath} — OR no row at all ({@code $eq: null} matches a missing key, so a feature that LACKS the key
+ * matches while a thing without features does not). {@code empty(features/*)} itself is "no feature boundary row".
  * </p>
  * <p>
  * <b>Divergence (documented): {@code empty()} over-matches on direct array-of-array content, even for concrete
@@ -56,7 +60,7 @@ import org.eclipse.ditto.rql.query.expression.visitors.ExistsFieldExpressionVisi
  * array {@code []}. Rationale for accepting the divergence: disambiguating would require either (a) a distinct type
  * rank for "array-of-array stub" vs. "genuinely empty array" (a schema change affecting every rank-5 consumer,
  * incl. sort's empty-array-to-null-rank exception, §3.2), or (b) an additional per-row marker column — both out of
- * scope for the flat-model transcription; flagged as a Phase G divergence-allowlist candidate.
+ * scope for the flat-model transcription; allow-listed as {@code empty-overmatch-array-of-array}.
  * </p>
  */
 final class GetEmptySqlVisitor extends AbstractFieldSqlCreator implements ExistsFieldExpressionVisitor<SqlExpression> {
@@ -64,7 +68,6 @@ final class GetEmptySqlVisitor extends AbstractFieldSqlCreator implements Exists
     private static final String FEATURE_ID_WILDCARD = "*";
     private static final String THING_ALIAS = "sf";
     private static final String DEEPER_ALIAS = "c";
-    private static final String WILDCARD_ALIAS = "a";
 
     private GetEmptySqlVisitor(@Nullable final List<String> authorizationSubjectIds) {
         super(authorizationSubjectIds);
@@ -155,10 +158,17 @@ final class GetEmptySqlVisitor extends AbstractFieldSqlCreator implements Exists
 
     private SqlExpression matchWildcardFeatureEmptyKey(final JsonPointer propertyPointer) {
         final String wpath = wildcardWpath(propertyPointer);
+        // Mongo elemMatch(f, and(createEmptyBson(path), auth)): SOME feature visible to the subjects holds an empty
+        // marker at the path OR has no such key ($eq: null matches a missing field). A feature without the key has no
+        // row at the wildcard wpath, so anchor on its boundary row a (wpath = '/features/*', exactly one per feature,
+        // auth on a.f_id) and probe the rows b of the SAME feature: an empty marker, or none at all.
+        final SqlExpression emptyOrMissing = Sql.or(
+                Sql.exists(sameFeatureProbe(wpath, sameFeatureEmptyMarkers(wpath))),
+                Sql.notExists(sameFeatureProbe(wpath)));
         final List<SqlExpression> conds = new ArrayList<>();
         conds.add(Sql.eq(Sql.col(WILDCARD_ALIAS, THING_ID), Sql.col(DOC_ALIAS, THING_ID)));
-        conds.add(Sql.eq(Sql.col(WILDCARD_ALIAS, WPATH), Sql.text(wpath)));
-        conds.add(wildcardEmptyMarkers(WILDCARD_ALIAS));
+        conds.add(Sql.eq(Sql.col(WILDCARD_ALIAS, WPATH), Sql.text(FEATURES_WILDCARD_PREFIX)));
+        conds.add(emptyOrMissing);
         wildcardFeatureAuth(WILDCARD_ALIAS, propertyPointer).ifPresent(conds::add);
         return Sql.exists(Sql.select().column(Sql.raw("1")).from(FLAT_TABLE, WILDCARD_ALIAS)
                 .where(Sql.and(conds)).build());
@@ -177,17 +187,28 @@ final class GetEmptySqlVisitor extends AbstractFieldSqlCreator implements Exists
         return Sql.or(absent, nullRank, emptyArray, emptyString, emptyObject);
     }
 
-    /** The empty markers for a wildcard-feature row alias (no deeper-object anti-probe — documented divergence). */
-    private static SqlExpression wildcardEmptyMarkers(final String alias) {
+    /**
+     * The OR of empty markers on the same-feature row {@code b} at a wildcard wpath, WITH the deeper-object anti-probe
+     * scoped to that feature ({@link #sameFeatureDeeperPathProbe}) — the per-feature twin of {@link #emptyCore}; the
+     * absent branch is the caller's {@code NOT EXISTS} same-feature probe.
+     */
+    private static SqlExpression sameFeatureEmptyMarkers(final String wpath) {
+        final SqlExpression emptyObject = Sql.and(
+                sameFeatureRankIs(ThingFlattener.TYPE_OBJECT),
+                Sql.notExists(sameFeatureDeeperPathProbe(wpath)));
         return Sql.or(
-                Sql.eq(Sql.col(alias, TYPE_RANK), Sql.integer(ThingFlattener.TYPE_NULL)),
-                Sql.eq(Sql.col(alias, TYPE_RANK), Sql.integer(ThingFlattener.TYPE_ARRAY)),
-                Sql.eq(Sql.col(alias, SqlValues.VAL_TEXT), Sql.text("")),
-                Sql.eq(Sql.col(alias, TYPE_RANK), Sql.integer(ThingFlattener.TYPE_OBJECT)));
+                sameFeatureRankIs(ThingFlattener.TYPE_NULL),
+                sameFeatureRankIs(ThingFlattener.TYPE_ARRAY),
+                Sql.eq(Sql.col(SAME_FEATURE_ALIAS, SqlValues.VAL_TEXT), Sql.text("")),
+                emptyObject);
     }
 
     private static SqlExpression rankIs(final short typeRank) {
         return Sql.eq(Sql.col(THING_ALIAS, TYPE_RANK), Sql.integer(typeRank));
+    }
+
+    private static SqlExpression sameFeatureRankIs(final short typeRank) {
+        return Sql.eq(Sql.col(SAME_FEATURE_ALIAS, TYPE_RANK), Sql.integer(typeRank));
     }
 
     /** {@code SELECT 1 FROM search_flat c WHERE c.thing_id = st.thing_id AND starts_with(c.path, $wpath || '/')}. */
@@ -196,6 +217,20 @@ final class GetEmptySqlVisitor extends AbstractFieldSqlCreator implements Exists
                 .where(Sql.and(
                         Sql.eq(Sql.col(DEEPER_ALIAS, THING_ID), Sql.col(DOC_ALIAS, THING_ID)),
                         Sql.func("starts_with", Sql.col(DEEPER_ALIAS, PATH), Sql.text(wpath + "/"))))
+                .build();
+    }
+
+    /**
+     * {@code SELECT 1 FROM search_flat c WHERE c.thing_id = a.thing_id AND c.f_id = a.f_id AND
+     * starts_with(c.wpath, $wpath || '/')}: a deeper row of the SAME feature under the wildcard wpath (every row of a
+     * feature subtree carries its {@code /features/*} wpath twin, so the wildcard address is complete).
+     */
+    private static Select sameFeatureDeeperPathProbe(final String wpath) {
+        return Sql.select().column(Sql.raw("1")).from(FLAT_TABLE, DEEPER_ALIAS)
+                .where(Sql.and(
+                        Sql.eq(Sql.col(DEEPER_ALIAS, THING_ID), Sql.col(WILDCARD_ALIAS, THING_ID)),
+                        Sql.eq(Sql.col(DEEPER_ALIAS, F_ID), Sql.col(WILDCARD_ALIAS, F_ID)),
+                        Sql.func("starts_with", Sql.col(DEEPER_ALIAS, WPATH), Sql.text(wpath + "/"))))
                 .build();
     }
 

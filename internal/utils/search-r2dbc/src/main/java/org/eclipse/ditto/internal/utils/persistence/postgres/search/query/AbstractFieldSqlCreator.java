@@ -35,7 +35,8 @@ import org.eclipse.ditto.json.JsonPointer;
  * {@code visitSimple:88-92} → {@link #visitSimple(String)}; {@code toDottedPath(FIELD_THING, pointer)} (the value key)
  * → {@link #wpathOf(JsonPointer)} (RFC-6901 flat {@code wpath}); {@code getAuthorizationBson} → {@link #thingLevelAuth};
  * {@code getFeatureWildcardAuthorizationBson}/{@code elemMatch(FIELD_F_ARRAY, …)} → {@link #wildcardFeatureAuth} +
- * {@link #wildcardWpath}.
+ * {@link #wildcardWpath}; the per-feature coupling of {@code elemMatch} (value or emptiness and auth on the SAME
+ * feature) → {@link #sameFeatureProbe} anchored on the feature boundary row.
  * </p>
  */
 abstract class AbstractFieldSqlCreator {
@@ -50,6 +51,11 @@ abstract class AbstractFieldSqlCreator {
 
     /** The wpath prefix the flattener emits for every {@code /features/<id>/…} row's wildcard variant (Task C1). */
     static final String FEATURES_WILDCARD_PREFIX = "/features/*";
+
+    /** The alias of the wildcard-feature row ({@code a}) the {@code features/*} forms anchor on. */
+    static final String WILDCARD_ALIAS = "a";
+    /** The alias of a second row of the SAME feature as {@link #WILDCARD_ALIAS} ({@code b.f_id = a.f_id}). */
+    static final String SAME_FEATURE_ALIAS = "b";
 
     /**
      * The two ROOT-mapped system fields → doc-row columns (§3.5, §3.3 exception 1): no flat probe, no per-field auth.
@@ -119,5 +125,23 @@ abstract class AbstractFieldSqlCreator {
             conds.add(extra);
         }
         return Sql.select().column(Sql.raw("1")).from(FLAT_TABLE, alias).where(Sql.and(conds)).build();
+    }
+
+    /**
+     * A probe over the rows {@code b} of the SAME feature as the outer wildcard row {@code a}:
+     * {@code SELECT 1 FROM search_flat b WHERE b.thing_id = a.thing_id AND b.f_id = a.f_id AND b.wpath = $wpath
+     * [AND extra …]}. With {@code a} on the feature boundary row ({@code wpath = '/features/*'}, exactly one per
+     * feature, auth on {@code a.f_id}) this is the flat form of Mongo's {@code elemMatch}: what the property rows say
+     * (a value, an empty marker, or that there are none) stays coupled to the feature the auth was checked on.
+     */
+    static Select sameFeatureProbe(final String wpath, final SqlExpression... extraConditions) {
+        final List<SqlExpression> conds = new ArrayList<>();
+        conds.add(Sql.eq(Sql.col(SAME_FEATURE_ALIAS, THING_ID), Sql.col(WILDCARD_ALIAS, THING_ID)));
+        conds.add(Sql.eq(Sql.col(SAME_FEATURE_ALIAS, F_ID), Sql.col(WILDCARD_ALIAS, F_ID)));
+        conds.add(Sql.eq(Sql.col(SAME_FEATURE_ALIAS, WPATH), Sql.text(wpath)));
+        for (final SqlExpression extra : extraConditions) {
+            conds.add(extra);
+        }
+        return Sql.select().column(Sql.raw("1")).from(FLAT_TABLE, SAME_FEATURE_ALIAS).where(Sql.and(conds)).build();
     }
 }

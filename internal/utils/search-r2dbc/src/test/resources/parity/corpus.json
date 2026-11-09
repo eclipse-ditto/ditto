@@ -42,6 +42,13 @@
     "zsort-d",
     "zsort-e",
     "range-straddle",
-    "range-above"
+    "range-above",
+    "zzempty-shapes",
+    "zzempty-full",
+    "zzempty-hollow",
+    "zzempty-graded-seen",
+    "zzempty-graded-unseen",
+    "zzempty-split",
+    "zzempty-markers"
   ]
 }

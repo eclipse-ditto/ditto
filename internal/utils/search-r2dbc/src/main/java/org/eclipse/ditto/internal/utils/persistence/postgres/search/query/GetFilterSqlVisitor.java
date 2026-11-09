@@ -13,12 +13,10 @@
 package org.eclipse.ditto.internal.utils.persistence.postgres.search.query;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.internal.utils.persistence.postgres.search.query.ast.Select;
 import org.eclipse.ditto.internal.utils.persistence.postgres.search.query.ast.Sql;
 import org.eclipse.ditto.internal.utils.persistence.postgres.search.query.ast.SqlExpression;
 import org.eclipse.ditto.json.JsonPointer;
@@ -51,9 +49,6 @@ import org.eclipse.ditto.rql.query.expression.visitors.FilterFieldExpressionVisi
 final class GetFilterSqlVisitor extends AbstractFieldSqlCreator implements FilterFieldExpressionVisitor<SqlExpression> {
 
     private static final String FEATURE_ID_WILDCARD = "*";
-    private static final String WILDCARD_ALIAS = "a";
-    /** The alias of a second row of the SAME feature as {@link #WILDCARD_ALIAS} ({@code b.f_id = a.f_id}). */
-    private static final String SAME_FEATURE_ALIAS = "b";
     private static final String THING_ALIAS = "sf";
 
     private final SqlPredicate predicate;
@@ -180,20 +175,6 @@ final class GetFilterSqlVisitor extends AbstractFieldSqlCreator implements Filte
         wildcardFeatureAuth(WILDCARD_ALIAS, propertyPointer).ifPresent(conds::add);
         return Sql.exists(Sql.select().column(Sql.raw("1")).from(FLAT_TABLE, WILDCARD_ALIAS)
                 .where(Sql.and(conds)).build());
-    }
-
-    /**
-     * A probe over the rows {@code b} of the SAME feature as the outer row {@code a}:
-     * {@code SELECT 1 FROM search_flat b WHERE b.thing_id = a.thing_id AND b.f_id = a.f_id AND b.wpath = $wpath
-     * [AND extra …]}.
-     */
-    private static Select sameFeatureProbe(final String wpath, final SqlExpression... extraConditions) {
-        final List<SqlExpression> conds = new ArrayList<>();
-        conds.add(Sql.eq(Sql.col(SAME_FEATURE_ALIAS, THING_ID), Sql.col(WILDCARD_ALIAS, THING_ID)));
-        conds.add(Sql.eq(Sql.col(SAME_FEATURE_ALIAS, F_ID), Sql.col(WILDCARD_ALIAS, F_ID)));
-        conds.add(Sql.eq(Sql.col(SAME_FEATURE_ALIAS, WPATH), Sql.text(wpath)));
-        conds.addAll(Arrays.asList(extraConditions));
-        return Sql.select().column(Sql.raw("1")).from(FLAT_TABLE, SAME_FEATURE_ALIAS).where(Sql.and(conds)).build();
     }
 
     private static boolean isWildcard(final CharSequence featureId) {

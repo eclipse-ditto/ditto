@@ -1,0 +1,13 @@
+{
+  "thingId": "org.eclipse.ditto.parity:zzempty-hollow",
+  "_namespace": "org.eclipse.ditto.parity",
+  "_revision": 1,
+  "_modified": "2026-11-09T10:02:00Z",
+  "policyId": "org.eclipse.ditto.parity:policy-full",
+  "features": {
+    "only": {
+      "properties": { "obj": {} },
+      "desiredProperties": { "target": {} }
+    }
+  }
+}

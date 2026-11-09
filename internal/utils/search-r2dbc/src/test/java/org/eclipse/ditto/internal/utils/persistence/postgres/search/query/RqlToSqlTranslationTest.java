@@ -615,6 +615,103 @@ public final class RqlToSqlTranslationTest {
         assertThat(r.bindValues()).contains(5); // TYPE_ARRAY -- the divergent, over-matching branch
     }
 
+    // ------------------------------------------------------------- empty() on a wildcard feature path (SB-02)
+
+    /**
+     * {@code empty()} on a wildcard feature path ({@code features/*} + key) under sudo: anchor on the feature boundary
+     * row {@code a}, a same-feature row {@code b} with an empty marker (the empty-object branch with the
+     * feature-scoped deeper-path anti-probe on {@code c.wpath}) OR no same-feature row at all. Binds:
+     * {@code '/features/*'}, wpath, 1, 5, '', 4, wpath + '/', wpath.
+     */
+    private static final String WILDCARD_EMPTY =
+            "EXISTS (SELECT 1 FROM search_flat a WHERE (a.thing_id = st.thing_id AND a.wpath = $1 AND "
+                    + "(EXISTS (SELECT 1 FROM search_flat b WHERE (b.thing_id = a.thing_id AND b.f_id = a.f_id AND "
+                    + "b.wpath = $2 AND (b.type_rank = $3 OR b.type_rank = $4 OR b.val_text = $5 OR (b.type_rank = $6 "
+                    + "AND NOT EXISTS (SELECT 1 FROM search_flat c WHERE (c.thing_id = a.thing_id AND c.f_id = a.f_id "
+                    + "AND starts_with(c.wpath, $7))))))) OR NOT EXISTS (SELECT 1 FROM search_flat b WHERE "
+                    + "(b.thing_id = a.thing_id AND b.f_id = a.f_id AND b.wpath = $8)))))";
+
+    private static List<Object> wildcardEmptyBinds(final String wpath) {
+        return List.of("/features/*", wpath, 1, 5, "", 4, wpath + "/", wpath);
+    }
+
+    @Test
+    public void emptyWildcardPropertyAnchorsOnTheFeatureBoundaryRowAndAcceptsAFeatureLackingTheKey() {
+        // Mongo elemMatch(f, createEmptyBson(properties.p)): $eq:null matches a MISSING key, so a feature WITHOUT p
+        // matches while a thing without features does not. Flat: the boundary row a (exactly one per feature), a
+        // same-feature row b with an empty marker OR no same-feature row at all; the empty-object branch carries the
+        // deeper-path anti-probe scoped to the feature (c.f_id = a.f_id) on the wildcard wpath twin.
+        final RenderedSql r = sudo(cf.emptyCriteria(fef.existsByFeatureProperty("*", "p")));
+        assertThat(r.sql()).isEqualTo(WILDCARD_EMPTY);
+        assertThat(r.bindValues()).containsExactlyElementsOf(wildcardEmptyBinds("/features/*/properties/p"));
+    }
+
+    @Test
+    public void emptyWildcardBarePropertiesKeepsAFeatureWithPropertiesOutViaTheFeatureScopedAntiProbe() {
+        // empty(features/*/properties): the type_rank = 4 row exists for EVERY feature that has properties -- only
+        // the anti-probe on '/features/*/properties/' within the same feature keeps a non-empty object out (item 1b).
+        final RenderedSql r = sudo(cf.emptyCriteria(fef.existsByFeatureProperties("*")));
+        assertThat(r.sql()).isEqualTo(WILDCARD_EMPTY);
+        assertThat(r.bindValues()).containsExactlyElementsOf(wildcardEmptyBinds("/features/*/properties"));
+        assertThat(r.bindValues().get(6)).isEqualTo("/features/*/properties/");
+    }
+
+    @Test
+    public void emptyWildcardDesiredPropertiesAndDefinitionProbeTheirOwnWpath() {
+        assertThat(sudo(cf.emptyCriteria(fef.existsByFeatureDesiredProperties("*"))).bindValues())
+                .containsExactlyElementsOf(wildcardEmptyBinds("/features/*/desiredProperties"));
+        assertThat(sudo(cf.emptyCriteria(fef.existsByFeatureDesiredProperty("*", "t"))).bindValues())
+                .containsExactlyElementsOf(wildcardEmptyBinds("/features/*/desiredProperties/t"));
+        final RenderedSql definition = sudo(cf.emptyCriteria(fef.existsBy("features/*/definition")));
+        assertThat(definition.sql()).isEqualTo(WILDCARD_EMPTY);
+        assertThat(definition.bindValues()).containsExactlyElementsOf(wildcardEmptyBinds("/features/*/definition"));
+    }
+
+    @Test
+    public void notEmptyWildcardPropertyNegatesTheWholePerFeatureForm() {
+        // not(empty(features/*/p)): no VISIBLE feature is empty at or lacks p -- a thing without features matches.
+        final RenderedSql r = sudo(cf.nor(cf.emptyCriteria(fef.existsByFeatureProperty("*", "p"))));
+        assertThat(r.sql()).isEqualTo("NOT " + WILDCARD_EMPTY);
+        assertThat(r.bindValues()).containsExactlyElementsOf(wildcardEmptyBinds("/features/*/properties/p"));
+    }
+
+    @Test
+    public void emptyWildcardPropertyRestrictedChecksTheAuthOnTheBoundaryRowsFeature() {
+        // The chain [<root>, /features, /id, /properties, /properties/p] is checked on a.f_id -- the SAME feature whose
+        // rows b (or their absence) satisfy the empty markers: Mongo's elemMatch(f, and(empty, auth)) coupling.
+        final RenderedSql r = render(GetEmptySqlVisitor.apply(fef.existsByFeatureProperty("*", "p"), SUBJECTS));
+        assertThat(r.sql()).startsWith(WILDCARD_EMPTY.substring(0, WILDCARD_EMPTY.length() - 2) + " AND ");
+        assertThat(r.sql()).contains("jsonb_extract_path(st.features_auth, a.f_id");
+        assertThat(r.sql()).doesNotContain("features_auth, b.").doesNotContain("features_auth, c.");
+        assertThat(r.bindValues().subList(0, 8))
+                .containsExactlyElementsOf(wildcardEmptyBinds("/features/*/properties/p"));
+        assertThat(r.bindValues()).contains("features").contains("id").contains("properties").contains("p");
+    }
+
+    @Test
+    public void emptyWildcardPropertyWithAnEscapedKeyProbesTheEscapedWpathAndItsDeeperPrefix() {
+        // The RQL field carries the RFC-6901-escaped segment ("~0" for a tilde, as queryPathEscapingMatchesFlattener
+        // ByteForByte passes it for an attribute); the visitor decodes and re-escapes, so the same-feature wpath AND the
+        // anti-probe prefix are the flattener's byte-for-byte spelling. (The slash direction cannot travel the RQL
+        // string path: Ditto's JsonPointer decodes only "~0", so an RQL key "a~1b" is the literal key a~1b, spelled
+        // a~01b by both the flattener and the visitor -- the shared-utility identity test covers "~1".)
+        final String escaped = JsonPointerSegments.escape("a~b");
+        assertThat(escaped).isEqualTo("a~0b");
+        final RenderedSql r = sudo(cf.emptyCriteria(fef.existsByFeatureProperty("*", escaped)));
+        assertThat(r.sql()).isEqualTo(WILDCARD_EMPTY);
+        assertThat(r.bindValues()).containsExactlyElementsOf(wildcardEmptyBinds("/features/*/properties/a~0b"));
+        assertThat(r.bindValues()).doesNotContain("/features/*/properties/a~b", "/features/*/properties/a~b/");
+    }
+
+    @Test
+    public void emptyAnyFeatureStaysTheBareNoBoundaryRowProbe() {
+        // empty(features/*) is Mongo or(eq(f.id,null),eq(f.id,"")) -- no feature at all; not a per-feature form.
+        final RenderedSql r = sudo(cf.emptyCriteria(fef.existsByFeatureId("*")));
+        assertThat(r.sql()).isEqualTo(
+                "NOT EXISTS (SELECT 1 FROM search_flat sf WHERE (sf.thing_id = st.thing_id AND sf.wpath = $1))");
+        assertThat(r.bindValues()).containsExactly("/features/*");
+    }
+
     // ================================================================================= simple/system fields (§3.5)
 
     @Test

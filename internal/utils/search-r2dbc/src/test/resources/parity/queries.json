@@ -506,7 +506,9 @@
     },
     {
       "name": "empty-wildcard-property",
-      "filter": "empty(features/*/properties/status)"
+      "filter": "empty(features/*/properties/status)",
+      "comment": "status is on every pre-SB-02 feature and on no zzempty-* feature: the zzempty-* things are the only matches (a feature that LACKS the property matches, SB-02 item 1) -- before them this case was vacuous (empty on both backends).",
+      "expectNonEmptySudo": true
     },
     {
       "name": "eq-thing-id",
@@ -1153,7 +1155,7 @@
         "sort(+features/meter/properties/reading,+thingId)"
       ],
       "expectNonEmptySudo": true,
-      "comment": "Concrete feature-property sort (the sort lateral binds path = wpath = the concrete wpath to use the full search_flat key prefix). zsort-a/-d hold arrays (ASC sorts by the MIN element), zsort-b also has feature meter2 with reading 1, so the /features/*/properties/reading twin rows carry a smaller value than its own meter reading (5) and must not leak into the sort, zsort-c misses the key (null rank, first) although its meter2 twin rows carry 99, zsort-e is a string (after all numbers). Sort keys carry no auth on either backend (plan §3.3 exception 3), so every auth situation must agree, incl. 'limited' (features revoked). The zsort-* ids sort after every other parity id so first-page-pinned divergence lists (not-wildcard-eq) stay stable, and every zsort feature carries status \"on\" (so only the full eq-wildcard-status-on pin lists them) because a feature WITHOUT status would trip a separate, pre-existing empty(features/*/...) divergence in empty-wildcard-property: Mongo matches a thing with a feature that lacks the property, Postgres does not."
+      "comment": "Concrete feature-property sort (the sort lateral binds path = wpath = the concrete wpath to use the full search_flat key prefix). zsort-a/-d hold arrays (ASC sorts by the MIN element), zsort-b also has feature meter2 with reading 1, so the /features/*/properties/reading twin rows carry a smaller value than its own meter reading (5) and must not leak into the sort, zsort-c misses the key (null rank, first) although its meter2 twin rows carry 99, zsort-e is a string (after all numbers). Sort keys carry no auth on either backend (plan §3.3 exception 3), so every auth situation must agree, incl. 'limited' (features revoked). The zsort-* ids sort after every other pre-SB-02 parity id (the SB-02 zzempty-* ids sort after them for the same reason) so first-page-pinned divergence lists (not-wildcard-eq) stay stable, and every zsort feature carries status \"on\" (so only the full eq-wildcard-status-on pin lists them; the empty(features/*/...) divergence a feature WITHOUT status once tripped in empty-wildcard-property -- Mongo matched a thing with a feature that lacks the property, Postgres did not -- was closed by SB-02)."
     },
     {
       "name": "sort-feature-prop-desc",
@@ -1557,7 +1559,14 @@
             "org.eclipse.ditto.parity:zsort-b",
             "org.eclipse.ditto.parity:zsort-c",
             "org.eclipse.ditto.parity:zsort-d",
-            "org.eclipse.ditto.parity:zsort-e"
+            "org.eclipse.ditto.parity:zsort-e",
+            "org.eclipse.ditto.parity:zzempty-full",
+            "org.eclipse.ditto.parity:zzempty-graded-seen",
+            "org.eclipse.ditto.parity:zzempty-graded-unseen",
+            "org.eclipse.ditto.parity:zzempty-hollow",
+            "org.eclipse.ditto.parity:zzempty-markers",
+            "org.eclipse.ditto.parity:zzempty-shapes",
+            "org.eclipse.ditto.parity:zzempty-split"
           ]
         }
       }
@@ -1610,7 +1619,14 @@
             "org.eclipse.ditto.parity:zsort-b",
             "org.eclipse.ditto.parity:zsort-c",
             "org.eclipse.ditto.parity:zsort-d",
-            "org.eclipse.ditto.parity:zsort-e"
+            "org.eclipse.ditto.parity:zsort-e",
+            "org.eclipse.ditto.parity:zzempty-full",
+            "org.eclipse.ditto.parity:zzempty-graded-seen",
+            "org.eclipse.ditto.parity:zzempty-graded-unseen",
+            "org.eclipse.ditto.parity:zzempty-hollow",
+            "org.eclipse.ditto.parity:zzempty-markers",
+            "org.eclipse.ditto.parity:zzempty-shapes",
+            "org.eclipse.ditto.parity:zzempty-split"
           ]
         }
       }
@@ -1663,7 +1679,14 @@
             "org.eclipse.ditto.parity:zsort-b",
             "org.eclipse.ditto.parity:zsort-c",
             "org.eclipse.ditto.parity:zsort-d",
-            "org.eclipse.ditto.parity:zsort-e"
+            "org.eclipse.ditto.parity:zsort-e",
+            "org.eclipse.ditto.parity:zzempty-full",
+            "org.eclipse.ditto.parity:zzempty-graded-seen",
+            "org.eclipse.ditto.parity:zzempty-graded-unseen",
+            "org.eclipse.ditto.parity:zzempty-hollow",
+            "org.eclipse.ditto.parity:zzempty-markers",
+            "org.eclipse.ditto.parity:zzempty-shapes",
+            "org.eclipse.ditto.parity:zzempty-split"
           ]
         }
       }
@@ -1716,7 +1739,14 @@
             "org.eclipse.ditto.parity:zsort-b",
             "org.eclipse.ditto.parity:zsort-c",
             "org.eclipse.ditto.parity:zsort-d",
-            "org.eclipse.ditto.parity:zsort-e"
+            "org.eclipse.ditto.parity:zsort-e",
+            "org.eclipse.ditto.parity:zzempty-full",
+            "org.eclipse.ditto.parity:zzempty-graded-seen",
+            "org.eclipse.ditto.parity:zzempty-graded-unseen",
+            "org.eclipse.ditto.parity:zzempty-hollow",
+            "org.eclipse.ditto.parity:zzempty-markers",
+            "org.eclipse.ditto.parity:zzempty-shapes",
+            "org.eclipse.ditto.parity:zzempty-split"
           ]
         }
       }
@@ -1894,6 +1924,178 @@
       "filter": "not(ge(attributes/nullAttr,null))",
       "comment": "null-operand Mongo-parity battery (SB-01), attribute path: not(ge(p,null)) is the complement of null-or-missing -- only a leaf that EXISTS with a non-null value matches (nenull-realvals, nenull-stringvals), like ne(p,null).",
       "expectNonEmptySudo": true
+    },
+    {
+      "name": "empty-wildcard-brightness",
+      "filter": "empty(features/*/properties/brightness)",
+      "comment": "empty() wildcard Mongo-parity battery (SB-02), feature-property path: Mongo elemMatch(f, and(or(eq(properties.brightness,null),eq([]),eq({}),eq(\"\")), auth)) and $eq:null also matches a MISSING key, so a thing matches when at least one VISIBLE feature lacks brightness or holds an empty marker (scalars-red: sensor lacks it); a thing without features never matches. Before SB-02 PostgreSQL probed only rows AT the wildcard wpath, so a feature without the key could not match. The SB-02 corpus things are named zzempty-* so they sort after zsort-e and leave every first-page pin untouched; being feature-bearing without nullProp they join the complete PostgreSQL pins of in/ge/le-wildcard-nullprop-* (null = missing), which SB-02 extended.",
+      "expectNonEmptySudo": true
+    },
+    {
+      "name": "not-empty-wildcard-brightness",
+      "filter": "not(empty(features/*/properties/brightness))",
+      "options": [
+        "sort(-thingId)"
+      ],
+      "comment": "empty() wildcard Mongo-parity battery (SB-02), the complement, page 1 (25) under sort(-thingId) so the zzempty-* things lead the compared page: Mongo $nor[elemMatch(f, and(empty, auth))] = NO visible feature lacks brightness or holds an empty marker there. Two shapes the MongoDB system-test run confirmed: a thing WITHOUT any feature matches (vacuously), and a thing with two features of which one holds brightness and the other lacks it (scalars-red, scalars-blue: lamp holds it, sensor lacks it) does NOT match although a visible feature has a non-empty brightness; no feature-bearing thing carries brightness on every feature, so the page holds the 25 highest-sorting feature-less things (walker-*, unicode, rankdiv-*, rank-*, range-*). The translation is the plain NOT of the per-feature EXISTS, never a positive some-feature-has-a-value probe.",
+      "expectNonEmptySudo": true
+    },
+    {
+      "name": "empty-wildcard-obj",
+      "filter": "empty(features/*/properties/obj)",
+      "comment": "empty() wildcard Mongo-parity battery (SB-02), object-valued property (item 1b): zzempty-full (its only feature holds obj = {\"a\":1}) must NOT match -- Mongo's eq({}) matches only the empty object, so the wildcard form needs the same deeper-path anti-probe as the concrete form, scoped to the feature; zzempty-hollow (obj = {}) and every feature lacking obj match. Auth coupling: under 'feature' zzempty-graded-unseen matches (its visible f1 lacks obj although the invisible f2 holds one) and zzempty-graded-seen does not (its visible f1 holds obj; the lacking f2 is invisible).",
+      "expectNonEmptySudo": true,
+      "expectNonEmptyAuth": "feature"
+    },
+    {
+      "name": "not-empty-wildcard-obj",
+      "filter": "not(empty(features/*/properties/obj))",
+      "options": [
+        "sort(-thingId)"
+      ],
+      "comment": "empty() wildcard Mongo-parity battery (SB-02), the complement, page 1 (25) under sort(-thingId) so the zzempty-* things lead the compared page: zzempty-full (its only feature holds obj = {\"a\":1}, so it is NOT empty -- the 1b anti-probe under negation) leads, then the feature-less things; zzempty-split (f1 obj = {}), zzempty-hollow ({}) and every thing with a feature lacking obj are excluded; under 'feature' only zzempty-graded-seen (the one policy-graded thing whose visible feature holds a non-empty obj).",
+      "expectNonEmptySudo": true,
+      "expectNonEmptyAuth": "feature"
+    },
+    {
+      "name": "empty-and-exists-wildcard-obj",
+      "filter": "and(empty(features/*/properties/obj),exists(features/*/properties/obj))",
+      "comment": "empty() wildcard Mongo-parity battery (SB-02), the empty-object branch next to exists(): zzempty-hollow (obj = {} present and empty) matches; the two wildcard terms are separate elemMatch/EXISTS probes on both backends, so a thing with one feature lacking obj and another holding one (zzempty-graded-*) matches too.",
+      "expectNonEmptySudo": true
+    },
+    {
+      "name": "empty-wildcard-props",
+      "filter": "empty(features/*/properties)",
+      "comment": "empty() wildcard Mongo-parity battery (SB-02), bare /properties: a feature without properties (zzempty-shapes defonly, void) or with properties = {} (zzempty-shapes blank) matches, a feature with at least one property does not -- before SB-02 PostgreSQL matched EVERY feature with properties here (the object row exists and the wildcard form had no deeper-path anti-probe).",
+      "expectNonEmptySudo": true
+    },
+    {
+      "name": "not-empty-wildcard-props",
+      "filter": "not(empty(features/*/properties))",
+      "options": [
+        "sort(-thingId)"
+      ],
+      "comment": "empty() wildcard Mongo-parity battery (SB-02), the complement, page 1 (25) under sort(-thingId) so the zzempty-* things lead the compared page: every thing whose visible features ALL have at least one property (zzempty-split, zzempty-markers, zzempty-hollow, both zzempty-graded-*, zzempty-full, zsort-*, ...) leads, then the feature-less things; zzempty-shapes (defonly/void without properties, blank with {}) is excluded.",
+      "expectNonEmptySudo": true
+    },
+    {
+      "name": "empty-wildcard-desired",
+      "filter": "empty(features/*/desiredProperties)",
+      "comment": "empty() wildcard Mongo-parity battery (SB-02), bare /desiredProperties: missing on every pre-SB-02 feature and {} on zzempty-shapes blank; zzempty-full and zzempty-hollow (their desiredProperties hold target) do not match -- before SB-02 PostgreSQL matched them (the object row exists, no feature-scoped anti-probe).",
+      "expectNonEmptySudo": true
+    },
+    {
+      "name": "not-empty-wildcard-desired",
+      "filter": "not(empty(features/*/desiredProperties))",
+      "options": [
+        "sort(-thingId)"
+      ],
+      "comment": "empty() wildcard Mongo-parity battery (SB-02), the complement, page 1 (25) under sort(-thingId) so the zzempty-* things lead the compared page: zzempty-hollow (desiredProperties hold target = {}: the container itself is non-empty) and zzempty-full (target, cfg) lead -- the 1b anti-probe on the bare container under negation -- then the feature-less things; zzempty-split (f1 desiredProperties = {}), the zzempty-graded-* (one feature lacks them) and every pre-SB-02 thing (none has desiredProperties) are excluded.",
+      "expectNonEmptySudo": true
+    },
+    {
+      "name": "empty-wildcard-target",
+      "filter": "empty(features/*/desiredProperties/target)",
+      "comment": "empty() wildcard Mongo-parity battery (SB-02), desired-property path: missing on every feature but zzempty-full (5), zzempty-hollow ({} matches) and one feature of each zzempty-graded-* thing.",
+      "expectNonEmptySudo": true
+    },
+    {
+      "name": "not-empty-wildcard-target",
+      "filter": "not(empty(features/*/desiredProperties/target))",
+      "options": [
+        "sort(-thingId)"
+      ],
+      "comment": "empty() wildcard Mongo-parity battery (SB-02), the complement, page 1 (25) under sort(-thingId) so the zzempty-* things lead the compared page: zzempty-full (target = 5) leads, then the feature-less things; zzempty-hollow (target = {}), zzempty-split (f1 lacks target) and every other feature-bearing thing are excluded.",
+      "expectNonEmptySudo": true
+    },
+    {
+      "name": "empty-wildcard-definition",
+      "filter": "empty(features/*/definition)",
+      "comment": "empty() wildcard Mongo-parity battery (SB-02), /definition path: a feature without a definition matches (every pre-SB-02 feature, zzempty-shapes void and blank, zzempty-hollow); zzempty-full (its only feature is defined) does not; the zzempty-graded-* things follow the visible feature under 'feature'.",
+      "expectNonEmptySudo": true
+    },
+    {
+      "name": "not-empty-wildcard-definition",
+      "filter": "not(empty(features/*/definition))",
+      "options": [
+        "sort(-thingId)"
+      ],
+      "comment": "empty() wildcard Mongo-parity battery (SB-02), the complement, page 1 (25) under sort(-thingId) so the zzempty-* things lead the compared page: zzempty-full (its only feature is defined) leads, then the feature-less things; zzempty-shapes (void/blank undefined) and every other feature-bearing thing are excluded.",
+      "expectNonEmptySudo": true
+    },
+    {
+      "name": "and-empty-wildcard-obj-eq-color-red",
+      "filter": "and(empty(features/*/properties/obj),eq(attributes/color,\"red\"))",
+      "comment": "empty() wildcard Mongo-parity battery (SB-02), next to a point leg (the selective-leg CTE path): scalars-red (lamp and sensor lack obj).",
+      "expectNonEmptySudo": true
+    },
+    {
+      "name": "count-empty-wildcard-brightness",
+      "filter": "empty(features/*/properties/brightness)",
+      "mode": "count",
+      "comment": "empty() wildcard Mongo-parity battery (SB-02), count mode of empty-wildcard-brightness: the same per-feature probe under the count statement.",
+      "expectNonEmptySudo": true
+    },
+    {
+      "name": "empty-wildcard-desired-cfg",
+      "filter": "empty(features/*/desiredProperties/cfg)",
+      "comment": "empty() wildcard Mongo-parity battery (SB-02), object-valued DESIRED property (item 1b on the desiredProperties/<p> shape): zzempty-full (its only feature holds cfg = {\"mode\":\"auto\"}) must NOT match -- before SB-02 PostgreSQL matched it (object row at the wildcard wpath, no anti-probe); every feature lacking cfg matches.",
+      "expectNonEmptySudo": true
+    },
+    {
+      "name": "not-empty-wildcard-desired-cfg",
+      "filter": "not(empty(features/*/desiredProperties/cfg))",
+      "options": [
+        "sort(-thingId)"
+      ],
+      "comment": "empty() wildcard Mongo-parity battery (SB-02), the complement, page 1 (25) under sort(-thingId) so the zzempty-* things lead the compared page: zzempty-full (cfg = {\"mode\":\"auto\"}, the 1b anti-probe under negation: a non-empty object IS in the complement) leads, then the feature-less things; every other feature-bearing thing has a feature lacking cfg and is excluded.",
+      "expectNonEmptySudo": true
+    },
+    {
+      "name": "empty-wildcard-nul",
+      "filter": "empty(features/*/properties/nul)",
+      "comment": "empty() wildcard Mongo-parity battery (SB-02), JSON-null marker on a wildcard path: Mongo eq(properties.nul, null) inside elemMatch. zzempty-markers (its ONLY feature holds nul = null) can match only through the type_rank = 1 branch of the same-feature row -- the isolating witness; zzempty-shapes (markers feature) and every feature lacking nul match as well.",
+      "expectNonEmptySudo": true
+    },
+    {
+      "name": "empty-wildcard-str",
+      "filter": "empty(features/*/properties/str)",
+      "comment": "empty() wildcard Mongo-parity battery (SB-02), empty-string marker on a wildcard path: Mongo eq(properties.str, \"\") inside elemMatch. zzempty-markers (its ONLY feature holds str = \"\") can match only through the val_text = '' branch -- the isolating witness; every feature lacking str matches as well.",
+      "expectNonEmptySudo": true
+    },
+    {
+      "name": "empty-wildcard-arr",
+      "filter": "empty(features/*/properties/arr)",
+      "comment": "empty() wildcard Mongo-parity battery (SB-02), empty-array marker on a wildcard path: Mongo eq(properties.arr, []) inside elemMatch. zzempty-markers (its ONLY feature holds arr = []) can match only through the type_rank = 5 (empty-array stub) branch -- the isolating witness; every feature lacking arr matches as well.",
+      "expectNonEmptySudo": true
+    },
+    {
+      "name": "not-empty-wildcard-arr",
+      "filter": "not(empty(features/*/properties/arr))",
+      "options": [
+        "sort(-thingId)"
+      ],
+      "comment": "empty() wildcard Mongo-parity battery (SB-02), the complement, page 1 (25) under sort(-thingId) so the zzempty-* things lead the compared page: zzempty-markers (arr = []) and zzempty-shapes (markers holds [], defonly lacks arr) are excluded like every other feature-bearing thing (each has a feature lacking arr), so the page holds the 25 highest-sorting feature-less things.",
+      "expectNonEmptySudo": true
+    },
+    {
+      "name": "empty-wildcard-nullprop",
+      "filter": "empty(features/*/properties/nullProp)",
+      "comment": "empty() wildcard Mongo-parity battery (SB-02), JSON null carried by a pre-SB-02 fixture: nenull-nullvals (its ONLY feature f1 holds nullProp = null) can match only through the null branch; nenull-realvals and nenull-stringvals (a value) do not match; every other feature-bearing thing lacks nullProp and matches. Not crossed with allowlist #8: GetEmptyBsonVisitor builds the elemMatch under sudo too, so strict parity holds in all 9 situations.",
+      "expectNonEmptySudo": true
+    },
+    {
+      "name": "not-empty-wildcard-nullprop",
+      "filter": "and(exists(features/*),not(empty(features/*/properties/nullProp)))",
+      "comment": "empty() wildcard Mongo-parity battery (SB-02), the complement restricted to feature-bearing things so its two witnesses are on the compared page: nenull-realvals and nenull-stringvals (their only feature holds a value) are the ONLY matches; nenull-nullvals (null) and every thing with a feature lacking nullProp are excluded; the feature-less things (which match the bare not(...) vacuously) are cut by exists(features/*).",
+      "expectNonEmptySudo": true
+    },
+    {
+      "name": "empty-wildcard-secretcode",
+      "filter": "empty(features/*/properties/secretcode)",
+      "comment": "empty() wildcard Mongo-parity battery (SB-02), a property-level REVOKE in the wildcard auth chain ([<root>, /features, /id, /properties, /properties/secretcode] on a.f_id): under 'feature' (policy-graded, /features/lamp/properties/secretcode revoked) scalars-green matches through f1 (lacks secretcode; its lamp holds \"s3cr3t\", not empty), feature-agree/-disagree and the zzempty-graded-* through their visible f1; policy-full things are invisible to that subject. Under sudo every feature-bearing thing has a feature lacking secretcode.",
+      "expectNonEmptySudo": true,
+      "expectNonEmptyAuth": "feature"
     }
   ]
 }

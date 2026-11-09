@@ -43,7 +43,6 @@ final class GetExistsSqlVisitor extends AbstractFieldSqlCreator implements Exist
 
     private static final String FEATURE_ID_WILDCARD = "*";
     private static final String THING_ALIAS = "sf";
-    private static final String WILDCARD_ALIAS = "a";
 
     private GetExistsSqlVisitor(@Nullable final List<String> authorizationSubjectIds) {
         super(authorizationSubjectIds);
