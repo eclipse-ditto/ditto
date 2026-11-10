@@ -289,6 +289,24 @@ public final class TimeseriesRouteCrossThingTest extends EndpointTestBase {
     }
 
     @Test
+    public void singleThingTagFilterNullArrayAndObjectLiteralsAreStrings() {
+        final var result = underTest.run(HttpRequest.GET(
+                "/timeseries/things/" + NAMESPACE + ":heatsource-1?paths=" + PATH
+                        + "&from=2026-07-01T00:00:00Z&to=2026-07-02T00:00:00Z"
+                        + "&tagFilter=" + urlEncode("a:null,b:[],c:{},d:true")));
+
+        result.assertStatusCode(StatusCodes.OK);
+        final JsonObject tagFilters = JsonObject.of(result.entityString())
+                .getValue(JsonPointer.of("/payload/query/tagFilters"))
+                .map(JsonValue::asObject)
+                .orElseThrow();
+        assertThat(tagFilters.getValue("a")).contains(JsonValue.of("null"));
+        assertThat(tagFilters.getValue("b")).contains(JsonValue.of("[]"));
+        assertThat(tagFilters.getValue("c")).contains(JsonValue.of("{}"));
+        assertThat(tagFilters.getValue("d")).contains(JsonValue.of(true));
+    }
+
+    @Test
     public void singleThingPathsRouteRejectsNamespaceOutsideTheAccessAllowList() {
         final TestRoute restricted = testRouteWithNamespaceAccess(List.of("org.eclipse.allowed"));
 

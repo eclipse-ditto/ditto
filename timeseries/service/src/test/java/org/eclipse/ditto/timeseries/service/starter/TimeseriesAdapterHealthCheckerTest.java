@@ -73,6 +73,22 @@ public final class TimeseriesAdapterHealthCheckerTest {
     }
 
     @Test
+    public void reportsDownWhenTheCheckDoesNotAnswer() {
+        final TimeseriesAdapter adapter = mock(TimeseriesAdapter.class);
+        when(adapter.checkHealth()).thenReturn(new CompletableFuture<>());
+
+        new TestKit(actorSystem) {{
+            final ActorRef underTest = actorSystem.actorOf(TimeseriesAdapterHealthChecker.props(adapter));
+
+            underTest.tell(RetrieveHealth.newInstance(), getRef());
+
+            final StatusInfo status = expectMsgClass(
+                    TimeseriesAdapterHealthChecker.CHECK_TIMEOUT.plusSeconds(5), StatusInfo.class);
+            assertThat(status.getStatus()).isEqualTo(StatusInfo.Status.DOWN);
+        }};
+    }
+
+    @Test
     public void reportsDownWhenTheCheckThrows() {
         final TimeseriesAdapter adapter = mock(TimeseriesAdapter.class);
         when(adapter.checkHealth()).thenThrow(new IllegalStateException("broken"));

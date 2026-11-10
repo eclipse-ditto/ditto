@@ -32,11 +32,11 @@ import javax.annotation.Nullable;
 import org.apache.pekko.actor.AbstractActor;
 import org.apache.pekko.actor.ActorRef;
 import org.apache.pekko.actor.Props;
-import org.apache.pekko.actor.Status;
 import org.apache.pekko.japi.pf.ReceiveBuilder;
 import org.apache.pekko.pattern.Patterns;
 import org.eclipse.ditto.base.model.auth.AuthorizationContext;
 import org.eclipse.ditto.base.model.exceptions.AskException;
+import org.eclipse.ditto.base.model.exceptions.DittoInternalErrorException;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
@@ -871,10 +871,11 @@ public final class TimeseriesAggregateActor extends AbstractActor {
         LOGGER.withCorrelationId(command.getDittoHeaders())
                 .warn("RetrieveAggregatedTimeseries on namespace <{}> failed: {}",
                         command.getQuery().getNamespace(), cause.getMessage());
-        if (cause instanceof DittoRuntimeException dre) {
-            return dre.setDittoHeaders(command.getDittoHeaders());
-        }
-        return new Status.Failure(cause);
+        // A Status.Failure would reach the requester as an ask timeout; backend details stay in the log.
+        return DittoRuntimeException.asDittoRuntimeException(cause, t -> DittoInternalErrorException.newBuilder()
+                        .cause(t)
+                        .build())
+                .setDittoHeaders(command.getDittoHeaders());
     }
 
     private static Throwable unwrap(@Nullable final Throwable throwable) {
