@@ -14,6 +14,8 @@ package org.eclipse.ditto.timeseries.mongodb;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.within;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -37,6 +39,7 @@ import org.eclipse.ditto.internal.utils.test.docker.mongo.MongoDbResource;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.things.model.ThingId;
+import org.eclipse.ditto.timeseries.api.HealthStatus;
 import org.eclipse.ditto.timeseries.model.Aggregation;
 import org.eclipse.ditto.timeseries.model.FillStrategy;
 import org.eclipse.ditto.timeseries.model.SortOrder;
@@ -122,9 +125,10 @@ public final class MongoDbTimeseriesAdapterIT {
         return CONTAINER;
     }
 
+    private MongoDbTimeseriesAdapterConfig config;
+
     @Before
     public void setUp() throws Exception {
-        adapter = new MongoDbTimeseriesAdapter();
         // Random suffix lives in the name part (which permits digits and hyphens); the namespace
         // is fixed and follows Ditto's namespace convention.
         thingId = ThingId.of("it.timeseries.test",
@@ -140,9 +144,9 @@ public final class MongoDbTimeseriesAdapterIT {
                 "ditto.mongodb.uri = \"%s\"\n", MongoDbItUris.withDatabase(uri, DATABASE)));
         final MongoDbConfig mongoDbConfig =
                 DefaultMongoDbConfig.of(DefaultScopedConfig.dittoScoped(rootConfig));
-        final MongoDbTimeseriesAdapterConfig config = DefaultMongoDbTimeseriesAdapterConfig.of(
-                mongoDbConfig, "ts_", Granularity.SECONDS);
-        adapter.initialize(config).toCompletableFuture().get();
+        config = DefaultMongoDbTimeseriesAdapterConfig.of(mongoDbConfig, "ts_", Granularity.SECONDS);
+        adapter = new MongoDbTimeseriesAdapter(config);
+        adapter.initialize().toCompletableFuture().get();
     }
 
     @After
@@ -162,6 +166,21 @@ public final class MongoDbTimeseriesAdapterIT {
             blockUntilComplete(client.getDatabase(DATABASE).drop());
         } finally {
             client.close();
+        }
+    }
+
+    @Test
+    public void initializingAgainClosesThePreviousConnection() throws Exception {
+        final MongoClient previousClient = mock(MongoClient.class);
+        final MongoDbTimeseriesAdapter reinitialized =
+                MongoDbTimeseriesAdapter.forTesting(previousClient, mock(MongoDatabase.class), config);
+        try {
+            reinitialized.initialize().toCompletableFuture().get();
+
+            verify(previousClient).close();
+            assertThat(reinitialized.getHealth()).isEqualTo(HealthStatus.UP);
+        } finally {
+            reinitialized.shutdown().toCompletableFuture().get();
         }
     }
 
@@ -650,8 +669,8 @@ public final class MongoDbTimeseriesAdapterIT {
             throws Exception {
         final MongoDbTimeseriesAdapterConfig config = DefaultMongoDbTimeseriesAdapterConfig.of(
                 mongoDbConfig(), "ts_", Granularity.SECONDS, retention);
-        final MongoDbTimeseriesAdapter newAdapter = new MongoDbTimeseriesAdapter();
-        newAdapter.initialize(config).toCompletableFuture().get();
+        final MongoDbTimeseriesAdapter newAdapter = new MongoDbTimeseriesAdapter(config);
+        newAdapter.initialize().toCompletableFuture().get();
         return newAdapter;
     }
 

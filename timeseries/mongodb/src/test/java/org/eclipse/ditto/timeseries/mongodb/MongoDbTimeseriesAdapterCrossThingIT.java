@@ -147,7 +147,6 @@ public final class MongoDbTimeseriesAdapterCrossThingIT {
 
     @Before
     public void setUp() throws Exception {
-        adapter = new MongoDbTimeseriesAdapter();
         // One namespace per test => one collection per test => no cross-test contamination of an
         // aggregate that is, by definition, namespace-wide.
         namespace = "it.ts.n" + UUID.randomUUID().toString().replace("-", "").substring(0, 10);
@@ -164,7 +163,8 @@ public final class MongoDbTimeseriesAdapterCrossThingIT {
                 DefaultMongoDbConfig.of(DefaultScopedConfig.dittoScoped(rootConfig));
         final MongoDbTimeseriesAdapterConfig config = DefaultMongoDbTimeseriesAdapterConfig.of(
                 mongoDbConfig, "ts_", Granularity.SECONDS);
-        adapter.initialize(config).toCompletableFuture().get();
+        adapter = new MongoDbTimeseriesAdapter(config);
+        adapter.initialize().toCompletableFuture().get();
     }
 
     @After

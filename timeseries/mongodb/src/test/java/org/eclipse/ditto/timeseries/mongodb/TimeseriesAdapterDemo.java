@@ -80,10 +80,10 @@ public final class TimeseriesAdapterDemo {
                 DefaultMongoDbConfig.of(DefaultScopedConfig.dittoScoped(rootConfig));
         final MongoDbTimeseriesAdapterConfig config = DefaultMongoDbTimeseriesAdapterConfig.of(
                 mongoDbConfig, "ts_", Granularity.SECONDS);
-        final MongoDbTimeseriesAdapter adapter = new MongoDbTimeseriesAdapter();
+        final MongoDbTimeseriesAdapter adapter = new MongoDbTimeseriesAdapter(config);
 
         System.out.println("=== Connecting to MongoDB at " + uri + " ===");
-        adapter.initialize(config).toCompletableFuture().get();
+        adapter.initialize().toCompletableFuture().get();
         System.out.println("Adapter health: " + adapter.getHealth());
 
         try {

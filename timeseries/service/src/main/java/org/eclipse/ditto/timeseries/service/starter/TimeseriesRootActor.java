@@ -21,6 +21,7 @@ import javax.annotation.Nullable;
 
 import org.apache.pekko.Done;
 import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.ActorSystem;
 import org.apache.pekko.actor.CoordinatedShutdown;
 import org.apache.pekko.actor.Props;
 import org.apache.pekko.pattern.Patterns;
@@ -29,14 +30,12 @@ import org.eclipse.ditto.base.service.config.DittoServiceConfig;
 import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.internal.utils.cluster.ShardRegionCreator;
 import org.eclipse.ditto.internal.utils.cluster.ShardRegionProxyActorFactory;
-import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
+import org.eclipse.ditto.internal.utils.config.ScopedConfig;
 import org.eclipse.ditto.internal.utils.config.DittoConfigError;
 import org.eclipse.ditto.internal.utils.health.DefaultHealthCheckingActorFactory;
 import org.eclipse.ditto.internal.utils.health.HealthCheckingActorOptions;
 import org.eclipse.ditto.internal.utils.health.config.DefaultHealthCheckConfig;
 import org.eclipse.ditto.internal.utils.pekko.logging.DittoDiagnosticLoggingAdapter;
-import org.eclipse.ditto.internal.utils.persistence.mongo.config.DefaultMongoDbConfig;
-import org.eclipse.ditto.internal.utils.persistence.mongo.config.MongoDbConfig;
 import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
 import org.eclipse.ditto.policies.enforcement.PolicyEnforcerProvider;
 import org.eclipse.ditto.policies.enforcement.config.DefaultNamespacePoliciesConfig;
@@ -46,9 +45,6 @@ import org.eclipse.ditto.things.api.ThingsMessagingConstants;
 import org.eclipse.ditto.timeseries.api.HealthStatus;
 import org.eclipse.ditto.timeseries.api.TimeseriesAdapter;
 import org.eclipse.ditto.timeseries.api.TimeseriesMessagingConstants;
-import org.eclipse.ditto.timeseries.mongodb.DefaultMongoDbTimeseriesAdapterConfig;
-import org.eclipse.ditto.timeseries.mongodb.MongoDbTimeseriesAdapter;
-import org.eclipse.ditto.timeseries.mongodb.MongoDbTimeseriesAdapterConfig;
 import org.eclipse.ditto.timeseries.service.handlers.TimeseriesAggregateActor;
 import org.eclipse.ditto.timeseries.service.handlers.TimeseriesIngestActor;
 
@@ -66,11 +62,6 @@ public final class TimeseriesRootActor extends DittoRootActor {
      * The name of this actor in the actor system.
      */
     public static final String ACTOR_NAME = TimeseriesMessagingConstants.ROOT_ACTOR_NAME;
-
-    /**
-     * Config path used by the default MongoDB adapter to load its connection settings.
-     */
-    static final String MONGODB_CONFIG_PATH = "ditto.timeseries.adapter.mongodb";
 
     /**
      * Config path used to look up whether timeseries reads accept the standard {@code READ}
@@ -107,7 +98,6 @@ public final class TimeseriesRootActor extends DittoRootActor {
     private static final Duration INIT_RETRY_MAX_DELAY = Duration.ofMinutes(1);
 
     private final TimeseriesAdapter adapter;
-    private final MongoDbTimeseriesAdapterConfig adapterConfig;
     private Duration initRetryDelay = INIT_RETRY_MIN_DELAY;
 
     @SuppressWarnings("unused")
@@ -118,9 +108,9 @@ public final class TimeseriesRootActor extends DittoRootActor {
         // Before any side effect: a config error raised later would tear down the root actor
         // while leaving the node in the cluster.
         final int maxVerifiedThings = resolveMaxVerifiedThings(rootConfig);
-        adapter = createAdapter(rootConfig);
+        adapter = loadAdapter(getContext().getSystem(), rootConfig);
 
-        // Closes the adapter's MongoDB pool at SIGTERM; without it the driver's threads are
+        // Closes the adapter's connection pool at SIGTERM; without it the driver's threads are
         // interrupted mid-flight on every rolling restart.
         final TimeseriesAdapter adapterForShutdown = adapter;
         CoordinatedShutdown.get(getContext().getSystem())
@@ -181,12 +171,7 @@ public final class TimeseriesRootActor extends DittoRootActor {
         bindHttpStatusRoute(timeseriesConfig.getHttpConfig(), healthCheckingActor);
 
         // Piped back as an internal message so init failures surface in the log without blocking
-        // the actor thread. Connection settings come from `ditto.mongodb.*` as in the sibling
-        // services; timeseries tuning from `ditto.timeseries.adapter.mongodb`.
-        final var dittoScopedConfig = DefaultScopedConfig.dittoScoped(rootConfig);
-        final MongoDbConfig mongoDbConfig = DefaultMongoDbConfig.of(dittoScopedConfig);
-        adapterConfig = DefaultMongoDbTimeseriesAdapterConfig.of(
-                mongoDbConfig, rootConfig.getConfig(MONGODB_CONFIG_PATH));
+        // the actor thread.
         initializeAdapter();
     }
 
@@ -213,7 +198,7 @@ public final class TimeseriesRootActor extends DittoRootActor {
     }
 
     private void initializeAdapter() {
-        final CompletionStage<Object> initStage = adapter.initialize(adapterConfig)
+        final CompletionStage<Object> initStage = adapter.initialize()
                 .<Object>thenApply(ignored -> AdapterInitialised.INSTANCE)
                 .exceptionally(AdapterInitFailed::new);
         Patterns.pipe(initStage, getContext().getDispatcher()).to(getSelf());
@@ -252,27 +237,20 @@ public final class TimeseriesRootActor extends DittoRootActor {
         return configured;
     }
 
+    static TimeseriesAdapter loadAdapter(final ActorSystem actorSystem, final Config rootConfig) {
+        try {
+            return TimeseriesAdapter.get(actorSystem, ScopedConfig.dittoExtension(rootConfig));
+        } catch (final Exception e) {
+            // Extends Error, so bad start-up config fails fast instead of being absorbed by
+            // Pekko's restart loop.
+            throw new DittoConfigError("Could not load the timeseries adapter configured at " +
+                    "ditto.extensions.timeseries-adapter: " + e.getMessage(), e);
+        }
+    }
+
     private static boolean resolveSimplifiedReadPermission(final Config rootConfig) {
         return rootConfig.hasPath(SIMPLIFIED_READ_PERMISSION_CONFIG_PATH)
                 && rootConfig.getBoolean(SIMPLIFIED_READ_PERMISSION_CONFIG_PATH);
-    }
-
-    /**
-     * Constructs the configured adapter. The default Ditto distribution ships only the MongoDB
-     * Time Series adapter; custom adapters land in Phase 3 alongside the SPI-finalisation work.
-     */
-    private static TimeseriesAdapter createAdapter(final Config rootConfig) {
-        final String type = rootConfig.hasPath("ditto.timeseries.adapter.type")
-                ? rootConfig.getString("ditto.timeseries.adapter.type")
-                : "mongodb";
-        if (!"mongodb".equals(type)) {
-            // Extends Error, so bad start-up config fails fast instead of being absorbed by
-            // Pekko's restart loop.
-            throw new DittoConfigError(
-                    "Unsupported timeseries adapter type: <" + type + ">. Only \"mongodb\" is " +
-                            "supported in Phase 1.");
-        }
-        return new MongoDbTimeseriesAdapter();
     }
 
     /**

@@ -21,6 +21,9 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
+import org.apache.pekko.actor.ActorSystem;
+import org.eclipse.ditto.internal.utils.extension.DittoExtensionIds;
+import org.eclipse.ditto.internal.utils.extension.DittoExtensionPoint;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.timeseries.model.AggregatedTimeseriesResult;
@@ -30,13 +33,16 @@ import org.eclipse.ditto.timeseries.model.TimeseriesDataValue;
 import org.eclipse.ditto.timeseries.model.TimeseriesQuery;
 import org.eclipse.ditto.timeseries.model.TimeseriesQueryResult;
 
+import com.typesafe.config.Config;
+
 /**
  * Service Provider Interface for timeseries database backends.
  * <p>
  * Implementations integrate the Timeseries service with a concrete backend (MongoDB Time Series,
  * IoTDB, TimescaleDB, InfluxDB, etc.). The default Ditto distribution ships a MongoDB Time Series
- * adapter; custom backends are integrated by implementing this interface and registering the
- * implementation via the configured {@code ditto.timeseries.adapter.type}.
+ * adapter; custom backends are integrated by implementing this interface with a public
+ * {@code (ActorSystem, Config)} constructor and configuring the class at
+ * {@code ditto.extensions.timeseries-adapter}.
  * <p>
  * The contract is intentionally narrow for the Phase 1 (MVP) surface: lifecycle, write,
  * single-Thing query, and health. Cross-Thing aggregation, retention, statistics, and schema
@@ -51,7 +57,7 @@ import org.eclipse.ditto.timeseries.model.TimeseriesQueryResult;
  *
  * @since 4.0.0
  */
-public interface TimeseriesAdapter {
+public interface TimeseriesAdapter extends DittoExtensionPoint {
 
     // --- Capabilities ---
 
@@ -75,15 +81,14 @@ public interface TimeseriesAdapter {
     // --- Lifecycle ---
 
     /**
-     * Initialises the adapter with the given configuration. Called once during service start-up
-     * before any other method.
+     * Connects the adapter with the configuration it was created with. Called during service start-up
+     * before any other method, again after a failed attempt, and again when the service's root actor restarts;
+     * a new connection replaces the previous one.
      *
-     * @param config the resolved adapter configuration.
      * @return a {@code CompletionStage} that completes once the adapter is ready to serve writes
      * and queries.
-     * @throws NullPointerException if {@code config} is {@code null}.
      */
-    CompletionStage<Void> initialize(TimeseriesAdapterConfig config);
+    CompletionStage<Void> initialize();
 
     /**
      * Releases all resources held by the adapter (connection pools, background tasks). Idempotent.
@@ -260,4 +265,43 @@ public interface TimeseriesAdapter {
         throw new UnsupportedOperationException(
                 getClass().getName() + " does not implement discoverContributors(...).");
     }
+
+    /**
+     * Loads the adapter configured at {@code ditto.extensions.timeseries-adapter}.
+     *
+     * @param actorSystem the actor system the adapter belongs to.
+     * @param config the {@code ditto.extensions} config.
+     * @return the adapter.
+     */
+    static TimeseriesAdapter get(final ActorSystem actorSystem, final Config config) {
+        checkNotNull(actorSystem, "actorSystem");
+        checkNotNull(config, "config");
+        final var extensionIdConfig = ExtensionId.computeConfig(config);
+        return DittoExtensionIds.get(actorSystem)
+                .computeIfAbsent(extensionIdConfig, ExtensionId::new)
+                .get(actorSystem);
+    }
+
+    /**
+     * ID of the {@code timeseries-adapter} extension.
+     */
+    final class ExtensionId extends DittoExtensionPoint.ExtensionId<TimeseriesAdapter> {
+
+        private static final String CONFIG_KEY = "timeseries-adapter";
+
+        private ExtensionId(final ExtensionIdConfig<TimeseriesAdapter> extensionIdConfig) {
+            super(extensionIdConfig);
+        }
+
+        static ExtensionIdConfig<TimeseriesAdapter> computeConfig(final Config config) {
+            return ExtensionIdConfig.of(TimeseriesAdapter.class, config, CONFIG_KEY);
+        }
+
+        @Override
+        protected String getConfigKey() {
+            return CONFIG_KEY;
+        }
+
+    }
+
 }
