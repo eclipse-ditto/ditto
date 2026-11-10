@@ -34,7 +34,6 @@ import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.timeseries.api.HealthStatus;
 import org.eclipse.ditto.timeseries.api.TimeseriesAdapter;
-import org.eclipse.ditto.timeseries.api.TimeseriesAdapterConfig;
 import org.eclipse.ditto.timeseries.api.commands.IngestDataPoints;
 import org.eclipse.ditto.timeseries.api.commands.IngestDataPointsResponse;
 import org.eclipse.ditto.timeseries.model.TimeseriesDataPoint;
@@ -256,7 +255,7 @@ public final class TimeseriesIngestActorTest {
         }
 
         @Override
-        public CompletionStage<Void> initialize(final TimeseriesAdapterConfig config) {
+        public CompletionStage<Void> initialize() {
             return CompletableFuture.completedFuture(null);
         }
 

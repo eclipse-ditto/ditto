@@ -52,7 +52,6 @@ import org.eclipse.ditto.things.model.ThingsModelFactory;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingNotAccessibleException;
 import org.eclipse.ditto.timeseries.api.HealthStatus;
 import org.eclipse.ditto.timeseries.api.TimeseriesAdapter;
-import org.eclipse.ditto.timeseries.api.TimeseriesAdapterConfig;
 import org.eclipse.ditto.timeseries.model.TimeseriesDataPoint;
 import org.eclipse.ditto.timeseries.model.TimeseriesQuery;
 import org.eclipse.ditto.timeseries.model.TimeseriesQueryResult;
@@ -367,7 +366,7 @@ public final class TimeseriesIngestActorEnforcementTest {
         private volatile List<JsonPointer> queriedPaths = List.of();
 
         @Override
-        public CompletionStage<Void> initialize(final TimeseriesAdapterConfig config) {
+        public CompletionStage<Void> initialize() {
             return CompletableFuture.completedFuture(null);
         }
 
@@ -484,7 +483,7 @@ public final class TimeseriesIngestActorEnforcementTest {
     private static TimeseriesAdapter recordingAdapter() {
         return new TimeseriesAdapter() {
             @Override
-            public CompletionStage<Void> initialize(final TimeseriesAdapterConfig config) {
+            public CompletionStage<Void> initialize() {
                 return CompletableFuture.completedFuture(null);
             }
 

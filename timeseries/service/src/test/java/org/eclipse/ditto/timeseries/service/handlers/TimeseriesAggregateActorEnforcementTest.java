@@ -64,7 +64,6 @@ import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingNotAccess
 import org.eclipse.ditto.timeseries.api.Capabilities;
 import org.eclipse.ditto.timeseries.api.HealthStatus;
 import org.eclipse.ditto.timeseries.api.TimeseriesAdapter;
-import org.eclipse.ditto.timeseries.api.TimeseriesAdapterConfig;
 import org.eclipse.ditto.timeseries.model.AggregatedTimeseriesResult;
 import org.eclipse.ditto.timeseries.model.Aggregation;
 import org.eclipse.ditto.timeseries.model.CrossThingTimeseriesQuery;
@@ -1009,7 +1008,7 @@ public final class TimeseriesAggregateActorEnforcementTest {
         }
 
         @Override
-        public CompletionStage<Void> initialize(final TimeseriesAdapterConfig config) {
+        public CompletionStage<Void> initialize() {
             return CompletableFuture.completedFuture(null);
         }
 

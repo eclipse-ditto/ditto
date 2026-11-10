@@ -93,7 +93,7 @@ public final class TimeseriesAdapterDefaultsTest {
         private final List<TimeseriesDataPoint> recorded = new ArrayList<>();
 
         @Override
-        public CompletionStage<Void> initialize(final TimeseriesAdapterConfig config) {
+        public CompletionStage<Void> initialize() {
             return CompletableFuture.completedFuture(null);
         }
 

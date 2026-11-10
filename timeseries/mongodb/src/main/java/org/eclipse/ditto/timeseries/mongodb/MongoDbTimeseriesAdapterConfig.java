@@ -18,7 +18,6 @@ import java.util.Optional;
 
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.MongoDbConfig;
 import org.eclipse.ditto.timeseries.api.Capabilities;
-import org.eclipse.ditto.timeseries.api.TimeseriesAdapterConfig;
 
 /**
  * Configuration for the MongoDB Time Series adapter — the default Ditto-shipped implementation of
@@ -30,7 +29,7 @@ import org.eclipse.ditto.timeseries.api.TimeseriesAdapterConfig;
  * Only the timeseries-specific tuning (database name lives on {@code MongoDbConfig#getMongoDbDatabaseName()},
  * collection prefix, granularity, retention) is surfaced here.
  */
-public interface MongoDbTimeseriesAdapterConfig extends TimeseriesAdapterConfig {
+public interface MongoDbTimeseriesAdapterConfig {
 
     /**
      * @return the shared Ditto MongoDB connection configuration. Carries the URI, IAM settings,

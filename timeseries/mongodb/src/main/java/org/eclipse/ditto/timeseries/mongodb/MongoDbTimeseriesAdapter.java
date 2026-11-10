@@ -37,17 +37,19 @@ import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.ThreadSafe;
 
+import org.apache.pekko.actor.ActorSystem;
 import org.bson.Document;
 import org.bson.conversions.Bson;
+import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.internal.utils.persistence.mongo.DittoMongoClient;
 import org.eclipse.ditto.internal.utils.persistence.mongo.MongoClientWrapper;
+import org.eclipse.ditto.internal.utils.persistence.mongo.config.DefaultMongoDbConfig;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.timeseries.api.Capabilities;
 import org.eclipse.ditto.timeseries.api.HealthStatus;
 import org.eclipse.ditto.timeseries.api.TimeseriesAdapter;
-import org.eclipse.ditto.timeseries.api.TimeseriesAdapterConfig;
 import org.eclipse.ditto.timeseries.api.compute.TimeseriesComputeKernel;
 import org.eclipse.ditto.timeseries.model.AggregatedTimeseriesResult;
 import org.eclipse.ditto.timeseries.model.Aggregation;
@@ -80,6 +82,8 @@ import com.mongodb.reactivestreams.client.FindPublisher;
 import com.mongodb.reactivestreams.client.MongoClient;
 import com.mongodb.reactivestreams.client.MongoCollection;
 import com.mongodb.reactivestreams.client.MongoDatabase;
+
+import com.typesafe.config.Config;
 
 /**
  * Default Ditto-shipped {@link TimeseriesAdapter} backed by MongoDB Time Series collections.
@@ -134,6 +138,14 @@ public final class MongoDbTimeseriesAdapter implements TimeseriesAdapter {
 
     private static final int MAX_GROUPS_CEILING = CrossThingTimeseriesQuery.MAX_GROUPS_CEILING;
 
+    /**
+     * Config path of the adapter settings. Not the extension's {@code extension-config}: Ditto parses that as a map
+     * whose keys are paths, which would split dotted namespaces in {@code retention-overrides}.
+     */
+    static final String CONFIG_PATH = "ditto.timeseries.adapter.mongodb";
+
+    private final MongoDbTimeseriesAdapterConfig config;
+
     private final AtomicReference<State> state = new AtomicReference<>(State.notInitialized());
 
     /**
@@ -145,27 +157,38 @@ public final class MongoDbTimeseriesAdapter implements TimeseriesAdapter {
     private final ConcurrentHashMap<String, CompletionStage<Void>> ensuredCollections =
             new ConcurrentHashMap<>();
 
-    @Override
-    public Capabilities capabilities() {
-        // Config-driven: the capabilities block declares what this deployment's MongoDB supports
-        // (native query, downsampling, pushed-down aggregations, native fill/retention). Defaults
-        // (DEFAULT_CAPABILITIES) match a modern MongoDB 5.0+. Falls back to the default before the
-        // adapter is initialised.
-        final MongoDbTimeseriesAdapterConfig config = state.get().config;
-        return config != null
-                ? config.getCapabilities()
-                : DefaultMongoDbTimeseriesAdapterConfig.DEFAULT_CAPABILITIES;
+    /**
+     * Creates the adapter as the {@code timeseries-adapter} extension, configured by {@code ditto.mongodb} and
+     * {@value #CONFIG_PATH}.
+     *
+     * @param actorSystem the actor system.
+     * @param extensionConfig the {@code extension-config} of the extension, unused.
+     */
+    public MongoDbTimeseriesAdapter(final ActorSystem actorSystem, final Config extensionConfig) {
+        this(configOf(actorSystem.settings().config()));
+    }
+
+    /**
+     * @param config the adapter configuration.
+     */
+    public MongoDbTimeseriesAdapter(final MongoDbTimeseriesAdapterConfig config) {
+        this.config = checkNotNull(config, "config");
+    }
+
+    static MongoDbTimeseriesAdapterConfig configOf(final Config rootConfig) {
+        return DefaultMongoDbTimeseriesAdapterConfig.of(
+                DefaultMongoDbConfig.of(DefaultScopedConfig.dittoScoped(rootConfig)),
+                rootConfig.getConfig(CONFIG_PATH));
     }
 
     @Override
-    public CompletionStage<Void> initialize(final TimeseriesAdapterConfig config) {
-        checkNotNull(config, "config");
-        if (!(config instanceof MongoDbTimeseriesAdapterConfig)) {
-            return failedStage(new IllegalArgumentException(
-                    "MongoDbTimeseriesAdapter requires a MongoDbTimeseriesAdapterConfig but got: " +
-                            config.getClass().getName()));
-        }
-        final MongoDbTimeseriesAdapterConfig mongoConfig = (MongoDbTimeseriesAdapterConfig) config;
+    public Capabilities capabilities() {
+        return config.getCapabilities();
+    }
+
+    @Override
+    public CompletionStage<Void> initialize() {
+        final MongoDbTimeseriesAdapterConfig mongoConfig = config;
 
         // MongoClientWrapper gives IAM auth, pool sizing and SSL from the same config the sibling
         // services use. The database name is the URI's path segment — there is no separate
@@ -183,7 +206,14 @@ public final class MongoDbTimeseriesAdapter implements TimeseriesAdapter {
         return asVoidStage(database.runCommand(new Document("ping", 1)))
                 .whenComplete((ignored, throwable) -> {
                     if (throwable == null) {
-                        state.set(State.initialized(mongoConfig, client, database));
+                        final State previous = state.getAndSet(State.initialized(mongoConfig, client, database));
+                        if (previous.client != null) {
+                            try {
+                                previous.client.close();
+                            } catch (final RuntimeException ignoredClose) {
+                                // Best-effort close of the replaced connection.
+                            }
+                        }
                     } else {
                         try {
                             client.close();
@@ -1790,8 +1820,8 @@ public final class MongoDbTimeseriesAdapter implements TimeseriesAdapter {
             final MongoDatabase database,
             final MongoDbTimeseriesAdapterConfig config) {
 
-        final MongoDbTimeseriesAdapter adapter = new MongoDbTimeseriesAdapter();
-        adapter.state.set(State.initialized(checkNotNull(config, "config"), client, database));
+        final MongoDbTimeseriesAdapter adapter = new MongoDbTimeseriesAdapter(config);
+        adapter.state.set(State.initialized(config, client, database));
         return adapter;
     }
 

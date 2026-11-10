@@ -26,13 +26,13 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Map;
 import java.util.List;
 import java.util.concurrent.CompletionException;
-import java.util.concurrent.ExecutionException;
 
 import org.bson.Document;
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.MongoDbConfig;
@@ -41,7 +41,6 @@ import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.timeseries.api.Capabilities;
 import org.eclipse.ditto.timeseries.api.HealthStatus;
-import org.eclipse.ditto.timeseries.api.TimeseriesAdapterConfig;
 import org.eclipse.ditto.timeseries.model.Aggregation;
 import org.eclipse.ditto.timeseries.model.FillStrategy;
 import org.eclipse.ditto.timeseries.model.TimeseriesDataPoint;
@@ -135,7 +134,7 @@ public final class MongoDbTimeseriesAdapterTest {
 
     @Test
     public void healthIsDownBeforeInitialize() {
-        final MongoDbTimeseriesAdapter adapter = new MongoDbTimeseriesAdapter();
+        final MongoDbTimeseriesAdapter adapter = new MongoDbTimeseriesAdapter(config);
 
         assertThat(adapter.getHealth()).isEqualTo(HealthStatus.DOWN);
     }
@@ -165,7 +164,7 @@ public final class MongoDbTimeseriesAdapterTest {
 
     @Test
     public void checkHealthIsDownBeforeInitialize() {
-        assertThat(new MongoDbTimeseriesAdapter().checkHealth().toCompletableFuture().join())
+        assertThat(new MongoDbTimeseriesAdapter(config).checkHealth().toCompletableFuture().join())
                 .isEqualTo(HealthStatus.DOWN);
     }
 
@@ -199,20 +198,21 @@ public final class MongoDbTimeseriesAdapterTest {
     }
 
     @Test
-    public void initializeRejectsNullConfig() {
-        final MongoDbTimeseriesAdapter adapter = new MongoDbTimeseriesAdapter();
-
-        assertThatNullPointerException().isThrownBy(() -> adapter.initialize(null));
+    public void rejectsNullConfig() {
+        assertThatNullPointerException().isThrownBy(() -> new MongoDbTimeseriesAdapter(null));
     }
 
     @Test
-    public void initializeRejectsWrongConfigType() {
-        final MongoDbTimeseriesAdapter adapter = new MongoDbTimeseriesAdapter();
-        final TimeseriesAdapterConfig wrongType = new TimeseriesAdapterConfig() { };
+    public void configIsReadFromDittoMongoDbAndTheAdapterSection() {
+        final MongoDbTimeseriesAdapterConfig loaded = MongoDbTimeseriesAdapter.configOf(ConfigFactory.parseString(
+                "ditto.mongodb.uri = \"mongodb://localhost:27017/ts\"\n" +
+                        "ditto.timeseries.adapter.mongodb { collection-prefix = \"x_\", granularity = \"hours\"," +
+                        " retention-overrides { \"org.eclipse.ditto\" = 7d } }"));
 
-        assertThatExceptionOfType(ExecutionException.class)
-                .isThrownBy(() -> adapter.initialize(wrongType).toCompletableFuture().get())
-                .withCauseInstanceOf(IllegalArgumentException.class);
+        assertThat(loaded.getMongoDbConfig().getMongoDbUri()).startsWith("mongodb://localhost:27017/ts");
+        assertThat(loaded.getCollectionPrefix()).isEqualTo("x_");
+        assertThat(loaded.getGranularity()).isEqualTo(Granularity.HOURS);
+        assertThat(loaded.getRetention("org.eclipse.ditto")).contains(Duration.ofDays(7));
     }
 
     // --- Write path ---
@@ -243,7 +243,7 @@ public final class MongoDbTimeseriesAdapterTest {
 
     @Test
     public void writeFailsWhenAdapterNotInitialised() {
-        final MongoDbTimeseriesAdapter adapter = new MongoDbTimeseriesAdapter();
+        final MongoDbTimeseriesAdapter adapter = new MongoDbTimeseriesAdapter(config);
 
         assertThatExceptionOfType(CompletionException.class)
                 .isThrownBy(() -> adapter.write(sampleDataPoint(THING_ID))
@@ -331,7 +331,7 @@ public final class MongoDbTimeseriesAdapterTest {
 
     @Test
     public void writeBatchFailsWhenAdapterNotInitialised() {
-        final MongoDbTimeseriesAdapter adapter = new MongoDbTimeseriesAdapter();
+        final MongoDbTimeseriesAdapter adapter = new MongoDbTimeseriesAdapter(config);
 
         assertThatExceptionOfType(CompletionException.class)
                 .isThrownBy(() -> adapter.writeBatch(
@@ -620,7 +620,7 @@ public final class MongoDbTimeseriesAdapterTest {
 
     @Test
     public void queryFailsWhenAdapterNotInitialised() {
-        final MongoDbTimeseriesAdapter adapter = new MongoDbTimeseriesAdapter();
+        final MongoDbTimeseriesAdapter adapter = new MongoDbTimeseriesAdapter(config);
 
         assertThatExceptionOfType(CompletionException.class)
                 .isThrownBy(() -> adapter.query(buildQuery()).toCompletableFuture().join())

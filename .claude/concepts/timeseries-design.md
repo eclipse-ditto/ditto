@@ -1724,11 +1724,11 @@ The `path` field in timeseries protocol messages specifies which property's time
 /**
  * Abstraction for timeseries database backends.
  */
-public interface TimeseriesAdapter {
+public interface TimeseriesAdapter extends DittoExtensionPoint {
 
     // --- Lifecycle ---
 
-    CompletionStage<Void> initialize(TimeseriesAdapterConfig config);
+    CompletionStage<Void> initialize();
     CompletionStage<Void> shutdown();
     HealthStatus getHealth();
 
@@ -2144,13 +2144,9 @@ ditto {
       required-permission = ${?TIMESERIES_REQUIRED_PERMISSION}
     }
 
-    # Timeseries adapter configuration
+    # Timeseries adapter configuration. The adapter implementation itself is the
+    # `ditto.extensions.timeseries-adapter` extension (default: MongoDbTimeseriesAdapter).
     adapter {
-      # Which adapter to use. Default: "mongodb"
-      # Custom adapters can register additional types via SPI
-      type = "mongodb"
-      type = ${?TIMESERIES_ADAPTER_TYPE}
-
       # MongoDB Time Series adapter configuration (default adapter)
       mongodb {
         # Use Ditto's existing MongoDB URI (recommended)
@@ -2287,10 +2283,6 @@ timeseries:
       # "READ": Users with READ permission can also read timeseries data
       requiredPermission: "READ_TS"
 
-    adapter:
-      # Default adapter type. Custom adapters can be added via SPI.
-      type: "mongodb"
-
     # MongoDB adapter configuration (default, uses existing Ditto MongoDB)
     mongodb:
       # Uses Ditto's MongoDB URI by default (no config needed)
@@ -2341,7 +2333,6 @@ ditto/
 │   ├── api/                      # Adapter interfaces (Java 8)
 │   │   └── src/main/java/org/eclipse/ditto/timeseries/api/
 │   │       ├── TimeseriesAdapter.java
-│   │       ├── TimeseriesAdapterConfig.java
 │   │       └── TimeseriesAdapterFactory.java
 │   │
 │   ├── service/                  # Service implementation (Java 21)
