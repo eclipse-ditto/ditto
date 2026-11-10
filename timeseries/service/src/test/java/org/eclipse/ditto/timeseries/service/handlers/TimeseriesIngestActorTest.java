@@ -26,6 +26,8 @@ import org.apache.pekko.actor.ActorRef;
 import org.apache.pekko.actor.ActorSystem;
 import org.apache.pekko.actor.Status;
 import org.apache.pekko.testkit.javadsl.TestKit;
+import org.eclipse.ditto.base.model.common.HttpStatus;
+import org.eclipse.ditto.base.model.exceptions.DittoInternalErrorException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
@@ -48,7 +50,7 @@ import com.typesafe.config.ConfigFactory;
  * Unit tests for the sharded {@link TimeseriesIngestActor}. The actor is intentionally
  * non-persistent — writes go directly to the configured adapter; the publisher's
  * retry loop covers crash windows. Each test exercises one slice of the contract:
- * happy-path ack, empty-batch no-op, adapter failure surfaces as Status.Failure,
+ * happy-path ack, empty-batch no-op, write failure surfaces as Status.Failure,
  * idempotent ack for duplicate retries, and the read path.
  */
 public final class TimeseriesIngestActorTest {
@@ -191,9 +193,7 @@ public final class TimeseriesIngestActorTest {
     }
 
     @Test
-    public void retrieveTimeseriesSurfacesAdapterFailureAsStatusFailure() {
-        // Adapter throwing on query() must surface as Status.Failure — the gateway then maps
-        // that to a 5XX rather than the success envelope.
+    public void retrieveTimeseriesSurfacesAdapterFailureAsInternalError() {
         new TestKit(actorSystem) {{
             final RuntimeException backendError = new RuntimeException("mongo unavailable");
             final RecordingAdapter adapter = new RecordingAdapter().failingQueryWith(backendError);
@@ -210,8 +210,10 @@ public final class TimeseriesIngestActorTest {
                             DittoHeaders.newBuilder().correlationId("query-fail-test").build());
 
             ingest.tell(cmd, getRef());
-            final Status.Failure failure = expectMsgClass(Status.Failure.class);
-            assertThat(failure.cause().getMessage()).contains("mongo unavailable");
+            final DittoInternalErrorException error = expectMsgClass(DittoInternalErrorException.class);
+            assertThat(error.getHttpStatus()).isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR);
+            assertThat(error.getMessage()).doesNotContain("mongo unavailable");
+            assertThat(error.getDittoHeaders().getCorrelationId()).contains("query-fail-test");
         }};
     }
 

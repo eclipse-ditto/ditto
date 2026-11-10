@@ -39,6 +39,7 @@ import org.apache.pekko.actor.Status;
 import org.apache.pekko.cluster.sharding.ShardRegion;
 import org.apache.pekko.pattern.Patterns;
 import org.eclipse.ditto.base.model.auth.AuthorizationContext;
+import org.eclipse.ditto.base.model.exceptions.DittoInternalErrorException;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.internal.utils.metrics.DittoMetrics;
@@ -395,8 +396,7 @@ public final class TimeseriesIngestActor extends AbstractActor {
 
     private CompletionStage<Object> authorizeAndQuery(final RetrieveTimeseries command) {
         // Single error-handling boundary: enforcement or adapter errors both surface through
-        // toFailure() — Ditto runtime exceptions go back as themselves so the gateway maps them
-        // to the right HTTP envelope, anything else becomes Status.Failure for the publisher.
+        // toFailure() as a DittoRuntimeException, so the gateway maps them to the right HTTP envelope.
         final CompletionStage<Object> stage =
                 (thingsShardRegion == null || policyEnforcerProvider == null)
                         // Test-only path: no enforcement wired, run the adapter directly.
@@ -561,12 +561,11 @@ public final class TimeseriesIngestActor extends AbstractActor {
         LOGGER.withCorrelationId(command.getDittoHeaders())
                 .warn("RetrieveTimeseries for thing <{}> failed: {}",
                         command.getEntityId(), cause.getMessage());
-        // Ditto convention: surface DittoRuntimeException directly so gateway maps it to an HTTP
-        // error envelope; non-Ditto throwables fall back to Status.Failure for visibility.
-        if (cause instanceof DittoRuntimeException dre) {
-            return dre.setDittoHeaders(command.getDittoHeaders());
-        }
-        return new Status.Failure(cause);
+        // A Status.Failure would reach the requester as an ask timeout; backend details stay in the log.
+        return DittoRuntimeException.asDittoRuntimeException(cause, t -> DittoInternalErrorException.newBuilder()
+                        .cause(t)
+                        .build())
+                .setDittoHeaders(command.getDittoHeaders());
     }
 
     /**

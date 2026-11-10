@@ -12,8 +12,10 @@
  */
 package org.eclipse.ditto.timeseries.service.starter;
 
+import java.time.Duration;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.pekko.actor.ActorRef;
 import org.apache.pekko.actor.Props;
@@ -28,6 +30,9 @@ import org.eclipse.ditto.timeseries.api.TimeseriesAdapter;
  * {@code /ready}, which is based on cluster membership.
  */
 final class TimeseriesAdapterHealthChecker extends AbstractHealthCheckingActor {
+
+    /** A backend that does not answer within this time is reported DOWN, instead of after its query timeout. */
+    static final Duration CHECK_TIMEOUT = Duration.ofSeconds(10);
 
     private final TimeseriesAdapter adapter;
 
@@ -56,7 +61,10 @@ final class TimeseriesAdapterHealthChecker extends AbstractHealthCheckingActor {
         } catch (final RuntimeException e) {
             check = CompletableFuture.failedFuture(e);
         }
-        check.handle((health, error) -> error == null ? health : HealthStatus.DOWN)
+        check.toCompletableFuture()
+                .copy()
+                .orTimeout(CHECK_TIMEOUT.toMillis(), TimeUnit.MILLISECONDS)
+                .handle((health, error) -> error == null ? health : HealthStatus.DOWN)
                 .thenAccept(health -> self.tell(health, ActorRef.noSender()));
     }
 

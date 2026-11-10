@@ -23,6 +23,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletionException;
+import java.util.concurrent.Executor;
 import java.util.function.Supplier;
 
 import javax.annotation.Nullable;
@@ -56,9 +57,6 @@ import org.eclipse.ditto.wot.api.resolver.ThingSubmodel;
 import org.eclipse.ditto.wot.api.resolver.WotThingModelResolver;
 import org.eclipse.ditto.wot.model.IRI;
 import org.eclipse.ditto.wot.model.ThingModel;
-
-import com.github.benmanes.caffeine.cache.Cache;
-import com.github.benmanes.caffeine.cache.Caffeine;
 
 /**
  * Per-Things-service-node actor that turns {@link ThingEvent}s into {@link IngestDataPoints}
@@ -102,9 +100,9 @@ import com.github.benmanes.caffeine.cache.Caffeine;
  * is composed with {@code thenCompose} on the WoT executor — the actor thread never blocks.
  *
  * <h2>Concurrency</h2>
- * Per Ditto's actor-concurrency rules, no actor state is mutated from inside
- * {@link java.util.concurrent.CompletionStage} callbacks: the resolved submodels are sent back to the actor, which
- * builds the data points and owns the cache of resolved leaves.
+ * The data points are built on the dispatcher, outside the actor, so events are processed in parallel; the only
+ * state they share is the thread-safe {@link ResolvedLeafCache}. Only the finished {@link IngestDataPoints} is sent
+ * back to the actor.
  */
 public final class TimeseriesIngestPublisher extends AbstractActorWithTimers {
 
@@ -125,20 +123,22 @@ public final class TimeseriesIngestPublisher extends AbstractActorWithTimers {
 
     private static final int RESOLVED_LEAVES_CACHE_SIZE = 10_000;
 
-    /** Kamon {@code timeseries_ingest_dropped} — incremented per batch given up after retries. */
+    /**
+     * Kamon {@code timeseries_ingest_dropped} — incremented per batch given up after retries or failing to build, and
+     * by {@link ResolvedLeafCache} per property with an invalid annotation.
+     */
     private static final Counter DROPPED_BATCHES =
             DittoMetrics.counter("timeseries_ingest_dropped");
 
     // Thread-safe variant — log calls happen inside CompletionStage callbacks (WoT resolution,
-    // Patterns.ask retries) which run off the actor thread.
+    // data-point building, Patterns.ask retries) which run off the actor thread.
     private static final ThreadSafeDittoLogger LOGGER =
             DittoLoggerFactory.getThreadSafeLogger(TimeseriesIngestPublisher.class);
 
     private final ActorRef shardRegionProxy;
     private final WotThingModelResolver wotResolver;
     private final Duration askTimeout;
-    private final Cache<LeafKey, CachedLeaf> resolvedLeaves =
-            Caffeine.newBuilder().maximumSize(RESOLVED_LEAVES_CACHE_SIZE).build();
+    private final ResolvedLeafCache resolvedLeaves = new ResolvedLeafCache(RESOLVED_LEAVES_CACHE_SIZE);
 
     @SuppressWarnings("unused")
     private TimeseriesIngestPublisher(final ActorRef shardRegionProxy,
@@ -171,7 +171,7 @@ public final class TimeseriesIngestPublisher extends AbstractActorWithTimers {
     public Receive createReceive() {
         return receiveBuilder()
                 .match(IngestRequest.class, this::handleIngestRequest)
-                .match(SubmodelsResolved.class, this::handleSubmodelsResolved)
+                .match(IngestDataPoints.class, command -> sendWithRetry(command, 1))
                 .match(RetrySend.class, this::scheduleRetry)
                 .match(SendRetry.class, send -> sendWithRetry(send.retry().command(), send.retry().attempt()))
                 .build();
@@ -208,28 +208,28 @@ public final class TimeseriesIngestPublisher extends AbstractActorWithTimers {
         final DittoHeaders headers = newDeliveryHeaders(event.getDittoHeaders());
 
         final ActorRef self = getSelf();
+        final Executor dispatcher = getContext().getDispatcher();
+        final ResolvedLeafCache leafCache = resolvedLeaves;
         wotResolver.resolveThingModel(tmIri.get(), headers)
                 .thenCompose(tm -> wotResolver.resolveThingModelSubmodels(tm, headers))
-                .thenAccept(submodels -> self.tell(
-                        new SubmodelsResolved(thingId, leaves, thing, event, headers, submodels), self))
+                .thenApplyAsync(submodels -> buildDataPointsOrDrop(thingId, leaves, thing, submodels, event,
+                        leafCache), dispatcher)
+                .thenAccept(dataPoints -> {
+                    if (!dataPoints.isEmpty()) {
+                        self.tell(IngestDataPoints.of(thingId, dataPoints, headers), self);
+                    }
+                })
                 .exceptionally(throwable -> {
                     final Throwable cause = throwable instanceof CompletionException
                             && throwable.getCause() != null ? throwable.getCause() : throwable;
-                    LOGGER.debug("Could not resolve WoT TM for thing <{}>: {}",
+                    LOGGER.debug("Could not resolve the WoT TM or build data points for thing <{}>: {}",
                             thingId, cause.getMessage());
                     return null;
                 });
     }
 
-    private void handleSubmodelsResolved(final SubmodelsResolved resolved) {
-        final List<TimeseriesDataPoint> dataPoints = buildDataPoints(resolved.thingId(), resolved.leaves(),
-                resolved.thing(), resolved.submodels(), resolved.event());
-        if (!dataPoints.isEmpty()) {
-            sendWithRetry(IngestDataPoints.of(resolved.thingId(), dataPoints, resolved.headers()), 1);
-        }
-    }
-
     private void sendWithRetry(final IngestDataPoints command, final int attempt) {
+        final ActorRef self = getSelf();
         Patterns.ask(shardRegionProxy, command, askTimeout)
                 .whenComplete((response, throwable) -> {
                     if (throwable == null && response instanceof IngestDataPointsResponse) {
@@ -245,7 +245,7 @@ public final class TimeseriesIngestPublisher extends AbstractActorWithTimers {
                         // Schedule the retry on the actor thread so it doesn't race the next
                         // mailbox message. Same correlation-id signals "logical replay" to the
                         // receiving entity, which dedups via a bounded `recentlyApplied` ring.
-                        getSelf().tell(new RetrySend(command, attempt + 1), getSelf());
+                        self.tell(new RetrySend(command, attempt + 1), self);
                     } else {
                         DROPPED_BATCHES.increment();
                         LOGGER.warn("Giving up on IngestDataPoints for thing <{}> after <{}> attempts: {}",
@@ -271,11 +271,29 @@ public final class TimeseriesIngestPublisher extends AbstractActorWithTimers {
         return IRI.of(def.toString());
     }
 
-    private List<TimeseriesDataPoint> buildDataPoints(final ThingId thingId,
+    private static List<TimeseriesDataPoint> buildDataPointsOrDrop(final ThingId thingId,
             final List<PropertyLeaf> leaves,
             final Thing thing,
             final Map<ThingSubmodel, ThingModel> submodels,
-            final ThingEvent<?> event) {
+            final ThingEvent<?> event,
+            final ResolvedLeafCache leafCache) {
+
+        try {
+            return buildDataPoints(thingId, leaves, thing, submodels, event, leafCache);
+        } catch (final RuntimeException e) {
+            DROPPED_BATCHES.increment();
+            LOGGER.warn("Dropping timeseries data points of thing <{}> for event <{}>: {}",
+                    thingId, event.getType(), e.toString());
+            return List.of();
+        }
+    }
+
+    private static List<TimeseriesDataPoint> buildDataPoints(final ThingId thingId,
+            final List<PropertyLeaf> leaves,
+            final Thing thing,
+            final Map<ThingSubmodel, ThingModel> submodels,
+            final ThingEvent<?> event,
+            final ResolvedLeafCache leafCache) {
 
         final Instant timestamp = event.getTimestamp().orElse(Instant.now());
         final long revision = event.getRevision();
@@ -294,7 +312,7 @@ public final class TimeseriesIngestPublisher extends AbstractActorWithTimers {
                 continue;
             }
             final Optional<ResolvedLeaf> resolved =
-                    resolveLeaf(submodel.get().getKey(), submodel.get().getValue(), leaf.path());
+                    leafCache.resolve(submodel.get().getKey(), submodel.get().getValue(), leaf.path());
             if (resolved.isEmpty()) {
                 continue;
             }
@@ -344,23 +362,6 @@ public final class TimeseriesIngestPublisher extends AbstractActorWithTimers {
         return resolved;
     }
 
-    /**
-     * The resolved annotation only depends on the submodel and the path. The WoT resolver hands out the same
-     * {@link ThingModel} instance while it is cached, so a different instance means the model was reloaded.
-     */
-    private Optional<ResolvedLeaf> resolveLeaf(final ThingSubmodel submodel, final ThingModel submodelTm,
-            final JsonPointer path) {
-
-        final LeafKey key = new LeafKey(submodel.href(), path);
-        final CachedLeaf cached = resolvedLeaves.getIfPresent(key);
-        if (cached != null && cached.model() == submodelTm) {
-            return cached.leaf();
-        }
-        final Optional<ResolvedLeaf> leaf = WotLeafResolver.resolveLeaf(submodelTm, path);
-        resolvedLeaves.put(key, new CachedLeaf(submodelTm, leaf));
-        return leaf;
-    }
-
     private static <T> Supplier<T> memoize(final Supplier<T> supplier) {
         return new Supplier<T>() {
             @Nullable private T value;
@@ -394,16 +395,8 @@ public final class TimeseriesIngestPublisher extends AbstractActorWithTimers {
         }
     }
 
-    private record SubmodelsResolved(ThingId thingId, List<PropertyLeaf> leaves, Thing thing, ThingEvent<?> event,
-            DittoHeaders headers, Map<ThingSubmodel, ThingModel> submodels) {}
-
     /** Self-message scheduling a retry on the actor thread so it doesn't race the next message. */
     private record RetrySend(IngestDataPoints command, int attempt) {}
 
     private record SendRetry(RetrySend retry) {}
-
-    private record LeafKey(IRI submodel, JsonPointer path) {}
-
-    @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
-    private record CachedLeaf(ThingModel model, Optional<ResolvedLeaf> leaf) {}
 }

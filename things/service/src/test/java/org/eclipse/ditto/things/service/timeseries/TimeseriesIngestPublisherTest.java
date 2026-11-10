@@ -27,6 +27,7 @@ import java.util.concurrent.TimeUnit;
 import org.apache.pekko.actor.ActorRef;
 import org.apache.pekko.actor.ActorSystem;
 import org.apache.pekko.actor.Status;
+import org.apache.pekko.actor.SupervisorStrategy;
 import org.apache.pekko.testkit.TestProbe;
 import org.apache.pekko.testkit.javadsl.TestKit;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
@@ -378,6 +379,33 @@ public final class TimeseriesIngestPublisherTest {
     }
 
     @Test
+    public void annotationWithoutIngestSkipsOnlyThatPropertyAndDoesNotFailThePublisher() {
+        new TestKit(actorSystem) {{
+            final TestProbe shardProbe = new TestProbe(actorSystem);
+            final WotThingModelResolver resolver = resolverWith(submodelWithAnnotationWithoutIngest());
+            final ActorRef publisher = childActorOf(
+                    TimeseriesIngestPublisher.props(shardProbe.ref(), resolver, Duration.ofSeconds(2)),
+                    SupervisorStrategy.stoppingStrategy());
+            watch(publisher);
+
+            final ThingMerged event = ThingMerged.of(THING_ID, JsonPointer.of("/features/env/properties"),
+                    JsonObject.newBuilder().set(PROPERTY_NAME, 21.5).set("humidity", 40).build(), 1L,
+                    Instant.parse("2026-01-01T00:00:00Z"), DittoHeaders.empty(), null);
+            publisher.tell(new TimeseriesIngestPublisher.IngestRequest(event, thingWithDefinition()), getRef());
+            publisher.tell(new TimeseriesIngestPublisher.IngestRequest(event, thingWithDefinition()), getRef());
+
+            for (int i = 0; i < 2; i++) {
+                final IngestDataPoints command = shardProbe.expectMsgClass(IngestDataPoints.class);
+                shardProbe.reply(IngestDataPointsResponse.of(THING_ID, command.getDittoHeaders()));
+                assertThat(command.getDataPoints()).hasSize(1);
+                assertThat((Object) command.getDataPoints().get(0).getPath())
+                        .isEqualTo(JsonPointer.of("/features/env/properties/temperature"));
+            }
+            expectNoMessage(scala.concurrent.duration.Duration.create(300, TimeUnit.MILLISECONDS));
+        }};
+    }
+
+    @Test
     public void mergeEventProducesIngestDataPoints() {
         // A merge command targeting features/env/properties/status produces a ThingMerged;
         // the publisher must decompose the merged object and ingest the annotated leaf.
@@ -580,6 +608,24 @@ public final class TimeseriesIngestPublisherTest {
                         .withId(FEATURE_ID)
                         .build())
                 .build();
+    }
+
+    private static ThingModel submodelWithAnnotationWithoutIngest() {
+        final JsonObject properties = JsonFactory.newObjectBuilder()
+                .set(PROPERTY_NAME, JsonFactory.newObjectBuilder()
+                        .set("type", "number")
+                        .set("ditto:timeseries", JsonObject.newBuilder().set("ingest", "ALL").build())
+                        .build())
+                .set("humidity", JsonFactory.newObjectBuilder()
+                        .set("type", "number")
+                        .set("ditto:timeseries", JsonObject.newBuilder().set("tags", JsonObject.empty()).build())
+                        .build())
+                .build();
+        return ThingModel.fromJson(JsonObject.newBuilder()
+                .set("@context", DITTO_CONTEXT)
+                .set("@type", "tm:ThingModel")
+                .set("properties", properties)
+                .build());
     }
 
     private static ThingModel submodelWithoutAnnotation() {

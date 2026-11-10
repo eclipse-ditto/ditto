@@ -40,6 +40,7 @@ import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
 import org.eclipse.ditto.base.model.auth.DittoAuthorizationContextType;
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.exceptions.AskException;
+import org.eclipse.ditto.base.model.exceptions.DittoInternalErrorException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.internal.utils.cache.entry.Entry;
 import org.eclipse.ditto.json.JsonPointer;
@@ -560,6 +561,21 @@ public final class TimeseriesAggregateActorEnforcementTest {
             assertThat(f.adapter.allowList.get()).isEmpty();
             assertThat(response.getExcludedThings()).isZero();
             assertThat(response.isPartial()).isFalse();
+        }};
+    }
+
+    @Test
+    public void adapterFailureSurfacesAsInternalError() {
+        new TestKit(actorSystem) {{
+            final Fixture f = new Fixture();
+            f.adapter.failOnQuery = true;
+            f.start("adapter-failure");
+            f.ask(this, List.of(PATH));
+
+            final DittoInternalErrorException error = expectMsgClass(DittoInternalErrorException.class);
+            assertThat(error.getHttpStatus()).isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR);
+            assertThat(error.getMessage()).doesNotContain("must not run");
+            assertThat(error.getDittoHeaders().getCorrelationId()).isPresent();
         }};
     }
 
