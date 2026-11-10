@@ -60,6 +60,8 @@
         <!-- Keep these version consistent with pekko-persistence-mongodb.version's build.sbt -->
         <mongo-java-driver.version>5.6.5</mongo-java-driver.version>
 
+        <iotdb-session.version>2.0.11</iotdb-session.version>
+
         <!-- AWS SDK version needed for MongoDB AWS IAM authentication -->
         <awssdk.version>2.54.11</awssdk.version>
 
@@ -283,6 +285,12 @@
                 <groupId>org.mongodb</groupId>
                 <artifactId>mongodb-driver-reactivestreams</artifactId>
                 <version>${mongo-java-driver.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.apache.iotdb</groupId>
+                <artifactId>iotdb-session</artifactId>
+                <version>${iotdb-session.version}</version>
             </dependency>
 
 
@@ -821,6 +829,11 @@
             <dependency>
                 <groupId>org.eclipse.ditto</groupId>
                 <artifactId>ditto-timeseries-mongodb</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.eclipse.ditto</groupId>
+                <artifactId>ditto-timeseries-iotdb</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>

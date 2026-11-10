@@ -177,6 +177,16 @@ A cross-thing aggregation enumerates, so it is gated more tightly than a single-
 
 By default, data points are stored in MongoDB Time Series collections. Another backend plugs in as an [extension](installation-extending.html): a class implementing `org.eclipse.ditto.timeseries.api.TimeseriesAdapter` with a public `(ActorSystem, Config)` constructor, configured in the timeseries service as `ditto.extensions.timeseries-adapter` and added as a JAR to `/opt/ditto/extensions`.
 
+### Apache IoTDB
+
+Ditto builds an adapter for [Apache IoTDB](https://iotdb.apache.org/) 2.x as the `ditto-timeseries-iotdb` JAR with the `extension` classifier; it is not part of the timeseries service image. To use it, put the JAR into `/opt/ditto/extensions` and add to `/opt/ditto/timeseries-extension.conf`:
+
+```hocon
+include required(classpath("ditto-timeseries-iotdb.conf"))
+```
+
+The connection is configured with `TIMESERIES_IOTDB_HOST`, `TIMESERIES_IOTDB_PORT`, `TIMESERIES_IOTDB_USERNAME`, `TIMESERIES_IOTDB_PASSWORD` and `TIMESERIES_IOTDB_DATABASE`, the other settings under `ditto.timeseries.adapter.iotdb`. The IoTDB adapter answers `fill`, `tz`, `integral` and `percentile` with a `400`.
+
 ## Retention
 
 Data points expire after a configurable retention period, `90d` by default, with per-namespace overrides. Changing the configured value is applied to an existing namespace the next time that namespace is written to.

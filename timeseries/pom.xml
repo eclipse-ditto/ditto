@@ -32,6 +32,7 @@
         <module>api</module>
         <module>service</module>
         <module>mongodb</module>
+        <module>iotdb</module>
     </modules>
 
     <dependencies>
