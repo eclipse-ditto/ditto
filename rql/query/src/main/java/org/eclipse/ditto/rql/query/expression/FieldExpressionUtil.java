@@ -51,7 +51,9 @@ public final class FieldExpressionUtil {
 
     private static final String REGEX_FIELD_START = "^";
     private static final String REGEX_FIELD_END = "(/|\\z)";
-    private static final String FIELD_NAME_ATTRIBUTES_PREFIX = "attributes/";
+    private static final String FIELD_NAME_ATTRIBUTES = "attributes";
+    private static final String FIELD_NAME_FEATURES = "features";
+    private static final String FIELD_NAME_ATTRIBUTES_PREFIX = FIELD_NAME_ATTRIBUTES + "/";
     private static final String FIELD_NAME_METADATA_PREFIX = "_metadata/";
 
     private FieldExpressionUtil() {
@@ -87,6 +89,17 @@ public final class FieldExpressionUtil {
      */
     static boolean isAttributeFieldName(final String fieldName) {
         return requireNonNull(fieldName).startsWith(FIELD_NAME_ATTRIBUTES_PREFIX);
+    }
+
+    /**
+     * Checks if the given field name addresses the complete {@code attributes} or {@code features} object of a thing,
+     * i.e. without any sub-path.
+     *
+     * @param fieldName the field name
+     * @return {@code true}, if the field name is exactly {@code attributes} or {@code features}
+     */
+    static boolean isAttributesOrFeaturesFieldName(final String fieldName) {
+        return FIELD_NAME_ATTRIBUTES.equals(fieldName) || FIELD_NAME_FEATURES.equals(fieldName);
     }
 
     /**

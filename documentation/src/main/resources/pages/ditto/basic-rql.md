@@ -255,6 +255,13 @@ exists(features/feature_1)
 and(exists(features/lamp),eq(attributes/location,"living-room"))
 ```
 
+**Example** -- filter Things which have no `attributes` at all (`exists` and `empty` also accept the complete
+`attributes` and `features` objects as property, comparison operators and sorting do not):
+
+```text
+not(exists(attributes))
+```
+
 #### empty
 
 Filter property values which are absent or void of content.
@@ -288,6 +295,11 @@ not(empty(attributes/tags))
 **Example - filter things where tags are either empty or contain "default"**
 ```
 or(empty(attributes/tags),eq(attributes/tags,"default"))
+```
+
+**Example - filter things without any features or with an empty `"features": {}` object**
+```
+empty(features)
 ```
 
 

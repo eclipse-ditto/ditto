@@ -26,6 +26,8 @@ import java.util.function.Supplier;
  */
 final class ThingsFieldExpressionFactoryImpl implements ThingsFieldExpressionFactory {
 
+    private static final String SLASH = "/";
+
     private final Map<String, String> simpleFieldMappings;
 
     ThingsFieldExpressionFactoryImpl(final Map<String, String> simpleFieldMappings) {
@@ -95,7 +97,13 @@ final class ThingsFieldExpressionFactoryImpl implements ThingsFieldExpressionFac
                 )
 
                 // we have no feature at all, continue with the other possibilities
-                .orElseGet(() -> (ExistsFieldExpression) common(propertyName));
+                .orElseGet(() -> {
+                    if (FieldExpressionUtil.isAttributesOrFeaturesFieldName(propertyName)) {
+                        // the complete "attributes" or "features" object, addressed as JSON pointer
+                        return new SimpleFieldExpressionImpl(SLASH + propertyName);
+                    }
+                    return (ExistsFieldExpression) common(propertyName);
+                });
     }
 
     @Override

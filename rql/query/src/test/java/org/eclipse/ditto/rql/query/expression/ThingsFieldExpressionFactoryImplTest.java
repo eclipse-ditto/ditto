@@ -107,6 +107,58 @@ public final class ThingsFieldExpressionFactoryImplTest {
     }
 
     @Test
+    public void existsByWithAttributes() {
+        final FieldExpression fieldExpression = ef.existsBy("attributes");
+
+        final ExistsFieldExpression expected = new SimpleFieldExpressionImpl("/attributes");
+        assertThat(fieldExpression).isEqualTo(expected);
+    }
+
+    @Test
+    public void existsByWithAttributesAsJsonPointer() {
+        final FieldExpression fieldExpression = ef.existsBy("/attributes");
+
+        final ExistsFieldExpression expected = new SimpleFieldExpressionImpl("/attributes");
+        assertThat(fieldExpression).isEqualTo(expected);
+    }
+
+    @Test
+    public void existsByWithFeatures() {
+        final FieldExpression fieldExpression = ef.existsBy("features");
+
+        final ExistsFieldExpression expected = new SimpleFieldExpressionImpl("/features");
+        assertThat(fieldExpression).isEqualTo(expected);
+    }
+
+    @Test
+    public void existsByWithFeaturesAsJsonPointer() {
+        final FieldExpression fieldExpression = ef.existsBy("/features");
+
+        final ExistsFieldExpression expected = new SimpleFieldExpressionImpl("/features");
+        assertThat(fieldExpression).isEqualTo(expected);
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void filterByWithAttributesIsNotSupported() {
+        ef.filterBy("attributes");
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void filterByWithFeaturesIsNotSupported() {
+        ef.filterBy("features");
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void sortByWithAttributesIsNotSupported() {
+        ef.sortBy("attributes");
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void sortByWithFeaturesIsNotSupported() {
+        ef.sortBy("features");
+    }
+
+    @Test
     public void existsByWithFeaturePropertyWithId() {
         final FieldExpression fieldExpression = ef.existsBy(KNOWN_FEATURE_PROPERTY_WITH_ID);
 
