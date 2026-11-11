@@ -810,6 +810,7 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
     private void enforceAndForwardToTargetActor(final Object message) {
 
         final ActorRef sender = getSender();
+        final ActorRef self = getSelf();
         if (message instanceof Signal<?> incomingSignal) {
             if (sender.equals(persistenceActorChild)) {
                 log.withCorrelationId(incomingSignal)
@@ -840,7 +841,7 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
                                             handleTargetActorAndEnforcerException(transformed, error), enforcementExecutor)
                                     .whenCompleteAsync((response, throwable) ->
                                             handleSignalEnforcementResponse(response, throwable, transformed, sender,
-                                                    replySignalAccepted),
+                                                    self, replySignalAccepted),
                                             enforcementExecutor
                                     ),
                                 enforcementExecutor
@@ -893,6 +894,7 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
             @Nullable final Throwable throwable,
             final WithDittoHeaders signal,
             final ActorRef sender,
+            final ActorRef self,
             final boolean replySignalAccepted) {
 
         if (null != throwable) {
@@ -910,7 +912,7 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
                             .error(dre, "Received DittoInternalErrorException during enforcement");
                 }
             }
-            sender.tell(dre, getSelf());
+            sender.tell(dre, self);
         } else if (response instanceof Status.Success ||
                 (response instanceof StatusReply<?> statusReply && statusReply.isSuccess()) ||
                 response instanceof Done) {
@@ -918,7 +920,7 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
                 log.withCorrelationId(signal)
                         .debug("Telling sender <{}> that the signal was accepted, outcome: <{}>", sender.path(),
                                 response);
-                sender.tell(new SignalAccepted(), getSelf());
+                sender.tell(new SignalAccepted(), self);
             } else {
                 log.withCorrelationId(signal)
                         .debug("Ignoring <{}> as expected 'to be ignored' outcome", response);
@@ -926,7 +928,7 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
         } else if (null != response) {
             log.withCorrelationId(signal)
                     .debug("Sending response: <{}> back to sender: <{}>", response, sender.path());
-            sender.tell(response, getSelf());
+            sender.tell(response, self);
         } else {
             log.withCorrelationId(signal)
                     .error("Received nothing when enforcing signal and forwarding to " +

@@ -61,6 +61,8 @@ import org.eclipse.ditto.messages.model.MessageHeaders;
 import org.eclipse.ditto.messages.model.signals.commands.SendThingMessage;
 import org.eclipse.ditto.messages.model.signals.commands.SendThingMessageResponse;
 import org.eclipse.ditto.things.model.ThingId;
+import org.eclipse.ditto.things.model.devops.WotValidationConfigId;
+import org.eclipse.ditto.things.model.devops.commands.DeleteWotValidationConfig;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingNotAccessibleException;
 import org.eclipse.ditto.things.model.signals.commands.modify.ModifyAttribute;
 import org.eclipse.ditto.things.model.signals.commands.modify.ModifyAttributeResponse;
@@ -674,6 +676,47 @@ public final class HttpRequestActorTest extends AbstractHttpRequestActorTest {
         proxyActorProbe.reply(new SignalAccepted());
 
         assertThat(responseFuture.get(1, TimeUnit.SECONDS).status()).isEqualTo(StatusCodes.NOT_FOUND);
+    }
+
+    @Test
+    public void fireAndForgetSignalNotHandledByPersistenceSupervisorIsSentWithoutReplySignalAcceptedHeader() {
+        final var deleteWotValidationConfig = DeleteWotValidationConfig.of(WotValidationConfigId.GLOBAL,
+                DittoHeaders.newBuilder(createAuthorizedHeaders())
+                        .responseRequired(false)
+                        .timeout(Duration.ZERO)
+                        .build());
+
+        final var proxyActorProbe = ACTOR_SYSTEM_RESOURCE.newTestProbe();
+        final var underTest = createHttpRequestActor(proxyActorProbe.ref(),
+                HttpRequest.DELETE("/devops/wot/config"), new CompletableFuture<>());
+        underTest.tell(deleteWotValidationConfig, ActorRef.noSender());
+
+        final var received = proxyActorProbe.expectMsgClass(DeleteWotValidationConfig.class);
+        assertThat(received.getDittoHeaders())
+                .doesNotContainKey(DittoHeaderDefinition.REPLY_SIGNAL_ACCEPTED.getKey());
+    }
+
+    @Test
+    public void signalAcceptedIsIgnoredForCommandRequiringResponse() throws Exception {
+        final var thingId = ThingId.generateRandom();
+        final var attributePointer = JsonPointer.of("foo");
+        final var modifyAttribute = ModifyAttribute.of(thingId, attributePointer, JsonValue.of("bar"),
+                DittoHeaders.newBuilder(createAuthorizedHeaders())
+                        .acknowledgementRequests(Collections.emptyList())
+                        .build());
+
+        final var proxyActorProbe = ACTOR_SYSTEM_RESOURCE.newTestProbe();
+        final var responseFuture = new CompletableFuture<HttpResponse>();
+        final var underTest =
+                createHttpRequestActor(proxyActorProbe.ref(), getHttpRequest(modifyAttribute), responseFuture);
+        underTest.tell(modifyAttribute, ActorRef.noSender());
+
+        final var received = proxyActorProbe.expectMsgClass(ModifyAttribute.class);
+        proxyActorProbe.reply(new SignalAccepted());
+        proxyActorProbe.reply(ModifyAttributeResponse.modified(thingId, attributePointer,
+                received.getDittoHeaders()));
+
+        assertThat(responseFuture.get(5, TimeUnit.SECONDS).status()).isEqualTo(StatusCodes.NO_CONTENT);
     }
 
     @Test
