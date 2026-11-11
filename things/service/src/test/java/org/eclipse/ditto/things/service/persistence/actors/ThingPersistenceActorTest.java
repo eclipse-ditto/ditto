@@ -612,8 +612,11 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
 
                     underTest.tell(RetrieveFeatureProperty.of(thingId, "sensor", JsonPointer.of("temperature"),
                             dittoHeadersV2), getRef());
-                    assertThat(expectMsgClass(RetrieveFeaturePropertyResponse.class).getPropertyValue())
-                            .isEqualTo(JsonValue.of(25));
+                    final RetrieveFeaturePropertyResponse response =
+                            expectMsgClass(RetrieveFeaturePropertyResponse.class);
+                    assertThat(response.getPropertyValue()).isEqualTo(JsonValue.of(25));
+                    assertThat(response.getDittoHeaders().get(DittoHeaderDefinition.ENTITY_REVISION.getKey()))
+                            .isEqualTo("1");
                 }
             };
         } finally {
