@@ -704,7 +704,21 @@ public enum DittoHeaderDefinition implements HeaderDefinition {
      * @since 3.9.0
      */
     POLICY_VIEW_FIELDS_SELECTOR("ditto-policy-view-fields-selector", String.class, false, false,
-            HeaderValueValidators.getNoOpValidator());
+            HeaderValueValidators.getNoOpValidator()),
+
+    /**
+     * Internal header with which the gateway asks the entity's supervisor to confirm a fire-and-forget signal as
+     * soon as the supervisor successfully processed it, i.e. it passed enforcement and the persistence actor
+     * acknowledged it, or it was forwarded to its target (e.g. live signals), instead of waiting for the
+     * fire-and-forget enforcement timeout.
+     * <p>
+     * Key: {@code "ditto-reply-signal-accepted"}, Java type: {@code boolean}.
+     * </p>
+     *
+     * @since 3.9.9
+     */
+    REPLY_SIGNAL_ACCEPTED("ditto-reply-signal-accepted", boolean.class, false, false,
+            HeaderValueValidators.getBooleanValidator());
 
     /**
      * Map to speed up lookup of header definition by key.

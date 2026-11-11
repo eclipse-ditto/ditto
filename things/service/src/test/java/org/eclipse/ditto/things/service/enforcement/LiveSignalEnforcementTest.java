@@ -16,6 +16,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.eclipse.ditto.policies.model.SubjectIssuer.GOOGLE;
 import static org.mockito.Mockito.when;
 
+import java.time.Duration;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
@@ -25,10 +26,12 @@ import org.apache.pekko.testkit.javadsl.TestKit;
 import org.eclipse.ditto.base.model.auth.AuthorizationContext;
 import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
 import org.eclipse.ditto.base.model.auth.DittoAuthorizationContextType;
+import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.base.model.signals.events.Event;
+import org.eclipse.ditto.internal.utils.cluster.SignalAccepted;
 import org.eclipse.ditto.internal.utils.pubsub.StreamingType;
 import org.eclipse.ditto.internal.utils.tracing.DittoTracingInitResource;
 import org.eclipse.ditto.json.JsonFactory;
@@ -379,6 +382,55 @@ public final class LiveSignalEnforcementTest extends AbstractThingEnforcementTes
     }
 
     @Test
+    public void fireAndForgetMessageCommandIsAnsweredWithSignalAccepted() {
+        final PolicyId policyId = PolicyId.of("policy:id");
+        final Policy policy = PoliciesModelFactory.newPolicyBuilder(policyId)
+                .setRevision(1L)
+                .forLabel("authorize-self")
+                .setSubject(GOOGLE, TestSetup.SUBJECT_ID)
+                .setGrantedPermissions(PoliciesResourceType.messageResource(JsonPointer.empty()),
+                        Permissions.newInstance(Permission.READ, Permission.WRITE))
+                .build();
+        when(policyEnforcerProvider.getPolicyEnforcer(policyId))
+                .thenReturn(CompletableFuture.completedFuture(Optional.of(PolicyEnforcer.of(policy))));
+
+        new TestKit(system) {{
+            supervisor.tell(fireAndForget(thingMessageCommand("abc")), getRef());
+
+            final var sudoRetrieveThingResponse =
+                    SudoRetrieveThingResponse.of(TestSetup.newThingWithPolicyId(policyId), DittoHeaders.empty());
+            expectAndAnswerSudoRetrieveThing(sudoRetrieveThingResponse);
+            expectAndAnswerSudoRetrieveThing(sudoRetrieveThingResponse);
+
+            final var publish = expectPubsubMessagePublish(TestSetup.THING_ID);
+            assertThat(((MessageCommand<?, ?>) publish.msg()).getDittoHeaders())
+                    .doesNotContainKey(DittoHeaderDefinition.REPLY_SIGNAL_ACCEPTED.getKey());
+            expectMsgClass(SignalAccepted.class);
+            expectNoMessage();
+        }};
+    }
+
+    @Test
+    public void rejectedFireAndForgetMessageCommandIsAnsweredWithErrorOnly() {
+        final PolicyId policyId = PolicyId.of("empty:policy");
+        final Policy emptyPolicy = PoliciesModelFactory.newPolicyBuilder(policyId)
+                .setRevision(1L)
+                .build();
+        when(policyEnforcerProvider.getPolicyEnforcer(policyId))
+                .thenReturn(CompletableFuture.completedFuture(Optional.of(PolicyEnforcer.of(emptyPolicy))));
+
+        new TestKit(system) {{
+            supervisor.tell(fireAndForget(thingMessageCommand("abc")), getRef());
+            expectAndAnswerSudoRetrieveThingWithSpecificTimeout(
+                    SudoRetrieveThingResponse.of(TestSetup.newThingWithPolicyId(policyId), DittoHeaders.empty()),
+                    FiniteDuration.apply(15, TimeUnit.SECONDS));
+
+            expectMsgClass(Duration.ofSeconds(5), ThingNotAccessibleException.class);
+            expectNoMessage();
+        }};
+    }
+
+    @Test
     public void acceptFeatureMessageCommandByPolicy() {
         final PolicyId policyId = PolicyId.of("policy:id");
         final JsonObject thingWithPolicy = TestSetup.newThingWithPolicyId(policyId);
@@ -584,5 +636,13 @@ public final class LiveSignalEnforcementTest extends AbstractThingEnforcementTes
         assertThat((CharSequence) ((MessageCommand<?, ?>) publishMessageCommand.msg()).getEntityId())
                 .isEqualTo(expectedThingId);
         return publishMessageCommand;
+    }
+
+    private static MessageCommand<?, ?> fireAndForget(final MessageCommand<?, ?> command) {
+        return command.setDittoHeaders(command.getDittoHeaders()
+                .toBuilder()
+                .responseRequired(false)
+                .putHeader(DittoHeaderDefinition.REPLY_SIGNAL_ACCEPTED.getKey(), Boolean.TRUE.toString())
+                .build());
     }
 }

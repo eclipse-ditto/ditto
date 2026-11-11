@@ -91,6 +91,7 @@ import org.eclipse.ditto.gateway.service.util.config.endpoints.CommandConfig;
 import org.eclipse.ditto.gateway.service.util.config.endpoints.HttpConfig;
 import org.eclipse.ditto.internal.models.signal.correlation.MatchingValidationResult;
 import org.eclipse.ditto.internal.utils.cluster.JsonValueSourceRef;
+import org.eclipse.ditto.internal.utils.cluster.SignalAccepted;
 import org.eclipse.ditto.internal.utils.pekko.actors.AbstractActorWithShutdownBehavior;
 import org.eclipse.ditto.internal.utils.pekko.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
@@ -337,8 +338,8 @@ public abstract class AbstractHttpRequestActor extends AbstractActorWithShutdown
      * and waiting for the enforcement/validation result before returning the HTTP response.
      * <p>
      * If an enforcement or validation error occurs (e.g., policy check fails, WoT validation fails),
-     * the error is returned to the client. If no error arrives within the enforcement timeout,
-     * HTTP 202 Accepted is returned.
+     * the error is returned to the client. HTTP 202 Accepted is returned when the supervisor replies with
+     * {@link SignalAccepted}, or when no error arrives within the enforcement timeout.
      *
      * @param command the fire-and-forget command to handle.
      */
@@ -350,7 +351,10 @@ public abstract class AbstractHttpRequestActor extends AbstractActorWithShutdown
         if (command instanceof Command<?> cmd) {
             receivedCommand = cmd;
         }
-        proxyActor.tell(command, getSelf());
+        proxyActor.tell(command.setDittoHeaders(command.getDittoHeaders()
+                .toBuilder()
+                .putHeader(DittoHeaderDefinition.REPLY_SIGNAL_ACCEPTED.getKey(), Boolean.TRUE.toString())
+                .build()), getSelf());
         final Duration enforcementTimeout = gatewayConfig.getCommandConfig().getFireAndForgetEnforcementTimeout();
         getContext().setReceiveTimeout(enforcementTimeout);
         // Clear timeoutExceptionSupplier so that handleReceiveTimeout returns 202 instead of a timeout error
@@ -452,6 +456,7 @@ public abstract class AbstractHttpRequestActor extends AbstractActorWithShutdown
                     completeWithResult(createHttpResponse(HttpStatus.INTERNAL_SERVER_ERROR));
                 })
                 .match(JsonValueSourceRef.class, this::handleJsonValueSourceRef)
+                .match(SignalAccepted.class, this::handleSignalAccepted)
                 .match(Status.Failure.class, f -> f.cause() instanceof AskTimeoutException, failure -> {
                     final var cause = failure.cause();
                     logger.error(cause, "Got <{}> when a command response was expected: <{}>!",
@@ -554,6 +559,12 @@ public abstract class AbstractHttpRequestActor extends AbstractActorWithShutdown
         }
 
         return enhanceResponseWithExternalDittoHeaders(httpResponse, messageCommandResponse.getDittoHeaders());
+    }
+
+    private void handleSignalAccepted(final SignalAccepted signalAccepted) {
+        logger.withCorrelationId(receivedCommand)
+                .debug("Fire-and-forget command was accepted, responding with HTTP 202.");
+        completeWithResult(createHttpResponse(HttpStatus.ACCEPTED));
     }
 
     private void handleReceiveTimeout() {

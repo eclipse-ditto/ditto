@@ -73,6 +73,7 @@ import org.eclipse.ditto.base.service.config.supervision.ExponentialBackOffConfi
 import org.eclipse.ditto.base.service.config.supervision.SupervisorConfig;
 import org.eclipse.ditto.base.service.signaltransformer.SignalTransformer;
 import org.eclipse.ditto.base.service.signaltransformer.SignalTransformers;
+import org.eclipse.ditto.internal.utils.cluster.SignalAccepted;
 import org.eclipse.ditto.internal.utils.cluster.StopShardedActor;
 import org.eclipse.ditto.internal.utils.config.ScopedConfig;
 import org.eclipse.ditto.internal.utils.metrics.DittoMetrics;
@@ -809,18 +810,22 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
     private void enforceAndForwardToTargetActor(final Object message) {
 
         final ActorRef sender = getSender();
-        if (message instanceof Signal<?> signal) {
+        if (message instanceof Signal<?> incomingSignal) {
             if (sender.equals(persistenceActorChild)) {
-                log.withCorrelationId(signal)
+                log.withCorrelationId(incomingSignal)
                         .warning("Received unhandled message from persistenceActorChild '{}': {}",
                                 entityId, message);
                 unhandled(message);
             } else if (sender.equals(enforcerChild)) {
-                log.withCorrelationId(signal)
+                log.withCorrelationId(incomingSignal)
                         .warning("Received unhandled message from enforcerChild '{}': {}",
                                 entityId, message);
                 unhandled(message);
             } else {
+                final boolean replySignalAccepted = isReplySignalAcceptedRequested(incomingSignal);
+                final Signal<?> signal = replySignalAccepted
+                        ? removeReplySignalAcceptedHeader(incomingSignal)
+                        : incomingSignal;
                 if (shouldBecomeTwinSignalProcessingAwaiting(signal)) {
                     becomeTwinSignalProcessingAwaiting();
                 }
@@ -834,7 +839,8 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
                                     .exceptionallyComposeAsync(error ->
                                             handleTargetActorAndEnforcerException(transformed, error), enforcementExecutor)
                                     .whenCompleteAsync((response, throwable) ->
-                                            handleSignalEnforcementResponse(response, throwable, transformed, sender),
+                                            handleSignalEnforcementResponse(response, throwable, transformed, sender,
+                                                    replySignalAccepted),
                                             enforcementExecutor
                                     ),
                                 enforcementExecutor
@@ -871,10 +877,23 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
         return !Signal.isChannelLive(signal) && !Signal.isChannelSmart(signal);
     }
 
+    private static boolean isReplySignalAcceptedRequested(final Signal<?> signal) {
+        return Boolean.parseBoolean(
+                signal.getDittoHeaders().get(DittoHeaderDefinition.REPLY_SIGNAL_ACCEPTED.getKey()));
+    }
+
+    private static Signal<?> removeReplySignalAcceptedHeader(final Signal<?> signal) {
+        return signal.setDittoHeaders(signal.getDittoHeaders()
+                .toBuilder()
+                .removeHeader(DittoHeaderDefinition.REPLY_SIGNAL_ACCEPTED.getKey())
+                .build());
+    }
+
     private void handleSignalEnforcementResponse(@Nullable final Object response,
             @Nullable final Throwable throwable,
             final WithDittoHeaders signal,
-            final ActorRef sender) {
+            final ActorRef sender,
+            final boolean replySignalAccepted) {
 
         if (null != throwable) {
             final DittoRuntimeException dre = getEnforcementExceptionAsRuntimeException(throwable, signal);
@@ -892,15 +911,18 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
                 }
             }
             sender.tell(dre, getSelf());
-        } else if (response instanceof Status.Success success) {
-            log.withCorrelationId(signal)
-                    .debug("Ignoring Status.Success message as expected 'to be ignored' outcome: <{}>", success);
-        } else if (response instanceof StatusReply<?> statusReply && statusReply.isSuccess()) {
-            log.withCorrelationId(signal)
-                    .debug("Ignoring StatusReply message as expected 'to be ignored' outcome: <{}>", statusReply);
-        } else if (response instanceof Done done) {
-            log.withCorrelationId(signal)
-                    .debug("Ignoring Done message as expected 'to be ignored' outcome: <{}>", done);
+        } else if (response instanceof Status.Success ||
+                (response instanceof StatusReply<?> statusReply && statusReply.isSuccess()) ||
+                response instanceof Done) {
+            if (replySignalAccepted) {
+                log.withCorrelationId(signal)
+                        .debug("Telling sender <{}> that the signal was accepted, outcome: <{}>", sender.path(),
+                                response);
+                sender.tell(new SignalAccepted(), getSelf());
+            } else {
+                log.withCorrelationId(signal)
+                        .debug("Ignoring <{}> as expected 'to be ignored' outcome", response);
+            }
         } else if (null != response) {
             log.withCorrelationId(signal)
                     .debug("Sending response: <{}> back to sender: <{}>", response, sender.path());
