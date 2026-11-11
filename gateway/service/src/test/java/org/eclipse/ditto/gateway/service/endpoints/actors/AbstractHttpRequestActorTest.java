@@ -119,6 +119,9 @@ public abstract class AbstractHttpRequestActorTest {
                             .build()
             );
         }
+        receivedModifyAttribute = receivedModifyAttribute.setDittoHeaders(
+                assertAndRemoveReplySignalAcceptedHeader(expectedModifyAttribute.getDittoHeaders(),
+                        receivedModifyAttribute.getDittoHeaders()));
         assertThat(receivedModifyAttribute).isEqualTo(expectedModifyAttribute);
 
         if (null != probeResponse) {
@@ -138,6 +141,20 @@ public abstract class AbstractHttpRequestActorTest {
 
             assertThat(httpResponse.getHeaders()).isEqualTo(expectedHttpResponseHeaders);
         }
+    }
+
+    private static DittoHeaders assertAndRemoveReplySignalAcceptedHeader(final DittoHeaders expectedHeaders,
+            final DittoHeaders receivedHeaders) {
+
+        final String key = DittoHeaderDefinition.REPLY_SIGNAL_ACCEPTED.getKey();
+        final boolean fireAndForget =
+                !expectedHeaders.isResponseRequired() && expectedHeaders.getAcknowledgementRequests().isEmpty();
+        if (fireAndForget) {
+            assertThat(receivedHeaders.get(key)).isEqualTo("true");
+        } else {
+            assertThat(receivedHeaders).doesNotContainKey(key);
+        }
+        return receivedHeaders.toBuilder().removeHeader(key).build();
     }
 
     protected static HttpRequest getHttpRequest(final ModifyAttribute modifyAttribute) {
@@ -208,6 +225,9 @@ public abstract class AbstractHttpRequestActorTest {
                             .build()
             );
         }
+        receivedSendThingMessage = receivedSendThingMessage.setDittoHeaders(
+                assertAndRemoveReplySignalAcceptedHeader(expectedSendThingMessage.getDittoHeaders(),
+                        receivedSendThingMessage.getDittoHeaders()));
         assertThat(receivedSendThingMessage).isEqualTo(expectedSendThingMessage);
 
         if (null != probeResponse) {
@@ -239,12 +259,20 @@ public abstract class AbstractHttpRequestActorTest {
             final HttpRequest request,
             final CompletableFuture<HttpResponse> response) {
 
+        return createHttpRequestActor(proxyActorRef, request, response, gatewayConfig);
+    }
+
+    ActorRef createHttpRequestActor(final ActorRef proxyActorRef,
+            final HttpRequest request,
+            final CompletableFuture<HttpResponse> response,
+            final GatewayConfig config) {
+
         return ACTOR_SYSTEM_RESOURCE.newActor(HttpRequestActor.props(
                         proxyActorRef,
                         HEADER_TRANSLATOR,
                         request,
                         response,
-                        gatewayConfig
+                        config
                 )
         );
     }

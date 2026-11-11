@@ -243,6 +243,7 @@ public final class ImmutableDittoHeadersTest {
                 .putHeader(DittoHeaderDefinition.DIVERT_EXPECTED_RESPONSE_TYPES.getKey(), KNOWN_DITTO_DIVERT_RESPONSE_TYPES)
                 .putHeader(DittoHeaderDefinition.POLICY_VIEW.getKey(), "resolved")
                 .putHeader(DittoHeaderDefinition.POLICY_VIEW_FIELDS_SELECTOR.getKey(), "policyId,entries")
+                .putHeader(DittoHeaderDefinition.REPLY_SIGNAL_ACCEPTED.getKey(), "true")
                 .build();
 
         assertThat(underTest).isEqualTo(expectedHeaderMap);
@@ -664,6 +665,7 @@ public final class ImmutableDittoHeadersTest {
                 .set(DittoHeaderDefinition.DIVERT_EXPECTED_RESPONSE_TYPES.getKey(), KNOWN_DITTO_DIVERT_RESPONSE_TYPES)
                 .set(DittoHeaderDefinition.POLICY_VIEW.getKey(), "resolved")
                 .set(DittoHeaderDefinition.POLICY_VIEW_FIELDS_SELECTOR.getKey(), "policyId,entries")
+                .set(DittoHeaderDefinition.REPLY_SIGNAL_ACCEPTED.getKey(), true)
                 .build();
 
         final Map<String, String> allKnownHeaders = createMapContainingAllKnownHeaders();
@@ -924,6 +926,7 @@ public final class ImmutableDittoHeadersTest {
         result.put(DittoHeaderDefinition.DIVERTED_RESPONSE_FROM_CONNECTION.getKey(), KNOWN_DITTO_DIVERTED_RESPONSE_FROM);
         result.put(DittoHeaderDefinition.POLICY_VIEW.getKey(), "resolved");
         result.put(DittoHeaderDefinition.POLICY_VIEW_FIELDS_SELECTOR.getKey(), "policyId,entries");
+        result.put(DittoHeaderDefinition.REPLY_SIGNAL_ACCEPTED.getKey(), "true");
         return result;
     }
 

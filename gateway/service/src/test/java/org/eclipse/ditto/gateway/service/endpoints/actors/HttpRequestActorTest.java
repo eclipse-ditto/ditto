@@ -48,6 +48,10 @@ import org.eclipse.ditto.connectivity.model.LogLevel;
 import org.eclipse.ditto.connectivity.model.LogType;
 import org.eclipse.ditto.edge.service.acknowledgements.AcknowledgementAggregatorActorStarter;
 import org.eclipse.ditto.gateway.service.endpoints.routes.whoami.Whoami;
+import org.eclipse.ditto.gateway.service.util.config.DittoGatewayConfig;
+import org.eclipse.ditto.gateway.service.util.config.GatewayConfig;
+import org.eclipse.ditto.internal.utils.cluster.SignalAccepted;
+import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
@@ -63,6 +67,8 @@ import org.eclipse.ditto.things.model.signals.commands.modify.ModifyAttributeRes
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThingResponse;
 import org.junit.Rule;
 import org.junit.Test;
+
+import com.typesafe.config.ConfigFactory;
 
 /**
  * Unit test for {@link HttpRequestActor}.
@@ -611,6 +617,66 @@ public final class HttpRequestActorTest extends AbstractHttpRequestActorTest {
     }
 
     @Test
+    public void fireAndForgetCommandReturnsAcceptedWithoutWaitingForEnforcementTimeout() throws Exception {
+        final var thingId = ThingId.generateRandom();
+        final var modifyAttribute = ModifyAttribute.of(thingId, JsonPointer.of("foo"), JsonValue.of("bar"),
+                DittoHeaders.newBuilder(createAuthorizedHeaders()).timeout(Duration.ZERO).build());
+
+        final var proxyActorProbe = ACTOR_SYSTEM_RESOURCE.newTestProbe();
+        final var responseFuture = new CompletableFuture<HttpResponse>();
+        final var underTest =
+                createHttpRequestActor(proxyActorProbe.ref(), getHttpRequest(modifyAttribute), responseFuture);
+        underTest.tell(modifyAttribute, ActorRef.noSender());
+
+        final var received = proxyActorProbe.expectMsgClass(ModifyAttribute.class);
+        assertThat(received.getDittoHeaders().get(DittoHeaderDefinition.REPLY_SIGNAL_ACCEPTED.getKey()))
+                .isEqualTo("true");
+        proxyActorProbe.reply(new SignalAccepted());
+
+        final var httpResponse = responseFuture.get(1, TimeUnit.SECONDS);
+        assertThat(httpResponse.status()).isEqualTo(StatusCodes.ACCEPTED);
+        assertThat(httpResponse.entity().isKnownEmpty()).isTrue();
+    }
+
+    @Test
+    public void fireAndForgetCommandReturnsAcceptedAfterEnforcementTimeoutWithoutReply() throws Exception {
+        final var thingId = ThingId.generateRandom();
+        final var modifyAttribute = ModifyAttribute.of(thingId, JsonPointer.of("foo"), JsonValue.of("bar"),
+                DittoHeaders.newBuilder(createAuthorizedHeaders()).timeout(Duration.ZERO).build());
+
+        final var proxyActorProbe = ACTOR_SYSTEM_RESOURCE.newTestProbe();
+        final var responseFuture = new CompletableFuture<HttpResponse>();
+        final var underTest = createHttpRequestActor(proxyActorProbe.ref(), getHttpRequest(modifyAttribute),
+                responseFuture, getGatewayConfigWithShortFireAndForgetEnforcementTimeout());
+        underTest.tell(modifyAttribute, ActorRef.noSender());
+        proxyActorProbe.expectMsgClass(ModifyAttribute.class);
+
+        final var httpResponse = responseFuture.get(5, TimeUnit.SECONDS);
+        assertThat(httpResponse.status()).isEqualTo(StatusCodes.ACCEPTED);
+    }
+
+    @Test
+    public void fireAndForgetCommandReturnsErrorWhenSignalAcceptedArrivesAfterError() throws Exception {
+        final var thingId = ThingId.generateRandom();
+        final var modifyAttribute = ModifyAttribute.of(thingId, JsonPointer.of("foo"), JsonValue.of("bar"),
+                DittoHeaders.newBuilder(createAuthorizedHeaders()).timeout(Duration.ZERO).build());
+
+        final var proxyActorProbe = ACTOR_SYSTEM_RESOURCE.newTestProbe();
+        final var responseFuture = new CompletableFuture<HttpResponse>();
+        final var underTest =
+                createHttpRequestActor(proxyActorProbe.ref(), getHttpRequest(modifyAttribute), responseFuture);
+        underTest.tell(modifyAttribute, ActorRef.noSender());
+
+        final var received = proxyActorProbe.expectMsgClass(ModifyAttribute.class);
+        proxyActorProbe.reply(ThingNotAccessibleException.newBuilder(thingId)
+                .dittoHeaders(received.getDittoHeaders())
+                .build());
+        proxyActorProbe.reply(new SignalAccepted());
+
+        assertThat(responseFuture.get(1, TimeUnit.SECONDS).status()).isEqualTo(StatusCodes.NOT_FOUND);
+    }
+
+    @Test
     public void handlesLiveCommandWithoutAckRequestWithValidResponse() throws ExecutionException, InterruptedException {
         final var modifyAttribute = ModifyAttribute.of(ThingId.generateRandom(),
                 JsonPointer.of("manufacturer"),
@@ -857,6 +923,12 @@ public final class HttpRequestActorTest extends AbstractHttpRequestActorTest {
                 expectMsgClass(Done.class);
                 expectTerminated(underTest);
             }};
+    }
+
+    private static GatewayConfig getGatewayConfigWithShortFireAndForgetEnforcementTimeout() {
+        return DittoGatewayConfig.of(DefaultScopedConfig.dittoScoped(
+                ConfigFactory.parseString("ditto.gateway.command.fire-and-forget-enforcement-timeout = 200ms")
+                        .withFallback(ConfigFactory.load("test.conf"))));
     }
 
 }
