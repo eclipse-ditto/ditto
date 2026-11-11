@@ -51,6 +51,7 @@ import org.apache.pekko.cluster.sharding.ClusterSharding;
 import org.apache.pekko.cluster.sharding.ClusterShardingSettings;
 import org.apache.pekko.japi.pf.DeciderBuilder;
 import org.apache.pekko.japi.pf.ReceiveBuilder;
+import org.apache.pekko.pattern.StatusReply;
 import org.apache.pekko.testkit.TestProbe;
 import org.apache.pekko.testkit.javadsl.TestKit;
 import org.assertj.core.api.Assertions;
@@ -105,6 +106,7 @@ import org.eclipse.ditto.policies.model.signals.commands.exceptions.SubjectNotAc
 import org.eclipse.ditto.policies.model.signals.commands.modify.CreatePolicy;
 import org.eclipse.ditto.policies.model.signals.commands.modify.CreatePolicyResponse;
 import org.eclipse.ditto.policies.model.signals.commands.modify.DeletePolicy;
+import org.eclipse.ditto.policies.model.signals.commands.modify.DeletePolicyEntryAllowedAdditions;
 import org.eclipse.ditto.policies.model.signals.commands.modify.DeletePolicyEntry;
 import org.eclipse.ditto.policies.model.signals.commands.modify.DeletePolicyEntryResponse;
 import org.eclipse.ditto.policies.model.signals.commands.modify.DeletePolicyResponse;
@@ -241,6 +243,25 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
 
                 underTest.tell(retrievePolicyCommand, getRef());
                 expectMsgEquals(expectedResponse);
+            }
+        };
+    }
+
+    @Test
+    public void modifyEndingAsQueryResultWithoutResponseRequiredIsAcknowledged() {
+        final Policy policy = createPolicyWithRandomId();
+        final PolicyCommand<?> deleteAbsentAllowedAdditions = DeletePolicyEntryAllowedAdditions.of(
+                policy.getEntityId().orElseThrow(), policy.iterator().next().getLabel(),
+                dittoHeadersV2.toBuilder().responseRequired(false).build());
+
+        new TestKit(actorSystem) {
+            {
+                final ActorRef underTest = createPersistenceActorFor(policy);
+                underTest.tell(CreatePolicy.of(policy, dittoHeadersV2), getRef());
+                expectMsgClass(CreatePolicyResponse.class);
+
+                underTest.tell(deleteAbsentAllowedAdditions, getRef());
+                expectMsgEquals(StatusReply.ack());
             }
         };
     }

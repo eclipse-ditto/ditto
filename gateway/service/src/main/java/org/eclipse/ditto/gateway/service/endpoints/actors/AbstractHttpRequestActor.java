@@ -73,6 +73,7 @@ import org.eclipse.ditto.base.model.signals.commands.exceptions.CommandTimeoutEx
 import org.eclipse.ditto.connectivity.api.commands.sudo.SudoAddConnectionLogEntry;
 import org.eclipse.ditto.connectivity.api.messaging.monitoring.logs.LogEntryFactory;
 import org.eclipse.ditto.connectivity.model.ConnectionId;
+import org.eclipse.ditto.connectivity.model.signals.commands.ConnectivityCommand;
 import org.eclipse.ditto.edge.service.acknowledgements.AcknowledgementAggregatorActorStarter;
 import org.eclipse.ditto.edge.service.acknowledgements.AcknowledgementConfig;
 import org.eclipse.ditto.edge.service.acknowledgements.message.MessageCommandAckRequestSetter;
@@ -98,7 +99,10 @@ import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonRuntimeException;
 import org.eclipse.ditto.messages.model.Message;
+import org.eclipse.ditto.messages.model.signals.commands.MessageCommand;
 import org.eclipse.ditto.messages.model.signals.commands.MessageCommandResponse;
+import org.eclipse.ditto.policies.model.signals.commands.PolicyCommand;
+import org.eclipse.ditto.things.model.signals.commands.ThingCommand;
 
 import scala.Option;
 import scala.util.Either;
@@ -351,14 +355,24 @@ public abstract class AbstractHttpRequestActor extends AbstractActorWithShutdown
         if (command instanceof Command<?> cmd) {
             receivedCommand = cmd;
         }
-        proxyActor.tell(command.setDittoHeaders(command.getDittoHeaders()
-                .toBuilder()
-                .putHeader(DittoHeaderDefinition.REPLY_SIGNAL_ACCEPTED.getKey(), Boolean.TRUE.toString())
-                .build()), getSelf());
+        final Signal<?> signalToSend = isHandledByPersistenceSupervisor(command)
+                ? command.setDittoHeaders(command.getDittoHeaders()
+                        .toBuilder()
+                        .putHeader(DittoHeaderDefinition.REPLY_SIGNAL_ACCEPTED.getKey(), Boolean.TRUE.toString())
+                        .build())
+                : command;
+        proxyActor.tell(signalToSend, getSelf());
         final Duration enforcementTimeout = gatewayConfig.getCommandConfig().getFireAndForgetEnforcementTimeout();
         getContext().setReceiveTimeout(enforcementTimeout);
         // Clear timeoutExceptionSupplier so that handleReceiveTimeout returns 202 instead of a timeout error
         timeoutExceptionSupplier = null;
+    }
+
+    private static boolean isHandledByPersistenceSupervisor(final Signal<?> signal) {
+        return signal instanceof ThingCommand<?> ||
+                signal instanceof PolicyCommand<?> ||
+                signal instanceof MessageCommand<?, ?> ||
+                signal instanceof ConnectivityCommand<?>;
     }
 
     private void rememberResponseLocationUri(final CommandResponse<?> commandResponse) {
@@ -562,9 +576,14 @@ public abstract class AbstractHttpRequestActor extends AbstractActorWithShutdown
     }
 
     private void handleSignalAccepted(final SignalAccepted signalAccepted) {
-        logger.withCorrelationId(receivedCommand)
-                .debug("Fire-and-forget command was accepted, responding with HTTP 202.");
-        completeWithResult(createHttpResponse(HttpStatus.ACCEPTED));
+        if (isResponseRequired()) {
+            logger.withCorrelationId(receivedCommand)
+                    .warning("Ignoring unexpected <SignalAccepted> for a command requiring a response.");
+        } else {
+            logger.withCorrelationId(receivedCommand)
+                    .debug("Fire-and-forget command was accepted, responding with HTTP 202.");
+            completeWithResult(createHttpResponse(HttpStatus.ACCEPTED));
+        }
     }
 
     private void handleReceiveTimeout() {
