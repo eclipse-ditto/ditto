@@ -11,8 +11,10 @@ Authoritative in-repo references, for when behaviour or intent isn't clear from 
 | WoT Ditto ontology + examples | `documentation/src/main/resources/wot/`                           | `ditto-extension.jsonld`, `example-models/`                               |
 | Release notes                 | `documentation/src/main/resources/pages/ditto/release_notes_*.md` | per version; format used by the `release-notes` skill                     |
 | Helm chart changelog          | `deployment/helm/ditto/CHANGELOG.md`                              | chart versions, independent of Ditto versions                             |
+| PostgreSQL runbook            | `deployment/postgres/README.md`                                   | roles SQL in `provisioning/`, connection budget, PgBouncer, TLS, upgrades |
 
 Page naming in `pages/ditto/` follows the topic: `basic-*` (concepts: thing, policy, feature,
 acknowledgements, placeholders, enrichment, …), `protocol-*` (Ditto Protocol), `httpapi-*`,
-`connectivity-*`, `architecture-*`, `installation-*`, `operating-*`. A new user-facing feature
-needs a page or section there — undocumented features don't get found.
+`connectivity-*`, `architecture-*`, `installation-*`, `operating-*` (the PostgreSQL backends:
+`installation-postgresql.md`, `operating-postgresql.md`). A new user-facing feature needs a page or
+section there — undocumented features don't get found.

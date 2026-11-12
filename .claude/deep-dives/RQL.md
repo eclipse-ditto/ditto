@@ -95,20 +95,22 @@ See all RQL uses: https://www.eclipse.dev/ditto/tag_rql.html
 
 ### Filter Operators
 
-| Operator | Description | Example |
-|----------|-------------|---------|
-| `eq(property,value)` | Equals | `eq(attributes/status,"active")` |
-| `ne(property,value)` | Not equals | `ne(attributes/type,"sensor")` |
-| `gt(property,value)` | Greater than | `gt(attributes/temp,20)` |
-| `ge(property,value)` | Greater or equal | `ge(attributes/value,100)` |
-| `lt(property,value)` | Less than | `lt(attributes/battery,10)` |
-| `le(property,value)` | Less or equal | `le(attributes/count,50)` |
-| `like(property,pattern)` | Wildcard match (*, ?) | `like(attributes/id,"sensor-*")` |
-| `exists(property)` | Property exists | `exists(attributes/location)` |
-| `in(property,values)` | Value in list | `in(attributes/region,"us-east","us-west")` |
-| `and(expr,...)` | All conditions true | `and(eq(...),gt(...))` |
-| `or(expr,...)` | Any condition true | `or(eq(...),eq(...))` |
-| `not(expr)` | Negate condition | `not(exists(attributes/deleted))` |
+| Operator                  | Description                        | Example                                     |
+|---------------------------|------------------------------------|---------------------------------------------|
+| `eq(property,value)`      | Equals                             | `eq(attributes/status,"active")`            |
+| `ne(property,value)`      | Not equals                         | `ne(attributes/type,"sensor")`              |
+| `gt(property,value)`      | Greater than                       | `gt(attributes/temp,20)`                    |
+| `ge(property,value)`      | Greater or equal                   | `ge(attributes/value,100)`                  |
+| `lt(property,value)`      | Less than                          | `lt(attributes/battery,10)`                 |
+| `le(property,value)`      | Less or equal                      | `le(attributes/count,50)`                   |
+| `like(property,pattern)`  | Wildcard match (*, ?)              | `like(attributes/id,"sensor-*")`            |
+| `ilike(property,pattern)` | Case-insensitive wildcard match    | `ilike(attributes/id,"SENSOR-*")`           |
+| `exists(property)`        | Property exists                    | `exists(attributes/location)`               |
+| `empty(property)`         | Absent, `null`, `""`, `{}` or `[]` | `empty(attributes/notes)`                   |
+| `in(property,values)`     | Value in list                      | `in(attributes/region,"us-east","us-west")` |
+| `and(expr,...)`           | All conditions true                | `and(eq(...),gt(...))`                      |
+| `or(expr,...)`            | Any condition true                 | `or(eq(...),eq(...))`                       |
+| `not(expr)`               | Negate condition                   | `not(exists(attributes/deleted))`           |
 
 **Nesting**: Operators can be arbitrarily nested
 ```
@@ -188,6 +190,9 @@ and(
 - Query evaluation
 - Type checking
 - Optimization
+- `PredicateVisitor` is what a search backend implements to translate predicates. `visitLikeWithWildcards` /
+  `visitILikeWithWildcards` deliver the raw `*`/`?` pattern; their defaults hand the regex form to the older
+  `visitLike`/`visitILike`, so MongoDB keeps its regex and PostgreSQL gets a `LIKE`-style pattern
 
 ### Search Option Parser
 
@@ -289,7 +294,7 @@ Condition: eq(attributes/active,false)
 ### Performance Considerations
 
 **Search queries**:
-- Translated to MongoDB queries
+- Translated to MongoDB queries, or to SQL on the PostgreSQL backend ([Search.md](Search.md))
 - Index usage critical
 - Complex expressions may be slow
 

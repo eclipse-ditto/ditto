@@ -33,14 +33,23 @@ Operators can statically configure which fields are searchable ("indexed fields"
 - Configured in "search.conf" at key `ditto.search.namespace-indexed-fields`
 - Configurable per namespace
 
-### MongoDB Search Database
+### Search Persistence
 
-**Collections**:
+The backend is chosen by the `ditto.extensions.search-persistence-provider` extension point
+(`SearchPersistenceProvider`): `MongoSearchPersistenceProvider` by default, `PostgresSearchPersistenceProvider` opt-in
+(see [PostgreSQL Search Backend](#postgresql-search-backend)).
+
+**MongoDB collections**:
 - `search` - Main search index documents
 - `searchSync` - Background sync progress tracking
 - `test` - Health check collection (MongoDB read/write verification)
 
-### Index Document Structure
+**PostgreSQL tables**:
+- `search_things` - One row per Thing: the enforced Thing document as JSONB, `global_read`, policy ids, `delete_at`
+- `search_flat` - One row per JSON node of each Thing, two under `features` (the flattened side table queries run on)
+- `search_sync` - Background sync bookmark
+
+### Index Document Structure (MongoDB)
 
 **One document per Thing** containing:
 
@@ -133,8 +142,8 @@ Three mechanisms trigger search index updates:
    - Calculate usage for reporting (UsageReportingSearchUpdateObserver)
    - Remove non-indexed fields (SearchUpdateIndexTrimFlowFactory)
    - Calculate diff vs stored DB model (BsonDiff)
-6. **MongoSearchUpdaterFlow**:
-   - Write calculated diff to MongoDB
+6. **SearchUpdaterFlow** (`MongoSearchUpdaterFlow` or `PostgresSearchUpdaterFlow`):
+   - Write calculated diff to MongoDB; on PostgreSQL re-flatten the whole document and write the row diff
    - Send search-persisted acknowledgement (if requested)
    - Return success/failure to ThingUpdater
 7. **Wait for next change** or retry on error
@@ -176,22 +185,67 @@ Three mechanisms trigger search index updates:
 
 1. **Accept request**: Gateway receives search/count request via HTTP/WebSocket/Connections
 2. **Start query actor**: Spawn QueryThingsPerRequestActor instance
-3. **Forward to Concierge**: Via DispatcherActor and ConciergeForwarderActor
-   - Special handling: QueryThing command not associated with single entity
-4. **Forward to SearchActor**: Concierge routes to Search service
-5. **RQL translation**: Convert RQL to MongoDB filter syntax
-   - Package: `org.eclipse.ditto.thingsearch.service.persistence.read`
-   - Classes: `CreateBsonVisitor`, `GetFilterBsonVisitor`
+3. **Forward to the search service**: `EdgeCommandForwarderActor` publishes the `ThingSearchCommand` via Pekko distributed pub/sub to
+   the `SearchActor` (a search command belongs to no single entity, so it is not sharded)
+4. **Query translation**: Convert RQL to the backend's query
+   - MongoDB: `CreateBsonVisitor`, `GetFilterBsonVisitor` in `org.eclipse.ditto.thingsearch.service.persistence.read`
+   - PostgreSQL: `CreateSqlPredicateVisitor`, `SearchQueryAssembler` in `internal/utils/search-r2dbc`
    - **User filter** + **Authorization filter** combined
-6. **MongoDB execution**: Run query against search collection
-7. **Return Thing IDs**: Search returns list of matching Thing IDs
-8. **Retrieve Things**: QueryThingsPerRequestActor fetches Things
-   - Via ThingsAggregatorActorProxy → ThingsAggregatorActor
+5. **Execution**: Run the query against the search collection, or `search_flat` + `search_things`
+6. **Return Thing IDs**: Search returns list of matching Thing IDs
+7. **Retrieve Things**: QueryThingsPerRequestActor fetches Things
+   - Via ThingsAggregatorProxyActor → ThingsAggregatorActor
    - Reads from ThingPersistenceActor instances
-9. **Filter by permissions**: Concierge enforcement filters Thing JSON
+8. **Filter by permissions**: the things service enforces READ on each retrieved Thing
    - Removes fields user cannot read
    - Per-subject permission checking
-10. **Aggregate and return**: QueryThingsPerRequestActor sends response to requester
+9. **Aggregate and return**: QueryThingsPerRequestActor sends response to requester
+
+## PostgreSQL Search Backend
+
+Opt-in through `ditto.extensions.search-persistence-provider` (`SearchPersistenceProvider` in
+`thingsearch/persistence-api`): `PostgresSearchPersistenceProvider` lives in `internal/utils/search-r2dbc` and ships as the
+`ditto-postgres-search-extension` JAR on top of `ditto-postgres-client-extension` (`.claude/context/persistence-backends.md`).
+The provider hands out the read, updater and aggregation persistence, the `SearchUpdaterFlow`, the background-sync
+bookmark, the health check and the `QueryBuilderFactory`; `ThingUpdater`, `EnforcementFlow`, background sync and all
+`ditto.search.updater.*` settings are shared and behave the same on both backends.
+
+**Data model** (`PostgresSearchSchema`): PostgreSQL's GIN index on `jsonb` cannot serve ranges, `like` or typed sorting on
+arbitrary paths, so each Thing is stored twice. `search_things` holds the enforced document (results, authorization via
+`global_read`, sorting); `search_flat` holds one row per JSON node (two under `features`) — `(thing_id, path, wpath,
+f_id, ord, type_rank, val_bool, val_num, val_text)`, built by `ThingFlattener`. `wpath` is the path with feature ids
+replaced by `*`, so `features/*/properties/x` hits one index key; objects, empty containers and `null` get rows too (they
+serve `exists()`). `search_sync` is the background-sync bookmark. `delete_at` plus a reaper (`PostgresDeleteAtReaper`) replaces MongoDB's TTL index for
+namespace purges; per-path trigram indexes (`ditto.postgresql.search.path-indexes`) are the counterpart of custom MongoDB
+search indexes.
+
+**Query translation** (`search/query/`): `CreateSqlPredicateVisitor` turns each RQL predicate into an `EXISTS` over
+`search_flat`; `SearchQueryAssembler` adds the authorization check per candidate row and, for `and(eq, …)` / `and(in, …)`,
+a materialised selective leg (`SelectiveLegCte`). `like`/`ilike` reach the SQL side as raw wildcard patterns through
+`PredicateVisitor.visitLikeWithWildcards` / `visitILikeWithWildcards` ([RQL.md](RQL.md)) and are served by a trigram
+index. `ThingWriteModel`, `AbstractWriteModel` and `ThingDeleteModel` exist twice — the neutral ones in
+`thingsearch/persistence-api`, the MongoDB ones of the same name in `thingsearch/service` — so check the import.
+
+**Parity is the arbiter.** `SearchBackendParityIT` (needs Docker and never skips) writes one corpus of Things and
+policies (`internal/utils/search-r2dbc/src/test/resources/parity/`) through both production write paths and runs
+`queries.json` — every
+operator × path kind × auth situation, sorts, counts and cursor walks — against both backends; result sets (and order
+where the sort is total) must match, and MongoDB's result is the truth. A divergence is allowed only when
+`divergence-allowlist.json` has an entry, a query case names it as `divergence` and pins both backends' observed results;
+`expectNonEmptySudo` guards against cases that pass on empty results. Allow-listed divergences: `empty()` also matches an
+array of arrays; content nested inside a direct array of arrays is flattened to a single valueless stub on PostgreSQL
+(inner elements are not enumerated); object-valued sort keys tie and fall through to `thingId`; a scalar next to a nested
+array sorts differently ascending and descending; the cursor encodes null/object/array boundary values differently; a
+`features/*/…` sort key is rejected where MongoDB silently ignores it; case-insensitive matching of U+00DF LATIN SMALL
+LETTER SHARP S (`ß`) and U+0130 LATIN CAPITAL LETTER I WITH DOT ABOVE (`İ`) differs between MongoDB's case-insensitive
+regex and PostgreSQL's `lower()`-based `ILIKE`; under sudo, `features/*` value predicates are answered per feature where
+MongoDB matches nothing (or everything, with a null operand). Null operands (`in(…, null)`, `ge(null)`, `le(null)` match null and missing; `gt(null)`/`lt(null)` match
+nothing; `eq(null)` needs the value to exist) and `empty()` on wildcard feature paths follow MongoDB and are pinned by the
+same battery.
+
+The system tests in [ditto-testing](https://github.com/eclipse-ditto/ditto-testing)
+(`system/.../search/things/QueryThingsWithFilterBy*IT`) run against both databases; `docker/README-postgres.md` there
+describes the PostgreSQL stack.
 
 ## Known Issues and Limitations
 
@@ -226,7 +280,7 @@ Three mechanisms trigger search index updates:
 ### Manual Operations
 
 **Check Thing in search**:
-- Query search persistence directly via MongoDB
+- Query search persistence directly via MongoDB or `psql` (`search_things`, `search_flat`)
 - Compare with Things persistence
 
 **Re-index single Thing**:
@@ -241,3 +295,5 @@ Three mechanisms trigger search index updates:
 
 - RQL syntax documentation
 - MongoDB index optimization guidelines
+- `.claude/concepts/postgresql-persistence-design.md`, section 4, for the PostgreSQL design decisions
+- `documentation/src/main/resources/pages/ditto/operating-postgresql.md`, section "Search backend", for operators

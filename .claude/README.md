@@ -3,13 +3,13 @@
 Context for AI coding agents working on Ditto. `AGENTS.md` in the repo root is the entry
 point and holds the cross-cutting gotchas; everything here is loaded only when relevant.
 
-| Path          | Contents                                                       | Loaded                                                                                 |
-|---------------|----------------------------------------------------------------|----------------------------------------------------------------------------------------|
-| `rules/`      | Detail behind the gotchas, one topic per file                  | Claude Code: automatically, when a file matching the rule's `paths:` is read or edited |
-| `context/`    | Architecture, build, git workflow, deployment, troubleshooting | On demand, via "Where to look" in `AGENTS.md`                                          |
-| `deep-dives/` | End-to-end explanations of flows and features                  | On demand, via `deep-dives/README.md`                                                  |
-| `concepts/`   | Design documents for larger features                           | On demand                                                                              |
-| `skills/`     | `release-notes`, `cherry-pick-release`, `update-agent-context` | Claude Code: as `/release-notes <milestone>` etc.                                      |
+| Path          | Contents                                                                    | Loaded                                                                                 |
+|---------------|-----------------------------------------------------------------------------|----------------------------------------------------------------------------------------|
+| `rules/`      | Detail behind the gotchas, one topic per file                               | Claude Code: automatically, when a file matching the rule's `paths:` is read or edited |
+| `context/`    | Architecture, persistence backends, build, deployment, git, troubleshooting | On demand, via "Where to look" in `AGENTS.md`                                          |
+| `deep-dives/` | End-to-end explanations of flows and features                               | On demand, via `deep-dives/README.md`                                                  |
+| `concepts/`   | Design documents for larger features                                        | On demand                                                                              |
+| `skills/`     | `release-notes`, `cherry-pick-release`, `update-agent-context`              | Claude Code: as `/release-notes <milestone>` etc.                                      |
 
 ## Maintaining
 
