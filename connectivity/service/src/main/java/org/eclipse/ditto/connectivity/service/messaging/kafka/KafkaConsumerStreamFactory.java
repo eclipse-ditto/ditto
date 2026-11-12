@@ -12,16 +12,8 @@
  */
 package org.eclipse.ditto.connectivity.service.messaging.kafka;
 
-import static org.eclipse.ditto.connectivity.service.EnforcementFactoryFactory.newEnforcementFilterFactory;
-import static org.eclipse.ditto.placeholders.PlaceholderFactory.newHeadersPlaceholder;
-
-import java.util.Map;
-
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
-import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.connectivity.model.ConnectionId;
-import org.eclipse.ditto.connectivity.model.Enforcement;
-import org.eclipse.ditto.connectivity.model.EnforcementFilterFactory;
 import org.eclipse.ditto.connectivity.model.Source;
 import org.eclipse.ditto.connectivity.service.config.ConnectionThrottlingConfig;
 import org.eclipse.ditto.connectivity.service.messaging.AcknowledgeableMessage;
@@ -132,12 +124,7 @@ final class KafkaConsumerStreamFactory {
             final ConnectionId connectionId) {
         final Source source = consumerData.getSource();
         final String address = consumerData.getAddress();
-        final Enforcement enforcement = source.getEnforcement().orElse(null);
-        final EnforcementFilterFactory<Map<String, String>, Signal<?>> headerEnforcementFilterFactory =
-                enforcement != null
-                        ? newEnforcementFilterFactory(enforcement, newHeadersPlaceholder())
-                        : input -> null;
-        return new KafkaMessageTransformer(connectionId, source, address, headerEnforcementFilterFactory,
+        return new KafkaMessageTransformer(connectionId, source, address,
                 inboundMonitor);
     }
 
