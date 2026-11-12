@@ -119,6 +119,7 @@ public final class SseSessionStatisticsTest {
                 .containsEntry(SseSessionStatistics.MDC_RECEIVED, "0")
                 .containsEntry(SseSessionStatistics.MDC_TARGETED, "0")
                 .containsEntry(SseSessionStatistics.MDC_FILTERED_OUT, "0")
+                .containsEntry(SseSessionStatistics.MDC_ENRICHMENT_FAILED, "0")
                 .containsEntry(SseSessionStatistics.MDC_DELIVERED, "0");
     }
 
@@ -129,12 +130,14 @@ public final class SseSessionStatisticsTest {
         IntStream.range(0, 5).forEach(i -> underTest.signalReceived());
         IntStream.range(0, 3).forEach(i -> underTest.signalTargeted());
         IntStream.range(0, 2).forEach(i -> underTest.signalFilteredOut());
+        underTest.enrichmentFailed();
         underTest.eventDelivered();
 
         assertThat(mdcOf(underTest))
                 .containsEntry(SseSessionStatistics.MDC_RECEIVED, "5")
                 .containsEntry(SseSessionStatistics.MDC_TARGETED, "3")
                 .containsEntry(SseSessionStatistics.MDC_FILTERED_OUT, "2")
+                .containsEntry(SseSessionStatistics.MDC_ENRICHMENT_FAILED, "1")
                 .containsEntry(SseSessionStatistics.MDC_DELIVERED, "1");
     }
 

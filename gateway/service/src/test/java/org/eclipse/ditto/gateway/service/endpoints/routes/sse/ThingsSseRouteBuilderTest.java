@@ -14,14 +14,19 @@ package org.eclipse.ditto.gateway.service.endpoints.routes.sse;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.time.Duration;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.CompletionStage;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.Executor;
 import java.util.function.Supplier;
+
+import javax.annotation.Nullable;
 
 import org.assertj.core.util.Lists;
 import org.eclipse.ditto.base.model.auth.AuthorizationModelFactory;
@@ -31,9 +36,11 @@ import org.eclipse.ditto.base.model.headers.translator.HeaderTranslator;
 import org.eclipse.ditto.gateway.api.GatewayServiceUnavailableException;
 import org.eclipse.ditto.gateway.service.endpoints.EndpointTestBase;
 import org.eclipse.ditto.gateway.service.streaming.actors.SessionedJsonifiable;
+import org.eclipse.ditto.gateway.service.streaming.actors.SessionedSignals;
 import org.eclipse.ditto.gateway.service.streaming.signals.Connect;
 import org.eclipse.ditto.gateway.service.streaming.signals.StartStreaming;
 import org.eclipse.ditto.internal.utils.pubsub.StreamingType;
+import org.eclipse.ditto.internal.utils.tracing.DittoTracingInitResource;
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonValue;
@@ -56,12 +63,19 @@ import org.eclipse.ditto.thingsearch.api.commands.sudo.StreamThings;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
+import org.junit.ClassRule;
 import org.junit.Test;
+import org.slf4j.LoggerFactory;
 
 import java.lang.reflect.Method;
 import java.util.List;
 
 import com.typesafe.config.ConfigFactory;
+
+import ch.qos.logback.classic.Level;
+import ch.qos.logback.classic.Logger;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.AppenderBase;
 
 import org.apache.pekko.actor.ActorSystem;
 import org.apache.pekko.http.javadsl.model.HttpHeader;
@@ -85,6 +99,10 @@ public final class ThingsSseRouteBuilderTest extends EndpointTestBase {
 
     private static final String THINGS_ROUTE = "/things";
     private static final String SEARCH_ROUTE = "/search/things";
+
+    @ClassRule
+    public static final DittoTracingInitResource DITTO_TRACING_INIT_RESOURCE =
+            DittoTracingInitResource.disableDittoTracing();
 
     // Uses a dedicated daemon thread instead of ForkJoinPool.commonPool() to avoid
     // blocking the common pool's single thread on CI environments with 1-2 cores.
@@ -577,6 +595,92 @@ public final class ThingsSseRouteBuilderTest extends EndpointTestBase {
         filterMethod.setAccessible(true);
 
         return (JsonObject) filterMethod.invoke(routeBuilder, thingJson, event, subscriberAuthContext);
+    }
+
+    @Test
+    public void sessionSummaryCountsSignalsOfTheSession() {
+        final ThingId thingId = ThingId.of("org.eclipse.ditto:my-thing-1");
+        final ThingId otherThingId = ThingId.of("org.eclipse.ditto:other-thing");
+        final String filter = "eq(attributes/manufacturer,\"ACME\")";
+        final ThingFieldSelector extraFields =
+                ThingFieldSelector.fromJsonFieldSelector(JsonFieldSelector.newInstance("attributes"));
+        final String requestUrl = THINGS_ROUTE + "?ids=" + thingId + "&filter=" + filter;
+
+        final List<Map<String, String>> summaryMdcs = new CopyOnWriteArrayList<>();
+        final Logger statisticsLogger = (Logger) LoggerFactory.getLogger(SseSessionStatistics.class);
+        final Level previousLevel = statisticsLogger.getLevel();
+        final AppenderBase<ILoggingEvent> appender = new AppenderBase<>() {
+            @Override
+            protected void append(final ILoggingEvent event) {
+                // the MDC is only present while logging, so it has to be copied right away
+                summaryMdcs.add(Map.copyOf(event.getMDCPropertyMap()));
+            }
+        };
+        appender.start();
+        statisticsLogger.addAppender(appender);
+        statisticsLogger.setLevel(Level.INFO);
+        try {
+            new TestKit(actorSystem) {{
+                final TestRouteResult routeResult = underTest.run(HttpRequest.GET(requestUrl).addHeader(acceptHeader));
+                final CompletableFuture<Void> routeTestAssertions = CompletableFuture.runAsync(() -> {
+                    routeResult.assertMediaType(MediaTypes.TEXT_EVENT_STREAM);
+                    routeResult.assertStatusCode(StatusCodes.OK);
+                }, ASYNC_TEST_EXECUTOR);
+
+                final Connect receivedConnect = streamingActor.expectMsgClass(Connect.class);
+                streamingActor.reply(streamingActor.ref());
+                streamingActor.expectMsgClass(StartStreaming.class);
+                final SourceQueueWithComplete<SessionedJsonifiable> publisherQueue =
+                        receivedConnect.getEventAndResponsePublisher();
+
+                // delivered:
+                offer(publisherQueue, manufacturerModified(thingId, "ACME"), filter, null);
+                // filtered out by the RQL filter:
+                offer(publisherQueue, manufacturerModified(thingId, "Foo Inc."), filter, null);
+                // not targeted as the session only subscribed for "thingId":
+                offer(publisherQueue, manufacturerModified(otherThingId, "ACME"), filter, null);
+                // extra fields retrieval fails as no enrichment facade is configured, the error is delivered:
+                offer(publisherQueue, manufacturerModified(thingId, "ACME"), filter, extraFields);
+                publisherQueue.complete();
+                routeTestAssertions.join();
+
+                awaitAssert(Duration.ofSeconds(5), () -> {
+                    assertThat(summaryMdcs).hasSize(1);
+                    return null;
+                });
+            }};
+        } finally {
+            statisticsLogger.detachAppender(appender);
+            statisticsLogger.setLevel(previousLevel);
+        }
+
+        assertThat(summaryMdcs.get(0))
+                .containsEntry(SseSessionStatistics.MDC_PATH, THINGS_ROUTE)
+                .containsEntry(SseSessionStatistics.MDC_FILTER, "true")
+                .containsEntry(SseSessionStatistics.MDC_EXTRA_FIELDS, "false")
+                .containsEntry(SseSessionStatistics.MDC_RECEIVED, "4")
+                .containsEntry(SseSessionStatistics.MDC_TARGETED, "3")
+                .containsEntry(SseSessionStatistics.MDC_FILTERED_OUT, "1")
+                .containsEntry(SseSessionStatistics.MDC_ENRICHMENT_FAILED, "1")
+                .containsEntry(SseSessionStatistics.MDC_DELIVERED, "2");
+    }
+
+    private void offer(final SourceQueueWithComplete<SessionedJsonifiable> publisherQueue,
+            final ThingModified event,
+            final String filter,
+            @Nullable final ThingFieldSelector extraFields) {
+
+        publisherQueue.offer(SessionedSignals.of(event, dittoHeaders, filter, extraFields))
+                .toCompletableFuture()
+                .join();
+    }
+
+    private static ThingModified manufacturerModified(final ThingId thingId, final String manufacturer) {
+        final Thing thing = Thing.newBuilder()
+                .setId(thingId)
+                .setAttributes(Attributes.newBuilder().set("manufacturer", manufacturer).build())
+                .build();
+        return ThingModified.of(thing, 1L, null, DittoHeaders.empty(), null);
     }
 
     /*
