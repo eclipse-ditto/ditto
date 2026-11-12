@@ -256,6 +256,37 @@ data:{"thingId":"ditto:device7155"}
 id:ditto:device7155
 ```
 
+## Monitoring SSE sessions
+
+When an SSE session for change notifications or messages ends, the gateway logs one `INFO` summary of it, e.g.:
+
+```
+SSE session on </api/2/things> ended after <834s>: received <120>, targeted <42>, filtered out <30>, enrichment failed <0>, delivered <12> events.
+```
+
+The details are also added as MDC entries, so that log tooling with structured (e.g. JSON) logs can aggregate them,
+for example per client:
+
+| MDC entry               | Content                                                                                      |
+|-------------------------|----------------------------------------------------------------------------------------------|
+| `sse-path`              | path of the SSE request                                                                      |
+| `sse-subjects`          | authorization subjects of the session                                                        |
+| `sse-azp`               | `azp` (authorized party) claim of the JWT the session was opened with, if any                |
+| `sse-origin`            | `Origin` header of the SSE request, if any                                                   |
+| `sse-user-agent`        | `User-Agent` header of the SSE request, if any                                               |
+| `sse-extra-fields`      | whether `extraFields` were requested                                                         |
+| `sse-filter`            | whether an RQL `filter` was requested                                                        |
+| `sse-duration-seconds`  | duration of the session                                                                      |
+| `sse-received`          | signals which reached the session's stream (the subscriber may read them)                    |
+| `sse-targeted`          | received signals for the requested thing IDs and namespaces, which were post-processed       |
+| `sse-filtered-out`      | targeted signals which did not match the RQL `filter`                                        |
+| `sse-enrichment-failed` | targeted signals for which retrieving the `extraFields` failed                               |
+| `sse-delivered`         | events sent to the client, including errors sent instead of an event                         |
+
+Note that the summary contains personal data like the subjects of the session.
+To turn it off, set the log level of the logger
+`org.eclipse.ditto.gateway.service.endpoints.routes.sse.SseSessionStatistics` to `WARN`.
+
 ## Further reading
 
 * [Change notifications](basic-changenotifications.html) -- filtering concepts
