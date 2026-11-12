@@ -42,6 +42,7 @@ import java.util.stream.StreamSupport;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 
+import org.apache.pekko.Done;
 import org.apache.pekko.NotUsed;
 import org.apache.pekko.actor.ActorRef;
 import org.apache.pekko.actor.ActorSelection;
@@ -453,6 +454,9 @@ public final class ThingsSseRouteBuilder extends RouteDirectives implements SseR
                         final Source<SessionedJsonifiable, SupervisedStream.WithQueue> publisherSource =
                                 SupervisedStream.sourceQueue(
                                         streamingConfig.getSseConfig().getPublisherBackpressureBufferSize());
+                        final var sessionStatistics =
+                                SseSessionStatistics.start(ctx.getRequest(), dittoHeaders, null != extraFields,
+                                        null != filterString);
 
                         return publisherSource.viaMat(KillSwitches.single(), Keep.both())
                                 .mapMaterializedValue(pair -> {
@@ -476,17 +480,23 @@ public final class ThingsSseRouteBuilder extends RouteDirectives implements SseR
                                             });
                                     return NotUsed.getInstance();
                                 })
-                                .mapAsync(streamingConfig.getParallelism(), jsonifiable ->
-                                        postprocess(jsonifiable, facade, targetThingIds, namespaces, fieldPointer, fields))
+                                .mapAsync(streamingConfig.getParallelism(), jsonifiable -> {
+                                    sessionStatistics.signalReceived();
+                                    return postprocess(jsonifiable, facade, targetThingIds, namespaces, fieldPointer,
+                                            fields, sessionStatistics);
+                                })
                                 .mapConcat(jsonValues -> jsonValues)
                                 .map(jsonValue -> {
                                     THINGS_SSE_COUNTER.increment();
+                                    sessionStatistics.eventDelivered();
                                     return ServerSentEvent.create(jsonValue.toString());
                                 })
                                 .log("SSE " + PATH_THINGS)
                                 // sniffer shouldn't sniff heartbeats
                                 .viaMat(eventSniffer.toAsyncFlow(ctx.getRequest()), Keep.none())
-                                .keepAlive(Duration.ofSeconds(1), ServerSentEvent::heartbeat);
+                                .keepAlive(Duration.ofSeconds(1), ServerSentEvent::heartbeat)
+                                .watchTermination((notUsed, done) -> logSummaryOnTermination(notUsed, done,
+                                        sessionStatistics));
                     })
             ));
 
@@ -524,6 +534,8 @@ public final class ThingsSseRouteBuilder extends RouteDirectives implements SseR
                             final Source<SessionedJsonifiable, SupervisedStream.WithQueue> publisherSource =
                                     SupervisedStream.sourceQueue(
                                             streamingConfig.getSseConfig().getPublisherBackpressureBufferSize());
+                            final var sessionStatistics =
+                                    SseSessionStatistics.start(ctx.getRequest(), dittoHeaders, false, false);
 
                             return publisherSource.viaMat(KillSwitches.single(), Keep.both())
                                     .mapMaterializedValue(pair -> {
@@ -571,17 +583,22 @@ public final class ThingsSseRouteBuilder extends RouteDirectives implements SseR
                                                 });
                                         return NotUsed.getInstance();
                                     })
-                                    .filter(jsonifiable -> jsonifiable.getJsonifiable() instanceof MessageCommand)
+                                    .filter(jsonifiable -> {
+                                        sessionStatistics.signalReceived();
+                                        return jsonifiable.getJsonifiable() instanceof MessageCommand;
+                                    })
                                     .mapAsync(streamingConfig.getParallelism(), jsonifiable ->
                                             postprocessMessages(targetThingIds,
                                                     (MessageCommand<?, ?>) jsonifiable.getJsonifiable(),
                                                     facade,
-                                                    jsonifiable
+                                                    jsonifiable,
+                                                    sessionStatistics
                                             )
                                     )
                                     .mapConcat(messages -> messages)
                                     .map(message -> {
                                         THINGS_SSE_COUNTER.increment();
+                                        sessionStatistics.eventDelivered();
                                         final Optional<Charset> charset = determineCharsetFromContentType(
                                                 message.getContentType());
                                         final String data = message.getRawPayload()
@@ -591,7 +608,9 @@ public final class ThingsSseRouteBuilder extends RouteDirectives implements SseR
                                         return ServerSentEvent.create(data, message.getSubject());
                                     })
                                     .log("SSE " + PATH_THINGS + "/" + messagePath)
-                                    .keepAlive(Duration.ofSeconds(1), ServerSentEvent::heartbeat);
+                                    .keepAlive(Duration.ofSeconds(1), ServerSentEvent::heartbeat)
+                                    .watchTermination((notUsed, done) -> logSummaryOnTermination(notUsed, done,
+                                            sessionStatistics));
                         })
         ));
         return completeOKWithFuture(sseSourceStage, EventStreamMarshalling.toEventStream());
@@ -699,7 +718,8 @@ public final class ThingsSseRouteBuilder extends RouteDirectives implements SseR
             final Collection<ThingId> targetThingIds,
             final Collection<String> namespaces,
             final JsonPointer fieldPointer,
-            @Nullable final JsonFieldSelector fields) {
+            @Nullable final JsonFieldSelector fields,
+            final SseSessionStatistics sessionStatistics) {
 
         final Supplier<CompletableFuture<Collection<JsonValue>>> emptySupplier =
                 () -> CompletableFuture.completedFuture(Collections.emptyList());
@@ -708,6 +728,7 @@ public final class ThingsSseRouteBuilder extends RouteDirectives implements SseR
             final boolean isLiveEvent = StreamingType.isLiveSignal(event);
             if (!isLiveEvent && namespaceMatches(event, namespaces) &&
                     targetThingIdMatches(event, targetThingIds)) {
+                sessionStatistics.signalTargeted();
                 return jsonifiable.getSession()
                         .map(session -> {
                             final AuthorizationContext subscriberAuthContext = jsonifiable.getSessionAuthorizationContext()
@@ -715,7 +736,13 @@ public final class ThingsSseRouteBuilder extends RouteDirectives implements SseR
                             return jsonifiable.retrieveExtraFields(facade)
                                     .thenApply(extra ->
                                             Optional.of(session.mergeThingWithExtra(event, extra))
-                                                    .filter(thing -> session.matchesFilter(thing, event))
+                                                    .filter(thing -> {
+                                                        final boolean matches = session.matchesFilter(thing, event);
+                                                        if (!matches) {
+                                                            sessionStatistics.signalFilteredOut();
+                                                        }
+                                                        return matches;
+                                                    })
                                                     .map(thing -> toNonemptyValue(thing, event, fieldPointer, fields, subscriberAuthContext))
                                                     .orElseGet(Collections::emptyList)
                                     )
@@ -744,11 +771,13 @@ public final class ThingsSseRouteBuilder extends RouteDirectives implements SseR
             final List<ThingId> targetThingIds,
             final M messageCommand,
             @Nullable final SignalEnrichmentFacade facade,
-            final SessionedJsonifiable jsonifiable) {
+            final SessionedJsonifiable jsonifiable,
+            final SseSessionStatistics sessionStatistics) {
 
         final Supplier<CompletionStage<List<Message<P>>>> emptySupplier =
                 () -> CompletableFuture.completedFuture(List.of());
         if (targetThingIds.contains(messageCommand.getEntityId())) {
+            sessionStatistics.signalTargeted();
             return jsonifiable.getSession()
                     .map(session -> jsonifiable.retrieveExtraFields(facade)
                             .thenApply(extra ->
@@ -780,6 +809,13 @@ public final class ThingsSseRouteBuilder extends RouteDirectives implements SseR
                     .orElseGet(emptySupplier);
         }
         return emptySupplier.get();
+    }
+
+    private static <M> M logSummaryOnTermination(final M materializedValue, final CompletionStage<Done> done,
+            final SseSessionStatistics sessionStatistics) {
+
+        done.whenComplete((unused, error) -> sessionStatistics.logSummary(error));
+        return materializedValue;
     }
 
     private static boolean namespaceMatches(final ThingEvent<?> event, final Collection<String> namespaces) {
