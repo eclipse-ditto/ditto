@@ -658,8 +658,9 @@ and the existing `rate`/`interval` keys, with their per-service env names (`POLI
   ditto-testing change not yet merged there.
 - **Benchmarks**: the harnesses (`internal/utils/persistence-bench`, the `search-r2dbc` bench package and its
   `benchmark/` scripts), their committed results, READMEs and EXPLAINs are development tooling and no part of the
-  upstream change set. They live on the fork branch `bench/postgres-benchmarks` = this branch at `83dcad63e3`, the
-  last commit that contains `internal/utils/persistence-bench/benchmark/README.md`,
+  upstream change set. They stay in this branch's history up to `83dcad63e3` (locally labelled
+  `bench/postgres-benchmarks`, not pushed), the last commit that contains
+  `internal/utils/persistence-bench/benchmark/README.md`,
   `internal/utils/search-r2dbc/benchmark/README.md` and
   `internal/utils/search-r2dbc/src/test/resources/bench/README.md` (§10).
 
@@ -693,10 +694,10 @@ Phase-0 bench, built online in 43 s); sorting by `thingId` or `namespace` 0.3 ms
 Claims to avoid: "faster than MongoDB" in general, "production-proven at scale" (the RDS soak in §4.5 did not hold
 200 upd/s through every window of its three hours at 10 M things), "zero-downtime migration".
 
-Method, harnesses, raw results and EXPLAIN plans: fork branch `bench/postgres-benchmarks` (this branch at
-`83dcad63e3`), see `internal/utils/persistence-bench/benchmark/README.md` (persistence),
+Method, harnesses, raw results and EXPLAIN plans: commit `83dcad63e3` of this branch's history (locally labelled
+`bench/postgres-benchmarks`, not pushed), see `internal/utils/persistence-bench/benchmark/README.md` (persistence),
 `internal/utils/search-r2dbc/benchmark/README.md` and
-`internal/utils/search-r2dbc/src/test/resources/bench/README.md` (search) on that branch. Nothing of it is in the
+`internal/utils/search-r2dbc/src/test/resources/bench/README.md` (search) at that commit. Nothing of it is in the
 tree after `83dcad63e3`.
 
 ---
@@ -735,5 +736,5 @@ existing indexes (§4.6), for a shape RQL cannot query into on either backend.
 | Persistence schema                        | `…/persistence/postgres/schema/PostgresSchema.java` (Javadoc explains every table decision)                                                                                                                                                                                                                                                                                                                                     |
 | Search schema and translator              | `…/postgres/search/PostgresSearchSchema.java`, `…/search/query/`, `…/search/pathindex/`                                                                                                                                                                                                                                                                                                                                         |
 | Search parity corpus                      | `internal/utils/search-r2dbc/src/test/resources/parity/` (`queries.json`, `divergence-allowlist.json`, the corpus of things and policies)                                                                                                                                                                                                                                                                                       |
-| Benchmark method and evidence             | fork branch `bench/postgres-benchmarks` = this branch at `83dcad63e3`, the last commit that holds the three benchmark READMEs (§7, §8)                                                                                                                                                                                                                                                                                          |
+| Benchmark method and evidence             | commit `83dcad63e3` of this branch's history (locally `bench/postgres-benchmarks`, not pushed), the last commit that holds the three benchmark READMEs (§7, §8)                                                                                                                                                                                                                                                                 |
 | Release-note material, breaking changes   | none on the branch yet — the standalone stub was deleted; the 4.0.0 release-notes page (§9) will carry them; until then `operating-postgresql.md`, note under "Prerequisites, migration and known limitations", names the two extension-point breaks                                                                                                                                                                            |
