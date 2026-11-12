@@ -94,11 +94,11 @@ Configure a client certificate to authenticate Ditto at your message broker:
 }
 ```
 
-| Field | Description |
-|-------|-------------|
-| `credentials/type` | Must be `client-cert` |
-| `credentials/cert` | Client certificate as [PEM][pem]-encoded [DER][der] |
-| `credentials/key` | Client private key as PEM-encoded [PKCS8][pkcs8] per [RFC-7468][rfc7468]. The PEM preamble must be `-----BEGIN PRIVATE KEY-----`. |
+| Field              | Description                                                                                                                                   |
+|--------------------|-----------------------------------------------------------------------------------------------------------------------------------------------|
+| `credentials/type` | Must be `client-cert`                                                                                                                         |
+| `credentials/cert` | Client certificate as [PEM][pem]-encoded [DER][der]                                                                                           |
+| `credentials/key`  | Client private key (RSA or EC) as PEM-encoded [PKCS8][pkcs8] per [RFC-7468][rfc7468]. The PEM preamble must be `-----BEGIN PRIVATE KEY-----`. |
 
 ### Converting PKCS1 keys to PKCS8
 
@@ -108,6 +108,8 @@ Configure a client certificate to authenticate Ditto at your message broker:
 ```
 openssl pkcs8 -topk8 -nocrypt -in client-private.pem.key -out client-private.pem.pk8
 ```
+
+The same command converts EC keys that OpenSSL writes as `-----BEGIN EC PRIVATE KEY-----`.
 
 ## Further reading
 
