@@ -12,12 +12,14 @@
  */
 package org.eclipse.ditto.internal.utils.cache.config;
 
+import java.text.MessageFormat;
 import java.time.Duration;
 import java.util.Objects;
 
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.internal.utils.config.ConfigWithFallback;
+import org.eclipse.ditto.internal.utils.config.DittoConfigError;
 
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
@@ -31,14 +33,27 @@ public final class DefaultCacheConfig implements CacheConfig {
 
     private final long maximumSize;
     private final Duration expireAfterWrite;
+    private final double expireAfterWriteJitter;
     private final Duration expireAfterAccess;
     private final Duration expireAfterCreate;
 
     private DefaultCacheConfig(final ConfigWithFallback configWithFallback) {
         maximumSize = configWithFallback.getPositiveLongOrThrow(CacheConfigValue.MAXIMUM_SIZE);
         expireAfterWrite = configWithFallback.getNonNegativeDurationOrThrow(CacheConfigValue.EXPIRE_AFTER_WRITE);
+        expireAfterWriteJitter = getJitterOrThrow(configWithFallback);
         expireAfterAccess = configWithFallback.getNonNegativeDurationOrThrow(CacheConfigValue.EXPIRE_AFTER_ACCESS);
         expireAfterCreate = configWithFallback.getNonNegativeDurationOrThrow(CacheConfigValue.EXPIRE_AFTER_CREATE);
+    }
+
+    private static double getJitterOrThrow(final ConfigWithFallback configWithFallback) {
+        final var configPath = CacheConfigValue.EXPIRE_AFTER_WRITE_JITTER.getConfigPath();
+        final var result = configWithFallback.getDouble(configPath);
+        if (result < 0.0 || result >= 1.0) {
+            final var msgPattern = "The double value at <{0}> must be between 0.0 (inclusive) and 1.0 (exclusive) " +
+                    "but it was <{1}>!";
+            throw new DittoConfigError(MessageFormat.format(msgPattern, configPath, result));
+        }
+        return result;
     }
 
     /**
@@ -64,6 +79,11 @@ public final class DefaultCacheConfig implements CacheConfig {
     }
 
     @Override
+    public double getExpireAfterWriteJitter() {
+        return expireAfterWriteJitter;
+    }
+
+    @Override
     public Duration getExpireAfterAccess() {
         return expireAfterAccess;
     }
@@ -79,7 +99,9 @@ public final class DefaultCacheConfig implements CacheConfig {
                 .withValue(CacheConfigValue.MAXIMUM_SIZE.getConfigPath(), ConfigValueFactory.fromAnyRef(maximumSize))
                 .withValue(CacheConfigValue.EXPIRE_AFTER_CREATE.getConfigPath(), ConfigValueFactory.fromAnyRef(expireAfterCreate))
                 .withValue(CacheConfigValue.EXPIRE_AFTER_ACCESS.getConfigPath(), ConfigValueFactory.fromAnyRef(expireAfterAccess))
-                .withValue(CacheConfigValue.EXPIRE_AFTER_WRITE.getConfigPath(), ConfigValueFactory.fromAnyRef(expireAfterWrite));
+                .withValue(CacheConfigValue.EXPIRE_AFTER_WRITE.getConfigPath(), ConfigValueFactory.fromAnyRef(expireAfterWrite))
+                .withValue(CacheConfigValue.EXPIRE_AFTER_WRITE_JITTER.getConfigPath(),
+                        ConfigValueFactory.fromAnyRef(expireAfterWriteJitter));
     }
 
     @Override
@@ -93,13 +115,15 @@ public final class DefaultCacheConfig implements CacheConfig {
         final DefaultCacheConfig that = (DefaultCacheConfig) o;
         return maximumSize == that.maximumSize &&
                 Objects.equals(expireAfterWrite, that.expireAfterWrite) &&
+                Double.compare(expireAfterWriteJitter, that.expireAfterWriteJitter) == 0 &&
                 Objects.equals(expireAfterAccess, that.expireAfterAccess)&&
                 Objects.equals(expireAfterCreate, that.expireAfterCreate);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(maximumSize, expireAfterWrite, expireAfterAccess, expireAfterCreate);
+        return Objects.hash(maximumSize, expireAfterWrite, expireAfterWriteJitter, expireAfterAccess,
+                expireAfterCreate);
     }
 
     @Override
@@ -107,6 +131,7 @@ public final class DefaultCacheConfig implements CacheConfig {
         return getClass().getSimpleName() + " [" +
                 "maximumSize=" + maximumSize +
                 ", expireAfterWrite=" + expireAfterWrite +
+                ", expireAfterWriteJitter=" + expireAfterWriteJitter +
                 ", expireAfterAccess=" + expireAfterAccess +
                 ", expireAfterCreate=" + expireAfterCreate +
                 "]";

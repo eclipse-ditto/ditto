@@ -124,6 +124,13 @@ public final class CacheFactory {
                     return currentDuration;
                 }
             });
+        } else if (cacheConfig.getExpireAfterWriteJitter() > 0.0) {
+            final JitteredWriteExpiry<Object, Object> expiry = JitteredWriteExpiry.of(
+                    cacheConfig.getExpireAfterWrite(),
+                    cacheConfig.getExpireAfterWriteJitter(),
+                    cacheConfig.getExpireAfterAccess());
+            caffeine.expireAfter(expiry);
+            caffeine.removalListener((key, value, cause) -> expiry.onRemoval(key, value));
         } else {
             caffeine.expireAfterWrite(cacheConfig.getExpireAfterWrite());
             caffeine.expireAfterAccess(cacheConfig.getExpireAfterAccess());

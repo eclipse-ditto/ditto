@@ -12,15 +12,19 @@
  */
 package org.eclipse.ditto.internal.utils.cache.config;
 
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
+
 import java.time.Duration;
 
 import org.assertj.core.api.JUnitSoftAssertions;
+import org.eclipse.ditto.internal.utils.config.DittoConfigError;
 import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
 
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
+import com.typesafe.config.ConfigValueFactory;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
 
@@ -59,6 +63,9 @@ public final class DefaultCacheConfigTest {
         softly.assertThat(underTest.getExpireAfterWrite())
                 .as(CacheConfig.CacheConfigValue.EXPIRE_AFTER_WRITE.getConfigPath())
                 .isEqualTo(CacheConfig.CacheConfigValue.EXPIRE_AFTER_WRITE.getDefaultValue());
+        softly.assertThat(underTest.getExpireAfterWriteJitter())
+                .as(CacheConfig.CacheConfigValue.EXPIRE_AFTER_WRITE_JITTER.getConfigPath())
+                .isEqualTo(CacheConfig.CacheConfigValue.EXPIRE_AFTER_WRITE_JITTER.getDefaultValue());
         softly.assertThat(underTest.getExpireAfterAccess())
                 .as(CacheConfig.CacheConfigValue.EXPIRE_AFTER_ACCESS.getConfigPath())
                 .isEqualTo(CacheConfig.CacheConfigValue.EXPIRE_AFTER_ACCESS.getDefaultValue());
@@ -74,9 +81,32 @@ public final class DefaultCacheConfigTest {
         softly.assertThat(underTest.getExpireAfterWrite())
                 .as(CacheConfig.CacheConfigValue.EXPIRE_AFTER_WRITE.getConfigPath())
                 .isEqualTo(Duration.ofMinutes(3));
+        softly.assertThat(underTest.getExpireAfterWriteJitter())
+                .as(CacheConfig.CacheConfigValue.EXPIRE_AFTER_WRITE_JITTER.getConfigPath())
+                .isEqualTo(0.25);
         softly.assertThat(underTest.getExpireAfterAccess())
                 .as(CacheConfig.CacheConfigValue.EXPIRE_AFTER_ACCESS.getConfigPath())
                 .isEqualTo(Duration.ofMinutes(4));
+    }
+
+    @Test
+    public void rejectsExpireAfterWriteJitterOutOfRange() {
+        for (final double jitter : new double[]{-0.1, 1.0}) {
+            final Config config = cacheTestConfig.withValue(
+                    KNOWN_CONFIG_PATH + "." + CacheConfig.CacheConfigValue.EXPIRE_AFTER_WRITE_JITTER.getConfigPath(),
+                    ConfigValueFactory.fromAnyRef(jitter));
+
+            assertThatExceptionOfType(DittoConfigError.class)
+                    .isThrownBy(() -> DefaultCacheConfig.of(config, KNOWN_CONFIG_PATH));
+        }
+    }
+
+    @Test
+    public void renderedConfigCreatesEqualInstance() {
+        final DefaultCacheConfig underTest = DefaultCacheConfig.of(cacheTestConfig, KNOWN_CONFIG_PATH);
+
+        softly.assertThat(DefaultCacheConfig.of(underTest.render().atKey(KNOWN_CONFIG_PATH), KNOWN_CONFIG_PATH))
+                .isEqualTo(underTest);
     }
 
 }
