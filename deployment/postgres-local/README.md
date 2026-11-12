@@ -18,9 +18,9 @@ All files here are additive; no committed service config is modified.
 | `search-postgres.conf` | Overlay that activates the OPT-IN PostgreSQL search backend for the Things-Search service (joins the cluster at 2552; artery port 2557). |
 | `run-compound-postgres.sh` | CLI launcher for Policies + Things + Connectivity + Gateway + Things-Search, all wired to Postgres / pre-auth / CORS. |
 
-IntelliJ run configs live in `.run/` at the repo root:
-`PoliciesService (Postgres)`, `ThingsService (Postgres)`, `GatewayService (Postgres)`, and the
-compound `Ditto (Postgres)` (which launches all three together).
+IntelliJ run configurations live in `.run/` at the repo root: `PoliciesService (Postgres)`, `ThingsService (Postgres)`,
+`ConnectivityService (Postgres)`, `SearchService (Postgres)`, `GatewayService (Postgres)` and the compound
+`Ditto (Postgres)`, which launches all five together.
 
 ---
 
@@ -43,8 +43,7 @@ Postgres wiring. The overlays encode four non-obvious fixes:
    lives on the classpath inside the persistence-r2dbc jar). `classpath(...)` forces classpath resolution.
 2. **Top-level includes, not inside `ditto { }`.** `ditto-postgres-persistence.conf` ships its own `ditto { }`
    wrapper PLUS top-level Pekko plugin blocks (`ditto-postgres-things-journal { }`, ...). Nesting the include
-   inside `ditto { }` would misplace those plugin blocks. (The operator guide's `ditto { include ... }` sketch
-   is misleading on this point.)
+   inside `ditto { }` would misplace those plugin blocks.
 3. **The persistence-r2dbc jar + r2dbc driver must be on the runtime classpath, FIRST.** The service allinone
    jar does NOT bundle the persistence-r2dbc module (provider/journal classes + profile resources + driver),
    and it bundles an OLD `reactor-core` (3.4.x) lacking `Mono.singleOptional()` that the r2dbc driver calls.

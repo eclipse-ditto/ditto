@@ -3,7 +3,7 @@
 **Related Issue**: [GitHub #2629 - Support PostgreSQL as persistence and search backend via pluggable persistence providers](https://github.com/eclipse-ditto/ditto/issues/2629)
 
 **Status**: Implemented on branch `feat/postgres-persistance-search`; pull request pending; §9 lists the open items
-**Last Updated**: 2026-11-09
+**Last Updated**: 2026-11-12
 
 ---
 
@@ -166,7 +166,9 @@ file, so reaching it takes a hand-split configuration.
   provider extension class and defines the Pekko plugin blocks (`ditto-postgres-<entity>-journal` / `-snapshots`,
   entities `things`, `policies`, `connections`, `wot`, plus the two `connection-remember` blocks of §3.3) and the
   `ditto.postgresql.*` client defaults. The
-  persistence include must be a top-level `include classpath("…")` (the plugin blocks are top-level), needs the
+  persistence include must be a top-level `include required(classpath("…"))` (the plugin blocks are top-level;
+  `required` makes a missing thin JAR fail at config load instead of silently starting on MongoDB — the dev-only
+  `*-pg-dev.conf` and `deployment/postgres-local/*.conf` use the plain form), needs the
   narrowing below and a `read-journal.entity` value (the stock service confs set it). Connectivity's remember-entities
   store keeps its `eventsourced` mode, on the profile's `connection-remember` plugin blocks (§3.3). The search include
   needs none of this.
@@ -628,8 +630,9 @@ and the existing `rate`/`interval` keys, with their per-service env names (`POLI
 
 - **Unit + Testcontainers ITs** in the three PostgreSQL modules (`postgres-client`, `persistence-r2dbc`,
   `search-r2dbc`) and the two API modules; `*IT` classes need Docker and skip without it, except the classloading
-  IT — the `postgres-its` job checks that none skipped, for the PostgreSQL modules and for connectivity's PostgreSQL
-  IT alike. The database image is selected with `-Dditto.test.postgres.image` (CI matrix 16/17/18).
+  IT (needs none) and `SearchBackendParityIT` (no skip guard on purpose: it fails without Docker) — the `postgres-its`
+  job checks that none skipped, for the PostgreSQL modules and for connectivity's PostgreSQL IT alike. The database
+  image is selected with `-Dditto.test.postgres.image` (CI matrix 16/17/18).
 - **HOCON lint tests** (`PostgresProfileHoconLintTest`, `PostgresSearchProfileHoconLintTest`) assert the shipped
   profiles: provider class, plugin blocks per entity, auto-start lists, no Mongo leftovers; plus
   `PostgresPluginWiringCheckTest`, the two `*ProviderPluginWiringTest`s, `*PersistencePluginConfigTest`.

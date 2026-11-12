@@ -401,7 +401,7 @@ dbconfig:
   # uriSecret: my-uri-secret
 
 ## ----------------------------------------------------------------------------
-## postgres configures the (phase-2) PostgreSQL backend TLS material.
+## postgres configures the TLS material of the opt-in PostgreSQL backend.
 ##  Mounted read-only into the PostgreSQL-backed services (policies, things,
 ##  connectivity and things-search) so the r2dbc-postgresql client can do
 ##  sslMode=verify-full against PostgreSQL (or a TLS-terminating PgBouncer).
@@ -414,7 +414,7 @@ postgres:
   tls:
     # enabled mounts the PG/PgBouncer TLS material into the PostgreSQL-backed services
     #  (policies, things, connectivity and things-search).
-    #  Leave false while the backend is still MongoDB (phase 1).
+    #  Leave false while the services run on MongoDB.
     enabled: false
     # mountPath is the read-only directory the cert material is mounted at.
     #  Must match the ditto.postgresql.ssl.root-cert path (POSTGRES_SSL_ROOT_CERT).
