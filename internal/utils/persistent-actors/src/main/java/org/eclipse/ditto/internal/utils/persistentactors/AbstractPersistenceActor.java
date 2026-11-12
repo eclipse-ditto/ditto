@@ -1033,7 +1033,14 @@ public abstract class AbstractPersistenceActor<
         return entity != null && !entityExistsAsDeleted();
     }
 
-    private void reportSudoCommandDone(final WithDittoHeaders command) {
+    /**
+     * Report completion of a sudo command to the supervisor so it can decrement its sudo op
+     * counter. Must be called from any handler that processes a sudo command but bypasses the
+     * default command-strategy dispatch (which calls this automatically). Otherwise the counter
+     * leaks and the supervisor's passivation guard keeps deferring forever.
+     *
+     */
+    protected void reportSudoCommandDone(final WithDittoHeaders command) {
         if (command instanceof SudoCommand || command.getDittoHeaders().isSudo()) {
             getSudoCommandDoneRecipient().tell(AbstractPersistenceSupervisor.Control.SUDO_COMMAND_DONE, getSelf());
         }
