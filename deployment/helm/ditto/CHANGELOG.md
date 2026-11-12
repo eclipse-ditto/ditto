@@ -15,6 +15,14 @@ sections: `Added`, `Changed`, `Deprecated`, `Removed`, `Fixed`, `Security`.
 
 ## [Unreleased]
 
+## [4.11.0]
+
+### Added
+- New `policiesEnforcer.cache.expireAfterWriteJitter` for `things`, `policies` and `connectivity` (default `0.0`,
+  disabled), passed as `DITTO_POLICIES_ENFORCER_CACHE_EXPIRE_AFTER_WRITE_JITTER`. When set to e.g. `0.2`, the
+  `expireAfterWrite` of each loaded policy enforcer is randomly varied by +/-20%, so enforcers loaded at the same time
+  (e.g. after a restart) are no longer all reloaded at the same time every `expireAfterWrite`.
+
 ## [4.10.0]
 
 ### Added
