@@ -747,6 +747,7 @@ public final class ThingsSseRouteBuilder extends RouteDirectives implements SseR
                                                     .orElseGet(Collections::emptyList)
                                     )
                                     .exceptionally(error -> {
+                                        sessionStatistics.enrichmentFailed();
                                         final var errorToReport =
                                                 DittoRuntimeException.asDittoRuntimeException(error, t ->
                                                         SignalEnrichmentFailedException.newBuilder().cause(t).build());
@@ -787,6 +788,7 @@ public final class ThingsSseRouteBuilder extends RouteDirectives implements SseR
                                             .orElseGet(List::of)
                             )
                             .exceptionally(error -> {
+                                sessionStatistics.enrichmentFailed();
                                 final var errorToReport =
                                         DittoRuntimeException.asDittoRuntimeException(
                                                 error, t -> SignalEnrichmentFailedException.newBuilder()

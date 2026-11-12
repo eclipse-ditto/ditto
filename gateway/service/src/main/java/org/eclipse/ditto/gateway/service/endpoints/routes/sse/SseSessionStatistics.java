@@ -49,6 +49,7 @@ final class SseSessionStatistics {
     static final String MDC_RECEIVED = "sse-received";
     static final String MDC_TARGETED = "sse-targeted";
     static final String MDC_FILTERED_OUT = "sse-filtered-out";
+    static final String MDC_ENRICHMENT_FAILED = "sse-enrichment-failed";
     static final String MDC_DELIVERED = "sse-delivered";
 
     private static final ThreadSafeDittoLogger LOGGER =
@@ -70,6 +71,7 @@ final class SseSessionStatistics {
     private final LongAdder received;
     private final LongAdder targeted;
     private final LongAdder filteredOut;
+    private final LongAdder enrichmentFailed;
     private final LongAdder delivered;
 
     private SseSessionStatistics(final HttpRequest request, final DittoHeaders dittoHeaders,
@@ -87,6 +89,7 @@ final class SseSessionStatistics {
         received = new LongAdder();
         targeted = new LongAdder();
         filteredOut = new LongAdder();
+        enrichmentFailed = new LongAdder();
         delivered = new LongAdder();
     }
 
@@ -106,7 +109,9 @@ final class SseSessionStatistics {
     }
 
     /**
-     * Counts a signal the session received from the cluster, before any of the session's filters were applied.
+     * Counts a signal which reached the SSE stream of the session.
+     * The streaming session actor already dropped signals the session is not allowed to read or which do not match
+     * its namespaces before, those are not counted.
      */
     void signalReceived() {
         received.increment();
@@ -128,7 +133,15 @@ final class SseSessionStatistics {
     }
 
     /**
-     * Counts an event which was delivered to the SSE client.
+     * Counts a targeted signal for which the retrieval of the requested extra fields failed.
+     */
+    void enrichmentFailed() {
+        enrichmentFailed.increment();
+    }
+
+    /**
+     * Counts an event which was delivered to the SSE client, including errors emitted to the client instead of an
+     * event, e.g. because the retrieval of extra fields failed.
      */
     void eventDelivered() {
         delivered.increment();
@@ -146,6 +159,10 @@ final class SseSessionStatistics {
         return filteredOut.sum();
     }
 
+    long getEnrichmentFailed() {
+        return enrichmentFailed.sum();
+    }
+
     long getDelivered() {
         return delivered.sum();
     }
@@ -161,13 +178,13 @@ final class SseSessionStatistics {
                 .withMdcEntries(getMdcEntries(durationSeconds));
         if (null == error) {
             logger.info("SSE session on <{}> ended after <{}s>: received <{}>, targeted <{}>, filtered out <{}>, " +
-                            "delivered <{}> events.", path, durationSeconds, getReceived(), getTargeted(),
-                    getFilteredOut(), getDelivered());
+                            "enrichment failed <{}>, delivered <{}> events.", path, durationSeconds, getReceived(),
+                    getTargeted(), getFilteredOut(), getEnrichmentFailed(), getDelivered());
         } else {
             logger.info("SSE session on <{}> ended after <{}s> with <{}: {}>: received <{}>, targeted <{}>, " +
-                            "filtered out <{}>, delivered <{}> events.", path, durationSeconds,
-                    error.getClass().getSimpleName(), error.getMessage(), getReceived(), getTargeted(),
-                    getFilteredOut(), getDelivered());
+                            "filtered out <{}>, enrichment failed <{}>, delivered <{}> events.", path,
+                    durationSeconds, error.getClass().getSimpleName(), error.getMessage(), getReceived(),
+                    getTargeted(), getFilteredOut(), getEnrichmentFailed(), getDelivered());
         }
     }
 
@@ -190,6 +207,7 @@ final class SseSessionStatistics {
         mdcEntries.add(MdcEntry.of(MDC_RECEIVED, String.valueOf(getReceived())));
         mdcEntries.add(MdcEntry.of(MDC_TARGETED, String.valueOf(getTargeted())));
         mdcEntries.add(MdcEntry.of(MDC_FILTERED_OUT, String.valueOf(getFilteredOut())));
+        mdcEntries.add(MdcEntry.of(MDC_ENRICHMENT_FAILED, String.valueOf(getEnrichmentFailed())));
         mdcEntries.add(MdcEntry.of(MDC_DELIVERED, String.valueOf(getDelivered())));
         return mdcEntries;
     }
