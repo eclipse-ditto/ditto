@@ -32,6 +32,7 @@ import org.eclipse.ditto.things.model.Attributes;
 import org.eclipse.ditto.things.model.Feature;
 import org.eclipse.ditto.things.model.Features;
 import org.eclipse.ditto.things.model.ThingId;
+import org.eclipse.ditto.things.model.ThingsModelFactory;
 import org.eclipse.ditto.thingsearch.service.persistence.TestConstants;
 import org.junit.Before;
 import org.junit.Test;
@@ -57,6 +58,10 @@ public final class ExistsIT extends AbstractReadPersistenceITBase {
     private static final long THING2_KNOWN_PROPERTY_VALUE = 2;
     private static final ThingId THING3_ID =
             TestConstants.thingId(TestConstants.Thing.NAMESPACE, "thing3");
+    private static final ThingId THING4_ID =
+            TestConstants.thingId(TestConstants.Thing.NAMESPACE, "thing4");
+    private static final ThingId THING5_ID =
+            TestConstants.thingId(TestConstants.Thing.NAMESPACE, "thing5");
 
     private static final String THINGS_KNOWN_ATTR = "attr1/a/b";
     private static final String THINGS_UNKNOWN_ATTR = "attr2";
@@ -156,6 +161,48 @@ public final class ExistsIT extends AbstractReadPersistenceITBase {
         assertThat(result).isNotEmpty();
     }
 
+    @Test
+    public void existsByAttributes() {
+        final Criteria crit = cf.existsCriteria(ef.existsBy("attributes"));
+        final Collection<ThingId> result = findForCriteria(crit);
+        assertThat(result).containsOnly(THING1_ID, THING2_ID, THING4_ID);
+    }
+
+    @Test
+    public void notExistsByAttributes() {
+        final Criteria crit = cf.nor(cf.existsCriteria(ef.existsBy("attributes")));
+        final Collection<ThingId> result = findForCriteria(crit);
+        assertThat(result).containsOnly(THING3_ID, THING5_ID);
+    }
+
+    @Test
+    public void emptyByAttributes() {
+        final Criteria crit = cf.emptyCriteria(ef.existsBy("attributes"));
+        final Collection<ThingId> result = findForCriteria(crit);
+        assertThat(result).containsOnly(THING3_ID, THING4_ID, THING5_ID);
+    }
+
+    @Test
+    public void existsByFeatures() {
+        final Criteria crit = cf.existsCriteria(ef.existsBy("features"));
+        final Collection<ThingId> result = findForCriteria(crit);
+        assertThat(result).containsOnly(THING1_ID, THING2_ID, THING3_ID, THING4_ID);
+    }
+
+    @Test
+    public void notExistsByFeatures() {
+        final Criteria crit = cf.nor(cf.existsCriteria(ef.existsBy("features")));
+        final Collection<ThingId> result = findForCriteria(crit);
+        assertThat(result).containsOnly(THING5_ID);
+    }
+
+    @Test
+    public void emptyByFeatures() {
+        final Criteria crit = cf.emptyCriteria(ef.existsBy("features"));
+        final Collection<ThingId> result = findForCriteria(crit);
+        assertThat(result).containsOnly(THING4_ID, THING5_ID);
+    }
+
     private void insertThings() {
         final Attributes attributes1 = createAttributes(THING1_KNOWN_ATTR, THING1_KNOWN_ATTR_VALUE).toBuilder()
                 .setAll(createEmptyAttributes())
@@ -170,6 +217,10 @@ public final class ExistsIT extends AbstractReadPersistenceITBase {
         persistThing(createThing(THING1_ID).setAttributes(attributes1).setFeatures(features1));
         persistThing(createThing(THING2_ID).setAttributes(attributes2).setFeatures(features2));
         persistThing(createThing(THING3_ID).setFeatures(features2));
+        persistThing(createThing(THING4_ID)
+                .setAttributes(ThingsModelFactory.emptyAttributes())
+                .setFeatures(ThingsModelFactory.emptyFeatures()));
+        persistThing(createThing(THING5_ID));
     }
 
     private static Attributes createAttributes(final String attributeKey, final String attributeValue) {

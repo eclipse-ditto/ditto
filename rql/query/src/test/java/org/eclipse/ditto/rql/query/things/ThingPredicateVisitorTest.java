@@ -34,6 +34,7 @@ import org.eclipse.ditto.rql.query.filter.QueryFilterCriteriaFactory;
 import org.eclipse.ditto.things.model.FeatureProperties;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingId;
+import org.eclipse.ditto.things.model.ThingsModelFactory;
 import org.junit.Test;
 
 /**
@@ -799,6 +800,89 @@ public final class ThingPredicateVisitorTest {
         assertThat(thingPredicate.test(MATCHING_THING))
                 .as("Filtering '" + filter + "' should be true (first clause matches)")
                 .isTrue();
+    }
+
+    // --- exists()/empty() on the complete attributes and features objects ---
+
+    private static final Thing THING_WITHOUT_ATTRIBUTES_AND_FEATURES = Thing.newBuilder()
+            .setId(ThingId.of("org.eclipse.ditto", "no-attributes-no-features"))
+            .build();
+
+    private static final Thing THING_WITH_EMPTY_ATTRIBUTES_AND_FEATURES = Thing.newBuilder()
+            .setId(ThingId.of("org.eclipse.ditto", "empty-attributes-empty-features"))
+            .setAttributes(ThingsModelFactory.emptyAttributes())
+            .setFeatures(ThingsModelFactory.emptyFeatures())
+            .build();
+
+    @Test
+    public void testExistsAttributes() {
+        assertFilterResults("exists(attributes)", true, false, true);
+        assertFilterResults("exists(/attributes)", true, false, true);
+    }
+
+    @Test
+    public void testNotExistsAttributes() {
+        assertFilterResults("not(exists(attributes))", false, true, false);
+    }
+
+    @Test
+    public void testEmptyAttributes() {
+        assertFilterResults("empty(attributes)", false, true, true);
+    }
+
+    @Test
+    public void testNotEmptyAttributes() {
+        assertFilterResults("not(empty(attributes))", true, false, false);
+    }
+
+    @Test
+    public void testExistsFeatures() {
+        assertFilterResults("exists(features)", true, false, true);
+        assertFilterResults("exists(/features)", true, false, true);
+    }
+
+    @Test
+    public void testNotExistsFeatures() {
+        assertFilterResults("not(exists(features))", false, true, false);
+    }
+
+    @Test
+    public void testEmptyFeatures() {
+        assertFilterResults("empty(features)", false, true, true);
+    }
+
+    @Test
+    public void testNotEmptyFeatures() {
+        assertFilterResults("not(empty(features))", true, false, false);
+    }
+
+    @Test
+    public void testComparisonOnAttributesIsNotSupported() {
+        assertThatThrownBy(() -> createPredicate("eq(attributes,\"foo\")"))
+                .isInstanceOf(InvalidRqlExpressionException.class);
+    }
+
+    @Test
+    public void testComparisonOnFeaturesIsNotSupported() {
+        assertThatThrownBy(() -> createPredicate("eq(features,\"foo\")"))
+                .isInstanceOf(InvalidRqlExpressionException.class);
+    }
+
+    private static void assertFilterResults(final String filter,
+            final boolean expectedForMatchingThing,
+            final boolean expectedForThingWithoutAttributesAndFeatures,
+            final boolean expectedForThingWithEmptyAttributesAndFeatures) {
+
+        final Predicate<Thing> thingPredicate = createPredicate(filter);
+        assertThat(thingPredicate.test(MATCHING_THING))
+                .as("Filtering '" + filter + "' on thing with attributes and features")
+                .isEqualTo(expectedForMatchingThing);
+        assertThat(thingPredicate.test(THING_WITHOUT_ATTRIBUTES_AND_FEATURES))
+                .as("Filtering '" + filter + "' on thing without attributes and features")
+                .isEqualTo(expectedForThingWithoutAttributesAndFeatures);
+        assertThat(thingPredicate.test(THING_WITH_EMPTY_ATTRIBUTES_AND_FEATURES))
+                .as("Filtering '" + filter + "' on thing with empty attributes and features")
+                .isEqualTo(expectedForThingWithEmptyAttributesAndFeatures);
     }
 
     @Test
