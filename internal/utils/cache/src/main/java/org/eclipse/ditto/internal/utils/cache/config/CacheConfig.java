@@ -41,6 +41,17 @@ public interface CacheConfig {
     Duration getExpireAfterWrite();
 
     /**
+     * Returns the fraction by which {@link #getExpireAfterWrite()} is randomly varied for each written cache entry,
+     * e.g. {@code 0.2} for a write expiry between 80% and 120% of the configured duration.
+     * This spreads out the reloading of entries which were written at the same time, e.g. after a restart.
+     * Deactivated when {@code 0.0} is configured.
+     *
+     * @return the jitter fraction, between {@code 0.0} (inclusive) and {@code 1.0} (exclusive).
+     * @since 3.9.9
+     */
+    double getExpireAfterWriteJitter();
+
+    /**
      * Returns the duration after which an accessed cache entry expires.
      *
      * @return the duration between last access and expiration.
@@ -76,6 +87,13 @@ public interface CacheConfig {
          * Duration after which a written cache entry expires.
          */
         EXPIRE_AFTER_WRITE("expire-after-write", Duration.ofMinutes(15L)),
+
+        /**
+         * Fraction by which the write expiry of each cache entry is randomly varied.
+         *
+         * @since 3.9.9
+         */
+        EXPIRE_AFTER_WRITE_JITTER("expire-after-write-jitter", 0.0),
 
         /**
          * Duration after which an accessed cache entry expires.

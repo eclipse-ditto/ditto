@@ -80,6 +80,11 @@ public final class DefaultStreamCacheConfig implements StreamCacheConfig {
     }
 
     @Override
+    public double getExpireAfterWriteJitter() {
+        return genericCacheConfig.getExpireAfterWriteJitter();
+    }
+
+    @Override
     public Duration getExpireAfterAccess() {
         return genericCacheConfig.getExpireAfterAccess();
     }
