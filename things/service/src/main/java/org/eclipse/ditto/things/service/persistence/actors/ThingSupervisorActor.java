@@ -462,7 +462,7 @@ public final class ThingSupervisorActor extends AbstractPersistenceSupervisor<Th
     @Override
     protected void stopShardedActor(final StopShardedActor trigger) {
         super.stopShardedActor(trigger);
-        if (getOpCounter() > 0) {
+        if (getOpCounter() > 0 || getSudoOpCounter() > 0) {
             getTimers().startSingleTimer(Control.SHUTDOWN_TIMEOUT, Control.SHUTDOWN_TIMEOUT, shutdownTimeout);
         }
     }
@@ -513,8 +513,8 @@ public final class ThingSupervisorActor extends AbstractPersistenceSupervisor<Th
     }
 
     private void shutdownActor(final Control shutdown) {
-        log.warning("Shutdown timeout <{}> reached; aborting <{}> ops and stopping myself", shutdownTimeout,
-                getOpCounter());
+        log.warning("Shutdown timeout <{}> reached; aborting <{}> ops and <{}> sudo ops, stopping myself",
+                shutdownTimeout, getOpCounter(), getSudoOpCounter());
         getContext().stop(getSelf());
     }
     private record CommandResponsePair<C, R>(C command, R response) {}

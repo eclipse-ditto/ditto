@@ -58,7 +58,6 @@ import org.apache.pekko.actor.AbstractActor;
 import org.apache.pekko.actor.ActorRef;
 import org.apache.pekko.actor.ActorSystem;
 import org.apache.pekko.actor.InvalidActorNameException;
-import org.apache.pekko.actor.PoisonPill;
 import org.apache.pekko.actor.Props;
 import org.apache.pekko.cluster.sharding.ShardRegion;
 import org.apache.pekko.event.DiagnosticLoggingAdapter;
@@ -967,14 +966,25 @@ public final class TestConstants {
 
         private ShardRegionMockActor(final Props childActorProps, final String childName) {
             child = getContext().actorOf(childActorProps, childName);
+            getContext().watch(child);
         }
 
         @Override
         public Receive createReceive() {
             return receiveBuilder()
                     .match(ShardRegion.Passivate.class, passivate -> {
-                        getSender().tell(PoisonPill.getInstance(), getSelf());
-                        getContext().stop(getSelf());
+                        // Mirror the real shard region: echo the entity's chosen stop message
+                        // back so its handler drives the deferred-stop path. Do NOT force-stop
+                        // the child here - the entity decides when to stop itself.
+                        getSender().tell(passivate.stopMessage(), getSelf());
+                    })
+                    .match(org.apache.pekko.actor.Terminated.class, t -> {
+                        // Single-entity test fixture: when the child entity terminates, stop
+                        // self so tests watching the mock can observe the hand-off via
+                        // expectTerminated on the mock.
+                        if (t.getActor().equals(child)) {
+                            getContext().stop(getSelf());
+                        }
                     })
                     .matchAny(m -> child.forward(m, getContext()))
                     .build();

@@ -757,29 +757,40 @@ public final class ConnectionPersistenceActor
      * @param command the command to route.
      */
     private void startThingSearchSession(final CreateSubscription command) {
-        if (clientActorRouter == null) {
-            logDroppedSignal(command, command.getType(), "Client actor not ready.");
-            return;
+        try {
+            if (clientActorRouter == null) {
+                logDroppedSignal(command, command.getType(), "Client actor not ready.");
+                return;
+            }
+            if (entity == null) {
+                logDroppedSignal(command, command.getType(), "No Connection configuration available.");
+                return;
+            }
+            log.debug("Forwarding <{}> to client actors.", command);
+            // compute the next prefix according to subscriptionCounter and the currently configured client actor count
+            // ignore any "prefix" field from the command
+            augmentWithPrefixAndForward(command, entity.getClientCount());
+        } finally {
+            // Matches the ++sudoOpCounter the supervisor performed before forwarding the sudo
+            // command here. This handler bypasses the default command-strategy dispatch which
+            // would otherwise call reportSudoCommandDone automatically.
+            reportSudoCommandDone(command);
         }
-        if (entity == null) {
-            logDroppedSignal(command, command.getType(), "No Connection configuration available.");
-            return;
-        }
-        log.debug("Forwarding <{}> to client actors.", command);
-        // compute the next prefix according to subscriptionCounter and the currently configured client actor count
-        // ignore any "prefix" field from the command
-        augmentWithPrefixAndForward(command, entity.getClientCount());
     }
 
     private void startStreamingSubscriptionSession(final SubscribeForPersistedEvents command) {
-        if (entity == null) {
-            logDroppedSignal(command, command.getType(), "No Connection configuration available.");
-            return;
+        try {
+            if (entity == null) {
+                logDroppedSignal(command, command.getType(), "No Connection configuration available.");
+                return;
+            }
+            log.debug("Forwarding <{}> to client actors.", command);
+            // compute the next prefix according to subscriptionCounter and the currently configured client actor count
+            // ignore any "prefix" field from the command
+            augmentWithPrefixAndForward(command, entity.getClientCount());
+        } finally {
+            reportSudoCommandDone(command);
         }
-        log.debug("Forwarding <{}> to client actors.", command);
-        // compute the next prefix according to subscriptionCounter and the currently configured client actor count
-        // ignore any "prefix" field from the command
-        augmentWithPrefixAndForward(command, entity.getClientCount());
     }
 
     private void augmentWithPrefixAndForward(final CreateSubscription createSubscription, final int clientCount) {

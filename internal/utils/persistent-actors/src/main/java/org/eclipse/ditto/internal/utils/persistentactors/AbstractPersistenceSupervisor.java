@@ -30,7 +30,6 @@ import org.apache.pekko.NotUsed;
 import org.apache.pekko.actor.ActorRef;
 import org.apache.pekko.actor.ActorSystem;
 import org.apache.pekko.actor.OneForOneStrategy;
-import org.apache.pekko.actor.PoisonPill;
 import org.apache.pekko.actor.Props;
 import org.apache.pekko.actor.ReceiveTimeout;
 import org.apache.pekko.actor.Status;
@@ -402,6 +401,14 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
     }
 
     @Override
+    public void postStop() throws Exception {
+        log.debug("Supervisor stopping for entity <{}> with opCounter=<{}>, sudoOpCounter=<{}>, " +
+                        "inCoordinatedShutdown=<{}>",
+                entityId, opCounter, sudoOpCounter, inCoordinatedShutdown);
+        super.postStop();
+    }
+
+    @Override
     public Receive createReceive() {
         return ReceiveBuilder.create()
                 .matchEquals(Control.INIT_DONE, initDone -> {
@@ -480,12 +487,23 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
     }
 
     /**
+     * Get the number of ongoing sudo ops.
+     *
+     * @return The sudo op counter.
+     */
+    protected int getSudoOpCounter() {
+        return sudoOpCounter;
+    }
+
+    /**
      * Decrement the op counter when receiving a non-sudo signal.
      *
      * @param signal the signal.
      */
     protected void decrementOpCounter(final Signal<?> signal) {
         --opCounter;
+        log.withCorrelationId(signal)
+                .debug("opCounter decremented to <{}> for signal <{}>", opCounter, signal.getType());
     }
 
     /**
@@ -495,6 +513,8 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
      */
     protected void incrementOpCounter(final Signal<?> signal) {
         ++opCounter;
+        log.withCorrelationId(signal)
+                .debug("opCounter incremented to <{}> for signal <{}>", opCounter, signal.getType());
     }
 
     /**
@@ -638,8 +658,15 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
     }
 
     private void passivate(final Control passivationTrigger) {
+        if (inCoordinatedShutdown) {
+            log.debug("Ignoring passivate request: graceful stop already in progress.");
+            return;
+        }
         getContext().cancelReceiveTimeout();
-        getContext().getParent().tell(new ShardRegion.Passivate(PoisonPill.getInstance()), getSelf());
+        // Not PoisonPill: signals ahead of the stop message in the mailbox still start async
+        // ops. StopShardedActor is handled by stopShardedActor(), which defers the real stop
+        // until opCounter == 0 && sudoOpCounter == 0.
+        getContext().getParent().tell(new ShardRegion.Passivate(new StopShardedActor()), getSelf());
     }
 
     private void paRecovered(final Control paRecoveredTrigger) {
