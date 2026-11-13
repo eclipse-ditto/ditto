@@ -864,9 +864,11 @@ public abstract class AbstractPersistenceActor<
 
     @Override
     public void onQuery(final Command<?> command, final WithDittoHeaders response) {
+        final ActorRef sender = getSender();
         if (command.getDittoHeaders().isResponseRequired()) {
-            final ActorRef sender = getSender();
             notifySender(sender, response);
+        } else {
+            sender.tell(StatusReply.ack(), getSelf());
         }
     }
 
@@ -886,9 +888,24 @@ public abstract class AbstractPersistenceActor<
                 }
             });
         } else {
-            if (startedSpan != null) {
-                startedSpan.finish();
-            }
+            final ActorRef sender = getSender();
+            final ActorRef self = getSelf();
+            response.whenComplete((r, throwable) -> {
+                if (null != throwable) {
+                    final DittoRuntimeException dittoRuntimeException =
+                            DittoRuntimeException.asDittoRuntimeException(unwrapThrowable(throwable), t ->
+                                    DittoInternalErrorException.newBuilder()
+                                            .cause(t)
+                                            .dittoHeaders(command.getDittoHeaders())
+                                            .build());
+                    sender.tell(StatusReply.error(dittoRuntimeException), self);
+                } else {
+                    sender.tell(StatusReply.ack(), self);
+                }
+                if (startedSpan != null) {
+                    startedSpan.finish();
+                }
+            });
         }
     }
 

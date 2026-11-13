@@ -31,6 +31,7 @@ import org.eclipse.ditto.base.model.common.DittoConstants;
 import org.eclipse.ditto.base.model.common.ResponseType;
 import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.ConnectivityModelFactory;
+import org.eclipse.ditto.connectivity.model.Enforcement;
 import org.eclipse.ditto.connectivity.model.PayloadMapping;
 import org.eclipse.ditto.connectivity.model.ReplyTarget;
 import org.eclipse.ditto.connectivity.service.config.ConnectivityConfig;
@@ -161,5 +162,26 @@ public final class RabbitMQConsumerActorTest extends AbstractConsumerActorWithAc
             assertThat(msg.getDittoHeaders()).containsEntry("suffixed_thing_id",
                     TestConstants.Things.THING_ID + ".some.suffix");
         }, response -> fail("not expected"));
+    }
+
+    @Override
+    protected Props getConsumerActorPropsWithEnforcement(final Sink<Object, NotUsed> inboundMappingSink,
+            final Enforcement enforcement, final String address) {
+        return RabbitMQConsumerActor.props(address, inboundMappingSink,
+                ConnectivityModelFactory.newSourceBuilder()
+                        .address(address)
+                        .authorizationContext(TestConstants.Authorization.AUTHORIZATION_CONTEXT)
+                        .enforcement(enforcement)
+                        .headerMapping(TestConstants.HEADER_MAPPING)
+                        .payloadMapping(ConnectivityModelFactory.emptyPayloadMapping())
+                        .replyTarget(ReplyTarget.newBuilder()
+                                .address("foo")
+                                .expectedResponseTypes(ResponseType.ERROR, ResponseType.RESPONSE, ResponseType.NACK)
+                                .build())
+                        .build(),
+                channel,
+                CONNECTION,
+                mock(ConnectivityStatusResolver.class),
+                ConnectivityConfig.of(actorSystem.settings().config()));
     }
 }

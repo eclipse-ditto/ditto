@@ -28,6 +28,7 @@ import java.util.function.Consumer;
 import java.util.stream.Stream;
 
 import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.pattern.StatusReply;
 import org.apache.pekko.testkit.javadsl.TestKit;
 import org.assertj.core.api.Assertions;
 import org.eclipse.ditto.base.model.auth.AuthorizationContext;
@@ -43,6 +44,7 @@ import org.eclipse.ditto.base.model.headers.entitytag.EntityTagMatcher;
 import org.eclipse.ditto.base.model.headers.entitytag.EntityTagMatchers;
 import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
+import org.eclipse.ditto.internal.utils.cluster.SignalAccepted;
 import org.eclipse.ditto.internal.utils.tracing.DittoTracingInitResource;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
@@ -99,6 +101,7 @@ import org.eclipse.ditto.things.model.signals.commands.query.RetrieveAttributeRe
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveAttributes;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThing;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThingResponse;
+import org.eclipse.ditto.wot.validation.WotThingModelPayloadValidationException;
 import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
@@ -507,6 +510,62 @@ public final class ThingCommandEnforcementTest extends AbstractThingEnforcementT
             thingPersistenceActorProbe.reply(retrieveThingResponse);
 
             expectMsg(retrieveThingResponse);
+        }};
+    }
+
+    @Test
+    public void fireAndForgetModifyIsAnsweredWithSignalAcceptedAfterPersistenceAck() {
+        final PolicyId policyId = mockReadWritePolicy();
+
+        new TestKit(system) {{
+            supervisor.tell(getModifyCommand(fireAndForgetHeaders(true)), getRef());
+            expectAndAnswerSudoRetrieveThing(
+                    SudoRetrieveThingResponse.of(TestSetup.newThingWithPolicyId(policyId), DittoHeaders.empty()));
+
+            final ThingCommand<?> forwarded = thingPersistenceActorProbe.expectMsgClass(ThingCommand.class);
+            assertThat(forwarded.getDittoHeaders())
+                    .doesNotContainKey(DittoHeaderDefinition.REPLY_SIGNAL_ACCEPTED.getKey());
+            expectNoMessage(java.time.Duration.ofMillis(200));
+
+            thingPersistenceActorProbe.reply(StatusReply.ack());
+            expectMsgClass(SignalAccepted.class);
+            expectNoMessage();
+        }};
+    }
+
+    @Test
+    public void fireAndForgetModifyWithoutReplySignalAcceptedHeaderIsNotAnswered() {
+        final PolicyId policyId = mockReadWritePolicy();
+
+        new TestKit(system) {{
+            supervisor.tell(getModifyCommand(fireAndForgetHeaders(false)), getRef());
+            expectAndAnswerSudoRetrieveThing(
+                    SudoRetrieveThingResponse.of(TestSetup.newThingWithPolicyId(policyId), DittoHeaders.empty()));
+
+            thingPersistenceActorProbe.expectMsgClass(ThingCommand.class);
+            thingPersistenceActorProbe.reply(StatusReply.ack());
+            expectNoMessage();
+        }};
+    }
+
+    @Test
+    public void fireAndForgetModifyRejectedByWotValidationIsAnsweredWithErrorOnly() {
+        final PolicyId policyId = mockReadWritePolicy();
+
+        new TestKit(system) {{
+            supervisor.tell(getModifyCommand(fireAndForgetHeaders(true)), getRef());
+            expectAndAnswerSudoRetrieveThing(
+                    SudoRetrieveThingResponse.of(TestSetup.newThingWithPolicyId(policyId), DittoHeaders.empty()));
+
+            thingPersistenceActorProbe.expectMsgClass(ThingCommand.class);
+            final WotThingModelPayloadValidationException error =
+                    WotThingModelPayloadValidationException.newBuilder("attribute is not valid")
+                            .dittoHeaders(headers())
+                            .build();
+            thingPersistenceActorProbe.reply(StatusReply.error(error));
+
+            expectMsgClass(WotThingModelPayloadValidationException.class);
+            expectNoMessage();
         }};
     }
 
@@ -1124,6 +1183,28 @@ public final class ThingCommandEnforcementTest extends AbstractThingEnforcementT
         final DittoHeadersBuilder<?, ?> builder = headers().toBuilder();
         headerModifier.accept(builder);
         return RetrieveThing.of(THING_ID, builder.build());
+    }
+
+    private PolicyId mockReadWritePolicy() {
+        final PolicyId policyId = PolicyId.of("policy:id");
+        final Policy policy = PoliciesModelFactory.newPolicyBuilder(policyId)
+                .setRevision(1L)
+                .forLabel("authorize-self")
+                .setSubject(GOOGLE, TestSetup.SUBJECT_ID)
+                .setGrantedPermissions(PoliciesResourceType.thingResource(JsonPointer.empty()),
+                        Permissions.newInstance(Permission.READ, Permission.WRITE))
+                .build();
+        when(policyEnforcerProvider.getPolicyEnforcer(policyId))
+                .thenReturn(CompletableFuture.completedFuture(Optional.of(PolicyEnforcer.of(policy))));
+        return policyId;
+    }
+
+    private DittoHeaders fireAndForgetHeaders(final boolean replySignalAccepted) {
+        final DittoHeadersBuilder<?, ?> builder = headers().toBuilder().responseRequired(false);
+        if (replySignalAccepted) {
+            builder.putHeader(DittoHeaderDefinition.REPLY_SIGNAL_ACCEPTED.getKey(), Boolean.TRUE.toString());
+        }
+        return builder.build();
     }
 
 }

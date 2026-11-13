@@ -23,6 +23,7 @@ import org.apache.pekko.actor.ActorRef;
 import org.apache.pekko.actor.Props;
 import org.apache.pekko.japi.pf.ReceiveBuilder;
 import org.apache.pekko.pattern.Patterns;
+import org.apache.pekko.pattern.StatusReply;
 import org.apache.pekko.persistence.RecoveryCompleted;
 import org.eclipse.ditto.base.model.acks.DittoAcknowledgementLabel;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
@@ -142,19 +143,19 @@ public final class ThingPersistenceActor
 
     @Override
     public void onQuery(final Command<?> command, final WithDittoHeaders response) {
-        final ActorRef sender = getSender();
-        doOnQuery(command, response, sender);
+        doOnQuery(command, response, getSender(), getSelf());
     }
 
     @Override
     public void onStagedQuery(final Command<?> command, final CompletionStage<WithDittoHeaders> response,
             @Nullable final StartedSpan startedSpan) {
         final ActorRef sender = getSender();
+        final ActorRef self = getSelf();
         response.whenComplete((r, throwable) -> {
             if (unwrapThrowable(throwable) instanceof DittoRuntimeException dittoRuntimeException) {
                 notifySender(sender, dittoRuntimeException);
             } else {
-                doOnQuery(command, r, sender);
+                doOnQuery(command, r, sender, self);
             }
             if (startedSpan != null) {
                 startedSpan.finish();
@@ -163,7 +164,9 @@ public final class ThingPersistenceActor
     }
 
 
-    private void doOnQuery(final Command<?> command, final WithDittoHeaders response, final ActorRef sender) {
+    private void doOnQuery(final Command<?> command, final WithDittoHeaders response, final ActorRef sender,
+            final ActorRef self) {
+
         if (response.getDittoHeaders().didLiveChannelConditionMatch()) {
             final var liveChannelTimeoutStrategy = response.getDittoHeaders()
                     .getLiveChannelTimeoutStrategy()
@@ -178,6 +181,8 @@ public final class ThingPersistenceActor
 
         if (command.getDittoHeaders().isResponseRequired()) {
             notifySender(sender, response);
+        } else {
+            sender.tell(StatusReply.ack(), self);
         }
     }
 

@@ -48,9 +48,9 @@ public interface CommandConfig {
 
     /**
      * Returns the timeout used for fire-and-forget commands to wait for enforcement/validation errors before
-     * returning HTTP 202 Accepted. This should be short since enforcement typically completes within milliseconds.
-     * For fire-and-forget commands (timeout=0), the things-service does not send a response on success, so the
-     * gateway waits this duration for potential errors and then optimistically accepts the command.
+     * returning HTTP 202 Accepted. The gateway answers as soon as the entity's supervisor confirms that the command
+     * was accepted. This timeout only applies when no such confirmation arrives, e.g. from an older service during a
+     * rolling update, after which the gateway optimistically accepts the command.
      *
      * @return the fire-and-forget enforcement timeout.
      * @since 3.9.0

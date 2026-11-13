@@ -15,7 +15,9 @@ package org.eclipse.ditto.connectivity.service.messaging.kafka;
 import static org.eclipse.ditto.connectivity.service.placeholders.ConnectivityPlaceholders.newEntityPlaceholder;
 import static org.eclipse.ditto.connectivity.service.placeholders.ConnectivityPlaceholders.newFeaturePlaceholder;
 import static org.eclipse.ditto.connectivity.service.placeholders.ConnectivityPlaceholders.newPolicyPlaceholder;
+import static org.eclipse.ditto.connectivity.service.placeholders.ConnectivityPlaceholders.newSourceAddressPlaceholder;
 import static org.eclipse.ditto.connectivity.service.placeholders.ConnectivityPlaceholders.newThingPlaceholder;
+import static org.eclipse.ditto.placeholders.PlaceholderFactory.newHeadersPlaceholder;
 
 import java.text.MessageFormat;
 import java.util.Collection;
@@ -38,7 +40,6 @@ import org.eclipse.ditto.connectivity.model.Target;
 import org.eclipse.ditto.connectivity.service.config.ConnectivityConfig;
 import org.eclipse.ditto.connectivity.service.messaging.Resolvers;
 import org.eclipse.ditto.connectivity.service.messaging.validation.AbstractProtocolValidator;
-import org.eclipse.ditto.placeholders.PlaceholderFactory;
 import org.eclipse.ditto.placeholders.UnresolvedPlaceholderException;
 
 import org.apache.pekko.actor.ActorSystem;
@@ -105,7 +106,8 @@ public final class KafkaValidator extends AbstractProtocolValidator {
     protected void validateSource(final Source source, final DittoHeaders dittoHeaders,
             final Supplier<String> sourceDescription) {
         source.getEnforcement().ifPresent(enforcement -> {
-            validateTemplate(enforcement.getInput(), dittoHeaders, PlaceholderFactory.newHeadersPlaceholder());
+            validateTemplate(enforcement.getInput(), dittoHeaders, newSourceAddressPlaceholder(),
+                    newHeadersPlaceholder());
             enforcement.getFilters().forEach(filterTemplate ->
                     validateTemplate(filterTemplate, dittoHeaders, newThingPlaceholder(), newPolicyPlaceholder(),
                             newEntityPlaceholder(), newFeaturePlaceholder()));

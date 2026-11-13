@@ -16,6 +16,7 @@ import static org.assertj.core.api.Assertions.fail;
 import static org.eclipse.ditto.things.model.assertions.DittoThingsAssertions.assertThat;
 import static org.mockito.Mockito.when;
 
+import java.lang.reflect.Field;
 import java.time.Instant;
 import java.util.List;
 import java.util.NoSuchElementException;
@@ -32,6 +33,7 @@ import org.apache.pekko.actor.PoisonPill;
 import org.apache.pekko.actor.Props;
 import org.apache.pekko.cluster.pubsub.DistributedPubSubMediator;
 import org.apache.pekko.japi.pf.ReceiveBuilder;
+import org.apache.pekko.pattern.StatusReply;
 import org.apache.pekko.testkit.TestActorRef;
 import org.apache.pekko.testkit.TestProbe;
 import org.apache.pekko.testkit.javadsl.TestKit;
@@ -131,6 +133,7 @@ import org.eclipse.ditto.things.model.signals.events.ThingEvent;
 import org.eclipse.ditto.things.model.signals.events.ThingModified;
 import org.eclipse.ditto.things.service.common.config.DittoThingsConfig;
 import org.eclipse.ditto.things.service.enforcement.TestSetup;
+import org.eclipse.ditto.things.service.persistence.actors.strategies.commands.ThingCommandStrategies;
 import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Rule;
@@ -567,6 +570,58 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
                 expectMsgEquals(ETagTestUtils.retrieveThingResponse(thing, null, dittoHeadersV2));
             }
         };
+    }
+
+    @Test
+    public void mergeThingFilteredOutByPatchConditionsWithoutResponseRequiredIsAcknowledged() throws Exception {
+        // the merge flag is read once, when the JVM-wide ThingCommandStrategies singleton is created
+        resetThingCommandStrategies();
+        TestKit.shutdownActorSystem(actorSystem);
+        setup(ConfigFactory.parseString(
+                        "ditto.things.thing.merge.remove-empty-objects-after-patch-condition-filtering = true")
+                .withValue("pekko.actor.provider",
+                        ConfigValueFactory.fromAnyRef("org.apache.pekko.cluster.ClusterActorRefProvider")));
+        try {
+            final Thing thing = createThingV2WithRandomId().toBuilder()
+                    .setFeature("sensor", ThingsModelFactory.newFeaturePropertiesBuilder()
+                            .set("temperature", 25)
+                            .build())
+                    .build();
+            final ThingId thingId = getIdOrThrow(thing);
+            final JsonObject mergePayload = JsonObject.newBuilder()
+                    .set(JsonPointer.of("features/sensor/properties/temperature"), 30)
+                    .build();
+            final JsonObject patchConditions = JsonObject.newBuilder()
+                    .set("features/sensor/properties/temperature", "lt(features/sensor/properties/temperature,20)")
+                    .build();
+            final MergeThing mergeThing = MergeThing.of(thingId, JsonPointer.empty(), mergePayload,
+                    dittoHeadersV2.toBuilder()
+                            .responseRequired(false)
+                            .putHeader(DittoHeaderDefinition.MERGE_THING_PATCH_CONDITIONS.getKey(),
+                                    patchConditions.toString())
+                            .build());
+
+            new TestKit(actorSystem) {
+                {
+                    final ActorRef underTest = createPersistenceActorFor(thing);
+                    underTest.tell(CreateThing.of(thing, null, dittoHeadersV2), getRef());
+                    expectMsgClass(CreateThingResponse.class);
+
+                    underTest.tell(mergeThing, getRef());
+                    expectMsgEquals(StatusReply.ack());
+
+                    underTest.tell(RetrieveFeatureProperty.of(thingId, "sensor", JsonPointer.of("temperature"),
+                            dittoHeadersV2), getRef());
+                    final RetrieveFeaturePropertyResponse response =
+                            expectMsgClass(RetrieveFeaturePropertyResponse.class);
+                    assertThat(response.getPropertyValue()).isEqualTo(JsonValue.of(25));
+                    assertThat(response.getDittoHeaders().get(DittoHeaderDefinition.ENTITY_REVISION.getKey()))
+                            .isEqualTo("1");
+                }
+            };
+        } finally {
+            resetThingCommandStrategies();
+        }
     }
 
     @Test
@@ -2534,6 +2589,12 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
                 .set(ThingCommand.JsonFields.TYPE, CreateThing.TYPE)
                 .set(CreateThing.JSON_THING, thing.toJson(FieldType.all()))
                 .build();
+    }
+
+    private static void resetThingCommandStrategies() throws ReflectiveOperationException {
+        final Field instance = ThingCommandStrategies.class.getDeclaredField("instance");
+        instance.setAccessible(true);
+        instance.set(null, null);
     }
 
 }

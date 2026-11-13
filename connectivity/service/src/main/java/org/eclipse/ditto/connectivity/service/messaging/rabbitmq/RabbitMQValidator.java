@@ -15,7 +15,9 @@ package org.eclipse.ditto.connectivity.service.messaging.rabbitmq;
 import static org.eclipse.ditto.connectivity.service.placeholders.ConnectivityPlaceholders.newEntityPlaceholder;
 import static org.eclipse.ditto.connectivity.service.placeholders.ConnectivityPlaceholders.newFeaturePlaceholder;
 import static org.eclipse.ditto.connectivity.service.placeholders.ConnectivityPlaceholders.newPolicyPlaceholder;
+import static org.eclipse.ditto.connectivity.service.placeholders.ConnectivityPlaceholders.newSourceAddressPlaceholder;
 import static org.eclipse.ditto.connectivity.service.placeholders.ConnectivityPlaceholders.newThingPlaceholder;
+import static org.eclipse.ditto.placeholders.PlaceholderFactory.newHeadersPlaceholder;
 
 import java.util.Collection;
 import java.util.List;
@@ -31,7 +33,6 @@ import org.eclipse.ditto.connectivity.model.Target;
 import org.eclipse.ditto.connectivity.service.config.ConnectivityConfig;
 import org.eclipse.ditto.connectivity.service.messaging.Resolvers;
 import org.eclipse.ditto.connectivity.service.messaging.validation.AbstractProtocolValidator;
-import org.eclipse.ditto.placeholders.PlaceholderFactory;
 
 import org.apache.pekko.actor.ActorSystem;
 
@@ -58,7 +59,8 @@ public final class RabbitMQValidator extends AbstractProtocolValidator {
             final Supplier<String> sourceDescription) {
 
         source.getEnforcement().ifPresent(enforcement -> {
-            validateTemplate(enforcement.getInput(), dittoHeaders, PlaceholderFactory.newHeadersPlaceholder());
+            validateTemplate(enforcement.getInput(), dittoHeaders,
+                    newHeadersPlaceholder(), newSourceAddressPlaceholder());
             enforcement.getFilters().forEach(filterTemplate ->
                     validateTemplate(filterTemplate, dittoHeaders, newThingPlaceholder(),
                             newPolicyPlaceholder(), newEntityPlaceholder(), newFeaturePlaceholder()));
@@ -89,4 +91,5 @@ public final class RabbitMQValidator extends AbstractProtocolValidator {
         validateTargetConfigs(connection, dittoHeaders);
         validatePayloadMappings(connection, actorSystem, connectivityConfig, dittoHeaders);
     }
+
 }

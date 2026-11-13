@@ -98,6 +98,19 @@ public final class HeaderTranslatorTest {
     }
 
     @Test
+    public void replySignalAcceptedHeaderIsNeitherReadFromNorWrittenToExternalHeaders() {
+        final String key = DittoHeaderDefinition.REPLY_SIGNAL_ACCEPTED.getKey();
+        final Map<String, String> externalHeaders = new HashMap<>();
+        externalHeaders.put(key, "true");
+        externalHeaders.put(key.toUpperCase(), "true");
+
+        final HeaderTranslator underTest = HeaderTranslator.of(DittoHeaderDefinition.values());
+
+        assertThat(underTest.fromExternalHeaders(externalHeaders)).isEmpty();
+        assertThat(underTest.toExternalHeaders(DittoHeaders.newBuilder().putHeader(key, "true").build())).isEmpty();
+    }
+
+    @Test
     public void testReadExternalAllowedHeader() {
         final HeaderTranslator underTest = HeaderTranslator.of(DittoHeaderDefinition.values());
 

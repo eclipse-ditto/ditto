@@ -17,6 +17,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -35,6 +36,7 @@ import org.apache.pekko.actor.ActorSystem;
 import org.apache.pekko.actor.Props;
 import org.apache.pekko.actor.Status;
 import org.apache.pekko.pattern.CircuitBreakerOpenException;
+import org.apache.pekko.pattern.StatusReply;
 import org.apache.pekko.testkit.TestActorRef;
 import org.apache.pekko.testkit.TestProbe;
 import org.apache.pekko.testkit.javadsl.TestKit;
@@ -52,6 +54,7 @@ import org.eclipse.ditto.base.model.signals.commands.streaming.SubscribeForPersi
 import org.eclipse.ditto.base.model.signals.events.Event;
 import org.eclipse.ditto.base.service.actors.ShutdownBehaviour;
 import org.eclipse.ditto.base.service.config.supervision.DefaultLocalAskTimeoutConfig;
+import org.eclipse.ditto.internal.utils.cluster.SignalAccepted;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.internal.utils.persistence.mongo.streaming.MongoReadJournal;
 import org.eclipse.ditto.internal.utils.persistentactors.AbstractPersistenceSupervisor;
@@ -259,6 +262,24 @@ public final class PolicyCommandEnforcementTest {
 
             expectMsgClass(PolicyNotAccessibleException.class);
             policyPersistenceActorProbe.expectNoMessage();
+        }};
+    }
+
+    @Test
+    public void fireAndForgetModifyPolicyIsAnsweredWithSignalAcceptedAfterPersistenceAck() {
+        new TestKit(system) {{
+            mockDefaultPolicyEnforcerResponse();
+
+            supervisor.tell(ModifyPolicy.of(POLICY_ID, POLICY, fireAndForgetHeaders()), getRef());
+
+            final ModifyPolicy forwarded = policyPersistenceActorProbe.expectMsgClass(ModifyPolicy.class);
+            assertThat(forwarded.getDittoHeaders())
+                    .doesNotContainKey(DittoHeaderDefinition.REPLY_SIGNAL_ACCEPTED.getKey());
+            expectNoMessage(Duration.ofMillis(200));
+
+            policyPersistenceActorProbe.reply(StatusReply.ack());
+            expectMsgClass(SignalAccepted.class);
+            expectNoMessage();
         }};
     }
 
@@ -776,6 +797,13 @@ public final class PolicyCommandEnforcementTest {
         assertThat((CharSequence) actual.getEntityId()).isEqualTo(expected.getEntityId());
         DittoJsonAssertions.assertThat(actual.getEntity()).hasJsonString(expected.getEntity().toString());
         assertThat(actual.getDittoHeaders()).isEqualTo(expected.getDittoHeaders());
+    }
+
+    private static DittoHeaders fireAndForgetHeaders() {
+        return DITTO_HEADERS.toBuilder()
+                .responseRequired(false)
+                .putHeader(DittoHeaderDefinition.REPLY_SIGNAL_ACCEPTED.getKey(), Boolean.TRUE.toString())
+                .build();
     }
 
     private void mockDefaultPolicyEnforcerResponse() {
