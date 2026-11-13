@@ -149,4 +149,42 @@ public final class JitteredWriteExpiryTest {
         assertThat(underTest.getTrackedEntriesCount()).isZero();
     }
 
+    @Test
+    public void asyncCaffeineCacheStartsWriteExpiryWhenLoadCompletesAfterGet() {
+        random.set(0.0); // write deadline 19.2h after the load completed
+        final AtomicLong ticker = new AtomicLong();
+        final AtomicInteger loads = new AtomicInteger();
+        final CompletableFuture<Object> pendingLoad = new CompletableFuture<>();
+        final AsyncLoadingCache<String, Object> cache = Caffeine.newBuilder()
+                .ticker(ticker::get)
+                .executor(Runnable::run)
+                .expireAfter(underTest)
+                .removalListener((String key, Object value, RemovalCause cause) -> underTest.onRemoval(key, value))
+                .buildAsync((key, executor) -> {
+                    if (loads.incrementAndGet() == 1) {
+                        return pendingLoad;
+                    }
+                    return CompletableFuture.completedFuture(new Object());
+                });
+
+        final CompletableFuture<Object> firstGet = cache.get(KEY);
+        assertThat(firstGet).isNotDone();
+        assertThat(underTest.getTrackedEntriesCount()).isZero();
+
+        ticker.set(HOUR);
+        final Object first = new Object();
+        pendingLoad.complete(first);
+        assertThat(firstGet.join()).isSameAs(first);
+        assertThat(underTest.getTrackedEntriesCount()).isOne();
+
+        // prolonged on access up to the write deadline at 20.2h
+        for (long hour = 2; hour <= 20; hour++) {
+            ticker.set(hour * HOUR);
+            assertThat(cache.get(KEY).join()).as("hour %d", hour).isSameAs(first);
+        }
+        ticker.set(Math.round(20.3 * HOUR));
+        assertThat(cache.get(KEY).join()).isNotSameAs(first);
+        assertThat(loads).hasValue(2);
+    }
+
 }

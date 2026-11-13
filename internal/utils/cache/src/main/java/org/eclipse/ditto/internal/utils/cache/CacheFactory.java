@@ -20,6 +20,8 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.internal.utils.cache.config.CacheConfig;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.github.benmanes.caffeine.cache.AsyncCacheLoader;
 import com.github.benmanes.caffeine.cache.Caffeine;
@@ -30,6 +32,8 @@ import com.github.benmanes.caffeine.cache.Expiry;
  */
 @Immutable
 public final class CacheFactory {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(CacheFactory.class);
 
     private CacheFactory() {
         throw new AssertionError();
@@ -49,7 +53,7 @@ public final class CacheFactory {
     public static <K, V> Cache<K, V> createCache(final CacheConfig cacheConfig, @Nullable final String cacheName,
             final Executor executor) {
 
-        return CaffeineCache.of(caffeine(cacheConfig, executor), cacheName);
+        return CaffeineCache.of(caffeine(cacheConfig, cacheName, executor), cacheName);
     }
 
     /**
@@ -71,7 +75,7 @@ public final class CacheFactory {
 
         checkNotNull(cacheLoader, "AsyncCacheLoader");
 
-        return CaffeineCache.of(caffeine(cacheConfig, executor), cacheLoader, cacheName);
+        return CaffeineCache.of(caffeine(cacheConfig, cacheName, executor), cacheLoader, cacheName);
     }
 
     /**
@@ -94,10 +98,11 @@ public final class CacheFactory {
             final Executor executor) {
         checkNotNull(cacheLoader, "cacheLoader");
         checkNotNull(expiry, "expiry");
-        return CaffeineCache.of(caffeine(cacheConfig, executor, expiry), cacheLoader, cacheName);
+        return CaffeineCache.of(caffeine(cacheConfig, cacheName, executor, expiry), cacheLoader, cacheName);
     }
 
-    private static Caffeine<Object, Object> caffeine(final CacheConfig cacheConfig, final Executor executor) {
+    private static Caffeine<Object, Object> caffeine(final CacheConfig cacheConfig, @Nullable final String cacheName,
+            final Executor executor) {
         checkNotNull(cacheConfig, "CacheConfig");
         checkNotNull(executor, "Executor");
 
@@ -105,6 +110,7 @@ public final class CacheFactory {
         caffeine.maximumSize(cacheConfig.getMaximumSize());
 
         if (!cacheConfig.getExpireAfterCreate().isZero()) {
+            warnIfJitterIsIgnored(cacheConfig, cacheName, "expire-after-create is configured");
             // special case "expire-after-create" needs the following API invocation of Caffeine:
             caffeine.expireAfter(new Expiry<Object, Object>() {
                 @Override
@@ -139,17 +145,27 @@ public final class CacheFactory {
         return caffeine;
     }
 
-    private static Caffeine<Object, Object> caffeine(final CacheConfig cacheConfig, final Executor executor,
-            final Expiry<?, ?> expiry) {
+    private static Caffeine<Object, Object> caffeine(final CacheConfig cacheConfig, @Nullable final String cacheName,
+            final Executor executor, final Expiry<?, ?> expiry) {
         checkNotNull(cacheConfig, "CacheConfig");
         checkNotNull(executor, "Executor");
         checkNotNull(expiry, "expiry");
+        warnIfJitterIsIgnored(cacheConfig, cacheName, "a custom expiry is used");
 
         final Caffeine<Object, Object> caffeine = Caffeine.newBuilder();
         caffeine.maximumSize(cacheConfig.getMaximumSize());
         caffeine.expireAfter(expiry);
         caffeine.executor(executor);
         return caffeine;
+    }
+
+    private static void warnIfJitterIsIgnored(final CacheConfig cacheConfig, @Nullable final String cacheName,
+            final String reason) {
+
+        if (cacheConfig.getExpireAfterWriteJitter() > 0.0) {
+            LOGGER.warn("Ignoring the configured expire-after-write-jitter <{}> of cache <{}> as {}.",
+                    cacheConfig.getExpireAfterWriteJitter(), cacheName, reason);
+        }
     }
 
 }
