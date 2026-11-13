@@ -12,7 +12,12 @@
  */
 package org.eclipse.ditto.base.service.config.supervision;
 
+import java.time.Duration;
+
+import org.assertj.core.api.Assertions;
 import org.junit.Test;
+
+import com.typesafe.config.ConfigFactory;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
 
@@ -23,8 +28,24 @@ public final class DefaultSupervisorConfigTest {
 
     @Test
     public void testHashCodeAndEquals() {
-        EqualsVerifier.forClass(DefaultExponentialBackOffConfig.class)
+        EqualsVerifier.forClass(DefaultSupervisorConfig.class)
                 .usingGetClass()
                 .verify();
     }
+
+    @Test
+    public void shutdownTimeoutDefaultsTo12Seconds() {
+        final DefaultSupervisorConfig underTest = DefaultSupervisorConfig.of(ConfigFactory.empty());
+
+        Assertions.assertThat(underTest.getShutdownTimeout()).isEqualTo(Duration.ofSeconds(12));
+    }
+
+    @Test
+    public void shutdownTimeoutIsReadFromSupervisorConfig() {
+        final DefaultSupervisorConfig underTest =
+                DefaultSupervisorConfig.of(ConfigFactory.parseString("supervisor.shutdown-timeout = 7s"));
+
+        Assertions.assertThat(underTest.getShutdownTimeout()).isEqualTo(Duration.ofSeconds(7));
+    }
+
 }

@@ -12,11 +12,12 @@
  */
 package org.eclipse.ditto.base.service.config.supervision;
 
+import java.time.Duration;
 import java.util.Objects;
 
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
+import org.eclipse.ditto.internal.utils.config.ConfigWithFallback;
 import org.eclipse.ditto.internal.utils.config.ScopedConfig;
 
 import com.typesafe.config.Config;
@@ -31,11 +32,14 @@ public final class DefaultSupervisorConfig implements SupervisorConfig {
 
     private final ExponentialBackOffConfig exponentialBackOffConfig;
     private final DefaultLocalAskTimeoutConfig localAskTimeoutConfig;
+    private final Duration shutdownTimeout;
 
     private DefaultSupervisorConfig(final ExponentialBackOffConfig theExponentialBackOffConfig,
-            final DefaultLocalAskTimeoutConfig theLocalAskTimeoutConfig) {
+            final DefaultLocalAskTimeoutConfig theLocalAskTimeoutConfig,
+            final Duration theShutdownTimeout) {
         exponentialBackOffConfig = theExponentialBackOffConfig;
         localAskTimeoutConfig = theLocalAskTimeoutConfig;
+        shutdownTimeout = theShutdownTimeout;
     }
 
     /**
@@ -46,10 +50,12 @@ public final class DefaultSupervisorConfig implements SupervisorConfig {
      * @throws org.eclipse.ditto.internal.utils.config.DittoConfigError if {@code config} is invalid.
      */
     public static DefaultSupervisorConfig of(final Config config) {
-        final ScopedConfig supervisorScopedConfig = DefaultScopedConfig.newInstance(config, CONFIG_PATH);
+        final ScopedConfig supervisorScopedConfig =
+                ConfigWithFallback.newInstance(config, CONFIG_PATH, SupervisorConfigValue.values());
 
         return new DefaultSupervisorConfig(DefaultExponentialBackOffConfig.of(supervisorScopedConfig),
-                DefaultLocalAskTimeoutConfig.of(supervisorScopedConfig));
+                DefaultLocalAskTimeoutConfig.of(supervisorScopedConfig),
+                supervisorScopedConfig.getNonNegativeAndNonZeroDurationOrThrow(SupervisorConfigValue.SHUTDOWN_TIMEOUT));
     }
 
     @Override
@@ -63,6 +69,11 @@ public final class DefaultSupervisorConfig implements SupervisorConfig {
     }
 
     @Override
+    public Duration getShutdownTimeout() {
+        return shutdownTimeout;
+    }
+
+    @Override
     public boolean equals(final Object o) {
         if (this == o) {
             return true;
@@ -72,18 +83,22 @@ public final class DefaultSupervisorConfig implements SupervisorConfig {
         }
         final DefaultSupervisorConfig that = (DefaultSupervisorConfig) o;
 
-        return Objects.equals(exponentialBackOffConfig, that.exponentialBackOffConfig);
+        return Objects.equals(exponentialBackOffConfig, that.exponentialBackOffConfig) &&
+                Objects.equals(localAskTimeoutConfig, that.localAskTimeoutConfig) &&
+                Objects.equals(shutdownTimeout, that.shutdownTimeout);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(exponentialBackOffConfig);
+        return Objects.hash(exponentialBackOffConfig, localAskTimeoutConfig, shutdownTimeout);
     }
 
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
                 "exponentialBackOffConfig=" + exponentialBackOffConfig +
+                ", localAskTimeoutConfig=" + localAskTimeoutConfig +
+                ", shutdownTimeout=" + shutdownTimeout +
                 "]";
     }
 

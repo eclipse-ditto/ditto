@@ -15,6 +15,7 @@ package org.eclipse.ditto.policies.service.common.config;
 import java.time.Duration;
 
 import org.assertj.core.api.JUnitSoftAssertions;
+import org.eclipse.ditto.base.service.config.supervision.SupervisorConfig;
 import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
@@ -61,6 +62,10 @@ public final class DefaultPolicyConfigTest {
         softly.assertThat(underTest.getSubjectIdResolver())
                 .as(PolicyConfig.PolicyConfigValue.SUBJECT_ID_RESOLVER.getConfigPath())
                 .isEqualTo(PolicyConfig.PolicyConfigValue.SUBJECT_ID_RESOLVER.getDefaultValue());
+
+        softly.assertThat(underTest.getSupervisorConfig().getShutdownTimeout())
+                .as("supervisor." + SupervisorConfig.SupervisorConfigValue.SHUTDOWN_TIMEOUT.getConfigPath())
+                .isEqualTo(Duration.ofSeconds(12L));
     }
 
     @Test
@@ -82,6 +87,27 @@ public final class DefaultPolicyConfigTest {
         softly.assertThat(underTest.getPolicyAnnouncementConfig())
                 .as(DefaultPolicyAnnouncementConfig.CONFIG_PATH)
                 .isEqualTo(PolicyAnnouncementConfig.of(ConfigFactory.load("policy-announcement-config-test.conf")));
+
+        softly.assertThat(underTest.getSupervisorConfig().getShutdownTimeout())
+                .as("supervisor." + SupervisorConfig.SupervisorConfigValue.SHUTDOWN_TIMEOUT.getConfigPath())
+                .isEqualTo(Duration.ofSeconds(9L));
+    }
+
+    @Test
+    public void shippedConfigDefinesSupervisorShutdownTimeoutWithEnvironmentOverride() {
+        final Config shipped = ConfigFactory.parseResources("policies.conf");
+
+        final DefaultPolicyConfig defaults = DefaultPolicyConfig.of(shipped.resolve().getConfig("ditto.policies"));
+        softly.assertThat(defaults.getSupervisorConfig().getShutdownTimeout())
+                .as("default supervisor shutdown-timeout")
+                .isEqualTo(Duration.ofSeconds(12L));
+
+        final Config environmentOverride = ConfigFactory.parseString("POLICY_SUPERVISOR_SHUTDOWN_TIMEOUT = 7s");
+        final DefaultPolicyConfig overridden =
+                DefaultPolicyConfig.of(environmentOverride.withFallback(shipped).resolve().getConfig("ditto.policies"));
+        softly.assertThat(overridden.getSupervisorConfig().getShutdownTimeout())
+                .as("POLICY_SUPERVISOR_SHUTDOWN_TIMEOUT")
+                .isEqualTo(Duration.ofSeconds(7L));
     }
 
 }

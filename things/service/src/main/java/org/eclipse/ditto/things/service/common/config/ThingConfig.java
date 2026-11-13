@@ -12,7 +12,6 @@
  */
 package org.eclipse.ditto.things.service.common.config;
 
-import java.time.Duration;
 import java.util.List;
 
 import javax.annotation.concurrent.Immutable;
@@ -46,13 +45,6 @@ public interface ThingConfig extends WithSupervisorConfig, WithActivityCheckConf
     ThingMessageConfig getMessageConfig();
 
     /**
-     * Get the timeout waiting for responses and acknowledgements during coordinated shutdown.
-     *
-     * @return The timeout.
-     */
-    Duration getShutdownTimeout();
-
-    /**
      * Returns the list of namespace-specific activity check configurations.
      * These allow different passivation intervals to be configured for things in specific namespaces.
      *
@@ -74,11 +66,6 @@ public interface ThingConfig extends WithSupervisorConfig, WithActivityCheckConf
      * An enumeration of the known config path expressions and their associated default values for {@code ThingConfig}.
      */
     enum ConfigValue implements KnownConfigValue {
-
-        /**
-         * Timeout waiting for responses and acknowledgements during coordinated shutdown.
-         */
-        SHUTDOWN_TIMEOUT("shutdown-timeout", Duration.ofSeconds(3)),
 
         /**
          * Determines whether to remove empty JSON objects from merge payloads when patch conditions filter out all content.

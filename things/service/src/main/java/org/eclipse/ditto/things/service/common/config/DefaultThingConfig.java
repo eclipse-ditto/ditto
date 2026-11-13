@@ -12,7 +12,6 @@
  */
 package org.eclipse.ditto.things.service.common.config;
 
-import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -43,7 +42,6 @@ public final class DefaultThingConfig implements ThingConfig {
     private static final String CONFIG_PATH = "thing";
     private static final String NAMESPACE_ACTIVITY_CHECK_CONFIG_PATH = "namespace-activity-check";
 
-    private final Duration shutdownTimeout;
     private final SupervisorConfig supervisorConfig;
     private final ActivityCheckConfig activityCheckConfig;
     private final List<NamespaceActivityCheckConfig> namespaceActivityCheckConfigs;
@@ -54,7 +52,6 @@ public final class DefaultThingConfig implements ThingConfig {
     private final boolean mergeRemoveEmptyObjectsAfterPatchConditionFiltering;
 
     private DefaultThingConfig(final ScopedConfig scopedConfig) {
-        shutdownTimeout = scopedConfig.getDuration(ConfigValue.SHUTDOWN_TIMEOUT.getConfigPath());
         supervisorConfig = DefaultSupervisorConfig.of(scopedConfig);
         activityCheckConfig = DefaultActivityCheckConfig.of(scopedConfig);
         namespaceActivityCheckConfigs = loadNamespaceActivityCheckConfigs(scopedConfig);
@@ -126,11 +123,6 @@ public final class DefaultThingConfig implements ThingConfig {
     }
 
     @Override
-    public Duration getShutdownTimeout() {
-        return shutdownTimeout;
-    }
-
-    @Override
     public List<NamespaceActivityCheckConfig> getNamespaceActivityCheckConfigs() {
         return namespaceActivityCheckConfigs;
     }
@@ -150,7 +142,6 @@ public final class DefaultThingConfig implements ThingConfig {
                 Objects.equals(snapshotConfig, that.snapshotConfig) &&
                 Objects.equals(eventConfig, that.eventConfig) &&
                 Objects.equals(cleanupConfig, that.cleanupConfig) &&
-                Objects.equals(shutdownTimeout, that.shutdownTimeout) &&
                 mergeRemoveEmptyObjectsAfterPatchConditionFiltering ==
                         that.mergeRemoveEmptyObjectsAfterPatchConditionFiltering;
     }
@@ -158,7 +149,7 @@ public final class DefaultThingConfig implements ThingConfig {
     @Override
     public int hashCode() {
         return Objects.hash(supervisorConfig, activityCheckConfig, namespaceActivityCheckConfigs, snapshotConfig,
-                eventConfig, messageConfig, cleanupConfig, shutdownTimeout,
+                eventConfig, messageConfig, cleanupConfig,
                 mergeRemoveEmptyObjectsAfterPatchConditionFiltering);
     }
 
@@ -172,7 +163,6 @@ public final class DefaultThingConfig implements ThingConfig {
                 ", eventConfig=" + eventConfig +
                 ", messageConfig=" + messageConfig +
                 ", cleanupConfig=" + cleanupConfig +
-                ", shutdownTimeout=" + shutdownTimeout +
                 ", mergeRemoveEmptyObjectsAfterPatchConditionFiltering=" +
                 mergeRemoveEmptyObjectsAfterPatchConditionFiltering +
                 "]";

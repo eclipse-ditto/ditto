@@ -46,7 +46,6 @@ import org.eclipse.ditto.base.model.auth.DittoAuthorizationContextType;
 import org.eclipse.ditto.base.model.entity.Revision;
 import org.eclipse.ditto.base.model.entity.metadata.Metadata;
 import org.eclipse.ditto.base.model.entity.metadata.MetadataModelFactory;
-import org.eclipse.ditto.base.model.exceptions.DittoInternalErrorException;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
@@ -85,8 +84,6 @@ import org.eclipse.ditto.policies.model.signals.commands.modify.CreatePolicyResp
 import org.eclipse.ditto.policies.model.signals.commands.modify.DeletePolicy;
 import org.eclipse.ditto.policies.model.signals.commands.modify.DeletePolicyResponse;
 import org.eclipse.ditto.things.api.Permission;
-import org.eclipse.ditto.things.api.commands.sudo.SudoRetrieveThing;
-import org.eclipse.ditto.things.api.commands.sudo.SudoRetrieveThingResponse;
 import org.eclipse.ditto.things.model.Attributes;
 import org.eclipse.ditto.things.model.Feature;
 import org.eclipse.ditto.things.model.FeatureDefinition;
@@ -140,6 +137,7 @@ import org.eclipse.ditto.things.service.common.config.DittoThingsConfig;
 import org.eclipse.ditto.things.service.enforcement.TestSetup;
 import org.junit.Before;
 import org.junit.ClassRule;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestWatcher;
@@ -1098,7 +1096,7 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
     }
 
     @Test
-    public void     responsesDuringInitializationAreSentWithDittoHeaders() {
+    public void responsesDuringInitializationAreSentWithDittoHeaders() {
         new TestKit(actorSystem) {
             {
                 final ThingId thingId = ThingId.of("org.eclipse.ditto", "myThing");
@@ -2495,13 +2493,26 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
                 .build();
     }
 
-    // region #2599 passivation race regression tests
+    // region #2599 deferred stop on passivation
 
     /**
-     * Regression for <a href="https://github.com/eclipse-ditto/ditto/issues/2599">#2599</a>:
-     * when idle, {@code passivate} must forward
-     * {@link ShardRegion.Passivate} carrying a {@link StopShardedActor} so the existing
-     * {@code stopShardedActor} handler drives the shutdown.
+     * Upper bound for the supervisor to terminate in the deterministic tests below. Deliberately shorter than the
+     * supervisor {@code shutdown-timeout} in {@code thing-test.conf} (5s), so that the shutdown timer cannot hide a
+     * deferred stop that never completes on its own.
+     */
+    private static final java.time.Duration STOP_TIMEOUT = java.time.Duration.ofSeconds(3);
+
+    /**
+     * System property read by the delay which has to be inserted manually into
+     * {@code ThingSupervisorActor#modifyTargetActorCommandResponse} to run the race reproducers below (see the Javadoc
+     * of {@link #passivationRaceWithMailboxQueuedModifyDoesNotLoseResponseOfPersistedWrite()}).
+     */
+    private static final String DIAG_RESPONSE_DELAY_PROPERTY = "ditto.diag.2599.response-delay-ms";
+
+    /**
+     * Regression for <a href="https://github.com/eclipse-ditto/ditto/issues/2599">#2599</a>: passivation asks the
+     * shard region for a {@link StopShardedActor} instead of a {@link PoisonPill}, so that the deferred stop in
+     * {@code AbstractPersistenceSupervisor#stopShardedActor} handles it. An idle supervisor stops right away.
      */
     @Test
     public void passivateIsForwardedToShardRegionParentWhenIdle() {
@@ -2513,560 +2524,353 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
             underTest.tell(AbstractPersistenceSupervisor.Control.PASSIVATE, ActorRef.noSender());
 
             final ShardRegion.Passivate passivate = expectMsgClass(ShardRegion.Passivate.class);
-            Assertions.assertThat(passivate.stopMessage())
-                    .isInstanceOf(StopShardedActor.class);
+            Assertions.assertThat(passivate.stopMessage()).isInstanceOf(StopShardedActor.class);
 
             underTest.tell(passivate.stopMessage(), ActorRef.noSender());
-            expectTerminated(underTest);
+            expectTerminated(STOP_TIMEOUT, underTest);
         }};
     }
 
     /**
-     * Regression for <a href="https://github.com/eclipse-ditto/ditto/issues/2599">#2599</a>:
-     * when PASSIVATE arrives while an op is in flight, the supervisor must still deliver the
-     * op's response before stopping. The TestKit parent plays the shard region: it echoes the
-     * {@link StopShardedActor} back so {@code stopShardedActor} defers the stop until both
-     * counters reach zero.
+     * An op in flight when the stop message arrives completes and its response is delivered before the supervisor
+     * stops. The op is held in enforcement by a policy enforcer future which only the test completes.
      */
     @Test
-    public void passivateDuringOngoingOpsShouldNotShutdownActor() {
-        final Policy inlinePolicy = PoliciesModelFactory.newPolicyBuilder(POLICY_ID)
-                .setRevision(1L)
-                .forLabel("authorize-self")
-                .setSubject(SubjectIssuer.newInstance("test"), AUTH_SUBJECT)
-                .setGrantedPermissions(PoliciesResourceType.thingResource(JsonPointer.empty()),
-                        Permissions.newInstance(Permission.READ, Permission.WRITE))
-                .setGrantedPermissions(PoliciesResourceType.policyResource(JsonPointer.empty()),
-                        Permissions.newInstance(Permission.READ, Permission.WRITE))
-                .build();
-        final CreatePolicyResponse createPolicyResponse =
-                CreatePolicyResponse.of(POLICY_ID, inlinePolicy, DittoHeaders.empty());
-        when(policyEnforcerProvider.getPolicyEnforcer(POLICY_ID))
-                .thenReturn(CompletableFuture.completedFuture(Optional.of(PolicyEnforcer.of(inlinePolicy))));
+    public void passivateDefersStopUntilInFlightOpCompleted() {
+        final Policy inlinePolicy = selfAuthorizingInlinePolicy();
+        stubPolicyEnforcer(inlinePolicy);
 
         new TestKit(actorSystem) {{
             final Thing thing = createThingV2WithRandomId();
             final ThingId thingId = getIdOrThrow(thing);
             final ActorRef underTest = watch(childActorOf(supervisorPropsFor(thingId), thingId.toString()));
+            createThingWithInlinePolicy(underTest, thing, inlinePolicy, this);
 
-            final CreateThing createThing =
-                    CreateThing.of(thing, inlinePolicy.toJson(FieldType.all()), dittoHeadersV2);
-            underTest.tell(createThing, getRef());
-            policiesShardRegionTestProbe.expectMsgClass(CreatePolicy.class);
-            policiesShardRegionTestProbe.reply(createPolicyResponse);
-            expectMsgClass(CreateThingResponse.class);
-
-            // Per-call delayed stub: thenAnswer(inv -> supplyAsync(...)) so each invocation
-            // restarts its own delay. thenReturn would bind to a single already-running
-            // CompletionStage shared across calls.
-            final long policyDelayMillis = 1000L;
-            when(policyEnforcerProvider.getPolicyEnforcer(POLICY_ID))
-                    .thenAnswer(_ -> CompletableFuture.supplyAsync(() -> {
-                        try {
-                            Thread.sleep(policyDelayMillis);
-                        } catch (final InterruptedException e) {
-                            Thread.currentThread().interrupt();
-                        }
-                        return Optional.of(PolicyEnforcer.of(inlinePolicy));
-                    }));
-
-            final RetrieveThing retrieveThing = RetrieveThing.of(thingId, dittoHeadersV2);
-            underTest.tell(retrieveThing, getRef());
+            final CompletableFuture<Optional<PolicyEnforcer>> enforcementGate = gatePolicyEnforcer();
+            underTest.tell(RetrieveThing.of(thingId, dittoHeadersV2), getRef());
             underTest.tell(AbstractPersistenceSupervisor.Control.PASSIVATE, ActorRef.noSender());
 
             final ShardRegion.Passivate passivate = expectMsgClass(ShardRegion.Passivate.class);
-            Assertions.assertThat(passivate.stopMessage())
-                    .as("passivate must carry a StopShardedActor so the deferred-stop handler runs")
-                    .isInstanceOf(StopShardedActor.class);
+            Assertions.assertThat(passivate.stopMessage()).isInstanceOf(StopShardedActor.class);
             underTest.tell(passivate.stopMessage(), ActorRef.noSender());
 
-            final scala.concurrent.duration.FiniteDuration responseTimeout =
-                    scala.concurrent.duration.FiniteDuration.create(policyDelayMillis + 3_000L, TimeUnit.MILLISECONDS);
-            expectMsgClass(responseTimeout, RetrieveThingResponse.class);
+            // the op is held in enforcement, so the supervisor must neither respond nor terminate yet
+            expectNoMessage(java.time.Duration.ofMillis(500));
 
-            expectTerminated(underTest);
+            enforcementGate.complete(Optional.of(PolicyEnforcer.of(inlinePolicy)));
+            expectMsgClass(RetrieveThingResponse.class);
+            expectTerminated(STOP_TIMEOUT, underTest);
         }};
     }
 
     /**
-     * Regression for <a href="https://github.com/eclipse-ditto/ditto/issues/2599">#2599</a>
-     * Finding 4: a signal queued immediately after PASSIVATE used to race the parent-side
-     * stop message; its enforcement continuation reached
-     * {@link org.eclipse.ditto.internal.utils.persistentactors.AbstractPersistenceSupervisor}
-     * after the materializer had been shut down and the client saw
-     * {@link DittoInternalErrorException} even though the event was already persisted.
-     * Forwarding a {@link StopShardedActor} (handled by {@code stopShardedActor} with a
-     * deferred stop) removes the race — every iteration must see the response.
-     * <p>
-     * Race-window knob (only if the test becomes flaky; not needed for the committed test).
-     * In {@code org.eclipse.ditto.things.service.persistence.actors.ThingSupervisorActor#modifyTargetActorCommandResponse},
-     * insert the sleep as the first statement of the method body — between the opening
-     * brace of
-     * <pre>{@code
-     * protected CompletionStage<Object> modifyTargetActorCommandResponse(final Signal<?> enforcedSignal,
-     *         final Object persistenceCommandResponse) {
-     * }</pre>
-     * and the existing
-     * <pre>{@code
-     *     return Source.single(new CommandResponsePair<Signal<?>, Object>(enforcedSignal, persistenceCommandResponse))
-     * }</pre>
-     * add:
-     * <pre>{@code
-     *     final long delay = Long.getLong("ditto.diag.2599.response-delay-ms", 0L);
-     *     if (delay > 0L) {
-     *         try { Thread.sleep(delay); } catch (InterruptedException ie) { Thread.currentThread().interrupt(); }
-     *     }
-     * }</pre>
-     * In the test body, {@code System.setProperty("ditto.diag.2599.response-delay-ms", "1500")}
-     * before telling PASSIVATE and {@code System.clearProperty(...)} in a {@code finally}.
-     * Remove the sleep after use.
+     * A twin signal stashed behind an in-flight twin op is processed before the deferred stop completes. Before the
+     * fix, the supervisor unstashed it and stopped in the same message, so the signal went to dead letters.
      */
     @Test
-    public void passivatePoisonPillRacesWithMailboxQueuedSignal() {
-        final Policy inlinePolicy = PoliciesModelFactory.newPolicyBuilder(POLICY_ID)
-                .setRevision(1L)
-                .forLabel("authorize-self")
-                .setSubject(SubjectIssuer.newInstance("test"), AUTH_SUBJECT)
-                .setGrantedPermissions(PoliciesResourceType.thingResource(JsonPointer.empty()),
-                        Permissions.newInstance(Permission.READ, Permission.WRITE))
-                .setGrantedPermissions(PoliciesResourceType.policyResource(JsonPointer.empty()),
-                        Permissions.newInstance(Permission.READ, Permission.WRITE))
-                .build();
-        final CreatePolicyResponse createPolicyResponse =
-                CreatePolicyResponse.of(POLICY_ID, inlinePolicy, DittoHeaders.empty());
-        when(policyEnforcerProvider.getPolicyEnforcer(POLICY_ID))
-                .thenReturn(CompletableFuture.completedFuture(Optional.of(PolicyEnforcer.of(inlinePolicy))));
-
-        final int retrieveIterations = 5;
-        final long responseDelayMillis = 1_500L;
-        // Pause between observing ShardRegion.Passivate and echoing StopShardedActor back.
-        final long stopMessageDelayMillis = 400L;
-        final scala.concurrent.duration.FiniteDuration setupTimeout =
-                scala.concurrent.duration.FiniteDuration.create(15, TimeUnit.SECONDS);
-        final scala.concurrent.duration.FiniteDuration responseTimeout =
-                scala.concurrent.duration.FiniteDuration.create(responseDelayMillis + 5_000L, TimeUnit.MILLISECONDS);
-
-        new TestKit(actorSystem) {{
-            final List<String> raceReport = new java.util.ArrayList<>();
-            for (int i = 0; i < retrieveIterations; i++) {
-                final Thing thing = createThingV2WithRandomId();
-                final ThingId thingId = getIdOrThrow(thing);
-                final JsonPointer okPointer = JsonPointer.of("okAttr" + i);
-                final JsonValue okValue = JsonFactory.newValue("ok-value-" + i);
-                final JsonPointer attrPointer = JsonPointer.of("raceAttr" + i);
-                final JsonValue attrValue = JsonFactory.newValue("value-" + i);
-
-                when(policyEnforcerProvider.getPolicyEnforcer(POLICY_ID))
-                        .thenReturn(CompletableFuture.completedFuture(Optional.of(PolicyEnforcer.of(inlinePolicy))));
-
-                // Per-iteration sender probe so late responses from a previous iteration do not
-                // pollute the main TestKit inbox and trip the next iteration's childActorOf.
-                final TestProbe senderProbe =
-                        TestProbe.apply("sender-" + i + "-" + UUID.randomUUID(), actorSystem);
-                final TestProbe deathWatchProbe =
-                        TestProbe.apply("deathWatch-" + i + "-" + UUID.randomUUID(), actorSystem);
-                final ActorRef underTest =
-                        childActorOf(supervisorPropsFor(thingId), thingId.toString());
-                deathWatchProbe.watch(underTest);
-
-                final CreateThing createThing =
-                        CreateThing.of(thing, inlinePolicy.toJson(FieldType.all()), dittoHeadersV2);
-                underTest.tell(createThing, senderProbe.ref());
-                try {
-                    policiesShardRegionTestProbe.expectMsgClass(setupTimeout, CreatePolicy.class);
-                    policiesShardRegionTestProbe.reply(createPolicyResponse);
-                    final Object createReceived = senderProbe.receiveOne(setupTimeout);
-                    if (!(createReceived instanceof CreateThingResponse)) {
-                        raceReport.add(String.format("iteration %d: SKIPPED (CreateThing got %s)", i,
-                                createReceived == null ? "null" : createReceived.getClass().getSimpleName()));
-                        underTest.tell(PoisonPill.getInstance(), ActorRef.noSender());
-                        try {
-                            deathWatchProbe.expectTerminated(underTest, setupTimeout);
-                        } catch (final AssertionError ignored) {
-                        }
-                        continue;
-                    }
-                } catch (final AssertionError e) {
-                    raceReport.add(String.format("iteration %d: SKIPPED (setup failed: %s)", i, e.getMessage()));
-                    underTest.tell(PoisonPill.getInstance(), ActorRef.noSender());
-                    try {
-                        deathWatchProbe.expectTerminated(underTest, setupTimeout);
-                    } catch (final AssertionError ignored) {
-                    }
-                    continue;
-                }
-
-                // Baseline modify: no PASSIVATE race, must succeed. Confirms the supervisor
-                // works normally before we trigger the race on the same instance.
-                final ModifyAttribute okModify =
-                        ModifyAttribute.of(thingId, okPointer, okValue, dittoHeadersV2);
-                underTest.tell(okModify, senderProbe.ref());
-                final Object okReceived = senderProbe.receiveOne(setupTimeout);
-                final String okOutcome = okReceived == null
-                        ? "null (receive timeout)"
-                        : okReceived.getClass().getSimpleName();
-                if (!(okReceived instanceof ModifyAttributeResponse)) {
-                    raceReport.add(String.format("iteration %d: SKIPPED (baseline modify got %s)", i, okOutcome));
-                    underTest.tell(PoisonPill.getInstance(), ActorRef.noSender());
-                    try {
-                        deathWatchProbe.expectTerminated(underTest, setupTimeout);
-                    } catch (final AssertionError ignored) {
-                    }
-                    continue;
-                }
-
-                final String clientOutcome;
-                {
-                    // PASSIVATE and raceModify enqueued back-to-back. passivate() forwards
-                    // Passivate(new StopShardedActor()) to the parent. raceModify still gets
-                    // processed (PA persists), then the response-path stream runs on
-                    // enforcementExecutor. stopShardedActor() defers the stop until opCounter
-                    // reaches 0, so the client receives ModifyAttributeResponse even though a
-                    // stop is already scheduled.
-                    underTest.tell(AbstractPersistenceSupervisor.Control.PASSIVATE, ActorRef.noSender());
-                    final ModifyAttribute raceModify =
-                            ModifyAttribute.of(thingId, attrPointer, attrValue, dittoHeadersV2);
-                    underTest.tell(raceModify, senderProbe.ref());
-
-                    final ShardRegion.Passivate passivate;
-                    try {
-                        passivate = expectMsgClass(setupTimeout, ShardRegion.Passivate.class);
-                    } catch (final AssertionError e) {
-                        raceReport.add(String.format("iteration %d: SKIPPED (no ShardRegion.Passivate: %s)",
-                                i, e.getMessage()));
-                        continue;
-                    }
-
-                    // Wait so the response-path stream is in flight when the StopShardedActor
-                    // arrives — exercises the defer path, not the idle-stop path.
-                    try {
-                        Thread.sleep(stopMessageDelayMillis);
-                    } catch (final InterruptedException ie) {
-                        Thread.currentThread().interrupt();
-                    }
-                    underTest.tell(passivate.stopMessage(), ActorRef.noSender());
-
-                    try {
-                        deathWatchProbe.expectTerminated(underTest,
-                                scala.concurrent.duration.FiniteDuration.create(
-                                        responseDelayMillis + 3_000L, TimeUnit.MILLISECONDS));
-                    } catch (final AssertionError e) {
-                        raceReport.add(String.format("iteration %d: SKIPPED (supervisor did not terminate: %s)",
-                                i, e.getMessage()));
-                        continue;
-                    }
-
-                    final Object received = senderProbe.receiveOne(responseTimeout);
-                    clientOutcome = received == null
-                            ? "null (receive timeout)"
-                            : received.getClass().getSimpleName();
-                }
-
-                // Respawn supervisor, RetrieveThing via fresh probe, inspect persisted state.
-                final TestProbe verifySenderProbe =
-                        TestProbe.apply("verify-sender-" + i + "-" + UUID.randomUUID(), actorSystem);
-                final TestProbe verifyDeathWatchProbe =
-                        TestProbe.apply("verify-deathWatch-" + i + "-" + UUID.randomUUID(), actorSystem);
-                ActorRef verifySupervisorAttempt = null;
-                for (int attempt = 0; attempt < 20 && verifySupervisorAttempt == null; attempt++) {
-                    try {
-                        verifySupervisorAttempt =
-                                childActorOf(supervisorPropsFor(thingId), thingId.toString());
-                    } catch (final AssertionError ignored) {
-                        try {
-                            Thread.sleep(200);
-                        } catch (final InterruptedException ie) {
-                            Thread.currentThread().interrupt();
-                        }
-                    }
-                }
-                if (verifySupervisorAttempt == null) {
-                    raceReport.add(String.format(
-                            "iteration %d: SKIPPED (verify supervisor spawn failed: name reservation stuck)",
-                            i));
-                    continue;
-                }
-                final ActorRef verifySupervisor = verifySupervisorAttempt;
-                verifyDeathWatchProbe.watch(verifySupervisor);
-
-                verifySupervisor.tell(RetrieveThing.of(thingId, dittoHeadersV2), verifySenderProbe.ref());
-                final Object verifyReceived = verifySenderProbe.receiveOne(setupTimeout);
-                final boolean okPersisted;
-                final String okPersistedValue;
-                final boolean persisted;
-                final String persistedValue;
-                if (verifyReceived instanceof RetrieveThingResponse verifyResponse) {
-                    final Optional<Attributes> attrs = verifyResponse.getThing().getAttributes();
-                    final Optional<JsonValue> okActual = attrs.flatMap(a -> a.getValue(okPointer));
-                    okPersisted = okActual.filter(v -> v.equals(okValue)).isPresent();
-                    okPersistedValue = okActual.map(JsonValue::toString).orElse("<absent>");
-                    final Optional<JsonValue> actual = attrs.flatMap(a -> a.getValue(attrPointer));
-                    persisted = actual.filter(v -> v.equals(attrValue)).isPresent();
-                    persistedValue = actual.map(JsonValue::toString).orElse("<absent>");
-                } else {
-                    final String err = verifyReceived == null ? "null" : verifyReceived.getClass().getSimpleName();
-                    okPersisted = false;
-                    okPersistedValue = "<verify-failed:" + err + ">";
-                    persisted = false;
-                    persistedValue = "<verify-failed:" + err + ">";
-                }
-
-                verifySupervisor.tell(PoisonPill.getInstance(), ActorRef.noSender());
-                try {
-                    verifyDeathWatchProbe.expectTerminated(verifySupervisor, setupTimeout);
-                } catch (final AssertionError ignored) {
-                }
-
-                raceReport.add(String.format(
-                        "iteration %d: ok-client=%s ok-persisted=%s ok-value=%s | race-client=%s race-persisted=%s race-value=%s",
-                        i, okOutcome, okPersisted, okPersistedValue,
-                        clientOutcome, persisted, persistedValue));
-            }
-
-            // Leak: race-client != success AND race-persisted=true => persisted write that the
-            // client will retry = double-write.
-            final List<String> leakIterations = raceReport.stream()
-                    .filter(line -> !line.contains("race-client=ModifyAttributeResponse")
-                            && line.contains("race-persisted=true"))
-                    .toList();
-            Assertions.assertThat(leakIterations)
-                    .as("Side-effect leak detected: client saw error but modification was persisted.%n" +
-                            "Full report:%n  %s%nLeaking iterations:%n  %s",
-                            String.join("\n  ", raceReport),
-                            String.join("\n  ", leakIterations))
-                    .isEmpty();
-        }};
-    }
-
-    /**
-     * Regression for <a href="https://github.com/eclipse-ditto/ditto/issues/2599">#2599</a>
-     * Finding 5: when the Finding 4 race fired during a {@link CreateThing} with an inline
-     * policy, the removed materializer-shutdown safety-net mapped the crash to
-     * {@link ThingUnavailableException} without issuing {@code DeletePolicy}, leaving the
-     * policy orphaned. With the {@link StopShardedActor}-based deferred stop the response
-     * path completes and the client either sees {@link CreateThingResponse} or the real
-     * rollback path issues {@code DeletePolicy} — no orphan.
-     * <p>
-     * Race-window knob (only if the test becomes flaky; not needed for the committed test):
-     * same knob and same insertion point as
-     * {@link #passivatePoisonPillRacesWithMailboxQueuedSignal} — see its Javadoc for the exact
-     * before/after anchor lines in
-     * {@code ThingSupervisorActor#modifyTargetActorCommandResponse} and the matching
-     * {@code System.setProperty} / {@code clearProperty} pair in the test body.
-     */
-    @Test
-    public void passivatePoisonPillRacesWithCreateThingLeavesOrphanedPolicy() {
-        final Policy inlinePolicy = PoliciesModelFactory.newPolicyBuilder(POLICY_ID)
-                .setRevision(1L)
-                .forLabel("authorize-self")
-                .setSubject(SubjectIssuer.newInstance("test"), AUTH_SUBJECT)
-                .setGrantedPermissions(PoliciesResourceType.thingResource(JsonPointer.empty()),
-                        Permissions.newInstance(Permission.READ, Permission.WRITE))
-                .setGrantedPermissions(PoliciesResourceType.policyResource(JsonPointer.empty()),
-                        Permissions.newInstance(Permission.READ, Permission.WRITE))
-                .build();
-        final CreatePolicyResponse createPolicyResponse =
-                CreatePolicyResponse.of(POLICY_ID, inlinePolicy, DittoHeaders.empty());
-        when(policyEnforcerProvider.getPolicyEnforcer(POLICY_ID))
-                .thenReturn(CompletableFuture.completedFuture(Optional.of(PolicyEnforcer.of(inlinePolicy))));
-
-        final int iterations = 10;
-        final long responseDelayMillis = 1_500L;
-        final long stopMessageDelayMillis = 400L;
-        final scala.concurrent.duration.FiniteDuration setupTimeout =
-                scala.concurrent.duration.FiniteDuration.create(15, TimeUnit.SECONDS);
-        final scala.concurrent.duration.FiniteDuration responseTimeout =
-                scala.concurrent.duration.FiniteDuration.create(responseDelayMillis + 5_000L,
-                        TimeUnit.MILLISECONDS);
-        final scala.concurrent.duration.FiniteDuration shortProbeTimeout =
-                scala.concurrent.duration.FiniteDuration.create(2, TimeUnit.SECONDS);
-
-        new TestKit(actorSystem) {{
-            final List<String> report = new java.util.ArrayList<>();
-            for (int i = 0; i < iterations; i++) {
-                final Thing thing = createThingV2WithRandomId();
-                final ThingId thingId = getIdOrThrow(thing);
-
-                when(policyEnforcerProvider.getPolicyEnforcer(POLICY_ID))
-                        .thenReturn(CompletableFuture.completedFuture(Optional.of(PolicyEnforcer.of(inlinePolicy))));
-
-                final TestProbe senderProbe =
-                        TestProbe.apply("f5-sender-" + i + "-" + UUID.randomUUID(), actorSystem);
-                final TestProbe deathWatchProbe =
-                        TestProbe.apply("f5-deathWatch-" + i + "-" + UUID.randomUUID(), actorSystem);
-                final ActorRef underTest =
-                        childActorOf(supervisorPropsFor(thingId), thingId.toString());
-                deathWatchProbe.watch(underTest);
-
-                final String clientOutcome;
-                final boolean deletePolicyObserved;
-                {
-                    // PASSIVATE then CreateThing: enforcer creates the inline policy, PA persists
-                    // ThingCreated, the response-path stream runs. The deferred stop waits for
-                    // the response, so the client sees CreateThingResponse and no rollback is
-                    // needed.
-                    underTest.tell(AbstractPersistenceSupervisor.Control.PASSIVATE, ActorRef.noSender());
-                    final CreateThing createThing =
-                            CreateThing.of(thing, inlinePolicy.toJson(FieldType.all()), dittoHeadersV2);
-                    underTest.tell(createThing, senderProbe.ref());
-
-                    final ShardRegion.Passivate passivate;
-                    try {
-                        passivate = expectMsgClass(setupTimeout, ShardRegion.Passivate.class);
-                    } catch (final AssertionError e) {
-                        report.add(String.format("iteration %d: SKIPPED (no ShardRegion.Passivate: %s)",
-                                i, e.getMessage()));
-                        continue;
-                    }
-
-                    try {
-                        policiesShardRegionTestProbe.expectMsgClass(setupTimeout, CreatePolicy.class);
-                        policiesShardRegionTestProbe.reply(createPolicyResponse);
-                    } catch (final AssertionError e) {
-                        report.add(String.format("iteration %d: SKIPPED (no CreatePolicy: %s)",
-                                i, e.getMessage()));
-                        continue;
-                    }
-
-                    try {
-                        Thread.sleep(stopMessageDelayMillis);
-                    } catch (final InterruptedException ie) {
-                        Thread.currentThread().interrupt();
-                    }
-                    underTest.tell(passivate.stopMessage(), ActorRef.noSender());
-
-                    try {
-                        deathWatchProbe.expectTerminated(underTest,
-                                scala.concurrent.duration.FiniteDuration.create(
-                                        responseDelayMillis + 3_000L, TimeUnit.MILLISECONDS));
-                    } catch (final AssertionError e) {
-                        report.add(String.format("iteration %d: SKIPPED (supervisor did not terminate: %s)",
-                                i, e.getMessage()));
-                        continue;
-                    }
-
-                    final Object received = senderProbe.receiveOne(responseTimeout);
-                    clientOutcome = received == null
-                            ? "null (receive timeout)"
-                            : received.getClass().getSimpleName();
-
-                    // DeletePolicy expected either as part of a real rollback or not at all when
-                    // the client gets CreateThingResponse. If neither → orphan.
-                    Object maybeDelete = null;
-                    try {
-                        maybeDelete = policiesShardRegionTestProbe.receiveOne(shortProbeTimeout);
-                    } catch (final AssertionError ignored) {
-                    }
-                    deletePolicyObserved = maybeDelete instanceof DeletePolicy;
-                    if (deletePolicyObserved) {
-                        policiesShardRegionTestProbe.reply(DeletePolicyResponse.of(POLICY_ID, DittoHeaders.empty()));
-                    }
-                }
-
-                final boolean orphan = !"CreateThingResponse".equals(clientOutcome)
-                        && !deletePolicyObserved;
-                report.add(String.format(
-                        "iteration %d: race-client=%s delete-policy-observed=%s orphan=%s",
-                        i, clientOutcome, deletePolicyObserved, orphan));
-            }
-
-            final List<String> orphanIterations = report.stream()
-                    .filter(line -> line.contains("orphan=true"))
-                    .toList();
-            Assertions.assertThat(orphanIterations)
-                    .as("Orphaned-policy race detected (client saw error but no DeletePolicy issued).%n" +
-                            "Full report:%n  %s%nOrphan iterations:%n  %s",
-                            String.join("\n  ", report),
-                            String.join("\n  ", orphanIterations))
-                    .isEmpty();
-        }};
-    }
-
-    /**
-     * Regression for <a href="https://github.com/eclipse-ditto/ditto/issues/2599">#2599</a>
-     * Finding 6: when a {@link SudoRetrieveThing} is in flight and PASSIVATE arrives, the
-     * supervisor must deliver the sudo response before stopping. {@code stopShardedActor}
-     * defers the actual stop until both {@code opCounter} and {@code sudoOpCounter} reach 0.
-     * Asserts the ordering {@link SudoRetrieveThingResponse} then
-     * {@link org.apache.pekko.actor.Terminated} without needing a race-window widening.
-     * <p>
-     * Race-window knob (only if the test becomes flaky; not needed for the committed test).
-     * In {@code org.eclipse.ditto.internal.utils.persistentactors.AbstractPersistenceSupervisor#forwardSudoCommandToChildIfAvailable},
-     * insert the sleep inside the {@code else} branch after the counter is incremented and
-     * before the forward — between the existing line
-     * <pre>{@code
-     *                 ++sudoOpCounter;
-     * }</pre>
-     * and the existing line
-     * <pre>{@code
-     *                 persistenceActorChild.forward(sudoCommand, getContext());
-     * }</pre>
-     * add:
-     * <pre>{@code
-     *                 final long delay = Long.getLong("ditto.diag.2599.sudo-forward-delay-ms", 0L);
-     *                 if (delay > 0L) {
-     *                     try { Thread.sleep(delay); } catch (InterruptedException ie) { Thread.currentThread().interrupt(); }
-     *                 }
-     * }</pre>
-     * In the test body, {@code System.setProperty("ditto.diag.2599.sudo-forward-delay-ms", "1500")}
-     * before telling the {@link SudoRetrieveThing} and {@code System.clearProperty(...)} in a
-     * {@code finally}. Placement after {@code ++sudoOpCounter} ensures PASSIVATE sees
-     * {@code sudoOpCounter > 0}. Remove the sleep after use.
-     */
-    @Test
-    public void passivateDefersStopUntilInFlightSudoRetrieveThingCompletes() {
-        final Policy inlinePolicy = PoliciesModelFactory.newPolicyBuilder(POLICY_ID)
-                .setRevision(1L)
-                .forLabel("authorize-self")
-                .setSubject(SubjectIssuer.newInstance("test"), AUTH_SUBJECT)
-                .setGrantedPermissions(PoliciesResourceType.thingResource(JsonPointer.empty()),
-                        Permissions.newInstance(Permission.READ, Permission.WRITE))
-                .setGrantedPermissions(PoliciesResourceType.policyResource(JsonPointer.empty()),
-                        Permissions.newInstance(Permission.READ, Permission.WRITE))
-                .build();
-        final CreatePolicyResponse createPolicyResponse =
-                CreatePolicyResponse.of(POLICY_ID, inlinePolicy, DittoHeaders.empty());
-        when(policyEnforcerProvider.getPolicyEnforcer(POLICY_ID))
-                .thenReturn(CompletableFuture.completedFuture(Optional.of(PolicyEnforcer.of(inlinePolicy))));
-
-        final scala.concurrent.duration.FiniteDuration setupTimeout =
-                scala.concurrent.duration.FiniteDuration.create(15, TimeUnit.SECONDS);
+    public void signalStashedBehindInFlightOpIsProcessedBeforeDeferredStop() {
+        final Policy inlinePolicy = selfAuthorizingInlinePolicy();
+        stubPolicyEnforcer(inlinePolicy);
 
         new TestKit(actorSystem) {{
             final Thing thing = createThingV2WithRandomId();
             final ThingId thingId = getIdOrThrow(thing);
+            final ActorRef underTest = watch(childActorOf(supervisorPropsFor(thingId), thingId.toString()));
+            createThingWithInlinePolicy(underTest, thing, inlinePolicy, this);
 
-            final TestProbe senderProbe =
-                    TestProbe.apply("f6-sender-" + UUID.randomUUID(), actorSystem);
-            final ActorRef underTest =
-                    watch(childActorOf(supervisorPropsFor(thingId), thingId.toString()));
+            final JsonPointer pointerA = JsonPointer.of("stashTestA");
+            final JsonPointer pointerB = JsonPointer.of("stashTestB");
+            final JsonValue valueB = JsonFactory.newValue("valueB");
 
-            final CreateThing createThing =
-                    CreateThing.of(thing, inlinePolicy.toJson(FieldType.all()), dittoHeadersV2);
-            underTest.tell(createThing, senderProbe.ref());
-            policiesShardRegionTestProbe.expectMsgClass(setupTimeout, CreatePolicy.class);
-            policiesShardRegionTestProbe.reply(createPolicyResponse);
-            senderProbe.expectMsgClass(setupTimeout, CreateThingResponse.class);
+            final CompletableFuture<Optional<PolicyEnforcer>> enforcementGate = gatePolicyEnforcer();
+            // A starts and is held in enforcement, B is stashed behind A, then the stop message arrives
+            underTest.tell(ModifyAttribute.of(thingId, pointerA, JsonFactory.newValue("valueA"), dittoHeadersV2),
+                    getRef());
+            underTest.tell(ModifyAttribute.of(thingId, pointerB, valueB, dittoHeadersV2), getRef());
+            underTest.tell(new StopShardedActor(), ActorRef.noSender());
+            expectNoMessage(java.time.Duration.ofMillis(500));
 
-            final DittoHeaders sudoHeaders = DittoHeaders.newBuilder(dittoHeadersV2)
-                    .correlationId("f6-sudo-" + UUID.randomUUID())
-                    .build();
-            final SudoRetrieveThing sudoRetrieve = SudoRetrieveThing.of(thingId, sudoHeaders);
-            underTest.tell(sudoRetrieve, senderProbe.ref());
+            enforcementGate.complete(Optional.of(PolicyEnforcer.of(inlinePolicy)));
+            Assertions.assertThat((Object) expectMsgClass(ModifyAttributeResponse.class).getAttributePointer())
+                    .isEqualTo(pointerA);
+            Assertions.assertThat((Object) expectMsgClass(ModifyAttributeResponse.class).getAttributePointer())
+                    .isEqualTo(pointerB);
+            expectTerminated(STOP_TIMEOUT, underTest);
 
+            Assertions.assertThat(retrievePersistedAttribute(thingId, pointerB, this)).contains(valueB);
+        }};
+    }
+
+    /**
+     * A {@code SUDO_COMMAND_DONE} the supervisor did not count must not make the sudo op counter negative. In
+     * production this happens on every {@code ModifyThing}/root {@code MergeThing} of an existing thing: the
+     * {@code ModifyToCreateThingTransformer} asks {@code SudoRetrieveThing} directly from the persistence actor, which
+     * then reports {@code SUDO_COMMAND_DONE} to the supervisor. (The transformer is not configured in this test, so
+     * the message is sent directly.) Before the fix the counter stayed at -1 and the supervisor never stopped.
+     */
+    @Test
+    public void unmatchedSudoCommandDoneDoesNotBlockPassivation() {
+        new TestKit(actorSystem) {{
+            final Thing thing = createThingV2WithRandomId();
+            final ThingId thingId = getIdOrThrow(thing);
+            final ActorRef underTest = watch(childActorOf(supervisorPropsFor(thingId), thingId.toString()));
+
+            underTest.tell(AbstractPersistenceSupervisor.Control.SUDO_COMMAND_DONE, ActorRef.noSender());
             underTest.tell(AbstractPersistenceSupervisor.Control.PASSIVATE, ActorRef.noSender());
 
-            final ShardRegion.Passivate passivate = expectMsgClass(setupTimeout, ShardRegion.Passivate.class);
-            Assertions.assertThat(passivate.stopMessage())
-                    .as("passivate must carry a StopShardedActor so the deferred-stop handler runs")
-                    .isInstanceOf(StopShardedActor.class);
-
+            final ShardRegion.Passivate passivate = expectMsgClass(ShardRegion.Passivate.class);
             underTest.tell(passivate.stopMessage(), ActorRef.noSender());
-
-            senderProbe.expectMsgClass(setupTimeout, SudoRetrieveThingResponse.class);
-
-            expectTerminated(underTest);
+            expectTerminated(STOP_TIMEOUT, underTest);
         }};
+    }
+
+    /**
+     * The persistence actor terminating while a twin op is in flight must not leave the op counter negative. Before
+     * the fix, {@code childTerminated} reset the counter to 0 and the late {@code ProcessNextTwinMessage} of the
+     * in-flight op took it to -1, after which the supervisor never stopped.
+     * <p>
+     * Ordering is deterministic: the supervisor's {@code Terminated} for the persistence actor is a system message
+     * delivered before the test observes its own {@code Terminated}, and the op only continues once the test
+     * completes the enforcement gate afterwards.
+     */
+    @Test
+    public void persistenceActorTerminatedDuringInFlightOpDoesNotBlockPassivation() {
+        final Policy inlinePolicy = selfAuthorizingInlinePolicy();
+        stubPolicyEnforcer(inlinePolicy);
+
+        new TestKit(actorSystem) {{
+            final Thing thing = createThingV2WithRandomId();
+            final ThingId thingId = getIdOrThrow(thing);
+            final ActorRef underTest = watch(childActorOf(supervisorPropsFor(thingId), thingId.toString()));
+            createThingWithInlinePolicy(underTest, thing, inlinePolicy, this);
+
+            final CompletableFuture<Optional<PolicyEnforcer>> enforcementGate = gatePolicyEnforcer();
+            underTest.tell(ModifyAttribute.of(thingId, JsonPointer.of("paDiesAttr"), JsonFactory.newValue(1),
+                    dittoHeadersV2), getRef());
+
+            final ActorRef persistenceActor = actorSystem.actorSelection(underTest.path().child("pa"))
+                    .resolveOne(java.time.Duration.ofSeconds(3))
+                    .toCompletableFuture()
+                    .join();
+            watch(persistenceActor);
+            persistenceActor.tell(PoisonPill.getInstance(), ActorRef.noSender());
+            expectTerminated(persistenceActor);
+
+            enforcementGate.complete(Optional.of(PolicyEnforcer.of(inlinePolicy)));
+            // the op fails or succeeds depending on whether the persistence actor was restarted in the meantime;
+            // only its completion matters here
+            Assertions.assertThat(receiveOne(java.time.Duration.ofSeconds(10))).isNotNull();
+
+            underTest.tell(AbstractPersistenceSupervisor.Control.PASSIVATE, ActorRef.noSender());
+            final ShardRegion.Passivate passivate = expectMsgClass(ShardRegion.Passivate.class);
+            underTest.tell(passivate.stopMessage(), ActorRef.noSender());
+            expectTerminated(STOP_TIMEOUT, underTest);
+        }};
+    }
+
+    /**
+     * A deferred stop is bounded by the supervisor {@code shutdown-timeout} (5s in {@code thing-test.conf}), now
+     * enforced in {@code AbstractPersistenceSupervisor} for all supervisors, and a second stop message does not
+     * restart the timer. The op is held in enforcement for the whole test.
+     */
+    @Test
+    public void deferredStopIsBoundedByShutdownTimeoutWhichFurtherStopMessagesDoNotExtend() {
+        final Policy inlinePolicy = selfAuthorizingInlinePolicy();
+        stubPolicyEnforcer(inlinePolicy);
+
+        new TestKit(actorSystem) {{
+            final Thing thing = createThingV2WithRandomId();
+            final ThingId thingId = getIdOrThrow(thing);
+            final ActorRef underTest = watch(childActorOf(supervisorPropsFor(thingId), thingId.toString()));
+            createThingWithInlinePolicy(underTest, thing, inlinePolicy, this);
+
+            final CompletableFuture<Optional<PolicyEnforcer>> enforcementGate = gatePolicyEnforcer();
+            try {
+                underTest.tell(ModifyAttribute.of(thingId, JsonPointer.of("timerAttr"), JsonFactory.newValue(1),
+                        dittoHeadersV2), getRef());
+                underTest.tell(new StopShardedActor(), ActorRef.noSender());
+
+                // deferred: the op is still held in enforcement
+                expectNoMessage(java.time.Duration.ofSeconds(3));
+
+                // a timer restarted by this second stop message would only fire 5s from now
+                underTest.tell(new StopShardedActor(), ActorRef.noSender());
+                expectTerminated(java.time.Duration.ofMillis(3_500), underTest);
+            } finally {
+                enforcementGate.complete(Optional.of(PolicyEnforcer.of(inlinePolicy)));
+            }
+        }};
+    }
+
+    /**
+     * Reproducer for <a href="https://github.com/eclipse-ditto/ditto/issues/2599">#2599</a>: PASSIVATE and a
+     * {@link ModifyAttribute} are in the supervisor's mailbox back to back, so the modify starts before the stop
+     * message arrives. The client must receive {@link ModifyAttributeResponse} for the persisted write. With the
+     * former {@code Passivate(PoisonPill)} the supervisor stopped while the response was still in flight and the
+     * client got an error for a write that was persisted, so a retry wrote twice.
+     * <p>
+     * <b>Ignored because it needs a delay in production code.</b> Without it the response is sent within microseconds
+     * after the persistence actor replied, the race window is practically closed and the test passes even without
+     * the fix. Run it manually after changes to the passivation/stop handling of {@code AbstractPersistenceSupervisor}
+     * or to the response path of {@code ThingSupervisorActor}:
+     * <ol>
+     * <li>Insert as the first statement of {@code ThingSupervisorActor#modifyTargetActorCommandResponse} (it runs
+     * after the persistence actor persisted the write and replied, before the response reaches the client):
+     * <pre>{@code
+     * final long delay = Long.getLong("ditto.diag.2599.response-delay-ms", 0L);
+     * if (delay > 0L) {
+     *     try { Thread.sleep(delay); } catch (InterruptedException e) { Thread.currentThread().interrupt(); }
+     * }
+     * }</pre>
+     * The test sets the property ({@value #DIAG_RESPONSE_DELAY_PROPERTY}, 1500ms) only around the raced command, so
+     * setup and verification are not delayed.</li>
+     * <li>Remove {@code @Ignore} from this test and from
+     * {@link #passivationRaceWithMailboxQueuedCreateThingDoesNotLoseResponse()}.</li>
+     * <li>Run e.g. {@code mvn -pl things/service test -Dtest='ThingPersistenceActorTest#passivationRace*'}, ideally
+     * repeatedly. Each test runs 3 iterations.</li>
+     * <li>Revert the production code change and the {@code @Ignore} removal.</li>
+     * </ol>
+     * To verify that the reproducer still detects the race, temporarily make {@code AbstractPersistenceSupervisor}
+     * passivate with {@code new ShardRegion.Passivate(PoisonPill.getInstance())} again: the client then receives
+     * {@code Terminated} of the supervisor instead of {@link ModifyAttributeResponse}.
+     */
+    @Ignore("Needs a delay inserted into ThingSupervisorActor#modifyTargetActorCommandResponse, see Javadoc")
+    @Test
+    public void passivationRaceWithMailboxQueuedModifyDoesNotLoseResponseOfPersistedWrite() {
+        final long responseDelayMillis = 1_500L;
+        final java.time.Duration responseTimeout = java.time.Duration.ofMillis(responseDelayMillis + 5_000L);
+        final Policy inlinePolicy = selfAuthorizingInlinePolicy();
+        stubPolicyEnforcer(inlinePolicy);
+
+        for (int i = 0; i < 3; i++) {
+            final int iteration = i;
+            new TestKit(actorSystem) {{
+                final Thing thing = createThingV2WithRandomId();
+                final ThingId thingId = getIdOrThrow(thing);
+                final ActorRef underTest = watch(childActorOf(supervisorPropsFor(thingId), thingId.toString()));
+                createThingWithInlinePolicy(underTest, thing, inlinePolicy, this);
+
+                final JsonPointer pointer = JsonPointer.of("raceAttr" + iteration);
+                final JsonValue value = JsonFactory.newValue("raceValue" + iteration);
+                System.setProperty(DIAG_RESPONSE_DELAY_PROPERTY, String.valueOf(responseDelayMillis));
+                try {
+                    underTest.tell(AbstractPersistenceSupervisor.Control.PASSIVATE, ActorRef.noSender());
+                    underTest.tell(ModifyAttribute.of(thingId, pointer, value, dittoHeadersV2), getRef());
+
+                    final ShardRegion.Passivate passivate = expectMsgClass(ShardRegion.Passivate.class);
+                    underTest.tell(passivate.stopMessage(), ActorRef.noSender());
+
+                    expectMsgClass(responseTimeout, ModifyAttributeResponse.class);
+                    expectTerminated(STOP_TIMEOUT, underTest);
+                } finally {
+                    System.clearProperty(DIAG_RESPONSE_DELAY_PROPERTY);
+                }
+                Assertions.assertThat(retrievePersistedAttribute(thingId, pointer, this)).contains(value);
+            }};
+        }
+    }
+
+    /**
+     * Reproducer for <a href="https://github.com/eclipse-ditto/ditto/issues/2599">#2599</a> with a
+     * {@link CreateThing} carrying an inline policy: PASSIVATE and the create are in the supervisor's mailbox back to
+     * back. The client must receive {@link CreateThingResponse} and no {@link DeletePolicy} must be issued. With the
+     * former {@code Passivate(PoisonPill)} the client got an error although thing and policy were created, leaving
+     * a policy the client does not know about.
+     * <p>
+     * <b>Ignored because it needs the same delay in production code</b> as
+     * {@link #passivationRaceWithMailboxQueuedModifyDoesNotLoseResponseOfPersistedWrite()}; see its Javadoc for where
+     * to put it and how to run both reproducers.
+     */
+    @Ignore("Needs a delay inserted into ThingSupervisorActor#modifyTargetActorCommandResponse, see Javadoc")
+    @Test
+    public void passivationRaceWithMailboxQueuedCreateThingDoesNotLoseResponse() {
+        final long responseDelayMillis = 1_500L;
+        final java.time.Duration responseTimeout = java.time.Duration.ofMillis(responseDelayMillis + 5_000L);
+        final Policy inlinePolicy = selfAuthorizingInlinePolicy();
+        stubPolicyEnforcer(inlinePolicy);
+
+        for (int i = 0; i < 3; i++) {
+            new TestKit(actorSystem) {{
+                final Thing thing = createThingV2WithRandomId();
+                final ThingId thingId = getIdOrThrow(thing);
+                final ActorRef underTest = watch(childActorOf(supervisorPropsFor(thingId), thingId.toString()));
+
+                System.setProperty(DIAG_RESPONSE_DELAY_PROPERTY, String.valueOf(responseDelayMillis));
+                try {
+                    underTest.tell(AbstractPersistenceSupervisor.Control.PASSIVATE, ActorRef.noSender());
+                    underTest.tell(CreateThing.of(thing, inlinePolicy.toJson(FieldType.all()), dittoHeadersV2),
+                            getRef());
+
+                    final ShardRegion.Passivate passivate = expectMsgClass(ShardRegion.Passivate.class);
+                    policiesShardRegionTestProbe.expectMsgClass(CreatePolicy.class);
+                    policiesShardRegionTestProbe.reply(
+                            CreatePolicyResponse.of(POLICY_ID, inlinePolicy, DittoHeaders.empty()));
+                    underTest.tell(passivate.stopMessage(), ActorRef.noSender());
+
+                    expectMsgClass(responseTimeout, CreateThingResponse.class);
+                    expectTerminated(STOP_TIMEOUT, underTest);
+                } finally {
+                    System.clearProperty(DIAG_RESPONSE_DELAY_PROPERTY);
+                }
+                policiesShardRegionTestProbe.expectNoMessage(
+                        scala.concurrent.duration.FiniteDuration.create(1, TimeUnit.SECONDS));
+            }};
+        }
+    }
+
+    private static Policy selfAuthorizingInlinePolicy() {
+        return PoliciesModelFactory.newPolicyBuilder(POLICY_ID)
+                .setRevision(1L)
+                .forLabel("authorize-self")
+                .setSubject(SubjectIssuer.newInstance("test"), AUTH_SUBJECT)
+                .setGrantedPermissions(PoliciesResourceType.thingResource(JsonPointer.empty()),
+                        Permissions.newInstance(Permission.READ, Permission.WRITE))
+                .setGrantedPermissions(PoliciesResourceType.policyResource(JsonPointer.empty()),
+                        Permissions.newInstance(Permission.READ, Permission.WRITE))
+                .build();
+    }
+
+    private void stubPolicyEnforcer(final Policy policy) {
+        when(policyEnforcerProvider.getPolicyEnforcer(POLICY_ID))
+                .thenReturn(CompletableFuture.completedFuture(Optional.of(PolicyEnforcer.of(policy))));
+    }
+
+    /**
+     * Makes every following enforcement wait for the returned future, so the test controls when an op that already
+     * started can continue.
+     */
+    private CompletableFuture<Optional<PolicyEnforcer>> gatePolicyEnforcer() {
+        final CompletableFuture<Optional<PolicyEnforcer>> gate = new CompletableFuture<>();
+        when(policyEnforcerProvider.getPolicyEnforcer(POLICY_ID)).thenReturn(gate);
+        return gate;
+    }
+
+    private void createThingWithInlinePolicy(final ActorRef underTest, final Thing thing, final Policy inlinePolicy,
+            final TestKit sender) {
+        underTest.tell(CreateThing.of(thing, inlinePolicy.toJson(FieldType.all()), dittoHeadersV2), sender.getRef());
+        policiesShardRegionTestProbe.expectMsgClass(CreatePolicy.class);
+        policiesShardRegionTestProbe.reply(CreatePolicyResponse.of(POLICY_ID, inlinePolicy, DittoHeaders.empty()));
+        sender.expectMsgClass(CreateThingResponse.class);
+    }
+
+    /**
+     * Retrieves the thing through a new top-level supervisor (the stopped one's name may still be reserved by its
+     * parent) and returns the attribute at {@code pointer}.
+     */
+    private Optional<JsonValue> retrievePersistedAttribute(final ThingId thingId, final JsonPointer pointer,
+            final TestKit sender) {
+        final ActorRef verifySupervisor = createSupervisorActorFor(thingId);
+        try {
+            verifySupervisor.tell(RetrieveThing.of(thingId, dittoHeadersV2), sender.getRef());
+            return sender.expectMsgClass(RetrieveThingResponse.class)
+                    .getThing()
+                    .getAttributes()
+                    .flatMap(attributes -> attributes.getValue(pointer));
+        } finally {
+            sender.watch(verifySupervisor);
+            verifySupervisor.tell(PoisonPill.getInstance(), ActorRef.noSender());
+            sender.expectTerminated(verifySupervisor);
+        }
     }
 
     // endregion

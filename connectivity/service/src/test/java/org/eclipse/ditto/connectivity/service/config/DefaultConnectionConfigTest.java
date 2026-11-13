@@ -16,6 +16,7 @@ import java.time.Duration;
 
 import org.assertj.core.api.JUnitSoftAssertions;
 import org.eclipse.ditto.base.service.config.supervision.ExponentialBackOffConfig;
+import org.eclipse.ditto.base.service.config.supervision.SupervisorConfig;
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.SnapshotConfig;
 import org.junit.BeforeClass;
 import org.junit.Rule;
@@ -92,6 +93,11 @@ public final class DefaultConnectionConfigTest {
                                     .isEqualTo(0.1D);
                         }));
 
+        // the supervisor's shutdown timeout is independent of the client actors' "shutdown-timeout" asserted below
+        softly.assertThat(underTest.getSupervisorConfig().getShutdownTimeout())
+                .as(SupervisorConfig.SupervisorConfigValue.SHUTDOWN_TIMEOUT.getConfigPath())
+                .isEqualTo(Duration.ofSeconds(9L));
+
         softly.assertThat(underTest.getSnapshotConfig())
                 .as("snapshotConfig")
                 .satisfies(snapshotConfig -> softly.assertThat(snapshotConfig.getThreshold())
@@ -133,6 +139,31 @@ public final class DefaultConnectionConfigTest {
         softly.assertThat(underTest.getShutdownTimeout())
                 .as(ConnectionConfig.ConnectionConfigValue.SHUTDOWN_TIMEOUT.getConfigPath())
                 .isEqualTo(Duration.ofMinutes(7));
+    }
+
+    @Test
+    public void shippedConfigDefinesSupervisorShutdownTimeoutWithEnvironmentOverride() {
+        // connectivity.conf refers to ${ditto.version} (provided by another module at runtime) and to Pekko's
+        // reference configuration
+        final Config shipped = ConfigFactory.parseString("ditto.version = test")
+                .withFallback(ConfigFactory.parseResources("connectivity.conf"))
+                .withFallback(ConfigFactory.defaultReference());
+
+        final DefaultConnectionConfig defaults =
+                DefaultConnectionConfig.of(shipped.resolve().getConfig("ditto.connectivity"));
+        softly.assertThat(defaults.getSupervisorConfig().getShutdownTimeout())
+                .as("default supervisor shutdown-timeout")
+                .isEqualTo(Duration.ofSeconds(12L));
+        softly.assertThat(defaults.getShutdownTimeout())
+                .as("client actor shutdown-timeout stays unchanged")
+                .isEqualTo(Duration.ofSeconds(3L));
+
+        final Config environmentOverride = ConfigFactory.parseString("CONNECTIVITY_SUPERVISOR_SHUTDOWN_TIMEOUT = 7s");
+        final DefaultConnectionConfig overridden = DefaultConnectionConfig.of(
+                environmentOverride.withFallback(shipped).resolve().getConfig("ditto.connectivity"));
+        softly.assertThat(overridden.getSupervisorConfig().getShutdownTimeout())
+                .as("CONNECTIVITY_SUPERVISOR_SHUTDOWN_TIMEOUT")
+                .isEqualTo(Duration.ofSeconds(7L));
     }
 
 }

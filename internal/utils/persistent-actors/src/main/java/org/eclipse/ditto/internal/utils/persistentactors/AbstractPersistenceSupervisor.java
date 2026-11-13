@@ -141,6 +141,7 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
 
     private final ExponentialBackOffConfig exponentialBackOffConfig;
     private final SignalTransformer signalTransformer;
+    private final Duration shutdownTimeout;
     private ExponentialBackOff backOff;
     private boolean waitingForStopBeforeRestart = false;
     private boolean inCoordinatedShutdown = false;
@@ -172,6 +173,7 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
         this.localAskTimeoutDuringRecovery = supervisorConfig.getLocalAskTimeoutConfig().getLocalAskTimeoutDuringRecovery();
         this.localEnforcerAskTimeout = supervisorConfig.getLocalAskTimeoutConfig().getLocalEnforcerAskTimeout();
         this.exponentialBackOffConfig = supervisorConfig.getExponentialBackOffConfig();
+        this.shutdownTimeout = supervisorConfig.getShutdownTimeout();
         this.backOff = ExponentialBackOff.initial(exponentialBackOffConfig);
         this.supervisorStrategy = new OneForOneStrategy(
                 DeciderBuilder
@@ -232,6 +234,7 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
                 .matchEquals(Control.PASSIVATE, this::passivate)
                 .matchEquals(Control.PA_RECOVERED, this::paRecovered)
                 .matchEquals(Control.SUDO_COMMAND_DONE, this::decrementSudoOpCounter)
+                .matchEquals(Control.SHUTDOWN_TIMEOUT, this::shutdownTimeoutReached)
                 .match(ProcessNextTwinMessage.class, decrementOpCounter(matchProcessNextTwinMessageBehavior))
                 .match(StopShardedActor.class, this::stopShardedActor)
                 .match(SudoCommand.class, this::forwardSudoCommandToChildIfAvailable)
@@ -487,23 +490,21 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
     }
 
     /**
-     * Get the number of ongoing sudo ops.
-     *
-     * @return The sudo op counter.
-     */
-    protected int getSudoOpCounter() {
-        return sudoOpCounter;
-    }
-
-    /**
      * Decrement the op counter when receiving a non-sudo signal.
      *
      * @param signal the signal.
      */
     protected void decrementOpCounter(final Signal<?> signal) {
-        --opCounter;
-        log.withCorrelationId(signal)
-                .debug("opCounter decremented to <{}> for signal <{}>", opCounter, signal.getType());
+        if (opCounter > 0) {
+            --opCounter;
+        } else {
+            log.withCorrelationId(signal)
+                    .warning("Not decrementing opCounter below 0 for signal <{}>", signal.getType());
+        }
+        if (log.isDebugEnabled()) {
+            log.withCorrelationId(signal)
+                    .debug("opCounter decremented to <{}> for signal <{}>", opCounter, signal.getType());
+        }
     }
 
     /**
@@ -513,21 +514,29 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
      */
     protected void incrementOpCounter(final Signal<?> signal) {
         ++opCounter;
-        log.withCorrelationId(signal)
-                .debug("opCounter incremented to <{}> for signal <{}>", opCounter, signal.getType());
+        if (log.isDebugEnabled()) {
+            log.withCorrelationId(signal)
+                    .debug("opCounter incremented to <{}> for signal <{}>", opCounter, signal.getType());
+        }
     }
 
     /**
-     * Start terminating because the shard region is shutting down.
+     * Stop this actor, either because the shard region is shutting down (hand-off) or because this actor asked to be
+     * passivated. Stops immediately if no ops are in flight. Otherwise the stop is deferred until all in-flight ops
+     * are done, bounded by the configured supervisor {@code shutdown-timeout}.
      *
-     * @param trigger the hand-off message.
+     * @param trigger the stop message sent by the shard region.
      */
     protected void stopShardedActor(final StopShardedActor trigger) {
         if (opCounter == 0 && sudoOpCounter == 0) {
             log.debug("Stopping: no ongoing ops.");
             getContext().stop(getSelf());
         } else {
-            inCoordinatedShutdown = true;
+            if (!inCoordinatedShutdown) {
+                // start the timer only once, so that further stop messages cannot push the deadline out
+                inCoordinatedShutdown = true;
+                getTimers().startSingleTimer(Control.SHUTDOWN_TIMEOUT, Control.SHUTDOWN_TIMEOUT, shutdownTimeout);
+            }
             log.debug("Waiting for <{}> ops and <{}> sudo ops before stopping", opCounter, sudoOpCounter);
         }
     }
@@ -537,19 +546,34 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
         return processNextTwinMessage -> {
             decrementOpCounter(processNextTwinMessage.signal());
             matchProcessNextTwinMessageBehavior.run();
-            if (inCoordinatedShutdown && opCounter == 0 && sudoOpCounter == 0) {
-                log.debug("Stopping after waiting for ongoing ops.");
-                getContext().stop(getSelf());
-            }
+            requeueStopIfOpsDone();
         };
     }
 
     private void decrementSudoOpCounter(final Control sudoCommandDone) {
-        --sudoOpCounter;
-        if (inCoordinatedShutdown && opCounter == 0 && sudoOpCounter == 0) {
-            log.debug("Stopping after waiting for ongoing sudo ops.");
-            getContext().stop(getSelf());
+        if (sudoOpCounter > 0) {
+            --sudoOpCounter;
+        } else {
+            // e.g. a sudo command sent directly to the persistence actor by a signal transformer; the supervisor
+            // did not count it, so there is nothing to decrement
+            log.debug("Ignoring SUDO_COMMAND_DONE without a matching in-flight sudo op.");
         }
+        requeueStopIfOpsDone();
+    }
+
+    private void requeueStopIfOpsDone() {
+        if (inCoordinatedShutdown && opCounter == 0 && sudoOpCounter == 0) {
+            // Do not stop right away: signals stashed while a twin op was in flight may just have been unstashed to
+            // the head of the mailbox. Queueing the stop behind them makes sure they are processed first.
+            log.debug("Ongoing ops done, queueing stop behind pending messages.");
+            getSelf().tell(new StopShardedActor(), ActorRef.noSender());
+        }
+    }
+
+    private void shutdownTimeoutReached(final Control trigger) {
+        log.warning("Shutdown timeout <{}> reached; aborting <{}> ops and <{}> sudo ops, stopping myself",
+                shutdownTimeout, opCounter, sudoOpCounter);
+        getContext().stop(getSelf());
     }
 
     private CompletionStage<Object> askOrForwardToTargetActor(
@@ -663,9 +687,9 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
             return;
         }
         getContext().cancelReceiveTimeout();
-        // Not PoisonPill: signals ahead of the stop message in the mailbox still start async
-        // ops. StopShardedActor is handled by stopShardedActor(), which defers the real stop
-        // until opCounter == 0 && sudoOpCounter == 0.
+        // Not PoisonPill: signals ahead of the stop message in the mailbox still start async ops.
+        // StopShardedActor is handled by stopShardedActor(), which defers the real stop until all
+        // in-flight ops are done, bounded by the supervisor shutdown-timeout.
         getContext().getParent().tell(new ShardRegion.Passivate(new StopShardedActor()), getSelf());
     }
 
@@ -716,7 +740,9 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
     private void childTerminated(final Terminated message) {
         if (message.getActor().equals(persistenceActorChild)) {
             persistenceActorChild = null;
-            opCounter = 0;
+            // opCounter is not reset: every in-flight twin op still pipes its ProcessNextTwinMessage back (also on
+            // failure), which decrements the counter. SUDO_COMMAND_DONE is sent by the persistence actor and is lost
+            // when it terminates, so the sudo counter has to be reset.
             sudoOpCounter = 0;
             if (inCoordinatedShutdown) {
                 log.info("Terminating self after persistence actor <{}>", message.getActor());
@@ -1236,7 +1262,12 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
         /**
          * Signals completion of a sudo command.
          */
-        SUDO_COMMAND_DONE
+        SUDO_COMMAND_DONE,
+
+        /**
+         * Signals that a deferred stop waited for the configured shutdown timeout and the actor stops anyway.
+         */
+        SHUTDOWN_TIMEOUT
     }
 
     /**

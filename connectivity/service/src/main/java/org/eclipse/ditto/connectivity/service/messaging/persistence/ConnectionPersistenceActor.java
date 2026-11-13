@@ -771,9 +771,10 @@ public final class ConnectionPersistenceActor
             // ignore any "prefix" field from the command
             augmentWithPrefixAndForward(command, entity.getClientCount());
         } finally {
-            // Matches the ++sudoOpCounter the supervisor performed before forwarding the sudo
-            // command here. This handler bypasses the default command-strategy dispatch which
-            // would otherwise call reportSudoCommandDone automatically.
+            // This handler bypasses the command-strategy dispatch, which would otherwise report the sudo command as
+            // done. A sudo command arriving via the supervisor was counted there and must be reported. The same
+            // command type also arrives directly from the client actors (InboundDispatchingSink), uncounted; the
+            // supervisor ignores such an unmatched SUDO_COMMAND_DONE.
             reportSudoCommandDone(command);
         }
     }
@@ -789,6 +790,7 @@ public final class ConnectionPersistenceActor
             // ignore any "prefix" field from the command
             augmentWithPrefixAndForward(command, entity.getClientCount());
         } finally {
+            // see startThingSearchSession
             reportSudoCommandDone(command);
         }
     }
