@@ -12,16 +12,18 @@ name: System Tests
 
 # To run locally using https://github.com/nektos/act
 # Define the following environment variable in your shell:
-# $WORKSPACE: The path to a workspace directory of your choice
+# $WORKSPACE: The path to a workspace directory of your choice (~/temp/workflow-workspace)
 # $DITTO_ROOT: The path to the root directory of the Ditto repository
 # Create an input file with the following content:
 #  ditto_branch="feature/branch-to-tst"
 #  ditto_repo="eclipse/ditto"
 #  ditto_testing_branch="main"
 #  ditto_testing_repo="eclipse-ditto/ditto-testing"
+#  database="mongodb"   # or "postgres": backend the stack is started with (exported as DITTO_DB, drives
+#                       # BAKE_POSTGRES_EXTENSIONS and -Dpersistence.backend)
 
 # Run the following command:
-#  act workflow_dispatch -C /Users/sta1sf3/temp/workflow-workspace --bind --container-options "-v $WORKSPACE/.m2:/home/runner/.m2"
+#  act workflow_dispatch -C $WORKSPACE --bind --container-options "-v $WORKSPACE/.m2:/home/runner/.m2"
 #  --env HOST_M2_REPO="$WORKSPACE/.m2"  --input-file $WORKSPACE/input-file
 #  -s GITHUB_TOKEN="$(gh auth token)" -P ditto-runner=ghcr.io/catthehacker/ubuntu:full-20.04 --container-architecture linux/amd64
 #  -W $DITTO_ROOT/ditto/.github/workflows/system-tests.yml
@@ -49,10 +51,19 @@ on:
         description: 'Extra arguments to pass to Maven'
         required: false
         default: ''
+      database:
+        description: 'Database backend to run the stack and the tests against (default: mongodb)'
+        required: false
+        type: choice
+        options:
+          - mongodb
+          - postgres
+        default: 'mongodb'
 
 run-name: >-
   System Tests • ${{ inputs.ditto_repo }}@${{ inputs.ditto_branch }}
   • ${{ inputs.ditto_testing_repo }}@${{ inputs.ditto_testing_branch }}
+  • db=${{ inputs.database }}
 
 permissions:
   contents: read
@@ -69,6 +80,8 @@ jobs:
       DITTO_REPO: ${{ github.event.inputs.ditto_repo }}
       DITTO_TESTING_BRANCH: ${{ github.event.inputs.ditto_testing_branch }}
       DITTO_TESTING_REPO: ${{ github.event.inputs.ditto_testing_repo }}
+      # mongodb | postgres — inherited by every start.sh / stop.sh step (ditto-testing reads DITTO_DB)
+      DITTO_DB: ${{ inputs.database }}
       DITTO_VERSION: '0-SNAPSHOT'
       COMPOSE_PROJECT_NAME: '${{ github.job }}-${{ github.run_number }}'
       DOCKER_NETWORK: 'test'
@@ -86,6 +99,7 @@ jobs:
             echo "DITTO_REPO: ${{ env.DITTO_REPO }}"
             echo "DITTO_TESTING_BRANCH: ${{ env.DITTO_TESTING_BRANCH }}"
             echo "DITTO_TESTING_REPO: ${{ env.DITTO_TESTING_REPO }}"
+            echo "DITTO_DB: ${{ env.DITTO_DB }}"
             echo "COMPOSE_PROJECT_NAME: ${{ env.COMPOSE_PROJECT_NAME }}"
             echo "DOCKER_NETWORK: ${{ env.DOCKER_NETWORK }}"
             echo "TEST_JAVA_OPTIONS: ${{ env.TEST_JAVA_OPTIONS }}"
@@ -181,8 +195,18 @@ jobs:
       - name: Build docker images
         if: ${{ steps.set_version.outputs.ditto_version != 'nightly' }}
         working-directory: ./ditto
+        env:
+          # build-images.sh copies the Postgres extension JARs (built by "Compile Ditto") into
+          # <module>/service/target/extensions/, which dockerfile-snapshot COPYs onto the image classpath.
+          BAKE_POSTGRES_EXTENSIONS: ${{ inputs.database == 'postgres' }}
         run: |
-              echo "Building docker images"
+              echo "Building docker images (BAKE_POSTGRES_EXTENSIONS=$BAKE_POSTGRES_EXTENSIONS)"
+              if [[ "$BAKE_POSTGRES_EXTENSIONS" == "true" ]]; then
+                # fail early with a readable listing if the reactor build did not produce the extension JARs
+                ls -l internal/utils/postgres-client-extension/target/ditto-postgres-client-extension-$DITTO_VERSION.jar \
+                      internal/utils/postgres-persistence-extension/target/ditto-postgres-persistence-extension-$DITTO_VERSION.jar \
+                      internal/utils/postgres-search-extension/target/ditto-postgres-search-extension-$DITTO_VERSION.jar
+              fi
               ./build-images.sh
 
       - name: Modify start.sh and stop.sh and compose files
@@ -219,6 +243,7 @@ jobs:
             mvn verify -am -amd --batch-mode --errors \
                 --projects=:system \
                 -Dtest.environment=docker-compose \
+                -Dpersistence.backend=${{ inputs.database }} \
                 -Drevision=$DITTO_VERSION \
                 -DforkCount=$FORK_COUNT -DreuseForks=false \
                 ${{ env.EXTRA_MAVEN_ARGS || '' }}
@@ -258,6 +283,7 @@ jobs:
           mvn verify -am -amd --batch-mode --errors --update-snapshots \
               --projects=:sync-completely-enabled \
               -Dtest.environment=docker-compose \
+              -Dpersistence.backend=${{ inputs.database }} \
               -Drevision=$DITTO_VERSION
         env:
           EVENT_PROCESSING_ACTIVE: 'true'
@@ -300,6 +326,7 @@ jobs:
           mvn verify -am -amd --batch-mode --errors --update-snapshots \
               --projects=:sync-event-processing-enabled \
               -Dtest.environment=docker-compose \
+              -Dpersistence.backend=${{ inputs.database }} \
               -Drevision=$DITTO_VERSION \
               ${{ env.EXTRA_MAVEN_ARGS || '' }}
         env:
@@ -344,6 +371,7 @@ jobs:
           mvn verify -am -amd --batch-mode --errors --update-snapshots \
               --projects=:sync-tags-streaming-enabled \
               -Dtest.environment=docker-compose \
+              -Dpersistence.backend=${{ inputs.database }} \
               -Drevision=$DITTO_VERSION \
               ${{ env.EXTRA_MAVEN_ARGS || '' }}
         env:
