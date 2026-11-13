@@ -24,6 +24,20 @@ with the exceptions described below.
             each tenant. The tenant ID is configured via `specificConfig.honoTenantId`."
 %}
 
+## Creating a Hono connection
+
+`POST /api/2/connections` generates a random ID and rejects an `id` in the JSON body.
+Create a Hono connection with `PUT` so the connection ID can be the tenant ID
+(that ID is used when `honoTenantId` is omitted):
+
+```
+PUT /api/2/connections/{honoTenantId}
+If-None-Match: *
+```
+
+`If-None-Match: *` fails if that connection already exists, so the request cannot
+turn into an update. See [Managing Connections](connectivity-manage-connections.html).
+
 ## Connection URI format
 
 You do **not** specify the `uri` in a Hono connection -- it is generated automatically from the
