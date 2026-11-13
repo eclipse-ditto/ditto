@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  ~ Copyright (c) 2026 Contributors to the Eclipse Foundation
+  ~
+  ~ See the NOTICE file(s) distributed with this work for additional
+  ~ information regarding copyright ownership.
+  ~
+  ~ This program and the accompanying materials are made available under the
+  ~ terms of the Eclipse Public License 2.0 which is available at
+  ~ http://www.eclipse.org/legal/epl-2.0
+  ~
+  ~ SPDX-License-Identifier: EPL-2.0
+  -->
+<project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://maven.apache.org/POM/4.0.0"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>org.eclipse.ditto</groupId>
+        <artifactId>ditto-internal-utils</artifactId>
+        <version>${revision}</version>
+    </parent>
+
+    <artifactId>ditto-internal-utils-persistence-api</artifactId>
+    <name>Eclipse Ditto :: Internal :: Utils :: Persistence API</name>
+
+    <dependencies>
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-internal-utils-extension</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-internal-utils-config</artifactId>
+        </dependency>
+        <!-- Hosts the backend-neutral streaming actors moved here in task B4:
+             provides AbstractActorWithShutdownBehavior / AbstractStreamingActor / logging and,
+             transitively, ditto-internal-models-streaming (SudoStreamSnapshots, StreamedSnapshot, ...). -->
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-internal-utils-pekko</artifactId>
+        </dependency>
+        <!-- DistPubSubAccess used by the snapshot streaming actor; backend-neutral. -->
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-internal-utils-cluster</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-json</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.apache.pekko</groupId>
+            <artifactId>pekko-actor_${scala.version}</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.pekko</groupId>
+            <artifactId>pekko-persistence_${scala.version}</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.pekko</groupId>
+            <artifactId>pekko-persistence-query_${scala.version}</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.pekko</groupId>
+            <artifactId>pekko-stream_${scala.version}</artifactId>
+        </dependency>
+        <!-- DistributedPubSub / DistributedPubSubMediator used by the snapshot streaming actor. -->
+        <dependency>
+            <groupId>org.apache.pekko</groupId>
+            <artifactId>pekko-cluster-tools_${scala.version}</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>com.google.code.findbugs</groupId>
+            <artifactId>jsr305</artifactId>
+        </dependency>
+
+        <!-- test dependencies -->
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-internal-utils-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <!-- ArchUnit for the pluggable-persistence boundary tests (switchability proof).
+             The rules are driven from plain JUnit 4 @Test methods via ArchUnit's core API
+             (ClassFileImporter + ImportOption.DoNotIncludeTests + ArchRuleDefinition), so this module keeps
+             running on its existing JUnit 4 / surefire setup - no JUnit Platform engine is introduced (which would
+             change how the pre-existing tests are discovered and indexed). The 'archunit' core artifact provides
+             the classes the tests use without dragging in the JUnit Platform engine. -->
+        <dependency>
+            <groupId>com.tngtech.archunit</groupId>
+            <artifactId>archunit</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <!-- Drives SnapshotStreamingActorRestartTest's supervised-restart scenario (real ActorSystem +
+             TestKit.shutdownActorSystem); not otherwise on this module's test classpath. -->
+        <dependency>
+            <groupId>org.apache.pekko</groupId>
+            <artifactId>pekko-testkit_${scala.version}</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <!-- Mocks DittoReadJournal in SnapshotStreamingActorRestartTest; not otherwise on this module's test
+             classpath. -->
+        <dependency>
+            <groupId>org.mockito</groupId>
+            <artifactId>mockito-core</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+</project>

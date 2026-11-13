@@ -1,0 +1,13 @@
+{
+  "thingId": "golden:special-chars-keys",
+  "_namespace": "golden",
+  "_revision": 2,
+  "policyId": "golden:special-chars-keys",
+  "attributes": {
+    "a.b": "dot-key",
+    "$special": "dollar-key",
+    "mix.ed$key": "both",
+    "slash/key": "slash-value",
+    "tilde~key": "tilde-value"
+  }
+}

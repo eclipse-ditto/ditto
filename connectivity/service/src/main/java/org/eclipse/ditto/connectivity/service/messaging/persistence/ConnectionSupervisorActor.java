@@ -50,7 +50,7 @@ import org.eclipse.ditto.connectivity.model.signals.commands.modify.LoggingExpir
 import org.eclipse.ditto.connectivity.service.config.ConnectivityConfig;
 import org.eclipse.ditto.connectivity.service.config.ConnectivityConfigModifiedBehavior;
 import org.eclipse.ditto.connectivity.service.enforcement.ConnectionEnforcerActorPropsFactory;
-import org.eclipse.ditto.internal.utils.persistence.mongo.streaming.MongoReadJournal;
+import org.eclipse.ditto.internal.utils.persistence.api.DittoReadJournal;
 import org.eclipse.ditto.internal.utils.persistentactors.AbstractPersistenceSupervisor;
 
 import com.typesafe.config.Config;
@@ -92,9 +92,9 @@ public final class ConnectionSupervisorActor
             final ActorRef pubSubMediator,
             final ConnectivityConfig connectivityConfig,
             final ConnectionEnforcerActorPropsFactory enforcerActorPropsFactory,
-            final MongoReadJournal mongoReadJournal) {
+            final DittoReadJournal readJournal) {
 
-        super(null, mongoReadJournal, connectivityConfig.getConnectionConfig().getSupervisorConfig());
+        super(null, readJournal, connectivityConfig.getConnectionConfig().getSupervisorConfig());
         this.commandForwarderActor = commandForwarderActor;
         this.pubSubMediator = pubSubMediator;
         this.enforcerActorPropsFactory = enforcerActorPropsFactory;
@@ -111,17 +111,17 @@ public final class ConnectionSupervisorActor
      * @param pubSubMediator pub-sub-mediator for the shutdown behavior.
      * @param connectivityConfig the static Connectivity service configuration.
      * @param enforcerActorPropsFactory used to create the enforcer actor.
-     * @param mongoReadJournal the ReadJournal used for gaining access to historical values of the connection.
+     * @param readJournal the ReadJournal used for gaining access to historical values of the connection.
      * @return the {@link Props} to create this actor.
      */
     public static Props props(final ActorRef commandForwarder,
             final ActorRef pubSubMediator,
             final ConnectivityConfig connectivityConfig,
             final ConnectionEnforcerActorPropsFactory enforcerActorPropsFactory,
-            final MongoReadJournal mongoReadJournal) {
+            final DittoReadJournal readJournal) {
 
         return Props.create(ConnectionSupervisorActor.class, commandForwarder, pubSubMediator, connectivityConfig,
-                enforcerActorPropsFactory, mongoReadJournal);
+                enforcerActorPropsFactory, readJournal);
     }
 
     @Override
@@ -194,8 +194,8 @@ public final class ConnectionSupervisorActor
 
     @Override
     protected Props getPersistenceActorProps(final ConnectionId entityId) {
-        return ConnectionPersistenceActor.props(entityId, mongoReadJournal, commandForwarderActor, pubSubMediator,
-                connectivityConfigOverwrites);
+        return ConnectionPersistenceActor.props(entityId, readJournal, commandForwarderActor,
+                pubSubMediator, connectivityConfigOverwrites);
     }
 
     @Override

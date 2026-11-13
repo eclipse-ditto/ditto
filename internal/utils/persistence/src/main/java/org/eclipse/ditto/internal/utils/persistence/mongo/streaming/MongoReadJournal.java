@@ -17,6 +17,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -33,12 +34,6 @@ import org.apache.pekko.japi.Pair;
 import org.apache.pekko.persistence.query.EventEnvelope;
 import org.apache.pekko.persistence.query.Offset;
 import org.apache.pekko.persistence.query.PersistenceQuery;
-import org.apache.pekko.persistence.query.javadsl.CurrentEventsByPersistenceIdQuery;
-import org.apache.pekko.persistence.query.javadsl.CurrentEventsByTagQuery;
-import org.apache.pekko.persistence.query.javadsl.CurrentPersistenceIdsQuery;
-import org.apache.pekko.persistence.query.javadsl.EventsByPersistenceIdQuery;
-import org.apache.pekko.persistence.query.javadsl.EventsByTagQuery;
-import org.apache.pekko.persistence.query.javadsl.PersistenceIdsQuery;
 import org.apache.pekko.stream.Attributes;
 import org.apache.pekko.stream.Materializer;
 import org.apache.pekko.stream.RestartSettings;
@@ -53,7 +48,15 @@ import org.bson.BsonNull;
 import org.bson.BsonString;
 import org.bson.Document;
 import org.bson.conversions.Bson;
+import org.bson.types.ObjectId;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
+import org.eclipse.ditto.internal.utils.persistence.api.DeleteOutcome;
+import org.eclipse.ditto.internal.utils.persistence.api.DittoReadJournal;
+import org.eclipse.ditto.internal.utils.persistence.api.JournalEntry;
+import org.eclipse.ditto.internal.utils.persistence.api.ReadJournalRestarts;
+import org.eclipse.ditto.internal.utils.persistence.api.SnapshotEntry;
+import org.eclipse.ditto.internal.utils.persistence.api.SnapshotFilter;
+import org.eclipse.ditto.internal.utils.persistence.mongo.DittoBsonJson;
 import org.eclipse.ditto.internal.utils.persistence.mongo.DittoMongoClient;
 import org.eclipse.ditto.internal.utils.persistence.mongo.MongoClientWrapper;
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.DefaultMongoDbConfig;
@@ -64,6 +67,7 @@ import org.eclipse.ditto.internal.utils.persistence.mongo.indices.Index;
 import org.eclipse.ditto.internal.utils.persistence.mongo.indices.IndexDirection;
 import org.eclipse.ditto.internal.utils.persistence.mongo.indices.IndexFactory;
 import org.eclipse.ditto.internal.utils.persistence.mongo.indices.IndexInitializer;
+import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault;
 
 import com.mongodb.client.model.Accumulators;
@@ -97,9 +101,7 @@ import pekko.contrib.persistence.mongodb.SnapshottingFieldNames$;
  * </ul>
  */
 @AllValuesAreNonnullByDefault
-public final class MongoReadJournal implements CurrentEventsByPersistenceIdQuery,
-        CurrentEventsByTagQuery, CurrentPersistenceIdsQuery, EventsByPersistenceIdQuery, EventsByTagQuery,
-        PersistenceIdsQuery {
+public final class MongoReadJournal implements DittoReadJournal {
 
     /**
      * ID field of documents delivered by the journal collection.
@@ -108,15 +110,21 @@ public final class MongoReadJournal implements CurrentEventsByPersistenceIdQuery
 
     /**
      * ID field of documents delivered by the snaps collection.
+     *
+     * @deprecated use {@link DittoReadJournal#S_ID}; retained here for backward compatibility.
      */
-    public static final String S_ID = J_ID;
+    @Deprecated
+    public static final String S_ID = DittoReadJournal.S_ID;
 
     /**
      * Prefix of the priority tag which is used in
      * {@link #getJournalPidsWithTagOrderedByPriorityTag(String, java.time.Duration)}
      * for sorting/ordering by.
+     *
+     * @deprecated use {@link DittoReadJournal#PRIORITY_TAG_PREFIX}; retained here for backward compatibility.
      */
-    public static final String PRIORITY_TAG_PREFIX = "priority-";
+    @Deprecated
+    public static final String PRIORITY_TAG_PREFIX = DittoReadJournal.PRIORITY_TAG_PREFIX;
 
     private static final String PEKKO_PERSISTENCE_JOURNAL_AUTO_START =
             "pekko.persistence.journal.auto-start-journals";
@@ -144,8 +152,11 @@ public final class MongoReadJournal implements CurrentEventsByPersistenceIdQuery
 
     /**
      * Document field of the sequence number of snapshots.
+     *
+     * @deprecated use {@link DittoReadJournal#S_SN}; retained here for backward compatibility.
      */
-    public static final String S_SN = SnapshottingFieldNames$.MODULE$.SEQUENCE_NUMBER();
+    @Deprecated
+    public static final String S_SN = DittoReadJournal.S_SN;
 
     /**
      * Document field of the timestamp of snapshots.
@@ -156,15 +167,16 @@ public final class MongoReadJournal implements CurrentEventsByPersistenceIdQuery
 
     /**
      * Document field of lifecycle of snapshots.
+     *
+     * @deprecated use {@link DittoReadJournal#LIFECYCLE}; retained here for backward compatibility.
      */
-    public static final String LIFECYCLE = "__lifecycle";
+    @Deprecated
+    public static final String LIFECYCLE = DittoReadJournal.LIFECYCLE;
 
     private static final String J_EVENT = JournallingFieldNames$.MODULE$.EVENTS();
     public static final String J_EVENT_PID = JournallingFieldNames$.MODULE$.PROCESSOR_ID();
     public static final String J_EVENT_MANIFEST = JournallingFieldNames$.MODULE$.MANIFEST();
     private static final String J_EVENT_SN = JournallingFieldNames$.MODULE$.SEQUENCE_NUMBER();
-
-    private static final Duration MAX_BACK_OFF_DURATION = Duration.ofSeconds(128L);
 
     private static final BsonDocument FILTER_PRIORITY_TAGS_EXPR = BsonDocument.parse(
             "{" +
@@ -372,7 +384,7 @@ public final class MongoReadJournal implements CurrentEventsByPersistenceIdQuery
      * @return Source of all latest journal entries per pid such that each element contains the persistence IDs in
      * {@code batchSize} events that do not occur in prior buckets.
      */
-    public Source<Document, NotUsed> getLatestJournalEntries(final int batchSize, final Duration maxIdleTime,
+    public Source<JournalEntry, NotUsed> getLatestJournalEntries(final int batchSize, final Duration maxIdleTime,
             final Materializer mat) {
 
         final int maxRestarts = computeMaxRestarts(maxIdleTime);
@@ -380,7 +392,15 @@ public final class MongoReadJournal implements CurrentEventsByPersistenceIdQuery
                 .flatMapConcat(
                         journal -> listLatestJournalEntries(journal, batchSize, mat,
                                 maxRestarts, J_EVENT_PID, J_EVENT_SN, J_EVENT_MANIFEST))
-                .mapConcat(pids -> pids);
+                .mapConcat(pids -> pids)
+                .map(MongoReadJournal::toJournalEntry);
+    }
+
+    private static JournalEntry toJournalEntry(final Document document) {
+        return JournalEntry.of(
+                document.getString(J_EVENT_PID),
+                document.getString(J_EVENT_MANIFEST),
+                JsonObject.of(document.toJson()));
     }
 
     private Source<List<Document>, NotUsed> listLatestJournalEntries(final MongoCollection<Document> journal,
@@ -575,12 +595,23 @@ public final class MongoReadJournal implements CurrentEventsByPersistenceIdQuery
      * @param snapshotFields snapshot fields to project out.
      * @return source of newest snapshots with unique PIDs.
      */
-    public Source<Document, NotUsed> getNewestSnapshotsAbove(final String lowerBoundPid,
+    public Source<SnapshotEntry, NotUsed> getNewestSnapshotsAbove(final String lowerBoundPid,
             final int batchSize,
             final Materializer mat,
             final String... snapshotFields) {
 
         return getNewestSnapshotsAbove(lowerBoundPid, batchSize, false, Duration.ZERO, mat, snapshotFields);
+    }
+
+    private static SnapshotEntry toSnapshotEntry(final Document document) {
+        final String pid = document.getString(S_ID);
+        final Long sn = document.getLong(S_SN);
+        final String lifecycle = document.getString(LIFECYCLE);
+        // the persistence id is exposed via the typed accessor; keep it out of the neutral payload
+        // so consumers stream only the snapshot content (mirrors the previous Document.remove(S_ID)).
+        final Document payload = new Document(document);
+        payload.remove(S_ID);
+        return SnapshotEntry.of(pid, sn, lifecycle, JsonObject.of(payload.toJson()));
     }
 
     /**
@@ -596,7 +627,7 @@ public final class MongoReadJournal implements CurrentEventsByPersistenceIdQuery
      * @param snapshotFields snapshot fields to project out.
      * @return source of newest snapshots with unique PIDs.
      */
-    public Source<Document, NotUsed> getNewestSnapshotsAbove(final String lowerBoundPid,
+    public Source<SnapshotEntry, NotUsed> getNewestSnapshotsAbove(final String lowerBoundPid,
             final int batchSize,
             final boolean includeDeleted,
             final Duration minAgeFromNow,
@@ -614,7 +645,8 @@ public final class MongoReadJournal implements CurrentEventsByPersistenceIdQuery
                                 snapshotFields
                         )
                 )
-                .mapConcat(pids -> pids);
+                .mapConcat(pids -> pids)
+                .map(MongoReadJournal::toSnapshotEntry);
     }
 
     /**
@@ -627,7 +659,7 @@ public final class MongoReadJournal implements CurrentEventsByPersistenceIdQuery
      * @param snapshotFields snapshot fields to project out.
      * @return source of newest snapshots with unique PIDs.
      */
-    public Source<Document, NotUsed> getNewestSnapshotsAbove(
+    public Source<SnapshotEntry, NotUsed> getNewestSnapshotsAbove(
             final SnapshotFilter snapshotFilter,
             final int batchSize,
             final Materializer mat,
@@ -638,7 +670,8 @@ public final class MongoReadJournal implements CurrentEventsByPersistenceIdQuery
                 .flatMapConcat(snapshotStore ->
                         listNewestSnapshots(snapshotStore, snapshotFilter, batchSize, false, mat, snapshotFields)
                 )
-                .mapConcat(pids -> pids);
+                .mapConcat(pids -> pids)
+                .map(MongoReadJournal::toSnapshotEntry);
     }
 
     /**
@@ -700,13 +733,19 @@ public final class MongoReadJournal implements CurrentEventsByPersistenceIdQuery
      * @param maxSeqNr maximum sequence number to delete (inclusive).
      * @return source of the delete result.
      */
-    public Source<DeleteResult, NotUsed> deleteEvents(final String pid, final long minSeqNr, final long maxSeqNr) {
+    public Source<DeleteOutcome, NotUsed> deleteEvents(final String pid, final long minSeqNr, final long maxSeqNr) {
 
         final Bson filter = Filters.and(Filters.eq(J_PROCESSOR_ID, pid),
                 Filters.gte(J_TO, minSeqNr),
                 Filters.lte(J_TO, maxSeqNr));
         return getJournal()
-                .flatMapConcat(journal -> Source.fromPublisher(journal.deleteMany(filter)));
+                .flatMapConcat(journal -> Source.fromPublisher(journal.deleteMany(filter)))
+                .map(MongoReadJournal::toDeleteOutcome);
+    }
+
+    private static DeleteOutcome toDeleteOutcome(final DeleteResult deleteResult) {
+        final boolean acknowledged = deleteResult.wasAcknowledged();
+        return DeleteOutcome.of(acknowledged, acknowledged ? deleteResult.getDeletedCount() : 0L);
     }
 
     /**
@@ -717,13 +756,14 @@ public final class MongoReadJournal implements CurrentEventsByPersistenceIdQuery
      * @param maxSeqNr maximum sequence number to delete (inclusive).
      * @return source of the delete result.
      */
-    public Source<DeleteResult, NotUsed> deleteSnapshots(final String pid, final long minSeqNr, final long maxSeqNr) {
+    public Source<DeleteOutcome, NotUsed> deleteSnapshots(final String pid, final long minSeqNr, final long maxSeqNr) {
 
         final Bson filter = Filters.and(Filters.eq(S_PROCESSOR_ID, pid),
                 Filters.gte(S_SN, minSeqNr),
                 Filters.lte(S_SN, maxSeqNr));
         return getSnapshotStore()
-                .flatMapConcat(snaps -> Source.fromPublisher(snaps.deleteMany(filter)));
+                .flatMapConcat(snaps -> Source.fromPublisher(snaps.deleteMany(filter)))
+                .map(MongoReadJournal::toDeleteOutcome);
     }
 
 
@@ -770,6 +810,12 @@ public final class MongoReadJournal implements CurrentEventsByPersistenceIdQuery
     @Override
     public Source<String, NotUsed> persistenceIds() {
         return pekkoReadJournal.persistenceIds();
+    }
+
+    @Override
+    public JsonObject toEventJson(final EventEnvelope eventEnvelope) {
+        final BsonDocument event = (BsonDocument) eventEnvelope.event();
+        return DittoBsonJson.getInstance().serialize(event);
     }
 
     private Source<List<String>, NotUsed> listPidsInJournal(final MongoCollection<Document> journal,
@@ -873,11 +919,11 @@ public final class MongoReadJournal implements CurrentEventsByPersistenceIdQuery
         // sort stage 2 -- order after group stage is not defined
         pipeline.add(Aggregates.sort(Sorts.orderBy(Sorts.descending(J_TAGS))));
 
-        final Duration minBackOff = Duration.ofSeconds(1L);
-        final double randomFactor = 0.1;
+        final Duration minBackOff = ReadJournalRestarts.MIN_BACKOFF;
+        final double randomFactor = ReadJournalRestarts.RANDOM_FACTOR;
 
         final RestartSettings restartSettings = RestartSettings.create(minBackOff,
-                        MongoReadJournal.MAX_BACK_OFF_DURATION, randomFactor)
+                        ReadJournalRestarts.MAX_BACKOFF, randomFactor)
                 .withMaxRestarts(maxRestarts, minBackOff);
 
         final AggregatePublisher<Document> aggregatePublisher;
@@ -930,11 +976,11 @@ public final class MongoReadJournal implements CurrentEventsByPersistenceIdQuery
         // sort stage 2 -- order after group stage is not defined
         pipeline.add(Aggregates.sort(Sorts.ascending(J_ID)));
 
-        final Duration minBackOff = Duration.ofSeconds(1L);
-        final double randomFactor = 0.1;
+        final Duration minBackOff = ReadJournalRestarts.MIN_BACKOFF;
+        final double randomFactor = ReadJournalRestarts.RANDOM_FACTOR;
 
         final RestartSettings restartSettings = RestartSettings.create(minBackOff,
-                        MongoReadJournal.MAX_BACK_OFF_DURATION, randomFactor)
+                        ReadJournalRestarts.MAX_BACKOFF, randomFactor)
                 .withMaxRestarts(maxRestarts, minBackOff);
         return RestartSource.onFailuresWithBackoff(restartSettings, () ->
                 {
@@ -964,14 +1010,7 @@ public final class MongoReadJournal implements CurrentEventsByPersistenceIdQuery
     }
 
     private static int computeMaxRestarts(final Duration maxDuration) {
-        if (MAX_BACK_OFF_DURATION.minus(maxDuration).isNegative()) {
-            // maxBackOff < maxDuration: backOff at least 7 times (1+2+4+8+16+32+64=127s)
-            return Math.max(7, 6 + (int) (maxDuration.toMillis() / MAX_BACK_OFF_DURATION.toMillis()));
-        } else {
-            // maxBackOff >= maxDuration: maxRestarts = log2 of maxDuration in seconds
-            final int log2MaxDuration = 63 - Long.numberOfLeadingZeros(maxDuration.getSeconds());
-            return Math.max(0, log2MaxDuration);
-        }
+        return ReadJournalRestarts.computeMaxRestarts(maxDuration);
     }
 
     private Source<SnapshotBatch, NotUsed> listNewestActiveSnapshotsByBatch(
@@ -983,7 +1022,7 @@ public final class MongoReadJournal implements CurrentEventsByPersistenceIdQuery
 
         final List<Bson> pipeline = new ArrayList<>(6);
         // match stage
-        final Bson matchFilter = snapshotFilter.toMongoFilter();
+        final Bson matchFilter = toMongoFilter(snapshotFilter);
         pipeline.add(Aggregates.match(matchFilter));
 
         // sort stage
@@ -1038,6 +1077,31 @@ public final class MongoReadJournal implements CurrentEventsByPersistenceIdQuery
                         return Source.single(snapshotBatch);
                     }
                 });
+    }
+
+    private static Bson toMongoFilter(final SnapshotFilter snapshotFilter) {
+        final String lowerBoundPid = snapshotFilter.lowerBoundPid();
+        final String pidFilter = snapshotFilter.pidFilter();
+        final Duration minAgeFromNow = snapshotFilter.minAgeFromNow();
+
+        final Bson filter;
+        if (!lowerBoundPid.isEmpty() && !pidFilter.isEmpty()) {
+            filter = Filters.and(Filters.gt(S_PROCESSOR_ID, lowerBoundPid),
+                    Filters.regex(S_PROCESSOR_ID, pidFilter));
+        } else if (!lowerBoundPid.isEmpty()) {
+            filter = Filters.gt(S_PROCESSOR_ID, lowerBoundPid);
+        } else if (!pidFilter.isEmpty()) {
+            filter = Filters.regex(S_PROCESSOR_ID, pidFilter);
+        } else {
+            filter = Filters.empty();
+        }
+
+        if (minAgeFromNow.isZero()) {
+            return filter;
+        }
+        final Date nowMinusMinAgeFromNow = Date.from(Instant.now().minus(minAgeFromNow));
+        final Bson eventRetentionFilter = Filters.lt(J_ID, ObjectId.getSmallestWithDate(nowMinusMinAgeFromNow));
+        return Filters.and(filter, eventRetentionFilter);
     }
 
     private Optional<String> calculateIndexHint(final Bson matchFilter) {

@@ -15,6 +15,7 @@ package org.eclipse.ditto.thingsearch.service.common.model;
 import java.util.Arrays;
 
 import org.assertj.core.api.Assertions;
+import org.eclipse.ditto.thingsearch.persistence.api.model.ResultListImpl;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;

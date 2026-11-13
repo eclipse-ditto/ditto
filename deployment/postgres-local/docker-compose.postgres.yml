@@ -1,0 +1,37 @@
+# Copyright (c) 2026 Contributors to the Eclipse Foundation
+#
+# See the NOTICE file(s) distributed with this work for additional
+# information regarding copyright ownership.
+#
+# This program and the accompanying materials are made available under the
+# terms of the Eclipse Public License 2.0 which is available at
+# http://www.eclipse.org/legal/epl-2.0
+#
+# SPDX-License-Identifier: EPL-2.0
+# Standalone local PostgreSQL for trying the Ditto Postgres persistence backend.
+# This is a NEW file and does NOT touch deployment/docker/docker-compose.yml.
+#
+#   docker compose -f deployment/postgres-local/docker-compose.postgres.yml up -d
+#   docker compose -f deployment/postgres-local/docker-compose.postgres.yml down -v   # wipe data
+#
+# The default `ditto` role owns the database, so it doubles as the DDL (schema bootstrap) role locally.
+services:
+  postgres:
+    image: postgres:16
+    container_name: ditto-postgres-local
+    environment:
+      POSTGRES_DB: ditto
+      POSTGRES_USER: ditto
+      POSTGRES_PASSWORD: ditto
+    ports:
+      - "5432:5432"
+    volumes:
+      - ditto-pg-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ditto -d ditto"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  ditto-pg-data:

@@ -327,7 +327,8 @@ ditto.connectivity.connection.encryption {
 
 **Behavior:**
 - **Encryption:** Always uses `symmetrical-key` for encrypting new data
-- **Decryption:** Tries `symmetrical-key` first, falls back to `old-symmetrical-key` if decryption fails
+- **Decryption:** Tries `symmetrical-key` first, falls back to `old-symmetrical-key` if decryption fails; with no
+  `symmetrical-key`, `old-symmetrical-key` alone is used
 - **Migration:** Explicit DevOps command re-encrypts existing data from old key to new key
 
 **Migration Decision Logic:**
@@ -335,7 +336,7 @@ ditto.connectivity.connection.encryption {
 The migration command automatically detects the intended workflow based on configuration:
 
 - **Encryption enabled + both keys set** → Key rotation (decrypt with old, encrypt with new)
-- **Encryption enabled + only current key** → Error (nothing to migrate)
+- **Encryption enabled + only current key** → Initial encryption (encrypt existing plaintext values with the current key)
 - **Encryption disabled + old key set** → Disable workflow (decrypt with old, write plaintext)
 - **Encryption disabled + no keys** → Error (cannot migrate)
 
@@ -451,7 +452,7 @@ To rotate an encryption key:
   migration. This makes resume safe to call idempotently.
 
 **Migration details:**
-- The migration processes both connection snapshots and journal events in MongoDB
+- The migration processes both the stored connection snapshots and the stored journal events
 - Progress is persisted to allow resuming after abort or service restart
 - Migration runs in batches to avoid overwhelming the database
 - The batch size can be configured via `ditto.connectivity.connection.encryption.migration.batch-size`
@@ -1809,8 +1810,13 @@ cleanup {
 }
 ```
 
-By default, background cleanup is enabled for all entities and the retention duration is configured to `0d` (0 days), 
-meaning that no history will be kept for a longer time.
+By default, background cleanup is enabled for all entities. The retention duration (`history-retention-duration`)
+is `3d` (3 days) for things and `30d` (30 days) for policies and connectivity; the Helm chart sets `30d` for all
+three (`<service>.config.cleanup.history.retentionDuration`).
+
+On PostgreSQL, deleted events and snapshots stay in the tables as dead rows until the tables are vacuumed, and vacuuming
+makes their space reusable without shrinking the files, see
+[Operating PostgreSQL](operating-postgresql.html#dead-rows-and-autovacuum).
 
 In order to use Ditto's [history capabilities](basic-history.html), the configuration has to be adjusted accordingly.
 

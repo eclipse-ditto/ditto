@@ -329,7 +329,7 @@ public final class EncryptionMigrationTestHelper {
                 .set("connectionType", "mqtt")
                 .set("connectionStatus", "closed")
                 .set("uri", "tcp://user:secretPassword123@broker.example.com:1883")
-                .set("credentials/password", "mySecretPassword")
+                .set("/credentials/password", "mySecretPassword")
                 .build();
     }
 

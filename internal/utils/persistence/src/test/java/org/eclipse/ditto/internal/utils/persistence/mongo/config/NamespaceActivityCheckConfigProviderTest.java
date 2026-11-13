@@ -17,6 +17,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.time.Duration;
 import java.util.List;
 
+import org.eclipse.ditto.internal.utils.persistence.api.config.ActivityCheckConfig;
+import org.eclipse.ditto.internal.utils.persistence.api.config.DefaultActivityCheckConfig;
 import org.junit.Test;
 
 import com.typesafe.config.ConfigFactory;

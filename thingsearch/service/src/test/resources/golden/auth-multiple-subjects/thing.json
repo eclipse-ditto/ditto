@@ -1,0 +1,9 @@
+{
+  "thingId": "golden:auth-multiple-subjects",
+  "_namespace": "golden",
+  "_revision": 9,
+  "policyId": "golden:auth-multiple-subjects",
+  "attributes": {
+    "x": 1
+  }
+}

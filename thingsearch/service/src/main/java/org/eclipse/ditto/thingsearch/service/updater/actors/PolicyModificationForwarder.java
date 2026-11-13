@@ -30,7 +30,7 @@ import org.eclipse.ditto.policies.api.PolicyTag;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.thingsearch.api.PolicyReferenceTag;
 import org.eclipse.ditto.thingsearch.service.common.config.DittoSearchConfig;
-import org.eclipse.ditto.thingsearch.service.persistence.write.ThingsSearchUpdaterPersistence;
+import org.eclipse.ditto.thingsearch.persistence.api.ThingsSearchUpdaterPersistence;
 
 import org.apache.pekko.Done;
 import org.apache.pekko.NotUsed;

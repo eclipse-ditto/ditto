@@ -16,6 +16,7 @@ import javax.annotation.concurrent.Immutable;
 
 import org.bson.BsonDocument;
 import org.bson.conversions.Bson;
+import org.eclipse.ditto.thingsearch.persistence.api.model.Metadata;
 
 import com.mongodb.client.model.DeleteOneModel;
 import com.mongodb.client.model.WriteModel;

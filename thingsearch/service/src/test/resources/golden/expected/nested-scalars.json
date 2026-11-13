@@ -1,0 +1,56 @@
+{
+  "_id": "golden:nested-scalars",
+  "_namespace": "golden",
+  "gr": [
+    "g:0"
+  ],
+  "_revision": {
+    "$numberLong": "10"
+  },
+  "policyId": "golden:nested-scalars",
+  "__policyRev": {
+    "$numberLong": "1"
+  },
+  "__referencedPolicies": [
+    {
+      "type": "policy",
+      "id": "golden:nested-scalars",
+      "revision": {
+        "$numberInt": "1"
+      }
+    }
+  ],
+  "t": {
+    "thingId": "golden:nested-scalars",
+    "_namespace": "golden",
+    "_revision": {
+      "$numberInt": "10"
+    },
+    "policyId": "golden:nested-scalars",
+    "attributes": {
+      "info": {
+        "str": "hello world",
+        "intVal": {
+          "$numberInt": "42"
+        },
+        "longVal": {
+          "$numberLong": "123456789012345"
+        },
+        "doubleVal": {
+          "$numberDouble": "3.14159"
+        },
+        "boolVal": true,
+        "nullVal": null,
+        "emptyStr": ""
+      },
+      "emptyObj": {},
+      "emptyArr": []
+    }
+  },
+  "p": {
+    "·g": [
+      "g:0"
+    ]
+  },
+  "f": []
+}

@@ -39,17 +39,17 @@ import org.eclipse.ditto.internal.utils.metrics.instruments.gauge.KamonGauge;
 import org.eclipse.ditto.internal.utils.metrics.instruments.tag.KamonTagSetConverter;
 import org.eclipse.ditto.internal.utils.metrics.instruments.tag.Tag;
 import org.eclipse.ditto.internal.utils.metrics.instruments.tag.TagSet;
+import org.eclipse.ditto.internal.utils.config.ScopedConfig;
 import org.eclipse.ditto.internal.utils.pekko.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
-import org.eclipse.ditto.internal.utils.persistence.mongo.DittoMongoClient;
 import org.eclipse.ditto.placeholders.ExpressionResolver;
 import org.eclipse.ditto.placeholders.PlaceholderFactory;
 import org.eclipse.ditto.thingsearch.model.signals.commands.query.AggregateThingsMetrics;
 import org.eclipse.ditto.thingsearch.model.signals.commands.query.AggregateThingsMetricsResponse;
+import org.eclipse.ditto.thingsearch.persistence.api.SearchPersistenceProvider;
 import org.eclipse.ditto.thingsearch.service.common.config.CustomAggregationMetricConfig;
 import org.eclipse.ditto.thingsearch.service.common.config.OperatorMetricsConfig;
 import org.eclipse.ditto.thingsearch.service.common.config.SearchConfig;
-import org.eclipse.ditto.thingsearch.service.persistence.read.MongoThingsAggregationPersistence;
 import org.eclipse.ditto.thingsearch.service.placeholders.GroupByPlaceholderResolver;
 
 import kamon.Kamon;
@@ -77,7 +77,7 @@ public final class OperatorAggregateMetricsProviderActor extends AbstractActorWi
 
     @SuppressWarnings("unused")
     private OperatorAggregateMetricsProviderActor(final SearchConfig searchConfig) {
-        this.aggregateThingsMetricsActorSingletonProxy = initializeAggregationThingsMetricsActor(searchConfig);
+        this.aggregateThingsMetricsActorSingletonProxy = initializeAggregationThingsMetricsActor();
         this.customSearchMetricConfigMap = searchConfig.getOperatorMetricsConfig().getCustomAggregationMetricConfigs();
         this.metricsGauges = new HashMap<>();
         this.customSearchMetricsGauge = KamonGauge.newGauge("custom-aggregation-metrics-count-of-instruments");
@@ -112,10 +112,11 @@ public final class OperatorAggregateMetricsProviderActor extends AbstractActorWi
                 .build();
     }
 
-    private ActorRef initializeAggregationThingsMetricsActor(final SearchConfig searchConfig) {
-        final DittoMongoClient mongoDbClient = MongoClientExtension.get(getContext().system()).getSearchClient();
+    private ActorRef initializeAggregationThingsMetricsActor() {
+        final var searchPersistenceProvider = SearchPersistenceProvider.get(getContext().system(),
+                ScopedConfig.dittoExtension(getContext().system().settings().config()));
         final var props = AggregateThingsMetricsActor.props(
-                MongoThingsAggregationPersistence.of(mongoDbClient, searchConfig, log));
+                searchPersistenceProvider.createAggregationPersistence());
         final ActorRef aggregationThingsMetricsActorProxy = ClusterUtil
                 .startSingletonProxy(getContext(), CLUSTER_ROLE,
                         ClusterUtil.startSingleton(getContext(), CLUSTER_ROLE, AggregateThingsMetricsActor.ACTOR_NAME,

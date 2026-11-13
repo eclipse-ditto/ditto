@@ -1,0 +1,173 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  ~ Copyright (c) 2026 Contributors to the Eclipse Foundation
+  ~
+  ~ See the NOTICE file(s) distributed with this work for additional
+  ~ information regarding copyright ownership.
+  ~
+  ~ This program and the accompanying materials are made available under the
+  ~ terms of the Eclipse Public License 2.0 which is available at
+  ~ http://www.eclipse.org/legal/epl-2.0
+  ~
+  ~ SPDX-License-Identifier: EPL-2.0
+  -->
+<project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://maven.apache.org/POM/4.0.0"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>org.eclipse.ditto</groupId>
+        <artifactId>ditto-internal-utils</artifactId>
+        <version>${revision}</version>
+    </parent>
+
+    <artifactId>ditto-postgres-client-extension</artifactId>
+    <packaging>jar</packaging>
+    <name>Eclipse Ditto :: Postgres :: Client Extension (base)</name>
+
+    <!--
+        BASE drop-in PostgreSQL extension jar (§6 D2 — three-JAR layered packaging).
+
+        This is the SHARED base of the layered Postgres extension set. It bundles the backend-agnostic Ditto
+        postgres-client infrastructure (connection pool, DDL/schema manager, health, metrics) TOGETHER with the FULL
+        third-party r2dbc/reactor/netty/scram runtime stack that the upstream service allinone jars deliberately do NOT
+        carry (the enforce-no-r2dbc-in-service enforcer rule keeps r2dbc out of those allinones). It carries NONE of the
+        event-sourcing (persistence-r2dbc) or things-search (search-r2dbc) implementation classes — those ride on top of
+        this base in their own THIN extension jars (ditto-postgres-persistence-extension / ditto-postgres-search-extension).
+
+        Deployment matrix (§6 D2): things/policies/connectivity mount base + persistence (2 jars); the search service
+        mounts base + search; a Mongo-search deployment mounts nothing on the search service. All mounted Postgres
+        extension jars MUST come from the SAME Ditto release — enforced at boot by the version-marker self-check
+        (META-INF/ditto-postgres-extension.properties + PostgresExtensionVersions, invoked from both providers).
+
+        It is NOT a dependency of any service module and NOT bundled in the published images.
+
+        Shade strategy: an EXPLICIT include whitelist (artifactSet/includes). For an extension jar a whitelist is safer
+        than a blacklist — only the artifacts we name are bundled, so no transitive can silently leak in. Everything
+        already present on every allinone classpath (pekko, all other ditto modules, the netty CORE jars, slf4j/logback,
+        jackson, typesafe-config) is therefore simply NOT listed and stays out by construction. reactor-core IS bundled
+        at the bom-pinned version as a belt-and-suspenders copy; the allinone's own reactor-core wins by classpath order.
+    -->
+
+    <dependencies>
+        <!-- The only compile dependency: the shared Ditto postgres-client infrastructure module (version bom-managed).
+             It pulls in the r2dbc SPI/driver/pool + reactor + scram runtime whitelisted below. -->
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-internal-utils-postgres-client</artifactId>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <!-- Resource filtering only for the version-marker properties so ${project.version} is substituted with the
+             release version. The marker names this jar's component ("base") and the release; the boot self-check
+             (PostgresExtensionVersions) reads every mounted marker and fails fast if their versions diverge. -->
+        <resources>
+            <resource>
+                <directory>src/main/resources</directory>
+                <filtering>true</filtering>
+            </resource>
+        </resources>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
+                <configuration>
+                    <!--
+                        Always rebuild the thin project JAR that shade:shade below takes as its input. Without this, an
+                        incremental `mvn install` (no `clean`) finds the artifact already in target/ "up to date" (this
+                        module's own sources rarely change) and keeps it; but that artifact is the PREVIOUS shaded JAR
+                        (shade replaces the main artifact in place). shade:shade then merges it with the freshly built
+                        postgres-client JAR and keeps the first copy of every overlapping class, i.e. the stale one, while
+                        every build step reports success. build-images.sh refuses such a JAR; this removes the cause.
+                    -->
+                    <forceCreation>true</forceCreation>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-shade-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>shade</goal>
+                        </goals>
+                        <configuration>
+                            <createDependencyReducedPom>false</createDependencyReducedPom>
+                            <artifactSet>
+                                <!--
+                                    Explicit whitelist: the shared postgres-client module PLUS ONLY the
+                                    r2dbc/reactor/netty/scram runtime that the allinone jars do not already carry.
+                                    Everything else (pekko, other ditto modules, netty core, slf4j/logback, jackson,
+                                    typesafe-config, ditto-internal-utils-config/metrics/health) is excluded simply by
+                                    NOT being listed here. This whitelist MOVED here from the former
+                                    persistence-r2dbc-extension: it is the third-party stack that the classes now living
+                                    in postgres-client (ConnectionPoolFactory / DittoPostgresClient / PostgresClientExtension)
+                                    pull in — the thin persistence/search extensions carry no third-party of their own.
+                                -->
+                                <includes>
+                                    <include>org.eclipse.ditto:ditto-internal-utils-postgres-client</include>
+                                    <include>io.r2dbc:r2dbc-spi</include>
+                                    <include>io.r2dbc:r2dbc-pool</include>
+                                    <include>io.r2dbc:r2dbc-proxy</include>
+                                    <include>org.postgresql:r2dbc-postgresql</include>
+                                    <include>io.projectreactor.addons:reactor-pool</include>
+                                    <include>io.projectreactor.netty:reactor-netty-core</include>
+                                    <include>io.projectreactor:reactor-core</include>
+                                    <include>com.ongres.scram:client</include>
+                                    <include>com.ongres.scram:common</include>
+                                    <!-- optional native netty transports (only present if on the classpath) -->
+                                    <include>io.netty:netty-transport-native-epoll</include>
+                                    <include>io.netty:netty-transport-native-kqueue</include>
+                                    <!--
+                                        DNS resolver: reactor-netty's ReactorNettyClient needs
+                                        io.netty.resolver.dns.DnsAddressResolverGroup, and the allinone jars carry netty
+                                        core but NOT netty-resolver-dns/netty-codec-dns (proven by container boot:
+                                        NoClassDefFoundError). Same netty version (4.2.x) as the allinone jars — managed
+                                        by the bom.
+                                    -->
+                                    <include>io.netty:netty-resolver-dns</include>
+                                    <include>io.netty:netty-codec-dns</include>
+                                </includes>
+                            </artifactSet>
+                            <filters>
+                                <filter>
+                                    <artifact>*:*</artifact>
+                                    <excludes>
+                                        <exclude>LICENSE</exclude>
+                                        <exclude>LICENSE.txt</exclude>
+                                        <exclude>NOTICE</exclude>
+                                        <exclude>THIRD-PARTY.txt</exclude>
+                                        <exclude>README.md</exclude>
+                                        <exclude>rootdoc.txt</exclude>
+                                        <exclude>META-INF/NOTICE</exclude>
+                                        <exclude>META-INF/*.SF</exclude>
+                                        <exclude>META-INF/*.DSA</exclude>
+                                        <exclude>META-INF/*.RSA</exclude>
+                                    </excludes>
+                                </filter>
+                            </filters>
+                            <transformers>
+                                <!--
+                                    ServicesResourceTransformer merges META-INF/services/* — REQUIRED so the r2dbc
+                                    driver discovery file META-INF/services/io.r2dbc.spi.ConnectionFactoryProvider
+                                    survives the shade and the PostgreSQL ConnectionFactoryProvider is discovered at
+                                    runtime via the ServiceLoader.
+                                -->
+                                <transformer
+                                        implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/>
+                                <!-- Merge reference.conf (r2dbc/reactor libraries ship their own). No Main-Class: library jar. -->
+                                <transformer
+                                        implementation="org.apache.maven.plugins.shade.resource.AppendingTransformer">
+                                    <resource>reference.conf</resource>
+                                </transformer>
+                            </transformers>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+
+</project>

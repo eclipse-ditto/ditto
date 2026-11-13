@@ -29,6 +29,9 @@ import org.bson.BsonDocument;
 import org.eclipse.ditto.base.api.persistence.PersistenceLifecycle;
 import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
+import org.eclipse.ditto.internal.utils.persistence.api.serializer.NeutralSnapshotAdapter;
+import org.eclipse.ditto.internal.utils.persistence.api.serializer.SnapshotAdapter;
+import org.eclipse.ditto.internal.utils.persistence.mongo.MongoSnapshotCodec;
 import org.eclipse.ditto.things.api.ThingSnapshotTaken;
 import org.eclipse.ditto.things.model.TestConstants;
 import org.eclipse.ditto.things.model.Thing;
@@ -52,15 +55,18 @@ public final class ThingMongoSnapshotAdapterTest {
 
     private ActorSystem system;
     private TestProbe pubSubProbe;
-    private ThingMongoSnapshotAdapter underTest = null;
+    // The single neutral adapter = the Thing serializer + the Mongo (BSON) codec, exactly as
+    // AbstractPersistenceActor composes it for the Mongo backend.
+    private SnapshotAdapter<Thing> underTest = null;
 
     @Before
     public void setUp() {
         system = ActorSystem.create();
         pubSubProbe = TestProbe.apply(system);
-        underTest = new ThingMongoSnapshotAdapter(pubSubProbe.ref(), ConfigFactory.parseMap(
+        final var serializer = new ThingMongoSnapshotAdapter(pubSubProbe.ref(), ConfigFactory.parseMap(
                 Map.of(ThingMongoSnapshotAdapter.THING_SNAPSHOT_TAKEN_EVENT_PUBLISHING_ENABLED, true)
         ));
+        underTest = new NeutralSnapshotAdapter<>(serializer, MongoSnapshotCodec.INSTANCE);
     }
 
     @After

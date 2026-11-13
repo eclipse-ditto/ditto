@@ -68,6 +68,7 @@ import org.eclipse.ditto.connectivity.model.ConnectionId;
 import org.eclipse.ditto.connectivity.model.ConnectionLifecycle;
 import org.eclipse.ditto.connectivity.model.ConnectionMetrics;
 import org.eclipse.ditto.connectivity.model.ConnectionType;
+import org.eclipse.ditto.connectivity.model.ConnectivityConstants;
 import org.eclipse.ditto.connectivity.model.ConnectivityModelFactory;
 import org.eclipse.ditto.connectivity.model.ConnectivityStatus;
 import org.eclipse.ditto.connectivity.model.signals.commands.ConnectivityCommandInterceptor;
@@ -132,9 +133,10 @@ import org.eclipse.ditto.internal.utils.pekko.PingCommand;
 import org.eclipse.ditto.internal.utils.pekko.logging.CommonMdcEntryKey;
 import org.eclipse.ditto.internal.utils.pekko.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
-import org.eclipse.ditto.internal.utils.persistence.mongo.config.ActivityCheckConfig;
-import org.eclipse.ditto.internal.utils.persistence.mongo.config.SnapshotConfig;
-import org.eclipse.ditto.internal.utils.persistence.mongo.streaming.MongoReadJournal;
+import org.eclipse.ditto.internal.utils.persistence.api.config.ActivityCheckConfig;
+import org.eclipse.ditto.internal.utils.persistence.api.config.SnapshotConfig;
+import org.eclipse.ditto.internal.utils.persistence.api.DittoReadJournal;
+import org.eclipse.ditto.internal.utils.persistence.api.PersistenceBackendProvider;
 import org.eclipse.ditto.internal.utils.persistentactors.AbstractPersistenceActor;
 import org.eclipse.ditto.policies.enforcement.AbstractEnforcerActor;
 import org.eclipse.ditto.internal.utils.persistentactors.EmptyEvent;
@@ -161,12 +163,17 @@ public final class ConnectionPersistenceActor
     public static final String PERSISTENCE_ID_PREFIX = "connection:";
 
     /**
-     * The ID of the journal plugin this persistence actor uses.
+     * The MongoDB journal plugin ID for connections. Retained for the Mongo namespace-operations actor
+     * ({@code ConnectionPersistenceOperationsActor}); the persistent-actor write path resolves its journal plugin
+     * through the {@link PersistenceBackendProvider} (see {@link #journalPluginId()}) so it follows the active backend
+     * profile.
      */
     public static final String JOURNAL_PLUGIN_ID = "pekko-contrib-mongodb-persistence-connection-journal";
 
     /**
-     * The ID of the snapshot plugin this persistence actor uses.
+     * The MongoDB snapshot plugin ID for connections. Retained for the Mongo namespace-operations actor; the
+     * persistent-actor write path resolves its snapshot plugin through the {@link PersistenceBackendProvider} (see
+     * {@link #snapshotPluginId()}).
      */
     public static final String SNAPSHOT_PLUGIN_ID = "pekko-contrib-mongodb-persistence-connection-snapshots";
 
@@ -202,13 +209,13 @@ public final class ConnectionPersistenceActor
     @Nullable private Instant recoveredAt;
 
     ConnectionPersistenceActor(final ConnectionId connectionId,
-            final MongoReadJournal mongoReadJournal,
+            final DittoReadJournal readJournal,
             final ActorRef commandForwarderActor,
             final ActorRef pubSubMediator,
             final Trilean allClientActorsOnOneNode,
             final Config connectivityConfigOverwrites) {
 
-        super(connectionId, mongoReadJournal);
+        super(connectionId, readJournal);
         this.actorSystem = context().system();
         cluster = Cluster.get(actorSystem);
         final Config dittoExtensionConfig = ScopedConfig.dittoExtension(actorSystem.settings().config());
@@ -268,7 +275,7 @@ public final class ConnectionPersistenceActor
      * Creates Pekko configuration object for this actor.
      *
      * @param connectionId the connection ID.
-     * @param mongoReadJournal the ReadJournal used for gaining access to historical values of the connection.
+     * @param readJournal the ReadJournal used for gaining access to historical values of the connection.
      * @param commandForwarderActor the actor used to send signals into the ditto cluster.
      * @param pubSubMediator pub-sub-mediator for the shutdown behavior.
      * @param pubSubMediator the pubSubMediator
@@ -276,12 +283,12 @@ public final class ConnectionPersistenceActor
      * @return the Pekko configuration Props object.
      */
     public static Props props(final ConnectionId connectionId,
-            final MongoReadJournal mongoReadJournal,
+            final DittoReadJournal readJournal,
             final ActorRef commandForwarderActor,
             final ActorRef pubSubMediator,
             final Config connectivityConfigOverwrites
     ) {
-        return Props.create(ConnectionPersistenceActor.class, connectionId, mongoReadJournal,
+        return Props.create(ConnectionPersistenceActor.class, connectionId, readJournal,
                 commandForwarderActor, pubSubMediator,Trilean.UNKNOWN, connectivityConfigOverwrites);
     }
 
@@ -302,12 +309,17 @@ public final class ConnectionPersistenceActor
 
     @Override
     public String journalPluginId() {
-        return JOURNAL_PLUGIN_ID;
+        return backendProvider().getJournalPluginId(ConnectivityConstants.ENTITY_TYPE.toString());
     }
 
     @Override
     public String snapshotPluginId() {
-        return SNAPSHOT_PLUGIN_ID;
+        return backendProvider().getSnapshotPluginId(ConnectivityConstants.ENTITY_TYPE.toString());
+    }
+
+    private PersistenceBackendProvider backendProvider() {
+        final var system = context().system();
+        return PersistenceBackendProvider.get(system, ScopedConfig.dittoExtension(system.settings().config()));
     }
 
     @Override
@@ -464,7 +476,7 @@ public final class ConnectionPersistenceActor
         final Set<String> activeConnectionTags;
         if (isDesiredStateOpen()) {
             activeConnectionTags = Set.of(JOURNAL_TAG_ALWAYS_ALIVE,
-                    MongoReadJournal.PRIORITY_TAG_PREFIX + Optional.ofNullable(priority).orElse(0));
+                    DittoReadJournal.PRIORITY_TAG_PREFIX + Optional.ofNullable(priority).orElse(0));
         } else {
             activeConnectionTags = Set.of();
         }
@@ -493,7 +505,7 @@ public final class ConnectionPersistenceActor
         final var alwaysAlive = (targetConnectionStatus == ConnectivityStatus.OPEN);
         if (alwaysAlive) {
             activeConnectionTags = Set.of(JOURNAL_TAG_ALWAYS_ALIVE,
-                    MongoReadJournal.PRIORITY_TAG_PREFIX + Optional.ofNullable(priority).orElse(0));
+                    DittoReadJournal.PRIORITY_TAG_PREFIX + Optional.ofNullable(priority).orElse(0));
         } else {
             activeConnectionTags = Set.of();
         }

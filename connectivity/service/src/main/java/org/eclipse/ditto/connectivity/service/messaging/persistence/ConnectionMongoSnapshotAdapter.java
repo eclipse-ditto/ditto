@@ -19,7 +19,7 @@ import org.eclipse.ditto.connectivity.model.ConnectionLifecycle;
 import org.eclipse.ditto.connectivity.service.config.DittoConnectivityConfig;
 import org.eclipse.ditto.connectivity.service.config.FieldsEncryptionConfig;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
-import org.eclipse.ditto.internal.utils.persistence.mongo.AbstractMongoSnapshotAdapter;
+import org.eclipse.ditto.internal.utils.persistence.api.serializer.SnapshotSerializer;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
@@ -32,9 +32,15 @@ import com.typesafe.config.Config;
 import org.apache.pekko.actor.ActorSystem;
 
 /**
- * SnapshotAdapter for {@link String}s persisted to/from MongoDB.
+ * The {@link SnapshotSerializer} for a {@link Connection}: the pure domain&harr;{@code JsonObject} logic, including the
+ * connection fields encrypt/decrypt hooks. It is backend-neutral; the storage envelope (Mongo BSON / Postgres JSONB) is
+ * supplied separately by the active backend's {@code SnapshotCodec} and combined with this serializer in
+ * {@code org.eclipse.ditto.internal.utils.persistence.api.serializer.NeutralSnapshotAdapter}.
+ * <p>
+ * The {@code MongoSnapshotAdapter} class name and the {@code ditto.extensions.snapshot-adapter} key are unchanged, so
+ * existing MongoDB configurations keep working; the class is now purely a serializer without BSON-specific code.
  */
-public final class ConnectionMongoSnapshotAdapter extends AbstractMongoSnapshotAdapter<Connection> {
+public final class ConnectionMongoSnapshotAdapter extends SnapshotSerializer<Connection> {
 
     public static final Logger LOGGER = LoggerFactory.getLogger(ConnectionMongoSnapshotAdapter.class);
     private final FieldsEncryptionConfig encryptionConfig;
@@ -83,20 +89,24 @@ public final class ConnectionMongoSnapshotAdapter extends AbstractMongoSnapshotA
                 .flatMap(p -> jsonObject.getValue(p).filter(JsonValue::isString).map(JsonValue::asString).stream())
                 .anyMatch(v -> v.contains(JsonFieldsEncryptor.ENCRYPTED_PREFIX));
 
-        if (encryptionConfig.getSymmetricalKey().isEmpty()) {
-            if (hasEncryptedFields) {
-                LOGGER.warn("Encrypted fields will not be decrypted. Missing symmetrical key. " +
-                        "Either configure the one used for encryption or edit connections and update encrypted fields");
-            }
-            return ConnectionMigrationUtil.connectionFromJsonWithMigration(jsonObject);
-        }
-
         if (!hasEncryptedFields) {
             return ConnectionMigrationUtil.connectionFromJsonWithMigration(jsonObject);
         }
 
+        // Mirrors the event adapters: the current key is primary and the old key its fallback; without a current key
+        // (encryption disabled, the last key kept as 'old-symmetrical-key') the old key alone decrypts.
+        final Optional<String> currentKey = encryptionConfig.getSymmetricalKey();
+        final Optional<String> oldKey = encryptionConfig.getOldSymmetricalKey();
+        if (currentKey.isEmpty() && oldKey.isEmpty()) {
+            LOGGER.warn("Encrypted fields will not be decrypted. Missing symmetrical key. Either configure the key "
+                    + "used for encryption as 'symmetrical-key' or 'old-symmetrical-key', or edit the connections "
+                    + "and update the encrypted fields.");
+            return ConnectionMigrationUtil.connectionFromJsonWithMigration(jsonObject);
+        }
+        final String primaryKey = currentKey.orElseGet(oldKey::get);
+        final Optional<String> fallbackKey = currentKey.isPresent() ? oldKey : Optional.empty();
         final JsonObject decrypted = JsonFieldsEncryptor.decrypt(jsonObject, "", encryptionConfig.getJsonPointers(),
-                encryptionConfig.getSymmetricalKey().get(), encryptionConfig.getOldSymmetricalKey());
+                primaryKey, fallbackKey);
         return ConnectionMigrationUtil.connectionFromJsonWithMigration(decrypted);
     }
 

@@ -1,0 +1,23 @@
+{
+  "policyId": "golden:auth-multiple-subjects",
+  "entries": {
+    "MULTI": {
+      "subjects": {
+        "g:a": { "type": "generated" },
+        "g:b": { "type": "generated" },
+        "g:c": { "type": "generated" }
+      },
+      "resources": {
+        "thing:/": { "grant": ["READ"], "revoke": [] }
+      }
+    },
+    "REVOKE_ONE": {
+      "subjects": {
+        "g:b": { "type": "generated" }
+      },
+      "resources": {
+        "thing:/attributes/x": { "grant": [], "revoke": ["READ"] }
+      }
+    }
+  }
+}

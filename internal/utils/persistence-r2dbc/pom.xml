@@ -1,0 +1,160 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  ~ Copyright (c) 2026 Contributors to the Eclipse Foundation
+  ~
+  ~ See the NOTICE file(s) distributed with this work for additional
+  ~ information regarding copyright ownership.
+  ~
+  ~ This program and the accompanying materials are made available under the
+  ~ terms of the Eclipse Public License 2.0 which is available at
+  ~ http://www.eclipse.org/legal/epl-2.0
+  ~
+  ~ SPDX-License-Identifier: EPL-2.0
+  -->
+<project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://maven.apache.org/POM/4.0.0"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>org.eclipse.ditto</groupId>
+        <artifactId>ditto-internal-utils</artifactId>
+        <version>${revision}</version>
+    </parent>
+
+    <artifactId>ditto-internal-utils-persistence-r2dbc</artifactId>
+    <name>Eclipse Ditto :: Internal :: Utils :: Persistence R2DBC</name>
+
+    <dependencies>
+        <!-- Shared backend-agnostic Postgres client/schema infrastructure (pool, DDL, health, metrics,
+             descriptor-parameterised schema manager) extracted from this module. -->
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-internal-utils-postgres-client</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-internal-utils-config</artifactId>
+        </dependency>
+        <!-- Metrics facade (DittoMetrics/Timer/Histogram/Gauge) for the R2DBC -> Kamon observability, WU11.
+             Brings io.kamon:kamon-core transitively (kamon.version managed in bom). -->
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-internal-utils-metrics</artifactId>
+        </dependency>
+        <!-- The backend-agnostic persistence SPI implemented by the read journal (WU9). -->
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-internal-utils-persistence-api</artifactId>
+        </dependency>
+        <!-- Health subsystem base (AbstractHealthCheckingActor + StatusInfo) for the SELECT 1 health-check actor (E2),
+             mirroring the Mongo backend's MongoHealthChecker. A leaf util (json/base-model/pekko/config) — no cycle. -->
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-internal-utils-health</artifactId>
+        </dependency>
+
+        <!-- Pekko streams: bridge the reactive-streams Publisher exposed by r2dbc to Pekko via Source.fromPublisher -->
+        <dependency>
+            <groupId>org.apache.pekko</groupId>
+            <artifactId>pekko-actor_${scala.version}</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.pekko</groupId>
+            <artifactId>pekko-stream_${scala.version}</artifactId>
+        </dependency>
+        <!-- Pekko persistence: AsyncWriteJournal (WU7) + SnapshotStore (WU8) japi base classes. -->
+        <dependency>
+            <groupId>org.apache.pekko</groupId>
+            <artifactId>pekko-persistence_${scala.version}</artifactId>
+        </dependency>
+        <!-- Pekko persistence query: EventEnvelope/Offset + the query SPIs DittoReadJournal extends (WU9). -->
+        <dependency>
+            <groupId>org.apache.pekko</groupId>
+            <artifactId>pekko-persistence-query_${scala.version}</artifactId>
+        </dependency>
+
+        <!-- R2DBC SPI + pooling + driver: pure SPI libraries, NO upstream pekko-persistence-r2dbc plugin [M10] -->
+        <dependency>
+            <groupId>io.r2dbc</groupId>
+            <artifactId>r2dbc-spi</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.r2dbc</groupId>
+            <artifactId>r2dbc-pool</artifactId>
+        </dependency>
+        <!-- reactor-pool: PostgresJournalOps classifies reactor.pool.PoolAcquirePendingLimitException (pool overload);
+             version managed in bom/pom.xml -->
+        <dependency>
+            <groupId>io.projectreactor.addons</groupId>
+            <artifactId>reactor-pool</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.postgresql</groupId>
+            <artifactId>r2dbc-postgresql</artifactId>
+        </dependency>
+        <!-- r2dbc-proxy: observability hooks (command timer + acquire-latency), WU11 -->
+        <dependency>
+            <groupId>io.r2dbc</groupId>
+            <artifactId>r2dbc-proxy</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>com.google.code.findbugs</groupId>
+            <artifactId>jsr305</artifactId>
+        </dependency>
+
+        <!-- test dependencies -->
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-internal-utils-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>nl.jqno.equalsverifier</groupId>
+            <artifactId>equalsverifier</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.pekko</groupId>
+            <artifactId>pekko-stream-testkit_${scala.version}</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.pekko</groupId>
+            <artifactId>pekko-testkit_${scala.version}</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <!-- Cluster sharding: the remember-entities store IT runs Pekko sharding (remember-entities = on, store =
+             eventsourced) on the connection-remember plugin blocks, and the payload-codec test round-trips the store's
+             real Pekko-serialized events and state. Production code never depends on it. -->
+        <dependency>
+            <groupId>org.apache.pekko</groupId>
+            <artifactId>pekko-cluster-sharding_${scala.version}</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.pekko</groupId>
+            <artifactId>pekko-slf4j_${scala.version}</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>ch.qos.logback</groupId>
+            <artifactId>logback-classic</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <!-- Testcontainers: drives the PostgresSchemaManager bootstrap IT (*IT runs under failsafe, skipped offline). -->
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>postgresql</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <!-- The shared Testcontainers PostgresDbResource fixture, published by postgres-client as a test-jar. -->
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-internal-utils-postgres-client</artifactId>
+            <type>test-jar</type>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+</project>

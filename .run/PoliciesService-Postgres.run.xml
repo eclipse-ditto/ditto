@@ -1,0 +1,41 @@
+<!--
+  ~ Copyright (c) 2026 Contributors to the Eclipse Foundation
+  ~
+  ~ See the NOTICE file(s) distributed with this work for additional
+  ~ information regarding copyright ownership.
+  ~
+  ~ This program and the accompanying materials are made available under the
+  ~ terms of the Eclipse Public License 2.0 which is available at
+  ~ http://www.eclipse.org/legal/epl-2.0
+  ~
+  ~ SPDX-License-Identifier: EPL-2.0
+  -->
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="PoliciesService (Postgres)" type="Application" factoryName="Application" folderName="Ditto Postgres">
+    <envs>
+      <env name="CLEANUP_HISTORY_RETENTION_DURATION" value="5d" />
+      <env name="DITTO_TRACING_ENABLED" value="true" />
+      <env name="LOG_LEVEL_APPLICATION" value="INFO" />
+      <env name="POLICY_EVENT_HISTORICAL_HEADERS_TO_PERSIST.0" value="ditto-originator" />
+      <env name="POLICY_EVENT_HISTORICAL_HEADERS_TO_PERSIST.1" value="correlation-id" />
+      <env name="DITTO_TRACING_SAMPLER" value="always" />
+      <!-- Inject the Postgres dev profile (Policies self-seeds as cluster founder at 2552). -->
+      <env name="HOSTING_ENVIRONMENT" value="filebased" />
+      <env name="HOSTING_ENVIRONMENT_FILE_LOCATION" value="$PROJECT_DIR$/policies/service/src/main/resources/policies-pg-dev.conf" />
+      <env name="POSTGRES_SSL_MODE" value="disable" />
+      <env name="POSTGRES_URI" value="r2dbc:postgresql://localhost:5432/ditto" />
+      <env name="POSTGRES_USER" value="ditto" />
+      <env name="POSTGRES_PASSWORD" value="ditto" />
+      <env name="POSTGRES_DDL_USER" value="ditto" />
+      <env name="POSTGRES_DDL_PASSWORD" value="ditto" />
+    </envs>
+    <option name="MAIN_CLASS_NAME" value="org.eclipse.ditto.policies.service.starter.PoliciesService" />
+    <!-- Classpath module = the IDE Postgres launcher (puts ditto-internal-utils-persistence-r2dbc on the run
+         classpath). The MAIN_CLASS above stays the policies service's own starter. See ide-postgres-launcher/pom.xml. -->
+    <module name="ditto-ide-postgres-launcher" />
+    <option name="VM_PARAMETERS" value="-Xms512m -Xmx512m" />
+    <method v="2">
+      <option name="Make" enabled="true" />
+    </method>
+  </configuration>
+</component>

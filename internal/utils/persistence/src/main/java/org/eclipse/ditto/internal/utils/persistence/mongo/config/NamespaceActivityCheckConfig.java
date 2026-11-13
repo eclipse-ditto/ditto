@@ -17,6 +17,7 @@ import java.time.Duration;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.internal.utils.config.KnownConfigValue;
+import org.eclipse.ditto.internal.utils.persistence.api.config.ActivityCheckConfig;
 
 /**
  * Provides configuration settings for namespace-scoped activity checks.

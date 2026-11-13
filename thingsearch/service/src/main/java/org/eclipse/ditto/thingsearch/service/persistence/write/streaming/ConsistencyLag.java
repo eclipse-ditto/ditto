@@ -14,7 +14,7 @@ package org.eclipse.ditto.thingsearch.service.persistence.write.streaming;
 
 import java.util.Optional;
 
-import org.eclipse.ditto.thingsearch.service.persistence.write.model.Metadata;
+import org.eclipse.ditto.thingsearch.persistence.api.model.Metadata;
 import org.eclipse.ditto.internal.utils.metrics.instruments.timer.StartedTimer;
 
 /**

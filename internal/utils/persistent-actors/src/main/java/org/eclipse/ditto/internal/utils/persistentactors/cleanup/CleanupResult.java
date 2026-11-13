@@ -16,16 +16,16 @@ import java.util.Objects;
 
 import javax.annotation.concurrent.Immutable;
 
-import com.mongodb.client.result.DeleteResult;
+import org.eclipse.ditto.internal.utils.persistence.api.DeleteOutcome;
 
 @Immutable
 final class CleanupResult {
 
     final Type type;
     final SnapshotRevision snapshotRevision;
-    final DeleteResult result;
+    final DeleteOutcome result;
 
-    CleanupResult(final Type type, final SnapshotRevision snapshotRevision, final DeleteResult result) {
+    CleanupResult(final Type type, final SnapshotRevision snapshotRevision, final DeleteOutcome result) {
         this.type = type;
         this.snapshotRevision = snapshotRevision;
         this.result = result;

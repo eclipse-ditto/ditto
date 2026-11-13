@@ -24,6 +24,7 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.ActorSystem;
 import org.apache.pekko.actor.Cancellable;
 import org.apache.pekko.japi.pf.ReceiveBuilder;
 import org.apache.pekko.pattern.Patterns;
@@ -37,7 +38,6 @@ import org.apache.pekko.persistence.SnapshotProtocol;
 import org.apache.pekko.persistence.SnapshotSelectionCriteria;
 import org.apache.pekko.persistence.query.EventEnvelope;
 import org.apache.pekko.stream.javadsl.Sink;
-import org.bson.BsonDocument;
 import org.eclipse.ditto.base.api.commands.sudo.SudoCommand;
 import org.eclipse.ditto.base.model.entity.id.EntityId;
 import org.eclipse.ditto.base.model.entity.id.NamespacedEntityId;
@@ -62,12 +62,14 @@ import org.eclipse.ditto.internal.utils.namespaces.BlockedNamespaces;
 import org.eclipse.ditto.internal.utils.pekko.PingCommand;
 import org.eclipse.ditto.internal.utils.pekko.PingCommandResponse;
 import org.eclipse.ditto.internal.utils.pekko.logging.DittoDiagnosticLoggingAdapter;
-import org.eclipse.ditto.internal.utils.persistence.SnapshotAdapter;
-import org.eclipse.ditto.internal.utils.persistence.mongo.AbstractMongoEventAdapter;
-import org.eclipse.ditto.internal.utils.persistence.mongo.DittoBsonJson;
-import org.eclipse.ditto.internal.utils.persistence.mongo.config.ActivityCheckConfig;
-import org.eclipse.ditto.internal.utils.persistence.mongo.config.SnapshotConfig;
-import org.eclipse.ditto.internal.utils.persistence.mongo.streaming.MongoReadJournal;
+import org.eclipse.ditto.internal.utils.persistence.api.serializer.EventSerializer;
+import org.eclipse.ditto.internal.utils.persistence.api.serializer.NeutralSnapshotAdapter;
+import org.eclipse.ditto.internal.utils.persistence.api.serializer.SnapshotAdapter;
+import org.eclipse.ditto.internal.utils.persistence.api.serializer.SnapshotSerializer;
+import org.eclipse.ditto.internal.utils.persistence.api.DittoReadJournal;
+import org.eclipse.ditto.internal.utils.persistence.api.PersistenceBackendProvider;
+import org.eclipse.ditto.internal.utils.persistence.api.config.ActivityCheckConfig;
+import org.eclipse.ditto.internal.utils.persistence.api.config.SnapshotConfig;
 import org.eclipse.ditto.internal.utils.persistentactors.commands.CommandStrategy;
 import org.eclipse.ditto.internal.utils.persistentactors.events.EventStrategy;
 import org.eclipse.ditto.internal.utils.persistentactors.results.Result;
@@ -80,6 +82,8 @@ import org.eclipse.ditto.internal.utils.tracing.span.StartedSpan;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonValue;
+
+import com.typesafe.config.Config;
 
 import scala.Option;
 
@@ -105,12 +109,12 @@ public abstract class AbstractPersistenceActor<
      * An event journal {@code Tag} used to tag journal entries managed by a PersistenceActor as "always alive" meaning
      * that those entities should be always kept in-memory and re-started on a cold-start of the cluster.
      */
-    public static final String JOURNAL_TAG_ALWAYS_ALIVE = "always-alive";
+    public static final String JOURNAL_TAG_ALWAYS_ALIVE = DittoReadJournal.JOURNAL_TAG_ALWAYS_ALIVE;
 
     private final SnapshotAdapter<S> snapshotAdapter;
     private final Receive handleEvents;
     private final Receive handleCleanups;
-    private final MongoReadJournal mongoReadJournal;
+    private final DittoReadJournal readJournal;
     private final StartedTimer paRecoveryTimer;
     private long lastSnapshotRevision;
     private long confirmedSnapshotRevision;
@@ -134,15 +138,25 @@ public abstract class AbstractPersistenceActor<
      * Instantiate the actor.
      *
      * @param entityId the entity ID.
-     * @param mongoReadJournal the ReadJournal used for gaining access to historical values of the entity.
+     * @param readJournal the ReadJournal used for gaining access to historical values of the entity.
      */
     @SuppressWarnings("unchecked")
-    protected AbstractPersistenceActor(final I entityId, final MongoReadJournal mongoReadJournal) {
+    protected AbstractPersistenceActor(final I entityId, final DittoReadJournal readJournal) {
         this.entityId = entityId;
-        this.mongoReadJournal = mongoReadJournal;
+        this.readJournal = readJournal;
         final var actorSystem = context().system();
         final var dittoExtensionsConfig = ScopedConfig.dittoExtension(actorSystem.settings().config());
-        this.snapshotAdapter = SnapshotAdapter.get(actorSystem, dittoExtensionsConfig);
+        // Snapshot adapter = the per-ENTITY SnapshotSerializer (domain<->JsonObject) composed with the
+        // single-per-JVM backend snapshot codec (Mongo=BSON, Postgres=JSONB) from the persistence-backend provider.
+        // The backend CODEC is shared/non-overridable; only the domain SERIALIZER is entity-specific, so it is
+        // resolved through the overridable resolveSnapshotSerializer(..) hook. The default returns the JVM-wide
+        // service serializer (SnapshotSerializer.get(..)); subclasses managing a different entity type (e.g. the WoT
+        // validation-config actor in the things JVM) override the hook to return their own serializer. The hook runs
+        // from THIS constructor, so an override must use only the passed system/config + statics, never subclass fields.
+        final SnapshotSerializer<S> snapshotSerializer =
+                resolveSnapshotSerializer(actorSystem, dittoExtensionsConfig);
+        final var snapshotCodec = PersistenceBackendProvider.get(actorSystem, dittoExtensionsConfig).snapshotCodec();
+        this.snapshotAdapter = new NeutralSnapshotAdapter<>(snapshotSerializer, snapshotCodec);
         paRecoveryTimer = DittoMetrics.timer("pa_recovery")
                 .tag(SpanTagKey.SIGNAL_TYPE.getTagForValue(entityId.getEntityType()))
                 .start();
@@ -161,6 +175,29 @@ public abstract class AbstractPersistenceActor<
 
         handleCleanups = super.createReceive();
         blockedNamespaces = BlockedNamespaces.of(actorSystem);
+    }
+
+    /**
+     * Resolves the per-entity snapshot {@link SnapshotSerializer} (domain&harr;{@code JsonObject}) for this actor.
+     * <p>
+     * The default returns the JVM-wide service serializer configured at {@code ditto.extensions.snapshot-adapter}
+     * via {@link SnapshotSerializer#get(ActorSystem, Config)}. Subclasses that manage a different entity type than the
+     * JVM default (for example the WoT validation-config actor running inside the Things JVM, whose default serializer
+     * only understands {@code Thing}s) override this hook to return their own serializer, avoiding the
+     * {@code ClassCastException} they would otherwise hit when a snapshot is taken. The backend snapshot codec stays
+     * single-per-JVM and shared regardless.
+     * <p>
+     * <strong>Constraint:</strong> this method is invoked from the {@link AbstractPersistenceActor} constructor, before
+     * any subclass field has been initialised. An override therefore MUST NOT read subclass instance fields; it may use
+     * only the passed {@code actorSystem}/{@code dittoExtensionsConfig} and statics.
+     *
+     * @param actorSystem the actor system in which the serializer should be resolved.
+     * @param dittoExtensionsConfig the {@code ditto.extensions} scoped config.
+     * @return the snapshot serializer for the entity type {@code S} managed by this actor.
+     */
+    protected SnapshotSerializer<S> resolveSnapshotSerializer(final ActorSystem actorSystem,
+            final Config dittoExtensionsConfig) {
+        return SnapshotSerializer.get(actorSystem, dittoExtensionsConfig);
     }
 
     /**
@@ -480,11 +517,11 @@ public abstract class AbstractPersistenceActor<
             }
 
             @Nullable final S entityFromSnapshot = snapshotIsPresent ? snapshotEntity.get() : null;
-            mongoReadJournal.currentEventsByPersistenceId(persistenceId(),
+            readJournal.currentEventsByPersistenceId(persistenceId(),
                             fromSequenceNr,
                             atHistoricalRevision
                     )
-                    .map(AbstractPersistenceActor::mapJournalEntryToEvent)
+                    .map(this::mapJournalEntryToEvent)
                     .map(journalEntryEvent -> new EntityWithEvent(
                             eventStrategy.handle((E) journalEntryEvent, entityFromSnapshot,
                                     journalEntryEvent.getRevision()),
@@ -1098,13 +1135,11 @@ public abstract class AbstractPersistenceActor<
         return new CheckForActivity(accessCounter);
     }
 
-    private static EventsourcedEvent<?> mapJournalEntryToEvent(final EventEnvelope eventEnvelope) {
+    private EventsourcedEvent<?> mapJournalEntryToEvent(final EventEnvelope eventEnvelope) {
 
-        final BsonDocument event = (BsonDocument) eventEnvelope.event();
-        final JsonObject eventAsJsonObject = DittoBsonJson.getInstance()
-                .serialize(event);
+        final JsonObject eventAsJsonObject = readJournal.toEventJson(eventEnvelope);
 
-        final DittoHeaders dittoHeaders = eventAsJsonObject.getValue(AbstractMongoEventAdapter.HISTORICAL_EVENT_HEADERS)
+        final DittoHeaders dittoHeaders = eventAsJsonObject.getValue(EventSerializer.HISTORICAL_EVENT_HEADERS)
                 // persisted headers were already validated when the event was written -> trust them, skipping
                 // re-parsing/re-validating every JSON-typed header value on each journal replay/recovery.
                 .map(DittoHeaders::newFromTrustedJson)

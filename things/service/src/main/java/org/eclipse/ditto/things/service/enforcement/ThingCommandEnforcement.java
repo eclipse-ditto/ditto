@@ -12,15 +12,12 @@
  */
 package org.eclipse.ditto.things.service.enforcement;
 
-import static org.eclipse.ditto.policies.enforcement.AbstractEnforcerActor.ENFORCEMENT_DISPATCHER;
-
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
-import java.util.concurrent.Executor;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -38,7 +35,6 @@ import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
 import org.eclipse.ditto.base.model.signals.commands.CommandToExceptionRegistry;
-import org.eclipse.ditto.internal.utils.cacheloaders.AskWithRetry;
 import org.eclipse.ditto.internal.utils.cacheloaders.config.AskWithRetryConfig;
 import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.pekko.logging.ThreadSafeDittoLogger;
@@ -60,9 +56,7 @@ import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.policies.model.ResourceKey;
 import org.eclipse.ditto.policies.model.enforcers.Enforcer;
-import org.eclipse.ditto.policies.model.signals.commands.exceptions.PolicyNotAccessibleException;
 import org.eclipse.ditto.policies.model.signals.commands.modify.DeletePolicy;
-import org.eclipse.ditto.policies.model.signals.commands.modify.DeletePolicyResponse;
 import org.eclipse.ditto.rql.model.ParserException;
 import org.eclipse.ditto.rql.model.predicates.ast.RootNode;
 import org.eclipse.ditto.rql.parser.RqlPredicateParser;
@@ -117,8 +111,7 @@ final class ThingCommandEnforcement
             );
     private final ActorSystem actorSystem;
     private final ActorRef policiesShardRegion;
-    private final AskWithRetryConfig askWithRetryConfig;
-    private final Executor enforcementExecutor;
+    private final AskWithRetryConfig createdPolicyRollbackConfig;
     private final boolean partialAccessEventsEnabled;
 
     /**
@@ -137,9 +130,8 @@ final class ThingCommandEnforcement
 
         this.actorSystem = actorSystem;
         this.policiesShardRegion = policiesShardRegion;
-        this.askWithRetryConfig = enforcementConfig.getAskWithRetryConfig();
+        this.createdPolicyRollbackConfig = enforcementConfig.getCreatedPolicyRollbackConfig();
         this.partialAccessEventsEnabled = partialAccessEventsEnabled;
-        enforcementExecutor = actorSystem.dispatchers().lookup(ENFORCEMENT_DISPATCHER);
         enforcementConfig.getSpecialLoggingInspectedNamespaces()
                 .forEach(loggedNamespace -> NAMESPACE_INSPECTION_LOGGERS.put(
                         loggedNamespace,
@@ -494,23 +486,11 @@ final class ThingCommandEnforcement
                 .responseRequired(true)
                 .putHeader(DittoHeaderDefinition.DITTO_SUDO.getKey(), "true")
                 .build();
-        return doDeletePolicy(DeletePolicy.of(policyId, dittoHeadersForCreatePolicy));
-    }
-
-    private CompletionStage<Done> doDeletePolicy(final DeletePolicy deletePolicy) {
-        return AskWithRetry.askWithRetry(policiesShardRegion, deletePolicy, askWithRetryConfig, actorSystem,
-                        this::handleDeletePolicyResponse)
-                .thenComposeAsync(success -> {
-                    if (Boolean.FALSE.equals(success)) {
-                        return doDeletePolicy(deletePolicy);
-                    }
-                    return CompletableFuture.completedFuture(Done.getInstance());
-                }, enforcementExecutor);
-    }
-
-    private boolean handleDeletePolicyResponse(final Object policyResponse) {
-        //not accessible means already deleted and can be considered as success
-        return policyResponse instanceof DeletePolicyResponse || policyResponse instanceof PolicyNotAccessibleException;
+        // CreatedPolicyRollback logs how the rollback ended and never fails, so the caller keeps the original error
+        return CreatedPolicyRollback.deletePolicy(policiesShardRegion,
+                        DeletePolicy.of(policyId, dittoHeadersForCreatePolicy), createThing.getEntityId(),
+                        createdPolicyRollbackConfig, actorSystem)
+                .thenApply(result -> Done.getInstance());
     }
 
 

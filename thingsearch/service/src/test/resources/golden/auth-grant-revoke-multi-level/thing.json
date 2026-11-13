@@ -1,0 +1,14 @@
+{
+  "thingId": "golden:auth-grant-revoke-multi-level",
+  "_namespace": "golden",
+  "_revision": 5,
+  "policyId": "golden:auth-grant-revoke-multi-level",
+  "attributes": {
+    "a": { "b": "x", "c": "y" }
+  },
+  "features": {
+    "f1": {
+      "properties": { "p1": 1, "p2": 2 }
+    }
+  }
+}

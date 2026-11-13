@@ -18,29 +18,24 @@ import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.Collection;
 import java.util.List;
-import java.util.Optional;
 
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.pekko.logging.ThreadSafeDittoLogger;
 import org.eclipse.ditto.internal.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.internal.utils.metrics.instruments.counter.Counter;
-import org.eclipse.ditto.thingsearch.service.persistence.write.model.AbstractWriteModel;
-import org.eclipse.ditto.thingsearch.service.persistence.write.model.Metadata;
-import org.eclipse.ditto.thingsearch.service.persistence.write.model.ThingDeleteModel;
-import org.eclipse.ditto.thingsearch.service.persistence.write.model.WriteResultAndErrors;
-import org.eclipse.ditto.thingsearch.service.updater.actors.MongoWriteModel;
-
-import com.mongodb.ErrorCategory;
-import com.mongodb.bulk.BulkWriteError;
-import com.mongodb.bulk.BulkWriteResult;
+import org.eclipse.ditto.thingsearch.persistence.api.model.AbstractWriteModel;
+import org.eclipse.ditto.thingsearch.persistence.api.model.Metadata;
+import org.eclipse.ditto.thingsearch.persistence.api.model.ThingWriteModel;
+import org.eclipse.ditto.thingsearch.persistence.api.write.SearchWriteError;
+import org.eclipse.ditto.thingsearch.persistence.api.write.SearchWriteResult;
 
 import org.apache.pekko.NotUsed;
 import org.apache.pekko.japi.Pair;
 import org.apache.pekko.stream.javadsl.Flow;
 
 /**
- * Flow that sends acknowledgements to ThingUpdater according to bulk write results.
+ * Flow that sends acknowledgements to ThingUpdater according to backend-neutral write results.
  */
 public final class BulkWriteResultAckFlow {
 
@@ -51,94 +46,95 @@ public final class BulkWriteResultAckFlow {
 
     private BulkWriteResultAckFlow() {}
 
-    static Flow<WriteResultAndErrors, Pair<Status, List<String>>, NotUsed> start() {
-        return Flow.<WriteResultAndErrors>create().map(BulkWriteResultAckFlow::checkBulkWriteResult);
+    /**
+     * A backend-neutral bulk result: the write models submitted together with the {@link SearchWriteResult} of
+     * applying them.
+     *
+     * @param writeModels the submitted neutral write models.
+     * @param result the neutral write result.
+     */
+    public record NeutralBulkResult(List<AbstractWriteModel> writeModels, SearchWriteResult result) {}
+
+    static Flow<NeutralBulkResult, Pair<Status, List<String>>, NotUsed> start() {
+        return Flow.<NeutralBulkResult>create()
+                .map(neutralBulkResult ->
+                        checkBulkWriteResult(neutralBulkResult.writeModels(), neutralBulkResult.result()));
     }
 
     /**
      * Check the result of an update operation, acknowledge successes and failures, and generate a report.
      *
-     * @param writeResultAndErrors The result of an update operation.
+     * @param writeModels the submitted neutral write models.
+     * @param result the neutral write result.
      * @return The report.
      */
-    public static Pair<Status, List<String>> checkBulkWriteResult(final WriteResultAndErrors writeResultAndErrors) {
+    public static Pair<Status, List<String>> checkBulkWriteResult(final List<AbstractWriteModel> writeModels,
+            final SearchWriteResult result) {
 
-        if (wasNotAcknowledged(writeResultAndErrors)) {
-            // All failed.
-            acknowledgeFailures(getAllMetadata(writeResultAndErrors));
-            return Pair.create(Status.UNACKNOWLEDGED,
-                    List.of(logResult("NotAcknowledged", writeResultAndErrors, false, false)));
-        } else {
-            final var consistencyError = checkForConsistencyError(writeResultAndErrors);
-            switch (consistencyError.status()) {
-                case CONSISTENCY_ERROR:
-                    // write result is not consistent; there is a bug with Ditto or with its environment
-                    acknowledgeFailures(getAllMetadata(writeResultAndErrors));
-
-                    return Pair.create(consistencyError.status(), List.of(consistencyError.message));
-                case INCORRECT_PATCH:
-                    reportIncorrectPatch(writeResultAndErrors);
-
-                    return Pair.create(consistencyError.status(),
-                            getConsistencyOKResult(writeResultAndErrors, true));
-                case OK:
-                default:
-                    return Pair.create(consistencyError.status(),
-                            getConsistencyOKResult(writeResultAndErrors, false));
-            }
+        switch (result.classify()) {
+            case UNACKNOWLEDGED:
+                // All failed.
+                acknowledgeFailures(getAllMetadata(writeModels));
+                return Pair.create(Status.UNACKNOWLEDGED,
+                        List.of(logResult("NotAcknowledged", result, false, false)));
+            case CONSISTENCY_ERROR:
+                // write result is not consistent; there is a bug with Ditto or with its environment
+                acknowledgeFailures(getAllMetadata(writeModels));
+                return Pair.create(Status.CONSISTENCY_ERROR,
+                        List.of(String.format("ConsistencyError[indexOutOfBound]: %s", result)));
+            case INCORRECT_PATCH:
+                reportIncorrectPatch(writeModels);
+                return Pair.create(Status.INCORRECT_PATCH,
+                        acknowledgeSuccessesAndFailures(writeModels, result, true));
+            case WRITE_ERROR:
+                return Pair.create(Status.WRITE_ERROR,
+                        acknowledgeSuccessesAndFailures(writeModels, result, false));
+            case OK:
+            default:
+                return Pair.create(Status.OK,
+                        acknowledgeSuccessesAndFailures(writeModels, result, false));
         }
     }
 
-    private static List<String> getConsistencyOKResult(final WriteResultAndErrors writeResultAndErrors,
-            final boolean containsIncorrectPatch) {
-        return acknowledgeSuccessesAndFailures(writeResultAndErrors, containsIncorrectPatch);
-    }
-
-    private static void reportIncorrectPatch(final WriteResultAndErrors writeResultAndErrors) {
+    private static void reportIncorrectPatch(final List<AbstractWriteModel> writeModels) {
         // Some patches are not applied due to inconsistent sequence number in the search index.
         // It is not possible to identify which patches are not applied; therefore request all patch updates to retry.
-        writeResultAndErrors.getWriteModels().forEach(model -> {
-            if (model.isPatchUpdate()) {
-                final var abstractModel = model.getDitto();
-                LOGGER.withCorrelationId(writeResultAndErrors.getBulkWriteCorrelationId())
-                        .warn("Encountered incorrect patch update for metadata: <{}> and filter: <{}>",
-                                abstractModel.getMetadata(), abstractModel.getFilter());
+        writeModels.forEach(model -> {
+            if (model instanceof ThingWriteModel thingWriteModel && thingWriteModel.isPatchUpdate()) {
+                LOGGER.warn("Encountered incorrect patch update for metadata: <{}>", model.getMetadata());
             } else {
-                LOGGER.withCorrelationId(writeResultAndErrors.getBulkWriteCorrelationId())
-                        .info("Skipping retry of full update in a batch with an incorrect patch: <{}>",
-                                model.getDitto().getMetadata().getThingId());
+                LOGGER.info("Skipping retry of full update in a batch with an incorrect patch: <{}>",
+                        model.getMetadata().getThingId());
             }
         });
     }
 
-    private static List<String> acknowledgeSuccessesAndFailures(final WriteResultAndErrors writeResultAndErrors,
-            final boolean containsIncorrectPatch) {
-        final List<BulkWriteError> errors = writeResultAndErrors.getBulkWriteErrors();
+    private static List<String> acknowledgeSuccessesAndFailures(final List<AbstractWriteModel> writeModels,
+            final SearchWriteResult result, final boolean containsIncorrectPatch) {
+        final List<SearchWriteError> errors = result.getErrors();
         final List<String> logEntries = new ArrayList<>(errors.size() + 1);
         final Collection<Metadata> failedMetadata = new ArrayList<>(errors.size());
-        logEntries.add(logResult("Acknowledged", writeResultAndErrors, errors.isEmpty(), containsIncorrectPatch));
-        final BitSet failedIndices = new BitSet(writeResultAndErrors.getWriteModels().size());
-        for (final BulkWriteError error : errors) {
-            final Metadata metadata =
-                    writeResultAndErrors.getWriteModels().get(error.getIndex()).getDitto().getMetadata();
+        logEntries.add(logResult("Acknowledged", result, errors.isEmpty(), containsIncorrectPatch));
+        final BitSet failedIndices = new BitSet(writeModels.size());
+        for (final SearchWriteError error : errors) {
+            final Metadata metadata = writeModels.get(error.index()).getMetadata();
             logEntries.add(String.format("UpdateFailed for %s due to %s", metadata, error));
-            if (error.getCategory() != ErrorCategory.DUPLICATE_KEY) {
-                failedIndices.set(error.getIndex());
+            if (error.category() != SearchWriteError.Category.DUPLICATE_KEY) {
+                failedIndices.set(error.index());
                 failedMetadata.add(metadata);
                 // duplicate key error is considered success
             }
         }
         acknowledgeFailures(failedMetadata);
-        acknowledgeSuccesses(failedIndices,
-                writeResultAndErrors.getWriteModels());
+        acknowledgeSuccesses(failedIndices, writeModels);
 
         return logEntries;
     }
 
-    private static void acknowledgeSuccesses(final BitSet failedIndices, final List<MongoWriteModel> writeModels) {
+    private static void acknowledgeSuccesses(final BitSet failedIndices, final List<AbstractWriteModel> writeModels) {
         for (int i = 0; i < writeModels.size(); ++i) {
             if (!failedIndices.get(i)) {
-                writeModels.get(i).getDitto().getMetadata().sendAck();
+                writeModels.get(i).getMetadata().sendAck();
             }
         }
     }
@@ -150,107 +146,47 @@ public final class BulkWriteResultAckFlow {
         }
     }
 
-    private static boolean wasNotAcknowledged(final WriteResultAndErrors writeResultAndErrors) {
-        return !writeResultAndErrors.getBulkWriteResult().wasAcknowledged();
-    }
-
-    /**
-     * Check if the bulk write result is consistent with the requested write models.
-     *
-     * @param resultAndErrors data structure containing input and output of the bulk write operation.
-     * @return whether the data is consistent.
-     */
-    private static ConsistencyCheckResult checkForConsistencyError(final WriteResultAndErrors resultAndErrors) {
-        final int requested = resultAndErrors.getWriteModels().size();
-        if (!areAllIndexesWithinBounds(resultAndErrors.getBulkWriteErrors(), requested)) {
-            // some indexes not within bounds
-            final var message = String.format("ConsistencyError[indexOutOfBound]: %s", resultAndErrors);
-
-            return new ConsistencyCheckResult(Status.CONSISTENCY_ERROR, message);
-        } else if (areUpdatesMissing(resultAndErrors)) {
-            return new ConsistencyCheckResult(Status.INCORRECT_PATCH, "");
-        } else if (!resultAndErrors.getBulkWriteErrors().isEmpty()) {
-            return new ConsistencyCheckResult(Status.WRITE_ERROR, "");
-        } else {
-            return new ConsistencyCheckResult(Status.OK, "");
-        }
-    }
-
-    private static boolean areUpdatesMissing(final WriteResultAndErrors resultAndErrors) {
-        final var result = resultAndErrors.getBulkWriteResult();
-        final long writeModelCount = resultAndErrors.getWriteModels().stream()
-                .filter(writeModel -> !(writeModel.getDitto() instanceof ThingDeleteModel))
-                .count();
-        final long matchedCount = result.getMatchedCount();
-        final long upsertCount = result.getUpserts().size();
-
-        return matchedCount + upsertCount < writeModelCount;
-    }
-
-    private static boolean areAllIndexesWithinBounds(final Collection<BulkWriteError> bulkWriteErrors,
-            final int requested) {
-        return bulkWriteErrors.stream().mapToInt(BulkWriteError::getIndex).allMatch(i -> 0 <= i && i < requested);
-    }
-
-    private static List<Metadata> getAllMetadata(final WriteResultAndErrors writeResultAndErrors) {
-        return writeResultAndErrors.getWriteModels()
-                .stream()
-                .map(MongoWriteModel::getDitto)
+    private static List<Metadata> getAllMetadata(final List<AbstractWriteModel> writeModels) {
+        return writeModels.stream()
                 .map(AbstractWriteModel::getMetadata)
                 .toList();
     }
 
-    private static String logResult(final String status, final WriteResultAndErrors writeResultAndErrors,
+    private static String logResult(final String status, final SearchWriteResult result,
             final boolean containsNoErrors, final boolean containsIncorrectPatch) {
-        final Optional<Throwable> unexpectedError = writeResultAndErrors.getUnexpectedError();
-        if (unexpectedError.isPresent()) {
-            final Throwable error = unexpectedError.get();
-            if (error instanceof DittoRuntimeException dittoRuntimeException) {
+        final var unexpectedError = result.getUnexpectedError();
+        if (unexpectedError != null) {
+            if (unexpectedError instanceof DittoRuntimeException dittoRuntimeException) {
                 return dittoRuntimeException.toJsonString();
             } else {
                 final StringWriter stackTraceWriter = new StringWriter();
                 stackTraceWriter.append(String.format("%s: UnexpectedError[stacktrace=", status));
-                error.printStackTrace(new PrintWriter(stackTraceWriter));
-                return stackTraceWriter.append("] - correlation: ")
-                        .append(writeResultAndErrors.getBulkWriteCorrelationId())
-                        .toString();
+                unexpectedError.printStackTrace(new PrintWriter(stackTraceWriter));
+                return stackTraceWriter.append("]").toString();
             }
         } else if (containsNoErrors) {
-            final BulkWriteResult bulkWriteResult = writeResultAndErrors.getBulkWriteResult();
-
             return String.format(
-                    "%s: %s[ack=%b,errors=%d,matched=%d,upserts=%d,inserted=%d,modified=%d,deleted=%d] - correlation: %s",
+                    "%s: %s[ack=%b,errors=%d,matched=%d,upserts=%d,modified=%d]",
                     status,
                     containsIncorrectPatch ? "IncorrectPatch" : "Success",
-                    bulkWriteResult.wasAcknowledged(),
-                    writeResultAndErrors.getBulkWriteErrors().size(),
-                    bulkWriteResult.getMatchedCount(),
-                    bulkWriteResult.getUpserts().size(),
-                    bulkWriteResult.getInsertedCount(),
-                    bulkWriteResult.getModifiedCount(),
-                    bulkWriteResult.getDeletedCount(),
-                    writeResultAndErrors.getBulkWriteCorrelationId());
+                    result.isAcknowledged(),
+                    result.getErrors().size(),
+                    result.getMatchedCount(),
+                    result.getUpsertedCount(),
+                    result.getModifiedCount());
         } else {
             // partial success or failure
-            final BulkWriteResult bulkWriteResult = writeResultAndErrors.getBulkWriteResult();
             return String.format(
-                    "%s: PartialSuccess[ack=%b,errorCount=%d,matched=%d,upserts=%d,inserted=%d,modified=%d," +
-                            "deleted=%d,errors=%s] - correlation: %s",
+                    "%s: PartialSuccess[ack=%b,errorCount=%d,matched=%d,upserts=%d,modified=%d,errors=%s]",
                     status,
-                    bulkWriteResult.wasAcknowledged(),
-                    writeResultAndErrors.getBulkWriteErrors().size(),
-                    bulkWriteResult.getMatchedCount(),
-                    bulkWriteResult.getUpserts().size(),
-                    bulkWriteResult.getInsertedCount(),
-                    bulkWriteResult.getModifiedCount(),
-                    bulkWriteResult.getDeletedCount(),
-                    writeResultAndErrors.getBulkWriteErrors(),
-                    writeResultAndErrors.getBulkWriteCorrelationId()
-            );
+                    result.isAcknowledged(),
+                    result.getErrors().size(),
+                    result.getMatchedCount(),
+                    result.getUpsertedCount(),
+                    result.getModifiedCount(),
+                    result.getErrors());
         }
     }
-
-    private record ConsistencyCheckResult(Status status, String message) {}
 
     /**
      * Summary of the write result status.

@@ -14,5 +14,13 @@ In order to build Ditto with Maven, you'll need:
 
 ```bash
 mvn clean install
-sh build-images.sh
+./build-images.sh
 ```
+
+`build-images.sh` builds the snapshot images from `dockerfile-snapshot` (`DOCKERFILE=dockerfile-snapshot-arm64` for
+arm64 hosts). With `BAKE_POSTGRES_EXTENSIONS=true` it also copies the PostgreSQL extension JARs of the same build
+into `/opt/ditto/extensions/` of the things, policies, connectivity and things-search images, so those images can
+run on PostgreSQL without mounting the JARs. It refuses to bake a shaded extension JAR whose classes differ from the
+module JAR it bundles (stale after an incremental build) and names the fix, `mvn clean install -DskipTests -DskipITs`;
+`BAKE_POSTGRES_EXTENSIONS=true CHECK_ONLY=1 ./build-images.sh` runs only that check. Release images never contain the
+JARs; see [Running Ditto on PostgreSQL](installation-postgresql.html) for mounting them into a stock image.

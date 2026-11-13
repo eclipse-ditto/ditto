@@ -1,0 +1,12 @@
+{
+  "thingId": "org.eclipse.ditto.parity:feature-disagree",
+  "_namespace": "org.eclipse.ditto.parity",
+  "_revision": 1,
+  "_modified": "2026-03-15T10:00:00Z",
+  "policyId": "org.eclipse.ditto.parity:policy-graded",
+  "attributes": { "color": "cyan" },
+  "features": {
+    "f1": { "properties": { "status": "on", "level": 3 } },
+    "f2": { "properties": { "status": "off", "level": 9 } }
+  }
+}

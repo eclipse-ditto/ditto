@@ -1,0 +1,13 @@
+{
+  "policyId": "golden:index-length-restriction",
+  "entries": {
+    "ROOT": {
+      "subjects": {
+        "g:0": { "type": "generated" }
+      },
+      "resources": {
+        "thing:/": { "grant": ["READ"], "revoke": [] }
+      }
+    }
+  }
+}

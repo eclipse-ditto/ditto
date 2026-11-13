@@ -18,7 +18,8 @@ import java.util.function.BiFunction;
 import java.util.regex.Pattern;
 
 import org.eclipse.ditto.base.model.entity.id.EntityId;
-import org.eclipse.ditto.internal.utils.persistence.mongo.SnapshotStreamingActor;
+import org.eclipse.ditto.internal.utils.persistence.api.PersistenceBackendProvider;
+import org.eclipse.ditto.things.model.ThingConstants;
 import org.eclipse.ditto.things.model.ThingId;
 
 import org.apache.pekko.actor.ActorRef;
@@ -43,12 +44,19 @@ public final class ThingsPersistenceStreamingActorCreator {
 
     /**
      * Create an actor that streams from the snapshot store and the event journal.
+     * <p>
+     * The streaming {@link Props} is supplied by the active persistence backend via
+     * {@link PersistenceBackendProvider#streaming(String, java.util.function.Function, java.util.function.Function)};
+     * the service-specific PID&lt;-&gt;entity-id mapping functions stay here.
      *
+     * @param backendProvider the active persistence backend provider.
      * @param actorCreator function to create a named actor with.
      * @return a reference of the created actor.
      */
-    public static ActorRef startPersistenceStreamingActor(final BiFunction<String, Props, ActorRef> actorCreator) {
-        final var props = SnapshotStreamingActor.props(ThingsPersistenceStreamingActorCreator::pid2EntityId,
+    public static ActorRef startPersistenceStreamingActor(final PersistenceBackendProvider backendProvider,
+            final BiFunction<String, Props, ActorRef> actorCreator) {
+        final var props = backendProvider.streaming(ThingConstants.ENTITY_TYPE.toString(),
+                ThingsPersistenceStreamingActorCreator::pid2EntityId,
                 ThingsPersistenceStreamingActorCreator::entityId2Pid);
 
         return actorCreator.apply(STREAMING_ACTOR_NAME, props);

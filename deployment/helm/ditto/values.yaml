@@ -401,6 +401,46 @@ dbconfig:
   # uriSecret: my-uri-secret
 
 ## ----------------------------------------------------------------------------
+## postgres configures the TLS material of the opt-in PostgreSQL backend.
+##  Mounted read-only into the PostgreSQL-backed services (policies, things,
+##  connectivity and things-search) so the r2dbc-postgresql client can do
+##  sslMode=verify-full against PostgreSQL (or a TLS-terminating PgBouncer).
+##  These paths line up 1:1 with the ssl.{root-cert,cert,key} HOCON keys of the
+##  PostgreSQL client configuration (ditto.postgresql.ssl.*) the services read:
+##    mountPath/ca.crt          -> ssl.root-cert (r2dbc "sslRootCert")
+##    mountPath/tls.crt         -> ssl.cert      (r2dbc "sslCert", optional mTLS)
+##    mountPath/tls.key (PKCS#8)-> ssl.key       (r2dbc "sslKey",  optional mTLS)
+postgres:
+  tls:
+    # enabled mounts the PG/PgBouncer TLS material into the PostgreSQL-backed services
+    #  (policies, things, connectivity and things-search).
+    #  Leave false while the services run on MongoDB.
+    enabled: false
+    # mountPath is the read-only directory the cert material is mounted at.
+    #  Must match the ditto.postgresql.ssl.root-cert path (POSTGRES_SSL_ROOT_CERT).
+    mountPath: /etc/ditto/pg-tls
+    # caCert is the PEM the server cert must chain to (r2dbc "sslRootCert").
+    #  For CA rotation supply a MULTI-CA PEM BUNDLE here (concatenate old + new
+    #  CA in one PEM): the client trusts any CA in the bundle, letting the server
+    #  cut over to a cert signed by the new CA before the old CA is removed.
+    #  NOTE: r2dbc reads the cert ONCE when the ConnectionFactory is built, so a
+    #  changed bundle only takes effect after a POD RESTART (rolling restart of
+    #  the PostgreSQL-backed deployments). See deployment/postgres/README.md.
+    #  Inline PEM (rendered into a managed Secret):
+    caCert: ""
+    # existingSecret: if set, this pre-created Secret is mounted instead of a
+    #  managed one. It MUST contain key `ca.crt` (and `tls.crt`/`tls.key` for mTLS).
+    existingSecret: ""
+    # mTLS holds the optional client certificate for mutual TLS.
+    #  key MUST be PKCS#8 (r2dbc-postgresql sslKey requires PKCS#8, not PKCS#1).
+    mTLS:
+      enabled: false
+      # clientCert is the PEM client certificate (r2dbc "sslCert").
+      clientCert: ""
+      # clientKey is the PKCS#8 client private key (r2dbc "sslKey").
+      clientKey: ""
+
+## ----------------------------------------------------------------------------
 ## ingress configures the Ingress resources
 ## Users must bring their own ingress controller (e.g. ingress-nginx, traefik, haproxy, etc.)
 ## Controller-specific behavior (auth, CORS, timeouts, etc.) should be configured via annotations
@@ -573,14 +613,28 @@ policies:
   extraEnv:
   # - name: LOG_LEVEL_APPLICATION
   #   value: "DEBUG"
+  # # PostgreSQL backend (opt-in): connection pool size per policies pod (default 25). The sum over all
+  # # PostgreSQL-backed services of ((replicas + maxSurge) x pool size) must fit max_connections, as a
+  # # rolling update adds maxSurge pods per service, see deployment/postgres/README.md "Connection budget".
+  # - name: POSTGRES_POOL_MAX_SIZE
+  #   value: "25"
   extraVolumes:
   #  - name: policies-extension
   #    configMap:
   #      name: policies-extension.jar
+  #  # PostgreSQL backend (opt-in): shared volume for the extension JAR staged by the initContainer below.
+  #  - name: ditto-extensions
+  #    emptyDir: {}
   extraVolumeMounts:
   #  - name: policies-extension
   #    mountPath: /opt/ditto/policies-extension.jar
   #    subPath: policies-extension.jar
+  #  # PostgreSQL backend (opt-in): mount the extensions dir so the staged JAR is on the classpath.
+  #  - name: ditto-extensions
+  #    mountPath: /opt/ditto/extensions
+  # extraInitContainers adds arbitrary init containers to the policies pod (injected after the built-in ones).
+  # See things.extraInitContainers for a full PostgreSQL extension-JAR staging example.
+  extraInitContainers:
   # resources configures the resources available/to use for the policies service
   resources:
     # cpu defines the "required" CPU of a node so that the service is placed there
@@ -924,14 +978,48 @@ things:
   extraEnv:
   # - name: LOG_LEVEL_APPLICATION
   #   value: "DEBUG"
+  # # PostgreSQL backend (opt-in): connection pool size per things pod (default 25). The sum over all
+  # # PostgreSQL-backed services of ((replicas + maxSurge) x pool size) must fit max_connections, as a
+  # # rolling update adds maxSurge pods per service, see deployment/postgres/README.md "Connection budget".
+  # - name: POSTGRES_POOL_MAX_SIZE
+  #   value: "25"
   extraVolumes:
   #  - name: things-extension
   #    configMap:
   #      name: things-extension.jar
+  #  # PostgreSQL backend (opt-in): shared volume for the extension JAR staged by the initContainer below.
+  #  - name: ditto-extensions
+  #    emptyDir: {}
   extraVolumeMounts:
   #  - name: things-extension
   #    mountPath: /opt/ditto/things-extension.jar
   #    subPath: things-extension.jar
+  #  # PostgreSQL backend (opt-in): mount the extensions dir so the staged JAR is on the classpath.
+  #  - name: ditto-extensions
+  #    mountPath: /opt/ditto/extensions
+  # extraInitContainers adds arbitrary init containers to the things pod (injected after the built-in ones).
+  # Example: stage the PostgreSQL persistence extension JARs into /opt/ditto/extensions/ (opt-in; default off).
+  # The Postgres backend ships as TWO layered JARs: the shared base ditto-postgres-client-extension
+  # (r2dbc driver/pool, reactor, netty, scram) plus the thin ditto-postgres-persistence-extension (event-sourcing
+  # classes only). Stage BOTH — from the SAME Ditto release — into the shared emptyDir volume declared above so the
+  # Ditto process finds them on the /opt/ditto/extensions classpath. (A search service on Postgres stages
+  # ditto-postgres-client-extension + ditto-postgres-search-extension instead.)
+  #
+  # extraInitContainers:
+  #   - name: stage-postgres-extension
+  #     image: curlimages/curl:8.6.0
+  #     command:
+  #       - sh
+  #       - -c
+  #       - |
+  #         curl -fL -o /extensions/ditto-postgres-client-extension.jar \
+  #           "https://your-artifact-host/path/to/ditto-postgres-client-extension-<version>.jar"
+  #         curl -fL -o /extensions/ditto-postgres-persistence-extension.jar \
+  #           "https://your-artifact-host/path/to/ditto-postgres-persistence-extension-<version>.jar"
+  #     volumeMounts:
+  #       - name: ditto-extensions
+  #         mountPath: /extensions
+  extraInitContainers:
   # resources configures the resources available/to use for the things service
   resources:
     # cpu defines the "required" CPU of a node so that the service is placed there
@@ -1468,14 +1556,49 @@ thingsSearch:
   extraEnv:
   # - name: LOG_LEVEL_APPLICATION
   #   value: "DEBUG"
+  # # PostgreSQL backend (opt-in): connection pool size per things-search pod (default 25). The sum over all
+  # # PostgreSQL-backed services of ((replicas + maxSurge) x pool size) must fit max_connections, as a
+  # # rolling update adds maxSurge pods per service, see deployment/postgres/README.md "Connection budget".
+  # - name: POSTGRES_POOL_MAX_SIZE
+  #   value: "25"
   extraVolumes:
   #  - name: search-extension
   #    configMap:
   #      name: search-extension.jar
+  #  # PostgreSQL search backend (opt-in): shared volume for the extension JARs staged by the initContainer below.
+  #  - name: ditto-extensions
+  #    emptyDir: {}
   extraVolumeMounts:
   #  - name: search-extension
   #    mountPath: /opt/ditto/search-extension.jar
   #    subPath: search-extension.jar
+  #  # PostgreSQL search backend (opt-in): mount the extensions dir so the staged JARs are on the classpath.
+  #  - name: ditto-extensions
+  #    mountPath: /opt/ditto/extensions
+  # extraInitContainers adds arbitrary init containers to the things-search pod (injected after the built-in ones).
+  # Example: stage the PostgreSQL SEARCH extension JARs into /opt/ditto/extensions/ (opt-in; default off).
+  # Running things-search on Postgres ships as TWO layered JARs: the SAME shared base
+  # ditto-postgres-client-extension the persistence services use (r2dbc driver/pool, reactor, netty, scram) plus the
+  # thin ditto-postgres-search-extension (search read/write/aggregation classes only). Stage BOTH — from the SAME Ditto
+  # release — into the shared emptyDir volume declared above so the Ditto process finds them on the
+  # /opt/ditto/extensions classpath. A search service left on MongoDB stages nothing. (The persistence services stage
+  # ditto-postgres-client-extension + ditto-postgres-persistence-extension instead — see things.extraInitContainers.)
+  #
+  # extraInitContainers:
+  #   - name: stage-postgres-search-extension
+  #     image: curlimages/curl:8.6.0
+  #     command:
+  #       - sh
+  #       - -c
+  #       - |
+  #         curl -fL -o /extensions/ditto-postgres-client-extension.jar \
+  #           "https://your-artifact-host/path/to/ditto-postgres-client-extension-<version>.jar"
+  #         curl -fL -o /extensions/ditto-postgres-search-extension.jar \
+  #           "https://your-artifact-host/path/to/ditto-postgres-search-extension-<version>.jar"
+  #     volumeMounts:
+  #       - name: ditto-extensions
+  #         mountPath: /extensions
+  extraInitContainers:
   # resources configures the resources available/to use for the things search service
   resources:
     # cpu defines the "required" CPU of a node so that the service is placed there
@@ -1835,14 +1958,28 @@ connectivity:
   extraEnv:
   # - name: LOG_LEVEL_APPLICATION
   #   value: "DEBUG"
+  # # PostgreSQL backend (opt-in): connection pool size per connectivity pod (default 25). The sum over all
+  # # PostgreSQL-backed services of ((replicas + maxSurge) x pool size) must fit max_connections, as a
+  # # rolling update adds maxSurge pods per service, see deployment/postgres/README.md "Connection budget".
+  # - name: POSTGRES_POOL_MAX_SIZE
+  #   value: "25"
   extraVolumes:
   #  - name: connectivity-extension
   #    configMap:
   #      name: connectivity-extension.jar
+  #  # PostgreSQL backend (opt-in): shared volume for the extension JAR staged by the initContainer below.
+  #  - name: ditto-extensions
+  #    emptyDir: {}
   extraVolumeMounts:
   #  - name: connectivity-extension
   #    mountPath: /opt/ditto/connectivity-extension.jar
   #    subPath: connectivity-extension.jar
+  #  # PostgreSQL backend (opt-in): mount the extensions dir so the staged JAR is on the classpath.
+  #  - name: ditto-extensions
+  #    mountPath: /opt/ditto/extensions
+  # extraInitContainers adds arbitrary init containers to the connectivity pod (injected after the built-in ones).
+  # See things.extraInitContainers for a full PostgreSQL extension-JAR staging example.
+  extraInitContainers:
   # resources configures the resources available/to use for the connectivity service
   resources:
     # cpu defines the "required" CPU of a node so that the service is placed there

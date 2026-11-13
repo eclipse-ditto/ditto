@@ -1,0 +1,51 @@
+<!--
+  ~ Copyright (c) 2026 Contributors to the Eclipse Foundation
+  ~
+  ~ See the NOTICE file(s) distributed with this work for additional
+  ~ information regarding copyright ownership.
+  ~
+  ~ This program and the accompanying materials are made available under the
+  ~ terms of the Eclipse Public License 2.0 which is available at
+  ~ http://www.eclipse.org/legal/epl-2.0
+  ~
+  ~ SPDX-License-Identifier: EPL-2.0
+  -->
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="SearchService (Postgres)" type="Application" factoryName="Application" folderName="Ditto Postgres">
+    <envs>
+      <!-- Carried over from the Mongo "SearchService" dev run config (still apply on Postgres): the updater stream
+           write cadence + bulk/parallelism knobs and the slow activity/background-sync quiet periods make local
+           write→index latency observable within ~1s. -->
+      <env name="ACTIVITY_CHECK_INTERVAL" value="1h" />
+      <env name="BACKGROUND_SYNC_QUIET_PERIOD" value="1h" />
+      <env name="DITTO_TRACING_ENABLED" value="true" />
+      <env name="LOG_LEVEL_APPLICATION" value="INFO" />
+      <env name="THINGS_SEARCH_UPDATER_STREAM_PERSISTENCE_MAX_BULK_SIZE" value="8" />
+      <env name="THINGS_SEARCH_UPDATER_STREAM_PERSISTENCE_PARALLELISM" value="4" />
+      <env name="THINGS_SEARCH_UPDATER_STREAM_WRITE_INTERVAL" value="1s" />
+      <env name="DITTO_TRACING_SAMPLER" value="always" />
+      <!-- Inject the Postgres search dev profile as the highest-priority (FILE_BASED) config layer. Things-Search joins
+           the Policies-founded cluster at 2552 (no seed-nodes override) — launch alongside Policies via the compound
+           "Ditto (Postgres)", or restart this alone against a running Policies. -->
+      <env name="HOSTING_ENVIRONMENT" value="filebased" />
+      <env name="HOSTING_ENVIRONMENT_FILE_LOCATION" value="$PROJECT_DIR$/thingsearch/service/src/main/resources/search-pg-dev.conf" />
+      <!-- Local plaintext Postgres: disable SSL or the pool refuses to connect (default mode is verify-full). -->
+      <env name="POSTGRES_SSL_MODE" value="disable" />
+      <env name="POSTGRES_URI" value="r2dbc:postgresql://localhost:5432/ditto" />
+      <env name="POSTGRES_USER" value="ditto" />
+      <env name="POSTGRES_PASSWORD" value="ditto" />
+      <!-- Default `ditto` role owns the DB locally, so it is also the DDL (schema bootstrap) role. -->
+      <env name="POSTGRES_DDL_USER" value="ditto" />
+      <env name="POSTGRES_DDL_PASSWORD" value="ditto" />
+    </envs>
+    <option name="MAIN_CLASS_NAME" value="org.eclipse.ditto.thingsearch.service.starter.SearchService" />
+    <!-- Classpath module = the IDE Postgres launcher (puts ditto-internal-utils-search-r2dbc + its transitive
+         ditto-internal-utils-postgres-client / r2dbc driver stack on the run classpath). The MAIN_CLASS above stays
+         the thing-search service's own starter. See ide-postgres-launcher/pom.xml. -->
+    <module name="ditto-ide-postgres-launcher" />
+    <option name="VM_PARAMETERS" value="-Xms512m -Xmx512m --add-opens java.base/java.nio=ALL-UNNAMED --add-opens java.base/sun.nio.ch=ALL-UNNAMED --add-opens java.base/sun.security.util=ALL-UNNAMED" />
+    <method v="2">
+      <option name="Make" enabled="true" />
+    </method>
+  </configuration>
+</component>

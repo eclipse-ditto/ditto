@@ -1,0 +1,48 @@
+{
+  "_id": "acme:namespace-test",
+  "_namespace": "acme",
+  "gr": [
+    "g:rightns",
+    "g:global"
+  ],
+  "_revision": {
+    "$numberLong": "11"
+  },
+  "policyId": "acme:namespace-test",
+  "__policyRev": {
+    "$numberLong": "1"
+  },
+  "__referencedPolicies": [
+    {
+      "type": "policy",
+      "id": "acme:namespace-test",
+      "revision": {
+        "$numberInt": "1"
+      }
+    }
+  ],
+  "t": {
+    "thingId": "acme:namespace-test",
+    "_namespace": "acme",
+    "_revision": {
+      "$numberInt": "11"
+    },
+    "policyId": "acme:namespace-test",
+    "attributes": {
+      "x": {
+        "$numberInt": "1"
+      }
+    }
+  },
+  "p": {
+    "·g": [
+      "g:global"
+    ],
+    "attributes": {
+      "·g": [
+        "g:rightns"
+      ]
+    }
+  },
+  "f": []
+}

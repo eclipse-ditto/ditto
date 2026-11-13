@@ -12,18 +12,6 @@
  */
 package org.eclipse.ditto.thingsearch.service.persistence.write.mapping;
 
-import static org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants.FIELD_FEATURES;
-import static org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants.FIELD_FEATURE_ID;
-import static org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants.FIELD_F_ARRAY;
-import static org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants.FIELD_GLOBAL_READ;
-import static org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants.FIELD_NAMESPACE;
-import static org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants.FIELD_POLICY;
-import static org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants.FIELD_POLICY_ID;
-import static org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants.FIELD_POLICY_REVISION;
-import static org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants.FIELD_REFERENCED_POLICIES;
-import static org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants.FIELD_REVISION;
-import static org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants.FIELD_THING;
-
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Optional;
@@ -31,27 +19,25 @@ import java.util.Set;
 
 import javax.annotation.Nullable;
 
-import org.bson.BsonArray;
 import org.bson.BsonDocument;
-import org.bson.BsonInt64;
-import org.bson.BsonString;
-import org.eclipse.ditto.internal.models.streaming.AbstractEntityIdWithRevision;
-import org.eclipse.ditto.internal.utils.persistence.mongo.DittoBsonJson;
-import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.policies.api.PolicyTag;
 import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.thingsearch.api.UpdateReason;
-import org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants;
-import org.eclipse.ditto.thingsearch.service.persistence.write.model.Metadata;
-import org.eclipse.ditto.thingsearch.service.persistence.write.model.ThingWriteModel;
+import org.eclipse.ditto.thingsearch.persistence.api.mapping.SearchIndexDocumentFactory;
+import org.eclipse.ditto.thingsearch.persistence.api.model.Metadata;
+import org.eclipse.ditto.thingsearch.persistence.api.model.ThingWriteModel;
 
 /**
  * Map Thing with Enforcer to Document.
+ * <p>
+ * The mapping first produces a backend-neutral {@link org.eclipse.ditto.thingsearch.persistence.api.model.SearchIndexDocument}
+ * via {@link SearchIndexDocumentFactory} and then encodes it into the Mongo {@link BsonDocument} via
+ * {@link SearchIndexDocumentMongoEncoder}. The neutral document is the shared source of truth for all
+ * persistence backends; the Mongo encoder reproduces the exact historical BSON wire format.
  */
 public final class EnforcedThingMapper {
 
@@ -68,7 +54,7 @@ public final class EnforcedThingMapper {
      * @param referencedPolicies all policies referenced by the policy.
      * @param oldMetadata the metadata that triggered the search update, possibly containing sender information.
      * @param maxArraySize only arrays smaller than this are indexed.
-     * @return BSON document to write into the search index.
+     * @return backend-neutral write model to store in the search index.
      * @throws org.eclipse.ditto.json.JsonMissingFieldException if Thing ID or revision is missing.
      */
     public static ThingWriteModel toWriteModel(final JsonObject thing,
@@ -108,7 +94,8 @@ public final class EnforcedThingMapper {
                                 .orElse(List.of(UpdateReason.UNKNOWN))
                 );
 
-        return ThingWriteModel.of(metadata, toBsonDocument(thing, policy, metadata, maxArraySize));
+        return ThingWriteModel.of(metadata,
+                SearchIndexDocumentFactory.create(thing, policy, metadata, maxArraySize));
     }
 
     static BsonDocument toBsonDocument(final JsonObject thing, final Policy policy, final Metadata metadata) {
@@ -118,65 +105,8 @@ public final class EnforcedThingMapper {
     static BsonDocument toBsonDocument(final JsonObject thing, final Policy policy, final Metadata metadata,
             final int maxArraySize) {
 
-        final var enforced = IndexLengthRestrictionEnforcerVisitor.enforce(thing, maxArraySize);
-        final var thingId = metadata.getThingId();
-        final var thingRevision = metadata.getThingRevision();
-        final var policyRevision =
-                metadata.getThingPolicyTag().map(AbstractEntityIdWithRevision::getRevision).orElse(0L);
-        final var thingBson = DittoBsonJson.getInstance().parse(enforced);
-        final var evaluatedPolicy = EvaluatedPolicy.of(policy, thing, thingId.getNamespace());
-        final var featureArray = getFeatureArray(thing, evaluatedPolicy);
-        final BsonArray referencedPolicies = getReferencedPolicies(metadata.getAllReferencedPolicyTags());
-
-        return new BsonDocument().append(PersistenceConstants.FIELD_ID, new BsonString(thingId.toString()))
-                .append(FIELD_NAMESPACE, new BsonString(thingId.getNamespace()))
-                .append(FIELD_GLOBAL_READ, evaluatedPolicy.getGlobalRead())
-                .append(FIELD_REVISION, new BsonInt64(thingRevision))
-                .append(FIELD_POLICY_ID, new BsonString(metadata.getPolicyIdInPersistence()))
-                .append(FIELD_POLICY_REVISION, new BsonInt64(policyRevision))
-                .append(FIELD_REFERENCED_POLICIES, referencedPolicies)
-                .append(FIELD_THING, thingBson)
-                .append(FIELD_POLICY, evaluatedPolicy.forThing())
-                .append(FIELD_F_ARRAY, featureArray);
+        return SearchIndexDocumentMongoEncoder.encode(
+                SearchIndexDocumentFactory.create(thing, policy, metadata, maxArraySize));
     }
 
-    private static BsonArray getReferencedPolicies(final Set<PolicyTag> referencedPolicyTags) {
-        final List<BsonDocument> referencedPolicyDocuments = referencedPolicyTags.stream()
-                .map(AbstractEntityIdWithRevision::toJson)
-                .map(policyTagJson -> DittoBsonJson.getInstance().parse(policyTagJson))
-                .toList();
-        return new BsonArray(referencedPolicyDocuments);
-    }
-
-    private static BsonArray getFeatureArray(final JsonObject thing, final EvaluatedPolicy evaluatedPolicy) {
-        final JsonObject features = thing.getValue(FIELD_FEATURES)
-                .filter(JsonValue::isObject)
-                .map(JsonValue::asObject)
-                .orElse(JsonObject.empty());
-
-        final var array = new BsonArray();
-        for (final var field : features) {
-            array.add(getFeatureArrayElement(field, evaluatedPolicy));
-        }
-        return array;
-    }
-
-    private static BsonDocument getFeatureArrayElement(final JsonField featureField,
-            final EvaluatedPolicy evaluatedPolicy) {
-
-        final BsonDocument doc = new BsonDocument();
-        final var featureId = featureField.getKeyName();
-        doc.put(FIELD_FEATURE_ID, new BsonString(featureId));
-
-        final JsonObject featureContent = Optional.of(featureField.getValue())
-                .filter(JsonValue::isObject)
-                .map(JsonValue::asObject)
-                .orElse(JsonObject.empty());
-        for (final var field : featureContent) {
-            doc.put(field.getKeyName(), DittoBsonJson.getInstance().parseValue(field.getValue()));
-        }
-
-        doc.put(FIELD_POLICY, evaluatedPolicy.forFeature(featureId));
-        return doc;
-    }
 }

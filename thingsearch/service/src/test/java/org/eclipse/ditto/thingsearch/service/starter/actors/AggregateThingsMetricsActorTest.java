@@ -46,7 +46,7 @@ import org.eclipse.ditto.thingsearch.model.signals.commands.query.AggregateThing
 import org.eclipse.ditto.thingsearch.service.common.config.CustomAggregationMetricConfig;
 import org.eclipse.ditto.thingsearch.service.common.config.DittoSearchConfig;
 import org.eclipse.ditto.thingsearch.service.persistence.read.MongoThingsAggregationPersistence;
-import org.eclipse.ditto.thingsearch.service.persistence.read.ThingsAggregationPersistence;
+import org.eclipse.ditto.thingsearch.persistence.api.ThingsAggregationPersistence;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;

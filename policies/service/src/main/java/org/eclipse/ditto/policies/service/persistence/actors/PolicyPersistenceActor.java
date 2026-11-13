@@ -28,16 +28,19 @@ import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
-import org.eclipse.ditto.internal.utils.persistence.mongo.config.ActivityCheckConfig;
+import org.eclipse.ditto.internal.utils.config.ScopedConfig;
+import org.eclipse.ditto.internal.utils.persistence.api.config.ActivityCheckConfig;
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.NamespaceActivityCheckConfigProvider;
-import org.eclipse.ditto.internal.utils.persistence.mongo.config.SnapshotConfig;
-import org.eclipse.ditto.internal.utils.persistence.mongo.streaming.MongoReadJournal;
+import org.eclipse.ditto.internal.utils.persistence.api.config.SnapshotConfig;
+import org.eclipse.ditto.internal.utils.persistence.api.DittoReadJournal;
+import org.eclipse.ditto.internal.utils.persistence.api.PersistenceBackendProvider;
 import org.eclipse.ditto.internal.utils.persistentactors.AbstractPersistenceActor;
 import org.eclipse.ditto.internal.utils.persistentactors.commands.CommandStrategy;
 import org.eclipse.ditto.internal.utils.persistentactors.commands.DefaultContext;
 import org.eclipse.ditto.internal.utils.persistentactors.events.EventStrategy;
 import org.eclipse.ditto.policies.api.PolicyTag;
 import org.eclipse.ditto.policies.model.Policy;
+import org.eclipse.ditto.policies.model.PolicyConstants;
 import org.eclipse.ditto.policies.model.PolicyEntry;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.policies.model.PolicyLifecycle;
@@ -62,12 +65,16 @@ public final class PolicyPersistenceActor
     public static final String PERSISTENCE_ID_PREFIX = "policy:";
 
     /**
-     * The ID of the journal plugin this persistence actor uses.
+     * The MongoDB journal plugin ID for policies. Retained for the Mongo namespace-operations actor
+     * ({@code PolicyPersistenceOperationsActor}); the persistent-actor write path resolves its journal plugin through
+     * the {@link PersistenceBackendProvider} (see {@link #journalPluginId()}) so it follows the active backend profile.
      */
     static final String JOURNAL_PLUGIN_ID = "pekko-contrib-mongodb-persistence-policies-journal";
 
     /**
-     * The ID of the snapshot plugin this persistence actor uses.
+     * The MongoDB snapshot plugin ID for policies. Retained for the Mongo namespace-operations actor; the
+     * persistent-actor write path resolves its snapshot plugin through the {@link PersistenceBackendProvider} (see
+     * {@link #snapshotPluginId()}).
      */
     static final String SNAPSHOT_PLUGIN_ID = "pekko-contrib-mongodb-persistence-policies-snapshots";
 
@@ -79,12 +86,12 @@ public final class PolicyPersistenceActor
 
     @SuppressWarnings("unused")
     private PolicyPersistenceActor(final PolicyId policyId,
-            final MongoReadJournal mongoReadJournal,
+            final DittoReadJournal readJournal,
             final ActorRef pubSubMediator,
             final ActorRef announcementManager,
             final PolicyConfig policyConfig) {
 
-        super(policyId, mongoReadJournal);
+        super(policyId, readJournal);
         this.pubSubMediator = pubSubMediator;
         this.announcementManager = announcementManager;
         this.policyConfig = policyConfig;
@@ -96,13 +103,13 @@ public final class PolicyPersistenceActor
     }
 
     private PolicyPersistenceActor(final PolicyId policyId,
-            final MongoReadJournal mongoReadJournal,
+            final DittoReadJournal readJournal,
             final ActorRef pubSubMediator,
             final ActorRef announcementManager,
             final ActorRef supervisor) {
 
         // not possible to call other constructor because "getContext()" is not available as argument of "this()"
-        super(policyId, mongoReadJournal);
+        super(policyId, readJournal);
         this.pubSubMediator = pubSubMediator;
         this.announcementManager = announcementManager;
         this.supervisor = supervisor;
@@ -120,29 +127,29 @@ public final class PolicyPersistenceActor
      * Creates Pekko configuration object {@link Props} for this PolicyPersistenceActor.
      *
      * @param policyId the ID of the Policy this Actor manages.
-     * @param mongoReadJournal the ReadJournal used for gaining access to historical values of the policy.
+     * @param readJournal the ReadJournal used for gaining access to historical values of the policy.
      * @param pubSubMediator the PubSub mediator actor.
      * @param announcementManager manager of policy announcements.
      * @param policyConfig the policy config.
      * @return the Pekko configuration Props object
      */
     public static Props props(final PolicyId policyId,
-            final MongoReadJournal mongoReadJournal,
+            final DittoReadJournal readJournal,
             final ActorRef pubSubMediator,
             final ActorRef announcementManager,
             final PolicyConfig policyConfig) {
 
-        return Props.create(PolicyPersistenceActor.class, policyId, mongoReadJournal, pubSubMediator,
+        return Props.create(PolicyPersistenceActor.class, policyId, readJournal, pubSubMediator,
                 announcementManager, policyConfig);
     }
 
     static Props propsForTests(final PolicyId policyId,
-            final MongoReadJournal mongoReadJournal,
+            final DittoReadJournal readJournal,
             final ActorRef pubSubMediator,
             final ActorRef announcementManager,
             final ActorSystem actorSystem) {
 
-        return Props.create(PolicyPersistenceActor.class, policyId, mongoReadJournal, pubSubMediator,
+        return Props.create(PolicyPersistenceActor.class, policyId, readJournal, pubSubMediator,
                 announcementManager,
                 actorSystem.deadLetters());
     }
@@ -154,12 +161,17 @@ public final class PolicyPersistenceActor
 
     @Override
     public String journalPluginId() {
-        return JOURNAL_PLUGIN_ID;
+        return backendProvider().getJournalPluginId(PolicyConstants.ENTITY_TYPE.toString());
     }
 
     @Override
     public String snapshotPluginId() {
-        return SNAPSHOT_PLUGIN_ID;
+        return backendProvider().getSnapshotPluginId(PolicyConstants.ENTITY_TYPE.toString());
+    }
+
+    private PersistenceBackendProvider backendProvider() {
+        final var system = context().system();
+        return PersistenceBackendProvider.get(system, ScopedConfig.dittoExtension(system.settings().config()));
     }
 
     @Override

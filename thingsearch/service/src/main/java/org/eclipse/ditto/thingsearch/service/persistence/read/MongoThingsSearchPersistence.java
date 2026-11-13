@@ -66,18 +66,20 @@ import org.eclipse.ditto.thingsearch.api.SearchNamespaceReportResult;
 import org.eclipse.ditto.thingsearch.api.SearchNamespaceResultEntry;
 import org.eclipse.ditto.thingsearch.service.common.config.SearchConfig;
 import org.eclipse.ditto.thingsearch.service.common.config.SearchPersistenceConfig;
-import org.eclipse.ditto.thingsearch.service.common.model.ResultList;
-import org.eclipse.ditto.thingsearch.service.common.model.ResultListImpl;
-import org.eclipse.ditto.thingsearch.service.common.model.TimestampedThingId;
+import org.eclipse.ditto.thingsearch.persistence.api.ThingsSearchPersistence;
+import org.eclipse.ditto.thingsearch.persistence.api.model.ResultList;
+import org.eclipse.ditto.thingsearch.persistence.api.model.ResultListImpl;
+import org.eclipse.ditto.thingsearch.persistence.api.model.TimestampedThingId;
 import org.eclipse.ditto.thingsearch.service.persistence.Indices;
 import org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants;
 import org.eclipse.ditto.thingsearch.service.persistence.read.criteria.visitors.CreateBsonVisitor;
 import org.eclipse.ditto.thingsearch.service.persistence.read.expression.visitors.GetSortBsonVisitor;
 import org.eclipse.ditto.thingsearch.service.persistence.read.query.MongoQuery;
-import org.eclipse.ditto.thingsearch.service.persistence.write.model.AbstractWriteModel;
-import org.eclipse.ditto.thingsearch.service.persistence.write.model.Metadata;
-import org.eclipse.ditto.thingsearch.service.persistence.write.model.ThingDeleteModel;
-import org.eclipse.ditto.thingsearch.service.persistence.write.model.ThingWriteModel;
+import org.eclipse.ditto.thingsearch.persistence.api.model.AbstractWriteModel;
+import org.eclipse.ditto.thingsearch.persistence.api.model.Metadata;
+import org.eclipse.ditto.thingsearch.persistence.api.model.ThingDeleteModel;
+import org.eclipse.ditto.thingsearch.persistence.api.model.ThingWriteModel;
+import org.eclipse.ditto.thingsearch.service.persistence.write.mapping.SearchIndexDocumentMongoEncoder;
 import org.mongodb.scala.MongoClient;
 import org.reactivestreams.Publisher;
 
@@ -143,7 +145,13 @@ public final class MongoThingsSearchPersistence implements ThingsSearchPersisten
         }
     }
 
-    @Override
+    /**
+     * Initializes the search index if necessary. Backend-specific and therefore NOT part of the neutral
+     * {@link ThingsSearchPersistence} interface; called on the concrete type at wiring time.
+     *
+     * @param indexInitializationConfig the configuration for the index initialization.
+     * @return a {@link CompletionStage} which can be either used for blocking or non-blocking initialization.
+     */
     public CompletionStage<Void> initializeIndices(final IndexInitializationConfig indexInitializationConfig) {
         final List<Index> allIndices = Stream.concat(
                 Indices.all(documentDbCompatibilityMode).stream(),
@@ -330,6 +338,7 @@ public final class MongoThingsSearchPersistence implements ThingsSearchPersisten
      * @return the last write model if the thing exists in the search index, or a {@code ThingDeleteModel} if the thing
      * does not exist.
      */
+    @Override
     public Source<AbstractWriteModel, NotUsed> recoverLastWriteModel(final ThingId thingId) {
         final var metadata = Metadata.ofDeleted(thingId);
         final var publisher =
@@ -560,8 +569,12 @@ public final class MongoThingsSearchPersistence implements ThingsSearchPersisten
     }
 
     private static AbstractWriteModel documentToWriteModel(final Document document) {
-        final var bsonDocument = document.toBsonDocument(Document.class, MongoClient.DEFAULT_CODEC_REGISTRY());
+        final BsonDocument stored = document.toBsonDocument(Document.class, MongoClient.DEFAULT_CODEC_REGISTRY());
         final Metadata actualMetadata = readAsMetadata(document);
-        return ThingWriteModel.of(actualMetadata, bsonDocument);
+        if (!stored.containsKey(PersistenceConstants.FIELD_REFERENCED_POLICIES)) {
+            // historical "emptied out" shape, which omits the __referencedPolicies field
+            return ThingWriteModel.ofEmptiedOut(actualMetadata);
+        }
+        return ThingWriteModel.of(actualMetadata, SearchIndexDocumentMongoEncoder.decode(stored));
     }
 }

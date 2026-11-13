@@ -14,7 +14,6 @@ package org.eclipse.ditto.rql.query.criteria;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.base.model.common.LikeHelper;
 import org.eclipse.ditto.rql.query.criteria.visitors.PredicateVisitor;
 
 /**
@@ -27,17 +26,13 @@ final class ILikePredicateImpl extends AbstractSinglePredicate {
     }
 
     @Nullable
-    private String convertToRegexSyntaxAndGetOption() {
+    private String getWildcardExpression() {
         final Object value = getValue();
-        if (value != null) {
-            return LikeHelper.convertToRegexSyntax(value.toString());
-        } else {
-            return null;
-        }
+        return value != null ? value.toString() : null;
     }
 
     @Override
     public <T> T accept(final PredicateVisitor<T> visitor) {
-        return visitor.visitILike(convertToRegexSyntaxAndGetOption());
+        return visitor.visitILikeWithWildcards(getWildcardExpression());
     }
 }

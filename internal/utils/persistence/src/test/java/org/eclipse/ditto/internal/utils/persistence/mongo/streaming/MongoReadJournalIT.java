@@ -24,6 +24,8 @@ import java.util.Set;
 import java.util.stream.Stream;
 
 import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.persistence.query.EventEnvelope;
+import org.apache.pekko.persistence.query.Offset;
 import org.apache.pekko.stream.Materializer;
 import org.apache.pekko.stream.SystemMaterializer;
 import org.apache.pekko.stream.javadsl.Sink;
@@ -35,10 +37,15 @@ import org.bson.BsonInt64;
 import org.bson.BsonString;
 import org.bson.Document;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
+import org.eclipse.ditto.internal.utils.persistence.api.DeleteOutcome;
+import org.eclipse.ditto.internal.utils.persistence.api.SnapshotEntry;
+import org.eclipse.ditto.internal.utils.persistence.api.SnapshotFilter;
 import org.eclipse.ditto.internal.utils.persistence.mongo.DittoMongoClient;
 import org.eclipse.ditto.internal.utils.persistence.mongo.MongoClientWrapper;
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.DefaultMongoDbConfig;
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.MongoDbConfig;
+import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.internal.utils.test.docker.mongo.MongoDbResource;
 import org.junit.After;
 import org.junit.AfterClass;
@@ -49,7 +56,6 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
-import com.mongodb.client.result.DeleteResult;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 import com.typesafe.config.ConfigValueFactory;
@@ -173,14 +179,14 @@ public final class MongoReadJournalIT {
         );
 
         // WHEN: latest snapshots requested with batch size that splits the snapshots of pid3 into 2 batches
-        final List<Document> snapshots =
+        final List<SnapshotEntry> snapshots =
                 readJournal.getNewestSnapshotsAbove("pid2", 2, materializer, "_modified")
                         .runWith(Sink.seq(), materializer)
                         .toCompletableFuture()
                         .join();
 
         // THEN: snapshots of the highest sequence number for each pid are returned
-        assertThat(snapshots).containsExactly(
+        assertThat(snapshots.stream().map(MongoReadJournalIT::toComparable).toList()).containsExactly(
                 new Document().append("_id", "pid3")
                         .append("__lifecycle", null)
                         .append("_modified", "2020-01-31T19:57:48.571Z")
@@ -234,14 +240,14 @@ public final class MongoReadJournalIT {
         );
 
         // WHEN: latest snapshots requested with batch size 4
-        final List<Document> snapshots =
+        final List<SnapshotEntry> snapshots =
                 readJournal.getNewestSnapshotsAbove("", 4, materializer, "_modified")
                         .runWith(Sink.seq(), materializer)
                         .toCompletableFuture()
                         .join();
 
         // THEN: pid3 should be returned.
-        assertThat(snapshots).containsExactly(
+        assertThat(snapshots.stream().map(MongoReadJournalIT::toComparable).toList()).containsExactly(
                 new Document().append("_id", "pid3")
                         .append("__lifecycle", null)
                         .append("_modified", "2020-01-31T19:57:48.571Z")
@@ -255,6 +261,25 @@ public final class MongoReadJournalIT {
                 .append("sn", sn)
                 .append("s2", new Document().append("_modified", Instant.ofEpochSecond(sn).toString())
                         .append("__lifecycle", deleted ? "DELETED" : "ACTIVE"));
+    }
+
+    /**
+     * Converts a backend-neutral {@link SnapshotEntry} back to the legacy projected-document shape used by the
+     * snapshot-streaming assertions (the {@code _id}, {@code __lifecycle}, {@code _modified} and {@code sn} fields).
+     */
+    private static Document toComparable(final SnapshotEntry entry) {
+        final JsonObject json = entry.getJson();
+        return new Document()
+                .append("_id", entry.getPid().orElse(null))
+                .append("__lifecycle", json.getValue("__lifecycle")
+                        .filter(value -> !value.isNull())
+                        .map(JsonValue::asString)
+                        .orElse(null))
+                .append("_modified", json.getValue("_modified")
+                        .filter(value -> !value.isNull())
+                        .map(JsonValue::asString)
+                        .orElse(null))
+                .append("sn", entry.getSequenceNumber().isPresent() ? entry.getSequenceNumber().getAsLong() : null);
     }
 
     @Test
@@ -275,14 +300,14 @@ public final class MongoReadJournalIT {
 
 
         // WHEN: latest snapshots requested with batch size that splits the snapshots of pid3 into 2 batches
-        final List<Document> snapshots =
+        final List<SnapshotEntry> snapshots =
                 readJournal.getNewestSnapshotsAbove(SnapshotFilter.of("", "^snap:.*"), 3, materializer, "_modified")
                         .runWith(Sink.seq(), materializer)
                         .toCompletableFuture()
                         .join();
 
         // THEN: snapshots of the highest sequence number for each pid are returned
-        assertThat(snapshots).containsExactly(
+        assertThat(snapshots.stream().map(MongoReadJournalIT::toComparable).toList()).containsExactly(
                 new Document().append("_id", "snap:pid1")
                         .append("__lifecycle", "ACTIVE")
                         .append("_modified", "1970-01-01T00:00:03Z")
@@ -315,7 +340,7 @@ public final class MongoReadJournalIT {
         insert("test_snaps", snapshot("snap:pid6", 6L, false));
 
         // WHEN: latest snapshots requested lower bound and pid filter
-        final List<Document> snapshots =
+        final List<SnapshotEntry> snapshots =
                 readJournal.getNewestSnapshotsAbove(SnapshotFilter.of("snap:pid2", "^snap:.*"), 3, materializer,
                                 "_modified")
                         .runWith(Sink.seq(), materializer)
@@ -323,7 +348,7 @@ public final class MongoReadJournalIT {
                         .join();
 
         // THEN: snapshots of the highest sequence number for each pid are returned
-        assertThat(snapshots).containsExactly(
+        assertThat(snapshots.stream().map(MongoReadJournalIT::toComparable).toList()).containsExactly(
                 new Document().append("_id", "snap:pid4")
                         .append("__lifecycle", "ACTIVE")
                         .append("_modified", "1970-01-01T00:00:04Z")
@@ -368,11 +393,10 @@ public final class MongoReadJournalIT {
 
         final List<String> pids =
                 readJournal.getLatestJournalEntries(2, Duration.ZERO, materializer)
-                        .filter(document -> Optional.ofNullable(
-                                        document.getString(MongoReadJournal.J_EVENT_MANIFEST))
+                        .filter(entry -> entry.getManifest()
                                 .map(manifest -> !"deletedEvent".equals(manifest))
                                 .orElse(false))
-                        .map(document -> document.getString(MongoReadJournal.J_EVENT_PID))
+                        .map(entry -> entry.getPid().orElse(null))
                         .runWith(Sink.seq(), materializer)
                         .toCompletableFuture().join();
 
@@ -568,7 +592,7 @@ public final class MongoReadJournalIT {
                         readJournal.deleteEvents("pid2", 0, 1),
                         readJournal.deleteEvents("pid3", 0, 1))
                 .flatMap(source -> source.runWith(Sink.seq(), materializer).toCompletableFuture().join().stream())
-                .map(DeleteResult::getDeletedCount)
+                .map(DeleteOutcome::getDeletedCount)
                 .toList();
 
         assertThat(lowestSeqNrs).containsExactly(1L, 1L, 0L);
@@ -628,7 +652,7 @@ public final class MongoReadJournalIT {
                         readJournal.deleteSnapshots("pid2", 0, 1),
                         readJournal.deleteSnapshots("pid3", 0, 1))
                 .flatMap(source -> source.runWith(Sink.seq(), materializer).toCompletableFuture().join().stream())
-                .map(DeleteResult::getDeletedCount)
+                .map(DeleteOutcome::getDeletedCount)
                 .toList();
 
         assertThat(lowestSeqNrs).containsExactly(1L, 1L, 0L);
@@ -650,6 +674,19 @@ public final class MongoReadJournalIT {
                         .toCompletableFuture().join();
 
         assertThat(pids).containsExactly("pid3", "pid4", "pid6");
+    }
+
+    @Test
+    public void toEventJsonConvertsBsonPayloadToNeutralJsonObject() {
+        // GIVEN: an EventEnvelope whose BSON event payload is the Mongo-backed shape returned by the read journal
+        final BsonDocument bsonEvent = BsonDocument.parse("{\"_revision\": 5, \"name\": \"event\"}");
+        final EventEnvelope envelope = EventEnvelope.apply(Offset.noOffset(), "thing:p:id", 5L, bsonEvent);
+
+        // WHEN: converted through the backend-neutral mapper
+        final JsonObject eventJson = readJournal.toEventJson(envelope);
+
+        // THEN: the payload round-trips into a Ditto JsonObject
+        assertThat(eventJson).isEqualTo(JsonObject.of("{\"_revision\":5,\"name\":\"event\"}"));
     }
 
     private void insert(final CharSequence collection, final Document... documents) {

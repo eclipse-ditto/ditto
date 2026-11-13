@@ -113,6 +113,8 @@
         <module>utils</module>
         <module>wot</module>
         <module>edge</module>
+        <!-- Local-dev / IDE only: classpath aggregator for the "(Postgres)" run configs (never published). -->
+        <module>ide-postgres-launcher</module>
     </modules>
 
     <properties>

@@ -1,0 +1,12 @@
+{
+  "thingId": "org.eclipse.ditto.parity:range-above",
+  "_namespace": "org.eclipse.ditto.parity",
+  "_revision": 1,
+  "_modified": "2026-04-01T10:00:00Z",
+  "policyId": "org.eclipse.ditto.parity:policy-full",
+  "attributes": {
+    "kind": "above",
+    "region": [95000, 96000],
+    "pair": [7, 8]
+  }
+}

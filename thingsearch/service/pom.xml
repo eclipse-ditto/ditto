@@ -45,6 +45,10 @@
         </dependency>
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-thingsearch-persistence-api</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-rql-parser</artifactId>
         </dependency>
         <dependency>
@@ -154,6 +158,17 @@
             <artifactId>de.flapdoodle.embed.mongo</artifactId>
             <scope>test</scope>
         </dependency>
+        <!-- ArchUnit for the pluggable-persistence boundary tests (switchability proof).
+             The rules are driven from plain JUnit 4 @Test methods via ArchUnit's core API
+             (ClassFileImporter + ImportOption.DoNotIncludeTests + ArchRuleDefinition), so this module keeps
+             running on its existing JUnit 4 / surefire setup - no JUnit Platform engine is introduced (which would
+             change how the pre-existing tests are discovered and indexed). The 'archunit' core artifact provides
+             the classes the tests use without dragging in the JUnit Platform engine. -->
+        <dependency>
+            <groupId>com.tngtech.archunit</groupId>
+            <artifactId>archunit</artifactId>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
     <build>
@@ -175,6 +190,48 @@
         </resources>
 
         <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-enforcer-plugin</artifactId>
+                <executions>
+                    <!--
+                        The r2dbc persistence module and its shaded extension jar must NEVER leak into the
+                        thingsearch service allinone. PostgreSQL search support ships as a separate drop-in
+                        extension jar; the service images stay Mongo-only by default. This guard fails the
+                        build if anyone adds ditto-internal-utils-persistence-r2dbc(-extension) as a
+                        dependency of this service.
+                    -->
+                    <execution>
+                        <id>enforce-no-r2dbc-in-service</id>
+                        <goals>
+                            <goal>enforce</goal>
+                        </goals>
+                        <configuration>
+                            <rules>
+                                <bannedDependencies>
+                                    <excludes>
+                                        <exclude>org.eclipse.ditto:ditto-internal-utils-persistence-r2dbc</exclude>
+                                        <!-- The shared Postgres client/schema infra (carries r2dbc) must be equally banned from the allinone. -->
+                                        <exclude>org.eclipse.ditto:ditto-internal-utils-postgres-client</exclude>
+                                        <!-- The driver coordinates themselves: a TRANSITIVE r2dbc/postgres driver must also
+                                             fail the build, not only the Ditto backend artifacts (the ArchUnit rule checks
+                                             code references, not shaded-jar contents). -->
+                                        <exclude>io.r2dbc:*</exclude>
+                                        <exclude>org.postgresql:r2dbc-postgresql</exclude>
+                                    </excludes>
+                                    <message>
+                                        org.eclipse.ditto:ditto-internal-utils-persistence-r2dbc(-extension) must
+                                        not be a dependency of the thingsearch service module — it would leak
+                                        r2dbc into the search allinone. PostgreSQL search support ships as a
+                                        separate drop-in extension jar.
+                                    </message>
+                                </bannedDependencies>
+                            </rules>
+                            <fail>true</fail>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-shade-plugin</artifactId>

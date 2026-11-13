@@ -377,12 +377,17 @@ These commands enable safe encryption key rotation and encryption disable workfl
 For detailed information about encryption configuration and workflows, refer to
 [Encrypt sensitive data in Connections](installation-operating.html#encrypt-sensitive-data-in-connections).
 
+The commands are answered while field encryption is enabled or an `old-symmetrical-key` is set (the configurations in
+which an initial encryption, a key rotation or the disabling of encryption can be run); otherwise nothing answers them
+and they time out.
+
 ### Migrate encryption
 
-Trigger batch processing of all persisted connection data (snapshots and journal events). The command supports two workflows:
+Trigger batch processing of all persisted connection data (snapshots and journal events). The command supports three workflows:
 
 **Migration Logic:**
 - **Key Rotation:** `encryption-enabled = true` + both keys set → Decrypt with old key, re-encrypt with new key
+- **Initial Encryption:** `encryption-enabled = true` + only the current key set → Encrypt plaintext values with the current key
 - **Disable Encryption:** `encryption-enabled = false` + old key set → Decrypt with old key, write plaintext
 
 The configuration determines which workflow is executed.

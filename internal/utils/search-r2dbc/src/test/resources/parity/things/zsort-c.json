@@ -1,0 +1,11 @@
+{
+  "thingId": "org.eclipse.ditto.parity:zsort-c",
+  "_namespace": "org.eclipse.ditto.parity",
+  "_revision": 1,
+  "_modified": "2026-09-01T10:02:00Z",
+  "policyId": "org.eclipse.ditto.parity:policy-full",
+  "features": {
+    "meter": { "properties": { "status": "on", "unit": "kWh" } },
+    "meter2": { "properties": { "status": "on", "reading": 99 } }
+  }
+}

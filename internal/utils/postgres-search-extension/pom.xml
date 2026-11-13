@@ -1,0 +1,139 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  ~ Copyright (c) 2026 Contributors to the Eclipse Foundation
+  ~
+  ~ See the NOTICE file(s) distributed with this work for additional
+  ~ information regarding copyright ownership.
+  ~
+  ~ This program and the accompanying materials are made available under the
+  ~ terms of the Eclipse Public License 2.0 which is available at
+  ~ http://www.eclipse.org/legal/epl-2.0
+  ~
+  ~ SPDX-License-Identifier: EPL-2.0
+  -->
+<project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://maven.apache.org/POM/4.0.0"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>org.eclipse.ditto</groupId>
+        <artifactId>ditto-internal-utils</artifactId>
+        <version>${revision}</version>
+    </parent>
+
+    <artifactId>ditto-postgres-search-extension</artifactId>
+    <packaging>jar</packaging>
+    <name>Eclipse Ditto :: Postgres :: Search Extension (thin)</name>
+
+    <!--
+        THIN things-search extension jar (§6 D2 — three-JAR layered packaging). OPTIONAL: only a deployment that runs
+        things-search on PostgreSQL mounts it; Mongo-search deployments mount nothing on the search service.
+
+        Carries ONLY the ditto-internal-utils-search-r2dbc implementation classes (the Postgres search schema/flattener/
+        read/write/aggregation + PostgresSearchPersistenceProvider) plus its conf resource (ditto-postgres-search.conf).
+        It carries NO third-party and NO Mongo: the r2dbc/reactor/netty/scram runtime and the shared postgres-client
+        infrastructure live in the BASE jar (ditto-postgres-client-extension), which MUST be mounted alongside this jar.
+        The neutral SPI (ditto-thingsearch-persistence-api) is NOT shaded — it is relied upon from the search allinone
+        classpath, exactly like the persistence-api precedent. The search service therefore mounts base + search (2 jars).
+
+        Because the whitelist bundles ONLY the search-r2dbc artifact, the transitive Mongo/bson brought in through the
+        thingsearch-persistence-api compile chain is excluded by construction — verified by an
+        `unzip -l | grep -i mongo/bson` clean check.
+
+        The version marker (META-INF/ditto-postgres-extension.properties) makes this jar's release visible to the boot
+        self-check (PostgresExtensionVersions, invoked from PostgresSearchPersistenceProvider) so a base/search version
+        mismatch fails fast.
+
+        It is NOT a dependency of any service module and NOT bundled in the published images.
+    -->
+
+    <dependencies>
+        <!-- The only compile dependency: the Ditto Postgres things-search backend module (version bom-managed).
+             postgres-client + thingsearch-persistence-api (its transitives) are deliberately NOT bundled here — the
+             client infra ships in the base jar, and the neutral SPI stays on the search allinone classpath. -->
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-internal-utils-search-r2dbc</artifactId>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <resources>
+            <resource>
+                <directory>src/main/resources</directory>
+                <filtering>true</filtering>
+            </resource>
+        </resources>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
+                <configuration>
+                    <!--
+                        Always rebuild the thin project JAR that shade:shade below takes as its input. Without this, an
+                        incremental `mvn install` (no `clean`) finds the artifact already in target/ "up to date" (this
+                        module's own sources rarely change) and keeps it; but that artifact is the PREVIOUS shaded JAR
+                        (shade replaces the main artifact in place). shade:shade then merges it with the freshly built
+                        search-r2dbc JAR and keeps the first copy of every overlapping class, i.e. the stale one, while
+                        every build step reports success. build-images.sh refuses such a JAR; this removes the cause.
+                    -->
+                    <forceCreation>true</forceCreation>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-shade-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>shade</goal>
+                        </goals>
+                        <configuration>
+                            <createDependencyReducedPom>false</createDependencyReducedPom>
+                            <artifactSet>
+                                <!--
+                                    THIN whitelist: ONLY the search-r2dbc module itself. All third-party
+                                    (r2dbc/reactor/netty/scram) and the shared postgres-client infra are provided by the
+                                    base jar (ditto-postgres-client-extension). The neutral thingsearch-persistence-api
+                                    SPI and any transitive Mongo/bson through it are NOT listed and stay out by
+                                    construction — the SPI lives on the search allinone classpath (persistence-api
+                                    precedent), and no Mongo can leak into this jar.
+                                -->
+                                <includes>
+                                    <include>org.eclipse.ditto:ditto-internal-utils-search-r2dbc</include>
+                                </includes>
+                            </artifactSet>
+                            <filters>
+                                <filter>
+                                    <artifact>*:*</artifact>
+                                    <excludes>
+                                        <exclude>LICENSE</exclude>
+                                        <exclude>LICENSE.txt</exclude>
+                                        <exclude>NOTICE</exclude>
+                                        <exclude>THIRD-PARTY.txt</exclude>
+                                        <exclude>README.md</exclude>
+                                        <exclude>rootdoc.txt</exclude>
+                                        <exclude>META-INF/NOTICE</exclude>
+                                        <exclude>META-INF/*.SF</exclude>
+                                        <exclude>META-INF/*.DSA</exclude>
+                                        <exclude>META-INF/*.RSA</exclude>
+                                    </excludes>
+                                </filter>
+                            </filters>
+                            <transformers>
+                                <transformer
+                                        implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/>
+                                <transformer
+                                        implementation="org.apache.maven.plugins.shade.resource.AppendingTransformer">
+                                    <resource>reference.conf</resource>
+                                </transformer>
+                            </transformers>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+
+</project>

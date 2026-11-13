@@ -1,0 +1,8 @@
+{
+  "thingId": "golden:thing-without-policy",
+  "_namespace": "golden",
+  "_revision": 1,
+  "attributes": {
+    "x": 1
+  }
+}

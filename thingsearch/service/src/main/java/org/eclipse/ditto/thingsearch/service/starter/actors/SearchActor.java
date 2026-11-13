@@ -87,11 +87,11 @@ import org.eclipse.ditto.thingsearch.model.signals.commands.query.QueryThings;
 import org.eclipse.ditto.thingsearch.model.signals.commands.query.QueryThingsResponse;
 import org.eclipse.ditto.thingsearch.model.signals.commands.query.ThingSearchQueryCommand;
 import org.eclipse.ditto.thingsearch.service.common.config.SlowQueryLogConfig;
-import org.eclipse.ditto.thingsearch.service.common.model.ResultList;
-import org.eclipse.ditto.thingsearch.service.common.model.TimestampedThingId;
+import org.eclipse.ditto.thingsearch.persistence.api.model.ResultList;
+import org.eclipse.ditto.thingsearch.persistence.api.model.TimestampedThingId;
 import org.eclipse.ditto.thingsearch.service.persistence.query.QueryParser;
-import org.eclipse.ditto.thingsearch.service.persistence.read.ThingsSearchPersistence;
-import org.eclipse.ditto.thingsearch.service.persistence.read.criteria.visitors.CreateBsonVisitor;
+import org.eclipse.ditto.thingsearch.persistence.api.SearchPersistenceProvider;
+import org.eclipse.ditto.thingsearch.persistence.api.ThingsSearchPersistence;
 
 import com.typesafe.config.Config;
 
@@ -134,6 +134,7 @@ public final class SearchActor extends AbstractActorWithShutdownBehaviorAndReque
 
     private final QueryParser queryParser;
     private final ThingsSearchPersistence searchPersistence;
+    private final SearchPersistenceProvider searchPersistenceProvider;
     private final PreEnforcerProvider preEnforcer;
     private final SignalTransformer signalTransformer;
     private final ActorRef pubSubMediator;
@@ -150,6 +151,7 @@ public final class SearchActor extends AbstractActorWithShutdownBehaviorAndReque
         final var system = getSystem();
         final Config config = system.settings().config();
         final var dittoExtensionsConfig = ScopedConfig.dittoExtension(config);
+        searchPersistenceProvider = SearchPersistenceProvider.get(system, dittoExtensionsConfig);
         preEnforcer = PreEnforcerProvider.get(system, dittoExtensionsConfig);
         signalTransformer = SignalTransformers.get(system, dittoExtensionsConfig);
         final var dittoScopedConfig = DefaultScopedConfig.dittoScoped(getSystem().settings().config());
@@ -166,7 +168,7 @@ public final class SearchActor extends AbstractActorWithShutdownBehaviorAndReque
      * Creates Pekko configuration object Props for this SearchActor.
      *
      * @param queryFactory factory of query objects.
-     * @param searchPersistence the {@link org.eclipse.ditto.thingsearch.service.persistence.read.ThingsSearchPersistence}
+     * @param searchPersistence the {@link org.eclipse.ditto.thingsearch.persistence.api.ThingsSearchPersistence}
      * to use in order to execute queries.
      * @param pubSubMediator the Pekko pub-sub mediator.
      * @param slowQueryLogConfig the configuration for slow query logging.
@@ -659,17 +661,10 @@ public final class SearchActor extends AbstractActorWithShutdownBehaviorAndReque
             if (queryStage != null) {
                 try {
                     final Query query = queryStage.toCompletableFuture().join();
-                    if (sudoCommand) {
-                        mongoDbQuery = CreateBsonVisitor.sudoApply(query.getCriteria())
-                                .toBsonDocument()
-                                .toJson();
-                    } else {
-                        mongoDbQuery = CreateBsonVisitor.apply(query.getCriteria(),
-                                        command.getDittoHeaders().getAuthorizationContext().getAuthorizationSubjectIds()
-                                )
-                                .toBsonDocument()
-                                .toJson();
-                    }
+                    final List<String> authorizationSubjectIds = sudoCommand
+                            ? null
+                            : command.getDittoHeaders().getAuthorizationContext().getAuthorizationSubjectIds();
+                    mongoDbQuery = searchPersistenceProvider.renderForDiagnostics(query, authorizationSubjectIds);
                 } catch (final Exception e) {
                     mongoDbQuery = "<failed to compute BSON for RQL query: " + e.getMessage() + ">";
                 }

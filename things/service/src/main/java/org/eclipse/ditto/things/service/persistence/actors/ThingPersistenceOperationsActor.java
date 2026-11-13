@@ -12,18 +12,15 @@
  */
 package org.eclipse.ditto.things.service.persistence.actors;
 
-import org.eclipse.ditto.internal.utils.persistence.mongo.MongoClientWrapper;
-import org.eclipse.ditto.internal.utils.persistence.mongo.config.MongoDbConfig;
-import org.eclipse.ditto.internal.utils.persistence.mongo.ops.eventsource.MongoEventSourceSettings;
-import org.eclipse.ditto.internal.utils.persistence.mongo.ops.eventsource.MongoNamespacePersistenceOperations;
+import java.io.Closeable;
+
+import org.eclipse.ditto.internal.utils.persistence.api.PersistenceBackendProvider;
+import org.eclipse.ditto.internal.utils.persistence.api.PersistenceOperationsCollaborators;
+import org.eclipse.ditto.internal.utils.persistence.api.operations.NamespacePersistenceOperations;
 import org.eclipse.ditto.internal.utils.persistence.operations.AbstractPersistenceOperationsActor;
-import org.eclipse.ditto.internal.utils.persistence.operations.NamespacePersistenceOperations;
 import org.eclipse.ditto.internal.utils.persistence.operations.PersistenceOperationsConfig;
 import org.eclipse.ditto.things.model.ThingConstants;
 import org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault;
-
-import com.mongodb.reactivestreams.client.MongoDatabase;
-import com.typesafe.config.Config;
 
 import org.apache.pekko.actor.ActorRef;
 import org.apache.pekko.actor.Props;
@@ -38,7 +35,7 @@ public final class ThingPersistenceOperationsActor extends AbstractPersistenceOp
 
     private ThingPersistenceOperationsActor(final ActorRef pubSubMediator,
             final NamespacePersistenceOperations namespaceOps,
-            final MongoClientWrapper mongoClientWrapper,
+            final Closeable toCloseWhenStopped,
             final PersistenceOperationsConfig persistenceOperationsConfig) {
 
         super(pubSubMediator,
@@ -46,37 +43,28 @@ public final class ThingPersistenceOperationsActor extends AbstractPersistenceOp
                 namespaceOps,
                 null,
                 persistenceOperationsConfig,
-                mongoClientWrapper);
+                toCloseWhenStopped);
     }
 
     /**
      * Create Props of this actor.
      *
      * @param pubSubMediator Pekko pub-sub mediator.
-     * @param mongoDbConfig the MongoDB configuration settings.
-     * @param config Configuration with info about event journal, snapshot store and database.
+     * @param provider the active persistence-backend provider yielding the backend-neutral ops collaborators.
      * @param persistenceOperationsConfig the persistence operations config.
      * @return a Props object.
      */
     public static Props props(final ActorRef pubSubMediator,
-            final MongoDbConfig mongoDbConfig,
-            final Config config,
+            final PersistenceBackendProvider provider,
             final PersistenceOperationsConfig persistenceOperationsConfig) {
 
         return Props.create(ThingPersistenceOperationsActor.class, () -> {
-            final MongoEventSourceSettings eventSourceSettings =
-                    MongoEventSourceSettings.fromConfig(config, ThingPersistenceActor.PERSISTENCE_ID_PREFIX,
-                            true, ThingPersistenceActor.JOURNAL_PLUGIN_ID,
-                            ThingPersistenceActor.SNAPSHOT_PLUGIN_ID);
+            // Build the backend client + collaborators lazily, at actor instantiation time (one client per actor).
+            final PersistenceOperationsCollaborators collaborators =
+                    provider.operations(ThingConstants.ENTITY_TYPE.toString());
 
-            final MongoClientWrapper mongoClient = MongoClientWrapper.newInstance(mongoDbConfig);
-            final MongoDatabase db = mongoClient.getDefaultDatabase();
-
-            final NamespacePersistenceOperations namespaceOps =
-                    MongoNamespacePersistenceOperations.of(db, eventSourceSettings);
-
-            return new ThingPersistenceOperationsActor(pubSubMediator, namespaceOps, mongoClient,
-                    persistenceOperationsConfig);
+            return new ThingPersistenceOperationsActor(pubSubMediator, collaborators.namespaceOps(),
+                    collaborators.closeable(), persistenceOperationsConfig);
         });
     }
 

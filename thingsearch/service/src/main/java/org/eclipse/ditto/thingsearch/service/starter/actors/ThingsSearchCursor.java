@@ -64,7 +64,7 @@ import org.eclipse.ditto.thingsearch.model.SortOption;
 import org.eclipse.ditto.thingsearch.model.SortOptionEntry;
 import org.eclipse.ditto.thingsearch.model.signals.commands.exceptions.InvalidOptionException;
 import org.eclipse.ditto.thingsearch.model.signals.commands.query.QueryThings;
-import org.eclipse.ditto.thingsearch.service.common.model.ResultList;
+import org.eclipse.ditto.thingsearch.persistence.api.model.ResultList;
 import org.eclipse.ditto.thingsearch.service.persistence.write.mapping.JsonToBson;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -731,7 +731,7 @@ final class ThingsSearchCursor {
                 return cf.existsCriteria(entry.getSortExpression());
             } else {
                 // ASC nonnull: null values cannot be bigger and can be ignored
-                return cf.fieldCriteria(entry.getSortExpression(), cf.gt(JsonToBson.convert(previousValue)));
+                return cf.fieldCriteria(entry.getSortExpression(), cf.gt(cursorValue(previousValue)));
             }
         } else {
             if (previousValue.isNull()) {
@@ -740,7 +740,7 @@ final class ThingsSearchCursor {
             } else {
                 // DESC nonnull: null is smaller than any value
                 return cf.or(Arrays.asList(
-                        cf.fieldCriteria(entry.getSortExpression(), cf.lt(JsonToBson.convert(previousValue))),
+                        cf.fieldCriteria(entry.getSortExpression(), cf.lt(cursorValue(previousValue))),
                         cf.nor(cf.existsCriteria(entry.getSortExpression()))
                 ));
             }
@@ -771,9 +771,58 @@ final class ThingsSearchCursor {
             ));
         } else {
             thisDimensionEq =
-                    cf.fieldCriteria(sortOption.getSortExpression(), cf.eq(JsonToBson.convert(previousValue)));
+                    cf.fieldCriteria(sortOption.getSortExpression(), cf.eq(cursorValue(previousValue)));
         }
         return cf.or(Arrays.asList(thisDimensionLt, cf.and(Arrays.asList(thisDimensionEq, nextDimension))));
+    }
+
+    /**
+     * Converts a cursor sort value ({@link JsonValue}) to the plain Java scalar the resume-criteria predicate carries —
+     * a backend-neutral replacement for {@code JsonToBson.convert} on the resume path (the only place the cursor injects
+     * a value into a criteria predicate).
+     * <p>
+     * <b>MongoDB byte-identical.</b> The MongoDB driver's default codec encodes {@link Integer}/{@link Long}/{@link
+     * Double}/{@link Boolean}/{@link String} to exactly the BSON types {@code JsonToBson} produced from the same {@link
+     * JsonValue} — {@code int32}/{@code int64}/{@code double}/{@code boolean}/{@code string} — so
+     * {@code Filters.gt(field, value)} yields the identical {@code Bson}. The int/long/double split mirrors {@code
+     * JsonToBson.number} ({@code isInt} → int32, else {@code isLong} → int64, else double), so the numeric type is
+     * preserved.
+     * </p>
+     * <p>
+     * <b>Non-Mongo backends.</b> Their predicate translators route by {@code value instanceof Number}/{@code Boolean}
+     * (e.g. the PostgreSQL search backend's {@code SqlValues}); a raw {@code org.bson.BsonValue} is neither, so it would
+     * be mis-bound as text. Emitting a plain Java scalar fixes that at the single shared choke point while keeping the
+     * MongoDB output unchanged. Null never reaches here: the {@code previousValue.isNull()} branches short-circuit
+     * BEFORE conversion in {@link #getDimensionLtCriteria}/{@link #getNextDimensionCriteria}.
+     * </p>
+     * <p>
+     * <b>Object / array sort values</b> (composite sort keys — see {@code GetSortBsonVisitor.sortValuesAsArray}) are
+     * still converted with {@code JsonToBson} to a {@code BsonValue}, exactly as before, so MongoDB's nested
+     * {@code {"$gt": {...}}} stays byte-identical. A non-Mongo backend never reaches this branch: on PostgreSQL a
+     * whole-object/array boundary has no scalar cursor value and is encoded as JSON {@code null} (plan §3.5), so its
+     * resume criteria take the {@code previousValue.isNull()} short-circuit above and never call this method with a
+     * container.
+     * </p>
+     *
+     * @param previousValue a non-null cursor sort value.
+     * @return a plain Java scalar (String / Integer / Long / Double / Boolean) for a scalar value, or a
+     * {@code BsonValue} for an object/array value.
+     */
+    private static Object cursorValue(final JsonValue previousValue) {
+        if (previousValue.isString()) {
+            return previousValue.asString();
+        }
+        if (previousValue.isBoolean()) {
+            return previousValue.asBoolean();
+        }
+        if (previousValue.isNumber()) {
+            if (previousValue.isInt()) {
+                return previousValue.asInt();
+            }
+            return previousValue.isLong() ? previousValue.asLong() : previousValue.asDouble();
+        }
+        // Object / array boundary (Mongo composite sort only): keep the exact BSON form MongoDB compared before.
+        return JsonToBson.convert(previousValue);
     }
 
     /**

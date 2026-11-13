@@ -37,8 +37,8 @@ import org.eclipse.ditto.internal.utils.health.HealthCheckingActorOptions;
 import org.eclipse.ditto.internal.utils.namespaces.BlockedNamespaces;
 import org.eclipse.ditto.internal.utils.namespaces.BlockedNamespacesUpdater;
 import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
-import org.eclipse.ditto.internal.utils.persistence.mongo.MongoHealthChecker;
-import org.eclipse.ditto.internal.utils.persistence.mongo.streaming.MongoReadJournal;
+import org.eclipse.ditto.internal.utils.persistence.api.DittoReadJournal;
+import org.eclipse.ditto.internal.utils.persistence.api.PersistenceBackendProvider;
 import org.eclipse.ditto.internal.utils.persistentactors.PersistencePingActor;
 import org.eclipse.ditto.internal.utils.persistentactors.cleanup.PersistenceCleanupActor;
 import org.eclipse.ditto.internal.utils.pubsub.DistributedPub;
@@ -78,8 +78,21 @@ public final class PoliciesRootActor extends DittoRootActor {
         final DistributedPub<PolicyAnnouncement<?>> policyAnnouncementPub =
                 PolicyAnnouncementPubSubFactory.of(getContext(), actorSystem).startDistributedPub();
 
+        final PersistenceBackendProvider backendProvider =
+                PersistenceBackendProvider.get(actorSystem, ScopedConfig.dittoExtension(actorSystem.settings().config()));
+        // Boot-time plugin-wiring check, before anything touches the database: a backend that owns one (PostgreSQL)
+        // refuses to boot when the deployment HOCON still wires another backend's journal/snapshot plugins; the
+        // default backend (MongoDB) runs no check.
+        backendProvider.verifyPluginWiring(PoliciesService.SERVICE_NAME);
+        // Bootstrap the persistence backend's schema BEFORE the read journal / persistent-actor shard region start.
+        // Mongo is a no-op (default); Postgres creates+verifies its tables, waits a bounded, configured time while the
+        // database is not reachable yet, and throws on any other failure, so the service never serves traffic against
+        // a database whose tables are absent and were never bootstrapped.
+        backendProvider.bootstrapSchema();
+        final DittoReadJournal readJournal = backendProvider.getReadJournal();
+
         final ActorRef persistenceStreamingActor = startChildActor(PoliciesPersistenceStreamingActorCreator.ACTOR_NAME,
-                PoliciesPersistenceStreamingActorCreator.props());
+                PoliciesPersistenceStreamingActorCreator.props(readJournal));
 
         pubSubMediator.tell(DistPubSubAccess.put(getSelf()), getSelf());
         pubSubMediator.tell(DistPubSubAccess.put(persistenceStreamingActor), getSelf());
@@ -93,25 +106,24 @@ public final class PoliciesRootActor extends DittoRootActor {
                 BlockedNamespacesUpdater.ACTOR_NAME, blockedNamespacesUpdaterProps);
 
         final PolicyEnforcerProvider policyEnforcerProvider = PolicyEnforcerProviderExtension.get(actorSystem).getPolicyEnforcerProvider();
-        final var mongoReadJournal = MongoReadJournal.newInstance(actorSystem);
         final NamespacePoliciesConfig namespacePoliciesConfig =
                 DefaultNamespacePoliciesConfig.of(actorSystem.settings().config());
 
         final var policySupervisorProps =
                 getPolicySupervisorActorProps(pubSubMediator, policiesConfig, policyAnnouncementPub, blockedNamespaces,
-                        policyEnforcerProvider, mongoReadJournal, namespacePoliciesConfig);
+                        policyEnforcerProvider, readJournal, namespacePoliciesConfig);
 
         final ActorRef policiesShardRegion =
                 ShardRegionCreator.start(actorSystem, PoliciesMessagingConstants.SHARD_REGION, policySupervisorProps,
                         policiesConfig.getClusterConfig().getNumberOfShards(), CLUSTER_ROLE);
 
         startClusterSingletonActor(
-                PersistencePingActor.props(policiesShardRegion, policiesConfig.getPingConfig(), mongoReadJournal),
+                PersistencePingActor.props(policiesShardRegion, policiesConfig.getPingConfig(), readJournal),
                 PersistencePingActor.ACTOR_NAME);
 
         startChildActor(PolicyPersistenceOperationsActor.ACTOR_NAME,
-                PolicyPersistenceOperationsActor.props(pubSubMediator, policiesConfig.getMongoDbConfig(),
-                        actorSystem.settings().config(), policiesConfig.getPersistenceOperationsConfig()));
+                PolicyPersistenceOperationsActor.props(pubSubMediator, backendProvider,
+                        policiesConfig.getPersistenceOperationsConfig()));
 
         // Load live entities metrics config from metrics config
         final var metricsConfig = DefaultScopedConfig.dittoScoped(actorSystem.settings().config())
@@ -128,7 +140,7 @@ public final class PoliciesRootActor extends DittoRootActor {
         }
 
         final var cleanupConfig = policiesConfig.getPolicyConfig().getCleanupConfig();
-        final var cleanupActorProps = PersistenceCleanupActor.props(cleanupConfig, mongoReadJournal, CLUSTER_ROLE);
+        final var cleanupActorProps = PersistenceCleanupActor.props(cleanupConfig, readJournal, CLUSTER_ROLE);
         startChildActor(PersistenceCleanupActor.ACTOR_NAME, cleanupActorProps);
 
         final var healthCheckConfig = policiesConfig.getHealthCheckConfig();
@@ -140,7 +152,7 @@ public final class PoliciesRootActor extends DittoRootActor {
 
         final var healthCheckingActorOptions = hcBuilder.build();
         final var healthCheckingActorProps =
-                DefaultHealthCheckingActorFactory.props(healthCheckingActorOptions, MongoHealthChecker.props());
+                DefaultHealthCheckingActorFactory.props(healthCheckingActorOptions, backendProvider.healthCheck());
         final ActorRef healthCheckingActor =
                 startChildActor(DefaultHealthCheckingActorFactory.ACTOR_NAME, healthCheckingActorProps);
         bindHttpStatusRoute(policiesConfig.getHttpConfig(), healthCheckingActor);
@@ -154,11 +166,11 @@ public final class PoliciesRootActor extends DittoRootActor {
             final DistributedPub<PolicyAnnouncement<?>> policyAnnouncementPub,
             final BlockedNamespaces blockedNamespaces,
             final PolicyEnforcerProvider policyEnforcerProvider,
-            final MongoReadJournal mongoReadJournal,
+            final DittoReadJournal readJournal,
             final NamespacePoliciesConfig namespacePoliciesConfig) {
 
         return PolicySupervisorActor.props(pubSubMediator, policiesConfig, policyAnnouncementPub, blockedNamespaces,
-                policyEnforcerProvider, mongoReadJournal, namespacePoliciesConfig);
+                policyEnforcerProvider, readJournal, namespacePoliciesConfig);
     }
 
     /**

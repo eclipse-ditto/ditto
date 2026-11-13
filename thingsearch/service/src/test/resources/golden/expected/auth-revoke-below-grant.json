@@ -1,0 +1,51 @@
+{
+  "_id": "golden:auth-revoke-below-grant",
+  "_namespace": "golden",
+  "gr": [
+    "g:root"
+  ],
+  "_revision": {
+    "$numberLong": "6"
+  },
+  "policyId": "golden:auth-revoke-below-grant",
+  "__policyRev": {
+    "$numberLong": "1"
+  },
+  "__referencedPolicies": [
+    {
+      "type": "policy",
+      "id": "golden:auth-revoke-below-grant",
+      "revision": {
+        "$numberInt": "1"
+      }
+    }
+  ],
+  "t": {
+    "thingId": "golden:auth-revoke-below-grant",
+    "_namespace": "golden",
+    "_revision": {
+      "$numberInt": "6"
+    },
+    "policyId": "golden:auth-revoke-below-grant",
+    "attributes": {
+      "secret": {
+        "inner": "hidden"
+      }
+    }
+  },
+  "p": {
+    "·g": [
+      "g:root"
+    ],
+    "attributes": {
+      "secret": {
+        "inner": {
+          "·r": [
+            "g:root"
+          ]
+        }
+      }
+    }
+  },
+  "f": []
+}

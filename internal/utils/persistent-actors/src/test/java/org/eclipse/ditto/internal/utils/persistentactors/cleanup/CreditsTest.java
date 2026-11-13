@@ -42,14 +42,14 @@ import org.apache.pekko.stream.testkit.TestSubscriber;
 import org.apache.pekko.stream.testkit.javadsl.TestSink;
 import org.apache.pekko.stream.testkit.javadsl.TestSource;
 import org.apache.pekko.testkit.javadsl.TestKit;
-import org.bson.Document;
 import org.eclipse.ditto.internal.utils.pekko.logging.ThreadSafeDittoLoggingAdapter;
+import org.eclipse.ditto.internal.utils.persistence.api.DeleteOutcome;
+import org.eclipse.ditto.internal.utils.persistence.api.SnapshotEntry;
 import org.eclipse.ditto.internal.utils.persistence.mongo.streaming.MongoReadJournal;
+import org.eclipse.ditto.json.JsonObject;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-
-import com.mongodb.client.result.DeleteResult;
 
 /**
  * Tests {@link Credits}.
@@ -117,21 +117,19 @@ public final class CreditsTest {
         final var opsCounter = new AtomicInteger(0);
 
         when(mongoReadJournal.getNewestSnapshotsAbove(any(), anyInt(), eq(true), any(), any()))
-                .thenReturn(Source.single(new Document().append("_id", "thing:p:id")
-                        .append("__lifecycle", "DELETED")
-                        .append("sn", 50L)));
+                .thenReturn(Source.single(SnapshotEntry.of("thing:p:id", 50L, "DELETED", JsonObject.empty())));
 
         when(mongoReadJournal.getSmallestEventSeqNo(any())).thenReturn(Source.single(Optional.of(30L)));
         when(mongoReadJournal.getSmallestSnapshotSeqNo(any())).thenReturn(Source.single(Optional.of(40L)));
 
         doAnswer(invocation -> {
             opsCounter.incrementAndGet();
-            return Source.single(DeleteResult.acknowledged(
+            return Source.single(DeleteOutcome.acknowledged(
                     invocation.<Long>getArgument(1) * 100L + invocation.<Long>getArgument(2)));
         }).when(mongoReadJournal).deleteEvents(any(), anyLong(), anyLong());
         doAnswer(invocation -> {
             opsCounter.incrementAndGet();
-            return Source.single(DeleteResult.acknowledged(
+            return Source.single(DeleteOutcome.acknowledged(
                     invocation.<Long>getArgument(1) * 1000L + invocation.<Long>getArgument(2) * 10L));
         }).when(mongoReadJournal).deleteSnapshots(any(), anyLong(), anyLong());
 

@@ -74,6 +74,9 @@ spec:
             - name: ditto-log-files-directory
               mountPath: /var/log/ditto
         {{- end }}
+        {{- if .Values.connectivity.extraInitContainers }}
+          {{- toYaml .Values.connectivity.extraInitContainers | nindent 8 }}
+        {{- end }}
       topologySpreadConstraints:
       {{- range .Values.connectivity.topologySpreadConstraints }}
         - maxSkew: {{ .maxSkew }}
@@ -466,6 +469,7 @@ spec:
             {{- end }}
             - name: ditto-heap-dumps
               mountPath: /opt/ditto/dumps
+            {{- include "ditto.postgres.tls.volumeMount" . | nindent 12 }}
           resources:
             requests:
               cpu: {{ mulf .Values.connectivity.resources.cpu 1000 }}m
@@ -525,4 +529,5 @@ spec:
         {{- end }}
         - name: ditto-heap-dumps
           emptyDir: {}
+        {{- include "ditto.postgres.tls.volume" . | nindent 8 }}
 {{- end }}

@@ -1,0 +1,32 @@
+<!--
+  ~ Copyright (c) 2026 Contributors to the Eclipse Foundation
+  ~
+  ~ See the NOTICE file(s) distributed with this work for additional
+  ~ information regarding copyright ownership.
+  ~
+  ~ This program and the accompanying materials are made available under the
+  ~ terms of the Eclipse Public License 2.0 which is available at
+  ~ http://www.eclipse.org/legal/epl-2.0
+  ~
+  ~ SPDX-License-Identifier: EPL-2.0
+  -->
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="GatewayService (Postgres)" type="Application" factoryName="Application" folderName="Ditto Postgres">
+    <envs>
+      <env name="DITTO_TRACING_ENABLED" value="true" />
+      <env name="LOG_LEVEL_APPLICATION" value="INFO" />
+      <env name="DITTO_TRACING_SAMPLER" value="always" />
+      <!-- Gateway is stateless routing (no persistence), so it needs NO Postgres overlay. It runs on the normal
+           DEVELOPMENT config (gateway-dev.conf) and joins the same cluster as Policies+Things. We enable
+           pre-authentication so local HTTP PUT/GET work with header 'x-ditto-pre-authenticated: nginx:ditto'. -->
+      <env name="ENABLE_PRE_AUTHENTICATION" value="true" />
+      <env name="DEVOPS_SECURED" value="false" />
+    </envs>
+    <option name="MAIN_CLASS_NAME" value="org.eclipse.ditto.gateway.service.starter.GatewayService" />
+    <module name="ditto-gateway-service" />
+    <option name="VM_PARAMETERS" value="-Xms512m -Xmx512m -Dcom.sun.management.jmxremote.port=9301 -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false" />
+    <method v="2">
+      <option name="Make" enabled="true" />
+    </method>
+  </configuration>
+</component>

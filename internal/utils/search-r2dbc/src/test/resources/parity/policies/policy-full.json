@@ -1,0 +1,23 @@
+{
+  "policyId": "org.eclipse.ditto.parity:policy-full",
+  "entries": {
+    "FULL": {
+      "subjects": {
+        "parity:full": { "type": "generated" },
+        "parity:reader": { "type": "generated" }
+      },
+      "resources": {
+        "thing:/": { "grant": ["READ"], "revoke": [] }
+      }
+    },
+    "LIMITED": {
+      "subjects": {
+        "parity:limited": { "type": "generated" }
+      },
+      "resources": {
+        "thing:/": { "grant": ["READ"], "revoke": [] },
+        "thing:/features": { "grant": [], "revoke": ["READ"] }
+      }
+    }
+  }
+}

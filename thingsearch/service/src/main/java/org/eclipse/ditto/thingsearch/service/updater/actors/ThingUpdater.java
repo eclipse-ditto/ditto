@@ -43,7 +43,6 @@ import org.apache.pekko.stream.javadsl.Flow;
 import org.apache.pekko.stream.javadsl.Keep;
 import org.apache.pekko.stream.javadsl.Sink;
 import org.apache.pekko.stream.javadsl.Source;
-import org.bson.BsonDocument;
 import org.eclipse.ditto.base.api.common.ShutdownReasonType;
 import org.eclipse.ditto.base.model.acks.AcknowledgementRequest;
 import org.eclipse.ditto.base.model.acks.DittoAcknowledgementLabel;
@@ -68,15 +67,15 @@ import org.eclipse.ditto.things.model.signals.events.ThingEvent;
 import org.eclipse.ditto.thingsearch.api.PolicyReferenceTag;
 import org.eclipse.ditto.thingsearch.api.UpdateReason;
 import org.eclipse.ditto.thingsearch.api.commands.sudo.SudoUpdateThing;
+import org.eclipse.ditto.base.model.namespaces.NamespaceBlockedException;
 import org.eclipse.ditto.thingsearch.service.common.config.SearchConfig;
-import org.eclipse.ditto.thingsearch.service.persistence.write.model.AbstractWriteModel;
-import org.eclipse.ditto.thingsearch.service.persistence.write.model.Metadata;
-import org.eclipse.ditto.thingsearch.service.persistence.write.model.ThingDeleteModel;
-import org.eclipse.ditto.thingsearch.service.persistence.write.model.WriteResultAndErrors;
+import org.eclipse.ditto.thingsearch.persistence.api.model.AbstractWriteModel;
+import org.eclipse.ditto.thingsearch.persistence.api.model.Metadata;
+import org.eclipse.ditto.thingsearch.persistence.api.model.ThingDeleteModel;
+import org.eclipse.ditto.thingsearch.persistence.api.write.SearchWriteResult;
+import org.eclipse.ditto.thingsearch.persistence.api.write.UpdaterResult;
 import org.eclipse.ditto.thingsearch.service.persistence.write.streaming.BulkWriteResultAckFlow;
 import org.eclipse.ditto.thingsearch.service.persistence.write.streaming.ConsistencyLag;
-
-import com.mongodb.client.model.DeleteOneModel;
 
 /**
  * This Actor initiates persistence updates related to 1 thing.
@@ -103,7 +102,7 @@ public final class ThingUpdater extends AbstractFSMWithStash<ThingUpdater.State,
 
     private final DittoDiagnosticLoggingAdapter log;
     private final ThingId thingId;
-    private final Flow<Data, Result, NotUsed> flow;
+    private final Flow<Data, UpdaterResult, NotUsed> flow;
     private final Materializer materializer;
     private final Duration writeInterval;
     private final Duration thingDeletionTimeout;
@@ -121,20 +120,15 @@ public final class ThingUpdater extends AbstractFSMWithStash<ThingUpdater.State,
     public record Data(Metadata metadata, AbstractWriteModel lastWriteModel) {}
 
     /**
-     * The result of a persistence operation.
+     * Build a backend-neutral error result to feed back into the actor when a persistence operation could not
+     * even be attempted (e.g. namespace blocked, or no persistence result was produced).
      *
-     * @param mongoWriteModel The write model describing the persistence operation.
-     * @param resultAndErrors The result of the persistence operation.
+     * @param metadata the metadata of the affected thing.
+     * @param error the error.
+     * @return the neutral error result.
      */
-    public record Result(MongoWriteModel mongoWriteModel, WriteResultAndErrors resultAndErrors) {
-
-        public static Result fromError(final Metadata metadata, final Throwable error) {
-            final var mockWriteModel = MongoWriteModel.of(
-                    ThingDeleteModel.of(metadata),
-                    new DeleteOneModel<>(new BsonDocument()),
-                    false);
-            return new Result(mockWriteModel, WriteResultAndErrors.failure(error));
-        }
+    public static UpdaterResult fromError(final Metadata metadata, final Throwable error) {
+        return new UpdaterResult(ThingDeleteModel.of(metadata), SearchWriteResult.unexpectedError(1, error));
     }
 
     enum State {
@@ -155,7 +149,7 @@ public final class ThingUpdater extends AbstractFSMWithStash<ThingUpdater.State,
     }
 
     @SuppressWarnings("unused")
-    private ThingUpdater(final Flow<Data, Result, NotUsed> flow,
+    private ThingUpdater(final Flow<Data, UpdaterResult, NotUsed> flow,
             final Function<ThingId, Source<AbstractWriteModel, NotUsed>> recoveryFunction,
             final SearchConfig config, final ActorRef pubSubMediator) {
 
@@ -195,7 +189,7 @@ public final class ThingUpdater extends AbstractFSMWithStash<ThingUpdater.State,
      * @param pubSubMediator The pubsub mediator.
      * @return The Props object.
      */
-    public static Props props(final Flow<Data, Result, NotUsed> flow,
+    public static Props props(final Flow<Data, UpdaterResult, NotUsed> flow,
             final Function<ThingId, Source<AbstractWriteModel, NotUsed>> recoveryFunction,
             final SearchConfig config,
             final ActorRef pubSubMediator) {
@@ -252,7 +246,7 @@ public final class ThingUpdater extends AbstractFSMWithStash<ThingUpdater.State,
     }
 
     private FSMStateFunctionBuilder<State, Data> persisting() {
-        return matchEvent(Result.class, this::onResult)
+        return matchEvent(UpdaterResult.class, this::onResult)
                 .event(Done.class, this::onDone)
                 .event(StopShardedActor.class, this::shutdown)
                 .event(ShutdownTrigger.class, this::shutdown)
@@ -307,16 +301,15 @@ public final class ThingUpdater extends AbstractFSMWithStash<ThingUpdater.State,
         }
     }
 
-    private FSM.State<State, Data> onResult(final Result result, final Data data) {
+    private FSM.State<State, Data> onResult(final UpdaterResult result, final Data data) {
         killSwitch = null;
-        final var writeResultAndErrors = result.resultAndErrors();
-        final var pair = BulkWriteResultAckFlow.checkBulkWriteResult(writeResultAndErrors);
+        final var pair = BulkWriteResultAckFlow.checkBulkWriteResult(List.of(result.writeModel()), result.result());
         pair.second().forEach(log::debug);
 
         if (shuttingDown) {
             log.info("Shutting down after completing persistence operation");
             return stop();
-        } else if (result.resultAndErrors().isNamespaceBlockedException()) {
+        } else if (result.result().getUnexpectedError() instanceof NamespaceBlockedException) {
             log.info("Disabling actor because namespace is blocked");
             startSingleTimer(ShutdownTrigger.NAMESPACE_BLOCKED.name(), ShutdownTrigger.NAMESPACE_BLOCKED,
                     BLOCK_NAMESPACE_SHUTDOWN_DELAY);
@@ -335,7 +328,7 @@ public final class ThingUpdater extends AbstractFSMWithStash<ThingUpdater.State,
                 yield goTo(State.RETRYING).using(new Data(metadata, ThingDeleteModel.of(Metadata.ofDeleted(thingId))));
             }
             case OK -> {
-                final var writeModel = result.mongoWriteModel().getDitto();
+                final var writeModel = result.writeModel();
                 final var nextMetadata = writeModel.getMetadata().export();
                 yield goTo(State.READY).using(new Data(nextMetadata, writeModel));
             }
@@ -377,7 +370,7 @@ public final class ThingUpdater extends AbstractFSMWithStash<ThingUpdater.State,
                     final var errorToReport = error != null
                             ? error
                             : new IllegalStateException("Got no persistence result");
-                    return Result.fromError(data.metadata(), errorToReport);
+                    return fromError(data.metadata(), errorToReport);
                 } else {
                     return result;
                 }

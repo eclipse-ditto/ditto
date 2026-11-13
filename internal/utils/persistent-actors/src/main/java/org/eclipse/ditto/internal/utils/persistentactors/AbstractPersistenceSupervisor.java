@@ -47,7 +47,6 @@ import org.apache.pekko.pattern.StatusReply;
 import org.apache.pekko.persistence.query.EventEnvelope;
 import org.apache.pekko.stream.javadsl.Source;
 import org.apache.pekko.stream.javadsl.StreamRefs;
-import org.bson.BsonDocument;
 import org.eclipse.ditto.base.api.commands.sudo.SudoCommand;
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.entity.id.EntityId;
@@ -84,9 +83,8 @@ import org.eclipse.ditto.internal.utils.namespaces.BlockedNamespaces;
 import org.eclipse.ditto.internal.utils.pekko.actors.AbstractActorWithStashWithTimers;
 import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.pekko.logging.ThreadSafeDittoLoggingAdapter;
-import org.eclipse.ditto.internal.utils.persistence.mongo.AbstractMongoEventAdapter;
-import org.eclipse.ditto.internal.utils.persistence.mongo.DittoBsonJson;
-import org.eclipse.ditto.internal.utils.persistence.mongo.streaming.MongoReadJournal;
+import org.eclipse.ditto.internal.utils.persistence.api.DittoReadJournal;
+import org.eclipse.ditto.internal.utils.persistence.api.serializer.EventSerializer;
 import org.eclipse.ditto.internal.utils.tracing.DittoTracing;
 import org.eclipse.ditto.internal.utils.tracing.span.SpanOperationName;
 import org.eclipse.ditto.json.JsonObject;
@@ -128,7 +126,7 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
 
     private final SupervisorStrategy supervisorStrategy;
 
-    protected final MongoReadJournal mongoReadJournal;
+    protected final DittoReadJournal readJournal;
     protected final Executor enforcementExecutor;
 
     @Nullable protected final BlockedNamespaces blockedNamespaces;
@@ -152,14 +150,14 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
     private boolean loggedStartupMessage = false;
 
     protected AbstractPersistenceSupervisor(@Nullable final BlockedNamespaces blockedNamespaces,
-            final MongoReadJournal mongoReadJournal, final SupervisorConfig supervisorConfig) {
-        this(null, null, blockedNamespaces, mongoReadJournal, supervisorConfig);
+            final DittoReadJournal readJournal, final SupervisorConfig supervisorConfig) {
+        this(null, null, blockedNamespaces, readJournal, supervisorConfig);
     }
 
     protected AbstractPersistenceSupervisor(@Nullable final ActorRef persistenceActorChild,
             @Nullable final ActorRef enforcerChild,
             @Nullable final BlockedNamespaces blockedNamespaces,
-            final MongoReadJournal mongoReadJournal,
+            final DittoReadJournal readJournal,
             final SupervisorConfig supervisorConfig) {
 
         final ActorSystem system = context().system();
@@ -168,7 +166,7 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
         this.persistenceActorChild = persistenceActorChild;
         this.enforcerChild = enforcerChild;
         this.blockedNamespaces = blockedNamespaces;
-        this.mongoReadJournal = mongoReadJournal;
+        this.readJournal = readJournal;
         this.enforcementExecutor = system.dispatchers().lookup(AbstractEnforcerActor.ENFORCEMENT_DISPATCHER);
         this.localAskTimeout = supervisorConfig.getLocalAskTimeoutConfig().getLocalAskTimeout();
         this.localAskTimeoutDuringRecovery = supervisorConfig.getLocalAskTimeoutConfig().getLocalAskTimeoutDuringRecovery();
@@ -256,7 +254,7 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
         final Optional<Instant> fromHistoricalTimestamp = subscribeForPersistedEvents.getFromHistoricalTimestamp();
         final Optional<Instant> toHistoricalTimestamp = subscribeForPersistedEvents.getToHistoricalTimestamp();
         final Source<Long, NotUsed> startRevisionSource = fromHistoricalTimestamp
-                .map(fromTs -> mongoReadJournal.getLastSnapshotSequenceNumberBeforeTimestamp(persistenceId, fromTs)
+                .map(fromTs -> readJournal.getLastSnapshotSequenceNumberBeforeTimestamp(persistenceId, fromTs)
                         .mergePrioritized(
                                 Source.single(subscribeForPersistedEvents.getFromHistoricalRevision()),
                                 2,
@@ -276,7 +274,7 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
                         sender.tell(dre, getSelf());
                     } else if (null != enforcedStreamPersistedEvents) {
                         final var sourceRef = startRevisionSource
-                                .flatMapConcat(startRevision -> mongoReadJournal.currentEventsByPersistenceId(
+                                .flatMapConcat(startRevision -> readJournal.currentEventsByPersistenceId(
                                         persistenceId,
                                         startRevision,
                                         subscribeForPersistedEvents.getToHistoricalRevision()
@@ -317,13 +315,11 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
     private Event<?> mapJournalEntryToEvent(final SubscribeForPersistedEvents enforcedSubscribeForPersistedEvents,
             final EventEnvelope eventEnvelope) {
 
-        final BsonDocument event = (BsonDocument) eventEnvelope.event();
-        final JsonObject eventAsJsonObject = DittoBsonJson.getInstance()
-                .serialize(event);
+        final JsonObject eventAsJsonObject = readJournal.toEventJson(eventEnvelope);
 
         final DittoHeadersBuilder<?, ?> dittoHeadersBuilder = enforcedSubscribeForPersistedEvents.getDittoHeaders()
                 .toBuilder();
-        eventAsJsonObject.getValue(AbstractMongoEventAdapter.HISTORICAL_EVENT_HEADERS)
+        eventAsJsonObject.getValue(EventSerializer.HISTORICAL_EVENT_HEADERS)
                 .ifPresent(obj -> dittoHeadersBuilder.putHeader(
                         DittoHeaderDefinition.HISTORICAL_HEADERS.getKey(), obj.toString())
                 );

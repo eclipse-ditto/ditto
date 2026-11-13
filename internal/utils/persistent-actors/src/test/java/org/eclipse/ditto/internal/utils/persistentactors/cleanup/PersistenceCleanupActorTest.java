@@ -50,6 +50,7 @@ import org.eclipse.ditto.internal.utils.health.RetrieveHealth;
 import org.eclipse.ditto.internal.utils.health.RetrieveHealthResponse;
 import org.eclipse.ditto.internal.utils.health.StatusDetailMessage;
 import org.eclipse.ditto.internal.utils.health.StatusInfo;
+import org.eclipse.ditto.internal.utils.persistence.api.DeleteOutcome;
 import org.eclipse.ditto.internal.utils.persistence.mongo.streaming.MongoReadJournal;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
@@ -57,7 +58,6 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import com.mongodb.client.result.DeleteResult;
 import com.typesafe.config.ConfigFactory;
 import com.typesafe.config.ConfigRenderOptions;
 
@@ -128,7 +128,7 @@ public final class PersistenceCleanupActorTest {
             probe.sendNext(Source.single(new CleanupResult(
                     CleanupResult.Type.SNAPSHOTS,
                     new SnapshotRevision("thing:p:id", 1234, true),
-                    DeleteResult.acknowledged(4)
+                    DeleteOutcome.acknowledged(4)
             )));
             waitForResponse(this, underTest, retrieveHealthResponse("RUNNING", "thing:p:id"), probe::expectNoMsg);
 
@@ -169,7 +169,7 @@ public final class PersistenceCleanupActorTest {
             probe.sendNext(Source.single(new CleanupResult(
                     CleanupResult.Type.SNAPSHOTS,
                     new SnapshotRevision(pid, 1234, true),
-                    DeleteResult.acknowledged(4)
+                    DeleteOutcome.acknowledged(4)
             )));
             waitForResponse(this, underTest, retrieveHealthResponse("RUNNING", pid), probe::expectNoMsg);
 
@@ -303,7 +303,7 @@ public final class PersistenceCleanupActorTest {
             probe.sendNext(Source.single(new CleanupResult(
                     CleanupResult.Type.SNAPSHOTS,
                     new SnapshotRevision("thing:p:id", 1234, true),
-                    DeleteResult.acknowledged(4)
+                    DeleteOutcome.acknowledged(4)
             )));
             waitForResponse(this, underTest, retrieveHealthResponse("RUNNING", "thing:p:id"), probe::expectNoMsg);
 

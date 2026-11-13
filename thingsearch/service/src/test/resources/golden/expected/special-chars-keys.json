@@ -1,0 +1,52 @@
+{
+  "_id": "golden:special-chars-keys",
+  "_namespace": "golden",
+  "gr": [
+    "g:special",
+    "g:root"
+  ],
+  "_revision": {
+    "$numberLong": "2"
+  },
+  "policyId": "golden:special-chars-keys",
+  "__policyRev": {
+    "$numberLong": "1"
+  },
+  "__referencedPolicies": [
+    {
+      "type": "policy",
+      "id": "golden:special-chars-keys",
+      "revision": {
+        "$numberInt": "1"
+      }
+    }
+  ],
+  "t": {
+    "thingId": "golden:special-chars-keys",
+    "_namespace": "golden",
+    "_revision": {
+      "$numberInt": "2"
+    },
+    "policyId": "golden:special-chars-keys",
+    "attributes": {
+      "a．b": "dot-key",
+      "＄special": "dollar-key",
+      "mix．ed＄key": "both",
+      "slash/key": "slash-value",
+      "tilde~key": "tilde-value"
+    }
+  },
+  "p": {
+    "·g": [
+      "g:root"
+    ],
+    "attributes": {
+      "a．b": {
+        "·g": [
+          "g:special"
+        ]
+      }
+    }
+  },
+  "f": []
+}

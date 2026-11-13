@@ -49,11 +49,10 @@ import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
 import org.eclipse.ditto.base.model.signals.commands.streaming.SubscribeForPersistedEvents;
 import org.eclipse.ditto.base.model.signals.events.Event;
 import org.eclipse.ditto.base.service.actors.ShutdownBehaviour;
-import org.eclipse.ditto.internal.utils.cacheloaders.AskWithRetry;
 import org.eclipse.ditto.internal.utils.cluster.ShardRegionProxyActorFactory;
 import org.eclipse.ditto.internal.utils.cluster.StopShardedActor;
 import org.eclipse.ditto.internal.utils.namespaces.BlockedNamespaces;
-import org.eclipse.ditto.internal.utils.persistence.mongo.streaming.MongoReadJournal;
+import org.eclipse.ditto.internal.utils.persistence.api.DittoReadJournal;
 import org.eclipse.ditto.internal.utils.persistentactors.AbstractPersistenceSupervisor;
 import org.eclipse.ditto.internal.utils.persistentactors.TargetActorWithMessage;
 import org.eclipse.ditto.internal.utils.pubsub.DistributedPub;
@@ -78,6 +77,7 @@ import org.eclipse.ditto.things.model.signals.commands.query.ThingQueryCommand;
 import org.eclipse.ditto.things.model.signals.events.ThingEvent;
 import org.eclipse.ditto.things.model.signals.events.ThingEventToThingConverter;
 import org.eclipse.ditto.things.service.common.config.ThingsConfig;
+import org.eclipse.ditto.things.service.enforcement.CreatedPolicyRollback;
 import org.eclipse.ditto.things.service.enforcement.ThingEnforcement;
 import org.eclipse.ditto.things.service.enforcement.ThingEnforcerActor;
 import org.eclipse.ditto.things.service.enforcement.ThingPolicyCreated;
@@ -126,9 +126,9 @@ public final class ThingSupervisorActor extends AbstractPersistenceSupervisor<Th
             @Nullable final ActorRef thingPersistenceActorRef,
             @Nullable final BlockedNamespaces blockedNamespaces,
             final PolicyEnforcerProvider policyEnforcerProvider,
-            final MongoReadJournal mongoReadJournal) {
+            final DittoReadJournal readJournal) {
 
-        super(blockedNamespaces, mongoReadJournal, thingsConfig.getThingConfig().getSupervisorConfig());
+        super(blockedNamespaces, readJournal, thingsConfig.getThingConfig().getSupervisorConfig());
 
         this.pubSubMediator = pubSubMediator;
         this.thingsConfig = thingsConfig;
@@ -196,7 +196,7 @@ public final class ThingSupervisorActor extends AbstractPersistenceSupervisor<Th
      * @param propsFactory factory for creating Props to be used for creating
      * @param blockedNamespaces the blocked namespaces functionality to retrieve/subscribe for blocked namespaces.
      * @param policyEnforcerProvider used to load the policy enforcer.
-     * @param mongoReadJournal the ReadJournal used for gaining access to historical values of the thing.
+     * @param readJournal the ReadJournal used for gaining access to historical values of the thing.
      * @return the {@link Props} to create this actor.
      */
     public static Props props(final ActorRef pubSubMediator,
@@ -207,11 +207,11 @@ public final class ThingSupervisorActor extends AbstractPersistenceSupervisor<Th
             final ThingPersistenceActorPropsFactory propsFactory,
             @Nullable final BlockedNamespaces blockedNamespaces,
             final PolicyEnforcerProvider policyEnforcerProvider,
-            final MongoReadJournal mongoReadJournal) {
+            final DittoReadJournal readJournal) {
 
         return Props.create(ThingSupervisorActor.class, pubSubMediator, thingsConfig, enforcementConfig, null,
                 distributedPubThingEventsForTwin, liveSignalPub, propsFactory, null, blockedNamespaces,
-                policyEnforcerProvider, mongoReadJournal);
+                policyEnforcerProvider, readJournal);
     }
 
     /**
@@ -226,11 +226,11 @@ public final class ThingSupervisorActor extends AbstractPersistenceSupervisor<Th
             final ThingPersistenceActorPropsFactory propsFactory,
             @Nullable final BlockedNamespaces blockedNamespaces,
             final PolicyEnforcerProvider policyEnforcerProvider,
-            final MongoReadJournal mongoReadJournal) {
+            final DittoReadJournal readJournal) {
 
         return Props.create(ThingSupervisorActor.class, pubSubMediator, thingsConfig, enforcementConfig,
                 policiesShardRegion, distributedPubThingEventsForTwin, liveSignalPub, propsFactory, null,
-                blockedNamespaces, policyEnforcerProvider, mongoReadJournal);
+                blockedNamespaces, policyEnforcerProvider, readJournal);
     }
 
     /**
@@ -245,11 +245,11 @@ public final class ThingSupervisorActor extends AbstractPersistenceSupervisor<Th
             final ActorRef thingsPersistenceActor,
             @Nullable final BlockedNamespaces blockedNamespaces,
             final PolicyEnforcerProvider policyEnforcerProvider,
-            final MongoReadJournal mongoReadJournal) {
+            final DittoReadJournal readJournal) {
 
         return Props.create(ThingSupervisorActor.class, pubSubMediator, thingsConfig, enforcementConfig,
                 policiesShardRegion, distributedPubThingEventsForTwin, liveSignalPub, null, thingsPersistenceActor,
-                blockedNamespaces, policyEnforcerProvider, mongoReadJournal);
+                blockedNamespaces, policyEnforcerProvider, readJournal);
     }
 
     @Override
@@ -382,20 +382,10 @@ public final class ThingSupervisorActor extends AbstractPersistenceSupervisor<Th
                     .putHeader(DittoHeaderDefinition.DITTO_SUDO.getKey(), "true")
                     .build();
             final DeletePolicy deletePolicy = DeletePolicy.of(policyCreatedEvent.policyId(), dittoHeaders);
-            AskWithRetry.askWithRetry(policiesShardRegion, deletePolicy,
-                    enforcementConfig.getAskWithRetryConfig(),
-                    getContext().system(), response -> {
-                        log.withCorrelationId(rollback.initialCommand())
-                                .info("Policy <{}> deleted after rolling back it's creation. " +
-                                        "Policies shard region response: <{}>", deletePolicy.getEntityId(), response);
-                        rollback.completeInitialResponse();
-                        return response;
-                    }).exceptionally(throwable -> {
-                log.withCorrelationId(rollback.initialCommand())
-                        .error(throwable, "Failed to rollback Policy Create");
-                rollback.completeInitialResponse();
-                return null;
-            });
+            // CreatedPolicyRollback logs how the rollback ended; the initial sender gets the original error either way
+            CreatedPolicyRollback.deletePolicy(policiesShardRegion, deletePolicy, policyCreatedEvent.thingId(),
+                            enforcementConfig.getCreatedPolicyRollbackConfig(), getContext().system())
+                    .whenComplete((result, error) -> rollback.completeInitialResponse());
 
         } else {
             log.withCorrelationId(rollback.initialCommand())
@@ -421,7 +411,7 @@ public final class ThingSupervisorActor extends AbstractPersistenceSupervisor<Th
     @Override
     protected Props getPersistenceActorProps(final ThingId entityId) {
         assert thingPersistenceActorPropsFactory != null;
-        return thingPersistenceActorPropsFactory.props(entityId, mongoReadJournal, thingsConfig.getThingConfig(),
+        return thingPersistenceActorPropsFactory.props(entityId, readJournal, thingsConfig.getThingConfig(),
                 distributedPubThingEventsForTwin, searchShardRegionProxy, policyEnforcerProvider);
     }
 
@@ -464,6 +454,16 @@ public final class ThingSupervisorActor extends AbstractPersistenceSupervisor<Th
         super.stopShardedActor(trigger);
         if (getOpCounter() > 0) {
             getTimers().startSingleTimer(Control.SHUTDOWN_TIMEOUT, Control.SHUTDOWN_TIMEOUT, shutdownTimeout);
+        }
+    }
+
+    @Override
+    protected void decrementOpCounter(final Signal<?> signal) {
+        super.decrementOpCounter(signal);
+        if (shouldBecomeTwinSignalProcessingAwaiting(signal)) {
+            // the twin signal which may have created a policy is answered, its rollback included: forget that policy,
+            // so that a later CreateThing which fails does not delete it
+            policyCreatedEvent = null;
         }
     }
 

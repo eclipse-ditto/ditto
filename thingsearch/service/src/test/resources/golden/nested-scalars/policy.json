@@ -1,0 +1,13 @@
+{
+  "policyId": "golden:nested-scalars",
+  "entries": {
+    "ROOT": {
+      "subjects": {
+        "g:0": { "type": "generated" }
+      },
+      "resources": {
+        "thing:/": { "grant": ["READ"], "revoke": [] }
+      }
+    }
+  }
+}

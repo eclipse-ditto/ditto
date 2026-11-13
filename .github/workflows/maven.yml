@@ -54,3 +54,82 @@ jobs:
 
       - name: Build with Maven
         run: mvn package javadoc:jar source:jar --batch-mode --errors --quiet -DcreateJavadoc=true -Dpekko.test.single-expect-default=10s --file pom.xml -Dbuild.environment=Github
+
+  # The PostgreSQL integration tests (Testcontainers), once per tested PostgreSQL major version: every IT of the
+  # PostgreSQL modules (POSTGRES_IT_MODULES; postgres-extension-it is the classloading IT of the three shaded extension
+  # JARs and needs no Docker) and, in a step of its own, connectivity's PostgreSQL IT by name (CONNECTIVITY_IT: -Dit.test
+  # is reactor-wide, and a plain module entry would also run the module's MongoDB ITs). The image is passed to the tests
+  # with -Dditto.test.postgres.image; the build job above stays as it is.
+  postgres-its:
+    name: postgres-its (PostgreSQL ${{ matrix.postgres }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        postgres: [ '16', '17', '18' ]
+    env:
+      POSTGRES_IT_MODULES: internal/utils/postgres-client,internal/utils/persistence-r2dbc,internal/utils/search-r2dbc,internal/utils/postgres-extension-it
+      CONNECTIVITY_IT_MODULE: connectivity/service
+      CONNECTIVITY_IT: EncryptionMigrationPostgresIT
+      POSTGRES_IMAGE: postgres:${{ matrix.postgres }}
+
+    steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@05e31511f85b41b11d1cf0ef85d0992719546e2c # v2.21.0
+        with:
+          egress-policy: audit
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up JDK 25
+        uses: actions/setup-java@dd06d9cba3e5552c54d9f8ea23572deb30010f7c # v6.0.0
+        with:
+          distribution: 'temurin'
+          java-version: 25
+          cache: 'maven'
+
+      # -am also builds the three shaded extension JARs the classloading IT copies from the local repository.
+      # -DskipITs as well as -DskipTests: failsafe does not read -DskipTests (its skipTests parameter is not bound to
+      # that property), so without it this install would already run every IT of the reactor once, with the default
+      # image.
+      - name: Install the tested modules and their dependencies without tests
+        id: install
+        run: mvn install -pl "${POSTGRES_IT_MODULES},${CONNECTIVITY_IT_MODULE}" -am -DskipTests -DskipITs --batch-mode --errors --quiet --file pom.xml -Dbuild.environment=Github
+
+      - name: Run the PostgreSQL integration tests
+        run: mvn verify -pl "${POSTGRES_IT_MODULES}" -Dtest=NONE -Dsurefire.failIfNoSpecifiedTests=false -Dditto.test.postgres.image="${POSTGRES_IMAGE}" -Dpekko.test.single-expect-default=10s --batch-mode --errors --file pom.xml -Dbuild.environment=Github
+
+      # -Dfailsafe.failIfNoSpecifiedTests=true (failsafe's default, stated on purpose): the build fails when the name
+      # matches no test, so a renamed or missing IT cannot pass silently. Runs after a failed module step too, so that
+      # both results are known.
+      - name: Run the PostgreSQL integration test of the connectivity service
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: mvn verify -pl "${CONNECTIVITY_IT_MODULE}" -Dit.test="${CONNECTIVITY_IT}" -Dfailsafe.failIfNoSpecifiedTests=true -Dtest=NONE -Dsurefire.failIfNoSpecifiedTests=false -Dditto.test.postgres.image="${POSTGRES_IMAGE}" -Dpekko.test.single-expect-default=10s --batch-mode --errors --file pom.xml -Dbuild.environment=Github
+
+      # The ITs skip instead of failing when Docker or a container is unavailable, so a green verify alone proves
+      # nothing: require that every module ran ITs and skipped none.
+      - name: Check that no PostgreSQL integration test was skipped
+        if: success() || failure()
+        run: |
+          status=0
+          for module in ${POSTGRES_IT_MODULES//,/ } "${CONNECTIVITY_IT_MODULE}"; do
+            summary="${module}/target/failsafe-reports/failsafe-summary.xml"
+            if [ ! -f "${summary}" ]; then
+              echo "::error::${module}: no failsafe summary, no integration test ran"
+              status=1
+              continue
+            fi
+            completed=$(sed -n 's:.*<completed>\([0-9]*\)</completed>.*:\1:p' "${summary}")
+            skipped=$(sed -n 's:.*<skipped>\([0-9]*\)</skipped>.*:\1:p' "${summary}")
+            failures=$(sed -n 's:.*<failures>\([0-9]*\)</failures>.*:\1:p' "${summary}")
+            errors=$(sed -n 's:.*<errors>\([0-9]*\)</errors>.*:\1:p' "${summary}")
+            echo "${module} on ${POSTGRES_IMAGE}: ${completed:-?} run, ${failures:-?} failures, ${errors:-?} errors, ${skipped:-?} skipped"
+            if [ "${completed:-0}" -eq 0 ] || [ "${skipped:-1}" -ne 0 ]; then
+              echo "::error::${module}: integration tests did not all run (${completed:-0} run, ${skipped:-?} skipped)"
+              status=1
+            fi
+          done
+          exit "${status}"

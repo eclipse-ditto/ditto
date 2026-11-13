@@ -1,0 +1,45 @@
+{
+  "comment": "The frozen Mongo<->Postgres divergence allowlist for the parity matrix (plan phase G). Items 1-5 are the consolidated candidates from .superpowers/sdd/briefs/task-d3-report.md section 'DIVERGENCE ALLOWLIST CANDIDATES (Phase G)'; items 6-7 are the plan-level items (plan section Phase G bullet 1). Every entry MUST be exercised by at least one query case (the IT asserts referenced == declared) and the divergent behavior is pinned per backend, never skipped.",
+  "entries": [
+    {
+      "id": "cursor-sort-value-whole-array-object-null",
+      "source": "task-d3-report item 1",
+      "description": "PostgresSortClause#toSortValues encodes null for a rank-1 (null), rank-4 (object) or rank-5 (empty-array/array-of-array) boundary element; Mongo's GetSortBsonVisitor#sortValuesAsArray encodes the whole container/value. Cursor sort-value ENCODING diverges; each backend's own walk must still terminate and produce its pinned sequence."
+    },
+    {
+      "id": "object-sort-ties-by-thing-id",
+      "source": "task-d3-report item 2",
+      "description": "Object-valued sort keys all produce the identical (rank 4, NULL, NULL, NULL) ordering tuple on Postgres and fall through to the thing-id tiebreak; Mongo orders objects by recursive BSON field content."
+    },
+    {
+      "id": "array-of-array-asc-desc-asymmetry",
+      "source": "task-d3-report item 3",
+      "description": "When a scalar sibling shares the path with a nested array, Postgres ASC picks the scalar sibling's real value while DESC picks the rank-5 array stub (folded into the null rank), so the same row sorts by a value under ASC and as-if-missing under DESC. Mongo sorts by min element (ASC) / max element (DESC) consistently including inner arrays."
+    },
+    {
+      "id": "wildcard-sort-rejection-vs-noop",
+      "source": "task-d3-report item 4",
+      "description": "Postgres hard-rejects a features/*/... sort key (IllegalArgumentException); Mongo silently builds a never-matching literal '*' BSON path, so the query still returns results, just not ordered by that key."
+    },
+    {
+      "id": "empty-overmatch-array-of-array",
+      "source": "task-d3-report item 5 (restated from task D2)",
+      "description": "empty() against a path whose only content is a direct array-of-array collapses onto the same rank-5 stub row the flattener emits for a genuinely empty array, so Postgres matches empty() where Mongo does not."
+    },
+    {
+      "id": "array-of-array-inner-content",
+      "source": "plan phase G bullet 1 ('array-of-array inner content')",
+      "description": "Content nested inside a direct array-of-array is flattened to a single valueless rank-5 stub on Postgres (inner elements are not enumerated); Mongo keeps the inner arrays as BSON values. RQL-scalar-expressible predicates cannot reach the inner content on either backend; the pinned cases document the observed behavior of both."
+    },
+    {
+      "id": "ilike-fold-edges-sharp-s-dotted-i",
+      "source": "plan phase G bullet 1 ('ilike folding edge cases ss/I-dot')",
+      "description": "Case-insensitive matching of U+00DF LATIN SMALL LETTER SHARP S and U+0130 LATIN CAPITAL LETTER I WITH DOT ABOVE differs between Mongo's case-insensitive regex and Postgres' lower()-based ILIKE folding. Each backend's observed result is pinned."
+    },
+    {
+      "id": "sudo-wildcard-value-mongo-degenerate-path",
+      "source": "task G1 controller adjudication (entry #8)",
+      "description": "sudo + feature-wildcard value predicates: Mongo GetFilterBsonVisitor.matchWildcardFeatureValue degrades to a dotted top-level path (e.g. properties.status) that no document has. For an ordinary operand that path matches nothing (empty result); for a null-including operand (in(…, null), ge(null), le(null)), whose Mongo semantics is null = missing, the same missing path matches EVERY thing, and its negation nothing. Postgres answers features/* value predicates semantically (per visible feature). No auth impact (sudo bypasses auth by definition). Fixing Mongo upstream is out of scope (Phase-A golden BSON tests pin Mongo behavior byte-identical) and mimicking the degenerate behavior in Postgres would deliberately produce wrong results."
+    }
+  ]
+}

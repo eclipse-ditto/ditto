@@ -26,7 +26,6 @@ import org.apache.pekko.stream.Materializer;
 import org.apache.pekko.stream.SystemMaterializer;
 import org.apache.pekko.stream.javadsl.Sink;
 import org.apache.pekko.stream.javadsl.Source;
-import org.bson.Document;
 import org.eclipse.ditto.base.model.exceptions.DittoInternalErrorException;
 import org.eclipse.ditto.base.model.exceptions.DittoJsonException;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
@@ -36,10 +35,10 @@ import org.eclipse.ditto.internal.utils.metrics.instruments.timer.StartedTimer;
 import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.pekko.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.internal.utils.tracing.DittoTracing;
-import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.thingsearch.model.signals.commands.query.AggregateThingsMetrics;
 import org.eclipse.ditto.thingsearch.model.signals.commands.query.AggregateThingsMetricsResponse;
-import org.eclipse.ditto.thingsearch.service.persistence.read.ThingsAggregationPersistence;
+import org.eclipse.ditto.thingsearch.persistence.api.ThingsAggregationPersistence;
 
 /**
  * Actor handling custom metrics aggregations {@link org.eclipse.ditto.thingsearch.model.signals.commands.query.AggregateThingsMetrics}.
@@ -84,7 +83,7 @@ public final class AggregateThingsMetricsActor extends AbstractActor {
         final ActorRef sender = getSender();
         final ActorRef self = getSelf();
         final StartedTimer aggregationTimer = startNewTimer(aggregateThingsMetrics);
-        final Source<Document, NotUsed> source =
+        final Source<JsonObject, NotUsed> source =
                 DittoJsonException.wrapJsonRuntimeException(aggregateThingsMetrics,
                         aggregateThingsMetrics.getDittoHeaders(),
                         (command, headers) -> thingsAggregationPersistence.aggregateThings(command));
@@ -94,7 +93,6 @@ public final class AggregateThingsMetricsActor extends AbstractActor {
                                     .debug("aggregation element: {}", doc);
                             return doc;
                         })
-                        .map(aggregation -> JsonFactory.newObject(aggregation.toJson()))
                         .map(aggregation -> AggregateThingsMetricsResponse.of(aggregation, aggregateThingsMetrics));
 
         aggregationResult.completionTimeout(AGGREGATION_TIMEOUT).runWith(Sink.seq(), materializer)

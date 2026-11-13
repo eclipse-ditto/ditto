@@ -12,10 +12,6 @@
  */
 package org.eclipse.ditto.internal.utils.persistentactors.cleanup;
 
-import static org.eclipse.ditto.internal.utils.persistence.mongo.streaming.MongoReadJournal.LIFECYCLE;
-import static org.eclipse.ditto.internal.utils.persistence.mongo.streaming.MongoReadJournal.S_ID;
-import static org.eclipse.ditto.internal.utils.persistence.mongo.streaming.MongoReadJournal.S_SN;
-
 import java.time.Duration;
 import java.util.List;
 import java.util.function.Supplier;
@@ -26,14 +22,14 @@ import org.apache.pekko.japi.Pair;
 import org.apache.pekko.stream.Materializer;
 import org.apache.pekko.stream.javadsl.Source;
 import org.eclipse.ditto.internal.utils.pekko.logging.ThreadSafeDittoLoggingAdapter;
-import org.eclipse.ditto.internal.utils.persistence.mongo.streaming.MongoReadJournal;
+import org.eclipse.ditto.internal.utils.persistence.api.DittoReadJournal;
 
 /**
  * An Pekko stream to handle background cleanup regulated by insert times.
  */
 final class Cleanup {
 
-    private final MongoReadJournal readJournal;
+    private final DittoReadJournal readJournal;
     private final Materializer materializer;
     private final Supplier<Pair<Integer, Integer>> responsibilitySupplier;
     private final Duration historyRetentionDuration;
@@ -41,7 +37,7 @@ final class Cleanup {
     private final int deleteBatchSize;
     private final boolean deleteFinalDeletedSnapshot;
 
-    Cleanup(final MongoReadJournal readJournal,
+    Cleanup(final DittoReadJournal readJournal,
             final ThreadSafeDittoLoggingAdapter logger,
             final Materializer materializer,
             final Supplier<Pair<Integer, Integer>> responsibilitySupplier,
@@ -68,7 +64,7 @@ final class Cleanup {
     }
 
     static Cleanup of(final CleanupConfig config,
-            final MongoReadJournal readJournal,
+            final DittoReadJournal readJournal,
             final ThreadSafeDittoLoggingAdapter logger,
             final Materializer materializer,
             final Supplier<Pair<Integer, Integer>> responsibilitySupplier) {
@@ -88,9 +84,9 @@ final class Cleanup {
     private Source<SnapshotRevision, NotUsed> getSnapshotRevisions(final String lowerBound) {
         return readJournal.getNewestSnapshotsAbove(lowerBound, readBatchSize, true, historyRetentionDuration,
                         materializer)
-                .map(document -> new SnapshotRevision(document.getString(S_ID),
-                        document.getLong(S_SN),
-                        "DELETED".equals(document.getString(LIFECYCLE))))
+                .map(snapshot -> new SnapshotRevision(snapshot.getPid().orElse(null),
+                        snapshot.getSequenceNumber().orElse(0L),
+                        snapshot.isDeleted()))
                 .filter(this::isMyResponsibility);
     }
 

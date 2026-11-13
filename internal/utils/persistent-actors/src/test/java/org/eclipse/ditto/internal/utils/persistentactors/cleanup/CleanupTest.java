@@ -35,14 +35,14 @@ import org.apache.pekko.stream.SystemMaterializer;
 import org.apache.pekko.stream.javadsl.Sink;
 import org.apache.pekko.stream.javadsl.Source;
 import org.apache.pekko.testkit.javadsl.TestKit;
-import org.bson.Document;
 import org.eclipse.ditto.internal.utils.pekko.logging.ThreadSafeDittoLoggingAdapter;
+import org.eclipse.ditto.internal.utils.persistence.api.DeleteOutcome;
+import org.eclipse.ditto.internal.utils.persistence.api.SnapshotEntry;
 import org.eclipse.ditto.internal.utils.persistence.mongo.streaming.MongoReadJournal;
+import org.eclipse.ditto.json.JsonObject;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-
-import com.mongodb.client.result.DeleteResult;
 
 /**
  * Tests {@link Cleanup}.
@@ -86,18 +86,16 @@ public final class CleanupTest {
     @Test
     public void deleteFinalDeletedSnapshot() {
         when(mongoReadJournal.getNewestSnapshotsAbove(any(), anyInt(), eq(true), any(), any()))
-                .thenReturn(Source.single(new Document().append("_id", "thing:p:id")
-                        .append("__lifecycle", "DELETED")
-                        .append("sn", 50L)));
+                .thenReturn(Source.single(SnapshotEntry.of("thing:p:id", 50L, "DELETED", JsonObject.empty())));
 
         when(mongoReadJournal.getSmallestEventSeqNo(any())).thenReturn(Source.single(Optional.of(30L)));
         when(mongoReadJournal.getSmallestSnapshotSeqNo(any())).thenReturn(Source.single(Optional.of(40L)));
 
         // code the argument sequence numbers in the DeleteResult
-        doAnswer(invocation -> Source.single(DeleteResult.acknowledged(
+        doAnswer(invocation -> Source.single(DeleteOutcome.acknowledged(
                 invocation.<Long>getArgument(1) * 100L + invocation.<Long>getArgument(2))))
                 .when(mongoReadJournal).deleteEvents(any(), anyLong(), anyLong());
-        doAnswer(invocation -> Source.single(DeleteResult.acknowledged(
+        doAnswer(invocation -> Source.single(DeleteOutcome.acknowledged(
                 invocation.<Long>getArgument(1) * 1000L + invocation.<Long>getArgument(2) * 10L)))
                 .when(mongoReadJournal).deleteSnapshots(any(), anyLong(), anyLong());
 
@@ -121,18 +119,16 @@ public final class CleanupTest {
     @Test
     public void excludeFinalDeletedSnapshot() {
         when(mongoReadJournal.getNewestSnapshotsAbove(any(), anyInt(), eq(true), any(), any()))
-                .thenReturn(Source.single(new Document().append("_id", "thing:p:id")
-                        .append("__lifecycle", "DELETED")
-                        .append("sn", 50L)));
+                .thenReturn(Source.single(SnapshotEntry.of("thing:p:id", 50L, "DELETED", JsonObject.empty())));
 
         when(mongoReadJournal.getSmallestEventSeqNo(any())).thenReturn(Source.single(Optional.of(30L)));
         when(mongoReadJournal.getSmallestSnapshotSeqNo(any())).thenReturn(Source.single(Optional.of(40L)));
 
         // code the argument sequence numbers in the DeleteResult
-        doAnswer(invocation -> Source.single(DeleteResult.acknowledged(
+        doAnswer(invocation -> Source.single(DeleteOutcome.acknowledged(
                 invocation.<Long>getArgument(1) * 100L + invocation.<Long>getArgument(2))))
                 .when(mongoReadJournal).deleteEvents(any(), anyLong(), anyLong());
-        doAnswer(invocation -> Source.single(DeleteResult.acknowledged(
+        doAnswer(invocation -> Source.single(DeleteOutcome.acknowledged(
                 invocation.<Long>getArgument(1) * 1000L + invocation.<Long>getArgument(2) * 10L)))
                 .when(mongoReadJournal).deleteSnapshots(any(), anyLong(), anyLong());
 
@@ -157,24 +153,18 @@ public final class CleanupTest {
     public void ignorePidsNotResponsibleFor() {
         when(mongoReadJournal.getNewestSnapshotsAbove(any(), anyInt(), eq(true), any(), any()))
                 .thenReturn(Source.from(List.of(
-                        new Document().append("_id", "thing:p:id1")
-                                .append("__lifecycle", "DELETED")
-                                .append("sn", 50L),
-                        new Document().append("_id", "thing:p:id2")
-                                .append("__lifecycle", "DELETED")
-                                .append("sn", 50L),
-                        new Document().append("_id", "thing:p:id3")
-                                .append("__lifecycle", "DELETED")
-                                .append("sn", 50L)
+                        SnapshotEntry.of("thing:p:id1", 50L, "DELETED", JsonObject.empty()),
+                        SnapshotEntry.of("thing:p:id2", 50L, "DELETED", JsonObject.empty()),
+                        SnapshotEntry.of("thing:p:id3", 50L, "DELETED", JsonObject.empty())
                 )));
 
         when(mongoReadJournal.getSmallestEventSeqNo(any())).thenReturn(Source.single(Optional.of(30L)));
         when(mongoReadJournal.getSmallestSnapshotSeqNo(any())).thenReturn(Source.single(Optional.of(40L)));
 
-        doAnswer(invocation -> Source.single(DeleteResult.acknowledged(
+        doAnswer(invocation -> Source.single(DeleteOutcome.acknowledged(
                 invocation.<Long>getArgument(1) * 100L + invocation.<Long>getArgument(2))))
                 .when(mongoReadJournal).deleteEvents(any(), anyLong(), anyLong());
-        doAnswer(invocation -> Source.single(DeleteResult.acknowledged(
+        doAnswer(invocation -> Source.single(DeleteOutcome.acknowledged(
                 invocation.<Long>getArgument(1) * 1000L + invocation.<Long>getArgument(2) * 10L)))
                 .when(mongoReadJournal).deleteSnapshots(any(), anyLong(), anyLong());
 

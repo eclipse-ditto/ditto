@@ -14,7 +14,7 @@ package org.eclipse.ditto.thingsearch.service.persistence.write;
 
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.eclipse.ditto.thingsearch.service.persistence.write.IndexLengthRestrictionEnforcer.MAX_INDEX_CONTENT_LENGTH;
+import static org.eclipse.ditto.thingsearch.persistence.api.mapping.IndexLengthRestrictionEnforcer.MAX_INDEX_CONTENT_LENGTH;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Random;
@@ -23,6 +23,7 @@ import org.assertj.core.data.Offset;
 import org.eclipse.ditto.json.JsonKey;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.thingsearch.persistence.api.mapping.IndexLengthRestrictionEnforcer;
 import org.eclipse.ditto.thingsearch.service.persistence.util.TestStringGenerator;
 import org.junit.Before;
 import org.junit.Test;

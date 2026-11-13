@@ -18,6 +18,7 @@
     <modules>
         <module>model</module>
         <module>api</module>
+        <module>persistence-api</module>
         <module>service</module>
     </modules>
     <parent>

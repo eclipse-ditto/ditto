@@ -29,6 +29,8 @@ import org.eclipse.ditto.policies.service.common.config.DefaultPolicyConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.annotation.Nullable;
+
 import org.apache.pekko.actor.ExtendedActorSystem;
 import org.apache.pekko.persistence.journal.EventSeq;
 
@@ -74,18 +76,19 @@ public abstract class AbstractPolicyMongoEventAdapter extends AbstractMongoEvent
     }
 
     @Override
-    public EventSeq fromJournal(final Object event, final String manifest) {
+    public EventSeq fromJournalJson(final JsonObject jsonObject, @Nullable final String manifest) {
         // Drop journal rows whose manifest matches a removed legacy event type before they reach
         // the parser. The parent's catch-all logs every parse failure as an ERROR; here we emit a
         // single INFO per legacy type so upgrades on clusters that emitted these events are
-        // observable but not noisy. The Pekko persistence layer provides the manifest from the
-        // stored row's manifest field; for the rare case of a row without manifest the parent's
-        // path will throw JsonTypeNotParsableException which is caught and logged as ERROR.
+        // observable but not noisy. The persistence layer provides the manifest from the stored
+        // row's manifest field; for the rare case of a row without manifest the parent's path will
+        // throw JsonTypeNotParsableException which is caught and logged as ERROR. This lives in the
+        // backend-neutral serializer layer so both the MongoDB and PostgreSQL envelopes reuse it.
         if (manifest != null && LEGACY_DISCARDED_EVENT_TYPES.contains(manifest)) {
             LOGGER.info("Discarding legacy policy event of removed type <{}> during journal recovery.",
                     manifest);
             return EventSeq.empty();
         }
-        return super.fromJournal(event, manifest);
+        return super.fromJournalJson(jsonObject, manifest);
     }
 }

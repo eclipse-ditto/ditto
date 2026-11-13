@@ -1,0 +1,17 @@
+{
+  "policyId": "golden:imported-referenced-policies",
+  "imports": {
+    "golden:imported-a": {},
+    "golden:imported-b": {}
+  },
+  "entries": {
+    "ROOT": {
+      "subjects": {
+        "g:root": { "type": "generated" }
+      },
+      "resources": {
+        "thing:/": { "grant": ["READ"], "revoke": [] }
+      }
+    }
+  }
+}

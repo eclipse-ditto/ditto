@@ -13,11 +13,11 @@
 package org.eclipse.ditto.connectivity.service.messaging;
 
 import static org.eclipse.ditto.connectivity.api.ConnectivityMessagingConstants.CONNECTION_ID_RETRIEVAL_ACTOR_NAME;
-import static org.eclipse.ditto.internal.utils.persistence.mongo.streaming.MongoReadJournal.LIFECYCLE;
 
 import java.time.Duration;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletionStage;
@@ -36,7 +36,6 @@ import org.apache.pekko.stream.Materializer;
 import org.apache.pekko.stream.javadsl.Flow;
 import org.apache.pekko.stream.javadsl.Sink;
 import org.apache.pekko.stream.javadsl.Source;
-import org.bson.Document;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
@@ -54,7 +53,9 @@ import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.internal.utils.pekko.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.pekko.logging.ThreadSafeDittoLoggingAdapter;
-import org.eclipse.ditto.internal.utils.persistence.mongo.streaming.MongoReadJournal;
+import org.eclipse.ditto.internal.utils.persistence.api.DittoReadJournal;
+import org.eclipse.ditto.internal.utils.persistence.api.JournalEntry;
+import org.eclipse.ditto.internal.utils.persistence.api.SnapshotEntry;
 
 /**
  * Actor handling messages related to connections e.g. retrieving all connections ids.
@@ -66,20 +67,18 @@ public final class ConnectionIdsRetrievalActor extends AbstractActor {
      */
     public static final String ACTOR_NAME = CONNECTION_ID_RETRIEVAL_ACTOR_NAME;
 
-    private static final String PERSISTENCE_ID_FIELD = "_id";
-
     private final DittoDiagnosticLoggingAdapter log = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
     private final ThreadSafeDittoLoggingAdapter threadSafeLog =
             DittoLoggerFactory.getThreadSafeDittoLoggingAdapter(this);
 
-    private final Supplier<Source<Document, NotUsed>> persistenceIdsFromJournalSourceSupplier;
-    private final Supplier<Source<Document, NotUsed>> persistenceIdsFromSnapshotSourceSupplier;
+    private final Supplier<Source<JournalEntry, NotUsed>> persistenceIdsFromJournalSourceSupplier;
+    private final Supplier<Source<SnapshotEntry, NotUsed>> persistenceIdsFromSnapshotSourceSupplier;
     private final Materializer materializer;
 
     private final Function<String, Source<String, NotUsed>> taggedPidSourceFunction;
 
     @SuppressWarnings("unused")
-    private ConnectionIdsRetrievalActor(final MongoReadJournal readJournal,
+    private ConnectionIdsRetrievalActor(final DittoReadJournal readJournal,
             final ConnectionIdsRetrievalConfig connectionIdsRetrievalConfig) {
         materializer = Materializer.createMaterializer(this::getContext);
         persistenceIdsFromJournalSourceSupplier =
@@ -109,25 +108,25 @@ public final class ConnectionIdsRetrievalActor extends AbstractActor {
      * @param connectionIdsRetrievalConfig the config to build the pid suppliers from.
      * @return the Pekko configuration Props object.
      */
-    public static Props props(final MongoReadJournal readJournal,
+    public static Props props(final DittoReadJournal readJournal,
             final ConnectionIdsRetrievalConfig connectionIdsRetrievalConfig) {
         return Props.create(ConnectionIdsRetrievalActor.class, readJournal, connectionIdsRetrievalConfig);
     }
 
-    private static boolean isDeleted(final Document document) {
-        return Optional.ofNullable(document.getString(MongoReadJournal.J_EVENT_MANIFEST))
+    private static boolean isDeleted(final JournalEntry journalEntry) {
+        return journalEntry.getManifest()
                 .map(ConnectionDeleted.TYPE::equals)
                 .orElse(true);
     }
 
-    private static boolean isNotDeleted(final Document document) {
-        return Optional.ofNullable(document.getString(MongoReadJournal.J_EVENT_MANIFEST))
+    private static boolean isNotDeleted(final JournalEntry journalEntry) {
+        return journalEntry.getManifest()
                 .map(manifest -> !ConnectionDeleted.TYPE.equals(manifest))
                 .orElse(false);
     }
 
-    private static boolean snapshotIsNotDeleted(final Document document) {
-        return Optional.ofNullable(document.getString(LIFECYCLE))
+    private static boolean snapshotIsNotDeleted(final SnapshotEntry snapshotEntry) {
+        return snapshotEntry.getLifecycle()
                 .map(lifecycle -> !"DELETED".equals(lifecycle))
                 .orElse(false);
     }
@@ -181,7 +180,7 @@ public final class ConnectionIdsRetrievalActor extends AbstractActor {
                         return result;
                     }))
                     .filter(ConnectionIdsRetrievalActor::snapshotIsNotDeleted)
-                    .map(this::extractPersistenceIdFromDocument)
+                    .map(SnapshotEntry::getPid)
                     .filter(Optional::isPresent)
                     .map(Optional::get)
                     .via(Flow.fromFunction(result -> {
@@ -190,7 +189,7 @@ public final class ConnectionIdsRetrievalActor extends AbstractActor {
                     }));
 
             // scan journal only ONCE and partition into deleted/non-deleted in memory
-            final CompletionStage<List<Document>> allJournalDocsStage =
+            final CompletionStage<List<JournalEntry>> allJournalDocsStage =
                     persistenceIdsFromJournalSourceSupplier.get()
                             .runWith(Sink.seq(), materializer);
 
@@ -198,13 +197,15 @@ public final class ConnectionIdsRetrievalActor extends AbstractActor {
                     .thenCompose(allJournalDocs -> {
                         final Set<String> deletedIdsFromJournal = allJournalDocs.stream()
                                 .filter(ConnectionIdsRetrievalActor::isDeleted)
-                                .map(document -> document.getString(MongoReadJournal.J_EVENT_PID))
+                                .map(journalEntry -> journalEntry.getPid().orElse(null))
+                                .filter(Objects::nonNull)
                                 .collect(Collectors.toSet());
                         logger.debug("deletedIdsFromJournal: <{}>", deletedIdsFromJournal);
 
                         final Source<String, NotUsed> idsFromJournal = Source.from(allJournalDocs)
                                 .filter(ConnectionIdsRetrievalActor::isNotDeleted)
-                                .map(document -> document.getString(MongoReadJournal.J_EVENT_PID));
+                                .map(journalEntry -> journalEntry.getPid().orElse(null))
+                                .filter(Objects::nonNull);
 
                         return idsFromSnapshots.concat(idsFromJournal)
                                 .filter(pid -> !deletedIdsFromJournal.contains(pid))
@@ -241,9 +242,5 @@ public final class ConnectionIdsRetrievalActor extends AbstractActor {
                         .dittoHeaders(dittoHeaders)
                         .build();
         return ConnectivityErrorResponse.of(dittoRuntimeException);
-    }
-
-    private Optional<String> extractPersistenceIdFromDocument(final Document document) {
-        return Optional.ofNullable(document.getString(PERSISTENCE_ID_FIELD));
     }
 }

@@ -15,7 +15,7 @@ package org.eclipse.ditto.things.service.common.config;
 import java.util.List;
 
 import org.eclipse.ditto.internal.utils.config.KnownConfigValue;
-import org.eclipse.ditto.internal.utils.persistence.mongo.config.EventConfig;
+import org.eclipse.ditto.internal.utils.persistence.api.config.EventConfig;
 
 /**
  * Extends {@link EventConfig} by providing ThingEvent specific additional configuration.

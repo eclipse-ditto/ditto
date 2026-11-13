@@ -1,0 +1,9 @@
+{
+  "thingId": "golden:auth-revoke-below-grant",
+  "_namespace": "golden",
+  "_revision": 6,
+  "policyId": "golden:auth-revoke-below-grant",
+  "attributes": {
+    "secret": { "inner": "hidden" }
+  }
+}

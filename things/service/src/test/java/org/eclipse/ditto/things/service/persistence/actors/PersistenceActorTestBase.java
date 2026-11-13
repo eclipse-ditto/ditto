@@ -250,11 +250,13 @@ public abstract class PersistenceActorTestBase {
                 thingsConfig.getThingConfig(), getDistributedPub(), null, policyEnforcerProvider));
     }
 
-    private Props getPropsOfThingPersistenceActor(final ThingId thingId, final MongoReadJournal mongoReadJournal,
+    private Props getPropsOfThingPersistenceActor(final ThingId thingId,
+            final org.eclipse.ditto.internal.utils.persistence.api.DittoReadJournal readJournal,
             final ThingConfig thingConfig,
             final DistributedPub<ThingEvent<?>> pub, @Nullable final ActorRef searchShardRegionProxy,
             final PolicyEnforcerProvider policyEnforcerProvider) {
-        return ThingPersistenceActor.props(thingId, mongoReadJournal, thingConfig, pub, searchShardRegionProxy, policyEnforcerProvider);
+        return ThingPersistenceActor.props(thingId, readJournal, thingConfig, pub, searchShardRegionProxy,
+                policyEnforcerProvider);
     }
 
     protected ActorRef createSupervisorActorFor(final ThingId thingId) {

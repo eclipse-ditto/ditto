@@ -63,6 +63,7 @@ import org.eclipse.ditto.policies.model.Subject;
 import org.eclipse.ditto.policies.model.SubjectId;
 import org.eclipse.ditto.policies.model.enforcers.Enforcer;
 import org.eclipse.ditto.policies.model.signals.commands.exceptions.PolicyNotAccessibleException;
+import org.eclipse.ditto.policies.model.signals.commands.exceptions.PolicyUnavailableException;
 import org.eclipse.ditto.policies.model.signals.commands.modify.CreatePolicy;
 import org.eclipse.ditto.policies.model.signals.commands.modify.CreatePolicyResponse;
 import org.eclipse.ditto.policies.model.signals.commands.modify.DeletePolicy;
@@ -437,6 +438,35 @@ public final class ThingCommandEnforcementTest extends AbstractThingEnforcementT
             TestSetup.fishForMsgClass(this, ThingNotModifiableException.class);
         }};
 
+    }
+
+    @Test
+    public void rejectCreateByOwnPolicyIsAnsweredWithTheRejectionWhenTheRollbackIsAnsweredUnavailable() {
+        final PolicyId policyId = PolicyId.of("empty:policy");
+        final Policy policy = PoliciesModelFactory.newPolicyBuilder(policyId)
+                .forLabel("dummy")
+                .setSubject(GOOGLE, "not-subject")
+                .setGrantedPermissions(PoliciesResourceType.policyResource("/"),
+                        Permissions.newInstance(Permission.READ, Permission.WRITE))
+                .build();
+        final Thing thing = newThing().build();
+        when(policyEnforcerProvider.getPolicyEnforcer(policyId))
+                .thenReturn(CompletableFuture.completedFuture(Optional.of(PolicyEnforcer.of(policy))));
+
+        new TestKit(system) {{
+            supervisor.tell(CreateThing.of(thing, policy.toJson(), headers()), getRef());
+
+            policiesShardRegionProbe.expectMsgClass(CreatePolicy.class);
+            policiesShardRegionProbe.reply(CreatePolicyResponse.of(policyId, policy, headers()));
+            final DeletePolicy deletePolicy = policiesShardRegionProbe.expectMsgClass(DeletePolicy.class);
+            policiesShardRegionProbe.reply(PolicyUnavailableException.newBuilder(policyId)
+                    .dittoHeaders(deletePolicy.getDittoHeaders())
+                    .build());
+
+            // the test config has no created-policy-rollback block: one attempt, and no immediate re-send
+            TestSetup.fishForMsgClass(this, ThingNotModifiableException.class);
+            policiesShardRegionProbe.expectNoMessage();
+        }};
     }
 
     @Test

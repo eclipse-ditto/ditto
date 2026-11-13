@@ -16,7 +16,7 @@ import java.time.Duration;
 
 import org.assertj.core.api.JUnitSoftAssertions;
 import org.eclipse.ditto.base.service.config.supervision.ExponentialBackOffConfig;
-import org.eclipse.ditto.internal.utils.persistence.mongo.config.SnapshotConfig;
+import org.eclipse.ditto.internal.utils.persistence.api.config.SnapshotConfig;
 import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;

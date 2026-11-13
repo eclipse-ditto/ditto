@@ -1,0 +1,162 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  ~ Copyright (c) 2026 Contributors to the Eclipse Foundation
+  ~
+  ~ See the NOTICE file(s) distributed with this work for additional
+  ~ information regarding copyright ownership.
+  ~
+  ~ This program and the accompanying materials are made available under the
+  ~ terms of the Eclipse Public License 2.0 which is available at
+  ~ http://www.eclipse.org/legal/epl-2.0
+  ~
+  ~ SPDX-License-Identifier: EPL-2.0
+  -->
+<project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://maven.apache.org/POM/4.0.0"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>org.eclipse.ditto</groupId>
+        <artifactId>ditto-internal-utils</artifactId>
+        <version>${revision}</version>
+    </parent>
+
+    <artifactId>ditto-internal-utils-search-r2dbc</artifactId>
+    <name>Eclipse Ditto :: Internal :: Utils :: Search R2DBC</name>
+
+    <!--
+        The PostgreSQL things-search backend. The production main tree carries the search schema
+        descriptor, the descriptor-driven bootstrap wiring, and the PostgresSearchPersistenceProvider; it depends ONLY
+        on the shared postgres-client infrastructure and the neutral thingsearch persistence-api SPI (NO Mongo, NO
+        event-sourcing persistence-r2dbc).
+        See `.claude/concepts/postgresql-persistence-design.md`, §4 Search backend.
+    -->
+
+    <dependencies>
+        <!-- Shared backend-agnostic Postgres client/schema infrastructure (pool, DDL, descriptor-parameterised schema
+             manager, health, metrics). Carries r2dbc; equally banned from the service allinones. -->
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-internal-utils-postgres-client</artifactId>
+        </dependency>
+        <!-- The neutral thing-search persistence SPI (SearchPersistenceProvider + read/updater/aggregation
+             persistence + updater flow) this backend implements. Brings pekko/rql/base-service transitively. -->
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-thingsearch-persistence-api</artifactId>
+        </dependency>
+        <!-- The RQL predicate parser used to parse each operator-metric's filter string into a Criteria (Phase E,
+             mirroring MongoThingsAggregationPersistence's QueryFilterCriteriaFactory.of(..., RqlPredicateParser)). -->
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-rql-parser</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.google.code.findbugs</groupId>
+            <artifactId>jsr305</artifactId>
+        </dependency>
+
+        <!-- test dependencies -->
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <!-- Pekko testkit for the provider-resolution / bootstrap-fail-fast unit tests (ActorSystem lifecycle). -->
+        <dependency>
+            <groupId>org.apache.pekko</groupId>
+            <artifactId>pekko-testkit_${scala.version}</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.pekko</groupId>
+            <artifactId>pekko-slf4j_${scala.version}</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <!-- The shared Testcontainers PostgresDbResource fixture, published by postgres-client as a test-jar; reused by
+             the search schema-manager IT + concurrent-bootstrap IT (no dependency on another module's test source). -->
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-internal-utils-postgres-client</artifactId>
+            <type>test-jar</type>
+            <scope>test</scope>
+        </dependency>
+        <!-- TEST-SCOPE ONLY: the event-sourcing PostgresSchema.descriptor() is needed by the concurrent-bootstrap IT
+             (two schema managers — persistence + search — racing one fresh DB). This is a test-only dependency: the
+             production search backend has NO dependency on persistence-r2dbc (verified by grep in the task report). It
+             is acceptable because the IT genuinely exercises cross-component coordination that only the real
+             persistence descriptor can express, and it never leaks onto the compile/runtime classpath. -->
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-internal-utils-persistence-r2dbc</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <!-- TEST-SCOPE ONLY: the backend-neutral ThingsSearchCursor lives (package-private) in thingsearch/service; the
+             cursor-resume round-trip IT (PostgresCursorResumeIT) drives the REAL cursor encode->decode->adjust and then
+             translates its resume criteria with the D2/D3 SQL machinery against a real Postgres — proving the D4
+             BSON->plain-Java cursor seam end-to-end. This is a test-only dependency: the production search backend has
+             NO dependency on thingsearch/service (verified by grep), it never leaks onto the compile/runtime classpath,
+             and thingsearch/service does not depend on this module (no reactor cycle). -->
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-thingsearch-service</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <!-- TEST-SCOPE ONLY: the Mongo docker testkit (MongoDbResource) used by the Phase-G Mongo<->Postgres parity
+             matrix IT (SearchBackendParityIT), which writes one corpus through BOTH backends' full production write
+             paths and asserts a large RQL battery answers identically. Mirrors the thingsearch/service test dep shape
+             (incl. the docker-java transport pair MongoDbResource needs at runtime). Test-only: nothing leaks onto the
+             compile/runtime classpath, and ditto-internal-utils-test does not depend on this module (no reactor
+             cycle). -->
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-internal-utils-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.github.docker-java</groupId>
+            <artifactId>docker-java-core</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.github.docker-java</groupId>
+            <artifactId>docker-java-transport-zerodep</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.assertj</groupId>
+            <artifactId>assertj-core</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <!-- PostgreSQL JDBC driver — TEST-SCOPE ONLY: PathIndexMaintenanceIT opens a plain JDBC connection to PREPARE
+             a statement and EXPLAIN it under both plan_cache_mode settings (over r2dbc the statement's $1 would be
+             taken for a bind of its own). The production PostgreSQL backend deliberately avoids JDBC in favour of the
+             pure r2dbc SPI stack; this test-scope driver does not change that. -->
+        <dependency>
+            <groupId>org.postgresql</groupId>
+            <artifactId>postgresql</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <!-- Testcontainers: drives this module's *IT classes under failsafe; they skip offline via Assume, mirroring
+             persistence-r2dbc's PostgresDbResource convention. -->
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>postgresql</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>ch.qos.logback</groupId>
+            <artifactId>logback-classic</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <!-- ArchUnit no-Mongo/no-BSON boundary test (Phase F requirement 3, switchability proof) — driven from JUnit 4
+             @Test methods via ArchUnit's core API so the module keeps its existing JUnit 4 / surefire setup, mirroring
+             the thingsearch-persistence-api / thingsearch-service precedent. -->
+        <dependency>
+            <groupId>com.tngtech.archunit</groupId>
+            <artifactId>archunit</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+</project>

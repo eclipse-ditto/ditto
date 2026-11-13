@@ -1,0 +1,85 @@
+{
+  "_id": "golden:auth-grant-revoke-multi-level",
+  "_namespace": "golden",
+  "gr": [
+    "g:root",
+    "g:deep"
+  ],
+  "_revision": {
+    "$numberLong": "5"
+  },
+  "policyId": "golden:auth-grant-revoke-multi-level",
+  "__policyRev": {
+    "$numberLong": "1"
+  },
+  "__referencedPolicies": [
+    {
+      "type": "policy",
+      "id": "golden:auth-grant-revoke-multi-level",
+      "revision": {
+        "$numberInt": "1"
+      }
+    }
+  ],
+  "t": {
+    "thingId": "golden:auth-grant-revoke-multi-level",
+    "_namespace": "golden",
+    "_revision": {
+      "$numberInt": "5"
+    },
+    "policyId": "golden:auth-grant-revoke-multi-level",
+    "attributes": {
+      "a": {
+        "b": "x",
+        "c": "y"
+      }
+    },
+    "features": {
+      "f1": {
+        "properties": {
+          "p1": {
+            "$numberInt": "1"
+          },
+          "p2": {
+            "$numberInt": "2"
+          }
+        }
+      }
+    }
+  },
+  "p": {
+    "·g": [
+      "g:root"
+    ],
+    "attributes": {
+      "·r": [
+        "g:root"
+      ],
+      "a": {
+        "b": {
+          "·g": [
+            "g:deep"
+          ]
+        }
+      }
+    }
+  },
+  "f": [
+    {
+      "id": "f1",
+      "properties": {
+        "p1": {
+          "$numberInt": "1"
+        },
+        "p2": {
+          "$numberInt": "2"
+        }
+      },
+      "p": {
+        "·g": [
+          "g:root"
+        ]
+      }
+    }
+  ]
+}

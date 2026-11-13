@@ -16,7 +16,7 @@ import java.util.Optional;
 
 import javax.annotation.concurrent.ThreadSafe;
 
-import org.eclipse.ditto.internal.utils.persistence.mongo.AbstractMongoSnapshotAdapter;
+import org.eclipse.ditto.internal.utils.persistence.api.serializer.SnapshotSerializer;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonValue;
@@ -30,11 +30,17 @@ import com.typesafe.config.Config;
 import org.apache.pekko.actor.ActorSystem;
 
 /**
- * A {@link org.eclipse.ditto.internal.utils.persistence.SnapshotAdapter} for snapshotting a
- * {@link org.eclipse.ditto.policies.model.Policy}.
+ * The {@link SnapshotSerializer} for a {@link org.eclipse.ditto.policies.model.Policy}: the pure
+ * domain&harr;{@code JsonObject} logic (deleted-lifecycle detection, revision handling). It is backend-neutral; the
+ * storage envelope (Mongo BSON / Postgres JSONB) is supplied separately by the active backend's {@code SnapshotCodec}
+ * and combined with this serializer in
+ * {@code org.eclipse.ditto.internal.utils.persistence.api.serializer.NeutralSnapshotAdapter}.
+ * <p>
+ * The {@code MongoSnapshotAdapter} class name and the {@code ditto.extensions.snapshot-adapter} key are unchanged, so
+ * existing MongoDB configurations keep working; the class is now purely a serializer without BSON-specific code.
  */
 @ThreadSafe
-public final class PolicyMongoSnapshotAdapter extends AbstractMongoSnapshotAdapter<Policy> {
+public final class PolicyMongoSnapshotAdapter extends SnapshotSerializer<Policy> {
 
     /**
      * @param actorSystem the actor system in which to load the extension

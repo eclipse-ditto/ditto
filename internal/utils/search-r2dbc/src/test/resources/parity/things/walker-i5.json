@@ -1,0 +1,8 @@
+{
+  "thingId": "org.eclipse.ditto.parity:walker-i5",
+  "_namespace": "org.eclipse.ditto.parity",
+  "_revision": 1,
+  "_modified": "2026-06-02T10:00:00Z",
+  "policyId": "org.eclipse.ditto.parity:policy-full",
+  "attributes": { "rank": 5 }
+}

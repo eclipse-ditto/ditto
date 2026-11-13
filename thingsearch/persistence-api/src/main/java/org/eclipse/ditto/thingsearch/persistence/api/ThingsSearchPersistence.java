@@ -1,0 +1,175 @@
+/*
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
+ *
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
+ *
+ * SPDX-License-Identifier: EPL-2.0
+ */
+package org.eclipse.ditto.thingsearch.persistence.api;
+
+import java.util.List;
+import java.util.Set;
+
+import javax.annotation.Nullable;
+
+import org.apache.pekko.NotUsed;
+import org.apache.pekko.stream.javadsl.Source;
+import org.eclipse.ditto.base.model.entity.id.EntityId;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.rql.query.Query;
+import org.eclipse.ditto.things.model.ThingId;
+import org.eclipse.ditto.thingsearch.api.SearchNamespaceReportResult;
+import org.eclipse.ditto.thingsearch.persistence.api.model.AbstractWriteModel;
+import org.eclipse.ditto.thingsearch.persistence.api.model.Metadata;
+import org.eclipse.ditto.thingsearch.persistence.api.model.ResultList;
+import org.eclipse.ditto.thingsearch.persistence.api.model.ResultListImpl;
+import org.eclipse.ditto.thingsearch.persistence.api.model.TimestampedThingId;
+
+/**
+ * Interface for thing operations on the persistence used within the search service.
+ * <p>
+ * Backend-neutral: index initialization is a backend-specific concern and therefore not part of this
+ * interface. Backends whose schema/index requires explicit bootstrapping do so through their
+ * {@link SearchPersistenceProvider#bootstrapSchema()} implementation.
+ *
+ * @since 1.0.0
+ */
+public interface ThingsSearchPersistence {
+
+    /**
+     * Generate a report of things per Namespace.
+     *
+     * @return Source that emits the report.
+     */
+    Source<SearchNamespaceReportResult, NotUsed> generateNamespaceCountReport();
+
+    /**
+     * Returns the count of documents found by the given {@code query}.
+     *
+     * @param query the query for matching.
+     * @param authorizationSubjectIds authorization subject IDs.
+     * @param dittoHeaders the headers of the request.
+     * @return an {@link Source} which emits the count.
+     * @throws NullPointerException if {@code query} is {@code null}.
+     */
+    Source<Long, NotUsed> count(Query query, List<String> authorizationSubjectIds, DittoHeaders dittoHeaders);
+
+    /**
+     * Returns the count of documents found by the given {@code query} regardless of visibility.
+     *
+     * @param query the query for matching.
+     * @param dittoHeaders the headers of the request.
+     * @return an {@link Source} which emits the count.
+     * @throws NullPointerException if {@code query} is {@code null}.
+     */
+    Source<Long, NotUsed> sudoCount(Query query, DittoHeaders dittoHeaders);
+
+    /**
+     * Returns the count of documents found by the given {@code query} regardless of visibility,
+     * using an optional per-query index hint.
+     *
+     * @param query the query for matching.
+     * @param dittoHeaders the headers of the request.
+     * @param indexHint the optional index hint (string for index name, object for index key spec).
+     * @return an {@link Source} which emits the count.
+     * @throws NullPointerException if {@code query} is {@code null}.
+     */
+    default Source<Long, NotUsed> sudoCount(Query query, DittoHeaders dittoHeaders,
+            @Nullable JsonValue indexHint) {
+        return sudoCount(query, dittoHeaders);
+    }
+
+    /**
+     * Returns the count of documents found by the given {@code query} regardless of visibility,
+     * using an optional per-query index hint and an optional per-query read preference override.
+     *
+     * @param query the query for matching.
+     * @param dittoHeaders the headers of the request.
+     * @param indexHint the optional index hint (string for index name, object for index key spec).
+     * @param readPreferenceOverride the optional MongoDB read preference to use for this query (e.g.
+     * {@code "secondaryPreferred"}); when {@code null} the persistence default read preference is used.
+     * @param readConcernOverride the optional MongoDB read concern to use for this query (e.g. {@code "local"});
+     * when {@code null} the persistence default read concern is used.
+     * @return an {@link Source} which emits the count.
+     * @throws NullPointerException if {@code query} is {@code null}.
+     * @since 3.9.7
+     */
+    default Source<Long, NotUsed> sudoCount(Query query, DittoHeaders dittoHeaders,
+            @Nullable JsonValue indexHint, @Nullable String readPreferenceOverride,
+            @Nullable String readConcernOverride) {
+        return sudoCount(query, dittoHeaders, indexHint);
+    }
+
+    /**
+     * Returns the IDs for all found documents.
+     *
+     * @param query the query for matching.
+     * @param authorizationSubjectIds authorization subject IDs.
+     * @param namespaces namespaces to execute searches in, or null to search in all namespaces.
+     * @param dittoHeaders the headers of the request.
+     * @return an {@link Source} which emits the IDs.
+     * @throws NullPointerException if {@code query} is {@code null}.
+     */
+    Source<ResultList<TimestampedThingId>, NotUsed> findAll(Query query, @Nullable List<String> authorizationSubjectIds,
+            @Nullable Set<String> namespaces,
+            DittoHeaders dittoHeaders);
+
+    /**
+     * Stream the IDs for all found documents without result size limit.
+     *
+     * @param query the query for matching.
+     * @param authorizationSubjectIds authorization subject IDs.
+     * @param namespaces namespaces to execute searches in, or null to search in all namespaces.
+     * @param headers the headers of the request.
+     * @return an {@link Source} which emits the IDs.
+     * @throws NullPointerException if {@code query} is {@code null}.
+     * @since 1.1.0
+     */
+    Source<ThingId, NotUsed> findAllUnlimited(Query query, List<String> authorizationSubjectIds,
+            @Nullable Set<String> namespaces, DittoHeaders headers);
+
+    /**
+     * Start a stream of metadata of all search index entries not marked for deletion.
+     * Do not consider authorization.
+     *
+     * @param lowerBound lower bound of the stream for resumption. Stream the entire search index if the lower bound
+     * is a dummy entity ID.
+     * @return the source of metadata of all search index entries.
+     */
+    Source<Metadata, NotUsed> sudoStreamMetadata(final EntityId lowerBound);
+
+    /**
+     * Recover the last backend-neutral write model applied to a thing's search-index entry.
+     *
+     * @param thingId the thing ID.
+     * @return a source emitting the last {@link AbstractWriteModel} if the thing exists in the search index, or a
+     * {@code ThingDeleteModel} if it does not.
+     */
+    Source<AbstractWriteModel, NotUsed> recoverLastWriteModel(ThingId thingId);
+
+    /**
+     * Returns the IDs for all found documents.
+     *
+     * @param query the query for matching.
+     * @param authorizationSubjectIds authorization subject IDs.
+     * @param dittoHeaders the headers of the request.
+     * @return an {@link Source} which emits the IDs.
+     * @throws NullPointerException if {@code query} is {@code null}.
+     */
+    default Source<ResultList<ThingId>, NotUsed> findAll(final Query query,
+            final List<String> authorizationSubjectIds, final DittoHeaders dittoHeaders) {
+        return findAll(query, authorizationSubjectIds, null, dittoHeaders)
+                .map(resultList -> {
+                    final var thingIds = resultList.stream().map(TimestampedThingId::thingId).toList();
+                    return new ResultListImpl<>(thingIds, resultList.nextPageOffset(),
+                            resultList.lastResultSortValues().orElse(null));
+                });
+    }
+
+}

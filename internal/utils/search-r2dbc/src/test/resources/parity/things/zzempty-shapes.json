@@ -1,0 +1,13 @@
+{
+  "thingId": "org.eclipse.ditto.parity:zzempty-shapes",
+  "_namespace": "org.eclipse.ditto.parity",
+  "_revision": 1,
+  "_modified": "2026-11-09T10:00:00Z",
+  "policyId": "org.eclipse.ditto.parity:policy-full",
+  "features": {
+    "defonly": { "definition": ["org.example:DefOnly:1.0.0"] },
+    "void": {},
+    "blank": { "properties": {}, "desiredProperties": {} },
+    "markers": { "properties": { "nul": null, "str": "", "arr": [] } }
+  }
+}

@@ -27,12 +27,15 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Nullable;
 
 import org.apache.pekko.actor.ActorRef;
 import org.apache.pekko.actor.ActorSystem;
 import org.apache.pekko.actor.Props;
+import org.apache.pekko.actor.Status;
+import org.apache.pekko.pattern.CircuitBreakerOpenException;
 import org.apache.pekko.pattern.StatusReply;
 import org.apache.pekko.testkit.TestActorRef;
 import org.apache.pekko.testkit.TestProbe;
@@ -40,6 +43,7 @@ import org.apache.pekko.testkit.javadsl.TestKit;
 import org.eclipse.ditto.base.model.auth.AuthorizationContext;
 import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
 import org.eclipse.ditto.base.model.auth.DittoAuthorizationContextType;
+import org.eclipse.ditto.base.model.exceptions.DittoInternalErrorException;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
@@ -106,6 +110,8 @@ import org.junit.Test;
 import org.mockito.Mockito;
 
 import com.typesafe.config.ConfigFactory;
+
+import scala.concurrent.duration.FiniteDuration;
 
 /**
  * Tests {@link PolicyCommandEnforcement} in context of a {@link PolicyEnforcerActor}.
@@ -364,6 +370,39 @@ public final class PolicyCommandEnforcementTest {
 
             expectMsg(mockResponse);
             verify(policyEnforcerProvider, times(1)).getPolicyEnforcer(POLICY_ID);
+        }};
+    }
+
+    @Test
+    public void persistenceActorFailingWithAnOpenCircuitBreakerIsAnInternalError() {
+        // as on MongoDB: a persistence failure other than an ask timeout is answered as an internal error
+        assertPersistenceActorFailureIsAnsweredWith(new CircuitBreakerOpenException(
+                        new FiniteDuration(3L, TimeUnit.SECONDS), "Circuit Breaker is open; calls are failing fast"),
+                DittoInternalErrorException.class);
+    }
+
+    @Test
+    public void persistenceActorFailingWithAnotherErrorIsStillAnInternalError() {
+        assertPersistenceActorFailureIsAnsweredWith(new IllegalStateException("not an overload"),
+                DittoInternalErrorException.class);
+    }
+
+    private void assertPersistenceActorFailureIsAnsweredWith(final Throwable failure,
+            final Class<? extends DittoRuntimeException> expectedResponse) {
+
+        new TestKit(system) {{
+            final ModifyPolicyEntries modifyPolicyEntries =
+                    ModifyPolicyEntries.of(POLICY_ID, Collections.singleton(POLICY_ENTRY), DITTO_HEADERS);
+            mockDefaultPolicyEnforcerResponse();
+
+            supervisor.tell(modifyPolicyEntries, getRef());
+
+            policyPersistenceActorProbe.expectMsg(modifyPolicyEntries);
+            policyPersistenceActorProbe.lastSender()
+                    .tell(new Status.Failure(failure), policyPersistenceActorProbe.ref());
+
+            final DittoRuntimeException response = expectMsgClass(expectedResponse);
+            assertThat(response.getDittoHeaders().getCorrelationId()).contains(CORRELATION_ID);
         }};
     }
 

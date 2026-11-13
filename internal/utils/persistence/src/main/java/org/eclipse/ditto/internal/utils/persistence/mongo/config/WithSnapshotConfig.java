@@ -12,6 +12,8 @@
  */
 package org.eclipse.ditto.internal.utils.persistence.mongo.config;
 
+import org.eclipse.ditto.internal.utils.persistence.api.config.SnapshotConfig;
+
 /**
  * This interface provides access to the configuration settings of the snapshot behavior.
  */

@@ -38,9 +38,6 @@ import org.apache.pekko.stream.testkit.javadsl.TestSink;
 import org.apache.pekko.stream.testkit.javadsl.TestSource;
 import org.apache.pekko.testkit.TestProbe;
 import org.apache.pekko.testkit.javadsl.TestKit;
-import org.bson.BsonArray;
-import org.bson.BsonDocument;
-import org.bson.BsonInt64;
 import org.eclipse.ditto.base.api.common.Shutdown;
 import org.eclipse.ditto.base.api.common.ShutdownReasonFactory;
 import org.eclipse.ditto.base.model.acks.AcknowledgementRequest;
@@ -50,6 +47,7 @@ import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.internal.utils.pekko.ActorSystemResource;
 import org.eclipse.ditto.internal.utils.tracing.DittoTracingInitResource;
+import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.policies.api.PolicyTag;
@@ -62,18 +60,17 @@ import org.eclipse.ditto.thingsearch.api.UpdateReason;
 import org.eclipse.ditto.thingsearch.api.commands.sudo.SudoUpdateThing;
 import org.eclipse.ditto.thingsearch.service.common.config.DittoSearchConfig;
 import org.eclipse.ditto.thingsearch.service.common.config.SearchConfig;
-import org.eclipse.ditto.thingsearch.service.persistence.write.model.Metadata;
-import org.eclipse.ditto.thingsearch.service.persistence.write.model.ThingDeleteModel;
-import org.eclipse.ditto.thingsearch.service.persistence.write.model.ThingWriteModel;
-import org.eclipse.ditto.thingsearch.service.persistence.write.model.WriteResultAndErrors;
+import org.eclipse.ditto.thingsearch.persistence.api.model.Metadata;
+import org.eclipse.ditto.thingsearch.persistence.api.model.SearchIndexDocument;
+import org.eclipse.ditto.thingsearch.persistence.api.model.ThingDeleteModel;
+import org.eclipse.ditto.thingsearch.persistence.api.model.ThingWriteModel;
+import org.eclipse.ditto.thingsearch.persistence.api.write.SearchWriteResult;
+import org.eclipse.ditto.thingsearch.persistence.api.write.UpdaterResult;
 import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
-import org.mongodb.scala.bson.BsonInt32;
 
-import com.mongodb.bulk.BulkWriteResult;
-import com.mongodb.client.model.UpdateOneModel;
 import com.typesafe.config.ConfigFactory;
 
 import scala.concurrent.duration.FiniteDuration;
@@ -111,9 +108,9 @@ public final class ThingUpdaterTest {
     @Rule
     public final ActorSystemResource actorSystemResource = ActorSystemResource.newInstance();
     private ActorSystem system;
-    private Flow<ThingUpdater.Data, ThingUpdater.Result, NotUsed> flow;
+    private Flow<ThingUpdater.Data, UpdaterResult, NotUsed> flow;
     private TestSubscriber.Probe<ThingUpdater.Data> inletProbe;
-    private TestPublisher.Probe<ThingUpdater.Result> outletProbe;
+    private TestPublisher.Probe<UpdaterResult> outletProbe;
 
     @Before
     public void init() {
@@ -122,7 +119,7 @@ public final class ThingUpdaterTest {
         final var inletPair =
                 MergeHub.of(ThingUpdater.Data.class).toMat(TestSink.probe(system), Keep.both()).run(system);
         final var outletPair =
-                TestSource.<ThingUpdater.Result>probe(system).toMat(BroadcastHub.sink(), Keep.both()).run(system);
+                TestSource.<UpdaterResult>probe(system).toMat(BroadcastHub.sink(), Keep.both()).run(system);
 
         flow = Flow.fromSinkAndSource(inletPair.first(), outletPair.second());
         inletProbe = inletPair.second();
@@ -591,7 +588,7 @@ public final class ThingUpdaterTest {
         new TestKit(system) {{
             // GIVEN: search mapper decides to skip updates
             final TestProbe inputProbe = TestProbe.apply(system);
-            final Flow<ThingUpdater.Data, ThingUpdater.Result, NotUsed> flow = Flow.fromSinkAndSource(
+            final Flow<ThingUpdater.Data, UpdaterResult, NotUsed> flow = Flow.fromSinkAndSource(
                     Sink.foreach(data -> inputProbe.ref().tell(data, ActorRef.noSender())),
                     Source.empty()
             );
@@ -616,7 +613,7 @@ public final class ThingUpdaterTest {
         new TestKit(system) {{
             // GIVEN: search mapper decides to skip updates
             final TestProbe inputProbe = TestProbe.apply(system);
-            final Flow<ThingUpdater.Data, ThingUpdater.Result, NotUsed> flow = Flow.fromSinkAndSource(
+            final Flow<ThingUpdater.Data, UpdaterResult, NotUsed> flow = Flow.fromSinkAndSource(
                     Sink.foreach(data -> inputProbe.ref().tell(data, ActorRef.noSender())),
                     Source.empty()
             );
@@ -637,14 +634,10 @@ public final class ThingUpdaterTest {
         }};
     }
 
-    private static ThingUpdater.Result getOKResult(final long revision) {
-        final var mongoWriteModel =
-                MongoWriteModel.of(getThingWriteModel(revision),
-                        new UpdateOneModel<>(new BsonDocument(), new BsonDocument()), true);
-        return new ThingUpdater.Result(mongoWriteModel,
-                WriteResultAndErrors.success(List.of(mongoWriteModel),
-                        BulkWriteResult.acknowledged(0, 1, 0, 1, List.of(), List.of()), String.valueOf(revision))
-        );
+    private static UpdaterResult getOKResult(final long revision) {
+        // acknowledged with matched=1 (>= nonDelete count of 1) so classify() == OK
+        return new UpdaterResult(getThingWriteModel(revision),
+                SearchWriteResult.acknowledged(1, 1, 1, 1, 0, List.of()));
     }
 
     private static ThingWriteModel getThingWriteModel() {
@@ -652,11 +645,13 @@ public final class ThingUpdaterTest {
     }
 
     private static ThingWriteModel getThingWriteModel(final long revision) {
-        final var document = new BsonDocument()
-                .append("_revision", new BsonInt64(revision))
-                .append("f", new BsonArray())
-                .append("t", new BsonDocument().append("attributes",
-                        new BsonDocument().append("x", BsonInt32.apply(5))));
+        final JsonObject thing = JsonObject.newBuilder()
+                .set("attributes", JsonObject.newBuilder().set("x", 5).build())
+                .build();
+        final SearchIndexDocument document = SearchIndexDocument.newBuilder(THING_ID)
+                .revision(revision)
+                .thing(thing)
+                .build();
         return ThingWriteModel.of(Metadata.of(THING_ID, revision, null, null, Set.of(), null), document);
     }
 

@@ -16,16 +16,11 @@ import java.util.Collections;
 import java.util.Set;
 
 import org.apache.pekko.actor.ExtendedActorSystem;
-import org.apache.pekko.persistence.journal.Tagged;
-import org.bson.BsonDocument;
-import org.eclipse.ditto.base.model.json.FieldType;
-import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.base.model.signals.events.Event;
 import org.eclipse.ditto.base.model.signals.events.GlobalEventRegistry;
 import org.eclipse.ditto.base.service.config.DittoServiceConfig;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.internal.utils.persistence.mongo.AbstractMongoEventAdapter;
-import org.eclipse.ditto.internal.utils.persistence.mongo.DittoBsonJson;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.things.model.devops.events.WotValidationConfigEvent;
@@ -54,18 +49,12 @@ public final class WotValidationConfigMongoEventAdapter extends AbstractMongoEve
     }
 
     @Override
-    public Object toJournal(final Object event) {
-        if (event instanceof WotValidationConfigEvent<?> wotEvent) {
-            final JsonSchemaVersion schemaVersion = wotEvent.getImplementedSchemaVersion();
-            final JsonObject jsonObject = performToJournalMigration(wotEvent,
-                    wotEvent.toJson(schemaVersion, FieldType.regularOrSpecial())
-            ).build();
-            final BsonDocument bson = DittoBsonJson.getInstance().parse(jsonObject);
-            return new Tagged(bson, determineJournalTags(wotEvent));
-        } else {
-            throw new IllegalArgumentException("Unable to toJournal a non-'WotValidationConfigEvent' object! Was: " + 
+    public Set<String> getJournalTags(final Event<?> event) {
+        if (!(event instanceof WotValidationConfigEvent<?> wotEvent)) {
+            throw new IllegalArgumentException("Unable to toJournal a non-'WotValidationConfigEvent' object! Was: " +
                     (event != null ? event.getClass() : "null"));
         }
+        return determineJournalTags(wotEvent);
     }
 
     private Set<String> determineJournalTags(final WotValidationConfigEvent<?> event) {

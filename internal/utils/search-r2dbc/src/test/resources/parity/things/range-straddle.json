@@ -1,0 +1,12 @@
+{
+  "thingId": "org.eclipse.ditto.parity:range-straddle",
+  "_namespace": "org.eclipse.ditto.parity",
+  "_revision": 1,
+  "_modified": "2026-04-01T10:00:00Z",
+  "policyId": "org.eclipse.ditto.parity:policy-full",
+  "attributes": {
+    "kind": "straddle",
+    "region": [91621, 91214, 93186],
+    "pair": [6, 2]
+  }
+}

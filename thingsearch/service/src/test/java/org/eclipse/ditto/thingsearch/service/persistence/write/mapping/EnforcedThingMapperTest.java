@@ -107,7 +107,8 @@ public final class EnforcedThingMapperTest {
                 """);
 
         final BsonDocument result =
-                EnforcedThingMapper.toWriteModel(thing, policy, Set.of(), policyRevision, null, -1).getThingDocument();
+                SearchIndexDocumentMongoEncoder.encode(
+                        EnforcedThingMapper.toWriteModel(thing, policy, Set.of(), policyRevision, null, -1).getDocument());
 
         assertThat(JsonFactory.newObject(result.toJson())).isEqualTo(expectedJson);
     }
@@ -288,7 +289,8 @@ public final class EnforcedThingMapperTest {
                 """);
 
         final BsonDocument result =
-                EnforcedThingMapper.toWriteModel(thing, policy, Set.of(), policyRevision, null, -1).getThingDocument();
+                SearchIndexDocumentMongoEncoder.encode(
+                        EnforcedThingMapper.toWriteModel(thing, policy, Set.of(), policyRevision, null, -1).getDocument());
 
         assertThat(JsonFactory.newObject(result.toJson())).isEqualTo(expectedJson);
     }

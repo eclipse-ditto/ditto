@@ -1,0 +1,29 @@
+{
+  "policyId": "golden:auth-grant-revoke-multi-level",
+  "entries": {
+    "ROOT": {
+      "subjects": {
+        "g:root": { "type": "generated" }
+      },
+      "resources": {
+        "thing:/": { "grant": ["READ"], "revoke": [] }
+      }
+    },
+    "ATTR_REVOKE": {
+      "subjects": {
+        "g:root": { "type": "generated" }
+      },
+      "resources": {
+        "thing:/attributes": { "grant": [], "revoke": ["READ"] }
+      }
+    },
+    "DEEP_GRANT": {
+      "subjects": {
+        "g:deep": { "type": "generated" }
+      },
+      "resources": {
+        "thing:/attributes/a/b": { "grant": ["READ"], "revoke": [] }
+      }
+    }
+  }
+}

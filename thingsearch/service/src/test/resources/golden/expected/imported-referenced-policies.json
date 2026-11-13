@@ -1,0 +1,56 @@
+{
+  "_id": "golden:imported-referenced-policies",
+  "_namespace": "golden",
+  "gr": [
+    "g:root"
+  ],
+  "_revision": {
+    "$numberLong": "12"
+  },
+  "policyId": "golden:imported-referenced-policies",
+  "__policyRev": {
+    "$numberLong": "7"
+  },
+  "__referencedPolicies": [
+    {
+      "type": "policy",
+      "id": "golden:imported-a",
+      "revision": {
+        "$numberInt": "5"
+      }
+    },
+    {
+      "type": "policy",
+      "id": "golden:imported-b",
+      "revision": {
+        "$numberInt": "2"
+      }
+    },
+    {
+      "type": "policy",
+      "id": "golden:imported-referenced-policies",
+      "revision": {
+        "$numberInt": "7"
+      }
+    }
+  ],
+  "t": {
+    "thingId": "golden:imported-referenced-policies",
+    "_namespace": "golden",
+    "_revision": {
+      "$numberInt": "12"
+    },
+    "policyId": "golden:imported-referenced-policies",
+    "attributes": {
+      "x": {
+        "$numberInt": "1"
+      }
+    }
+  },
+  "p": {
+    "·g": [
+      "g:root"
+    ]
+  },
+  "f": []
+}

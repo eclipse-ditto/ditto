@@ -14,6 +14,7 @@ package org.eclipse.ditto.thingsearch.service.persistence.write.streaming;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -22,13 +23,25 @@ import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.pekko.logging.ThreadSafeDittoLogger;
 import org.eclipse.ditto.internal.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.internal.utils.metrics.instruments.timer.StartedTimer;
+import org.eclipse.ditto.thingsearch.persistence.api.model.AbstractWriteModel;
+import org.eclipse.ditto.thingsearch.persistence.api.model.Metadata;
+import org.eclipse.ditto.thingsearch.persistence.api.model.ThingDeleteModel;
+import org.eclipse.ditto.thingsearch.persistence.api.model.ThingWriteModel;
+import org.eclipse.ditto.thingsearch.persistence.api.write.SearchUpdaterFlow;
+import org.eclipse.ditto.thingsearch.persistence.api.write.SearchWriteError;
+import org.eclipse.ditto.thingsearch.persistence.api.write.SearchWriteResult;
+import org.eclipse.ditto.thingsearch.persistence.api.write.UpdaterData;
+import org.eclipse.ditto.thingsearch.persistence.api.write.UpdaterResult;
 import org.eclipse.ditto.thingsearch.service.common.config.PersistenceStreamConfig;
 import org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants;
+import org.eclipse.ditto.thingsearch.service.persistence.write.mapping.SearchIndexDocumentMongoEncoder;
 import org.eclipse.ditto.thingsearch.service.persistence.write.model.WriteResultAndErrors;
 import org.eclipse.ditto.thingsearch.service.updater.actors.MongoWriteModel;
-import org.eclipse.ditto.thingsearch.service.updater.actors.ThingUpdater;
 
+import com.mongodb.ErrorCategory;
 import com.mongodb.MongoBulkWriteException;
+import com.mongodb.bulk.BulkWriteError;
+import com.mongodb.bulk.BulkWriteResult;
 import com.mongodb.client.model.BulkWriteOptions;
 import com.mongodb.client.model.DeleteManyModel;
 import com.mongodb.client.model.DeleteOneModel;
@@ -45,9 +58,12 @@ import org.apache.pekko.stream.javadsl.Flow;
 import org.apache.pekko.stream.javadsl.Source;
 
 /**
- * Flow mapping write models to write results via the search persistence.
+ * Mongo implementation of the backend-neutral {@link SearchUpdaterFlow} seam. Bridges the neutral write models
+ * into the historical Mongo write machinery (BSON write models, {@code BsonDiff}-based incremental updates and
+ * the ordered/unordered bulk write) and adapts the Mongo bulk-write result back into the neutral
+ * {@link SearchWriteResult}.
  */
-final class MongoSearchUpdaterFlow {
+public final class MongoSearchUpdaterFlow implements SearchUpdaterFlow {
 
     private static final String TRACE_THING_BULK_UPDATE = "things_wildcard_search_thing_bulkUpdate";
     private static final String COUNT_THING_BULK_UPDATES_PER_BULK = "things_wildcard_search_thing_bulkUpdate_updates_per_bulk";
@@ -57,13 +73,16 @@ final class MongoSearchUpdaterFlow {
             DittoLoggerFactory.getThreadSafeLogger(MongoSearchUpdaterFlow.class);
 
     private final MongoCollection<BsonDocument> collection;
+    private final int maxWireVersion;
 
     private MongoSearchUpdaterFlow(final MongoCollection<BsonDocument> collection,
-            final PersistenceStreamConfig persistenceConfig) {
+            final PersistenceStreamConfig persistenceConfig,
+            final int maxWireVersion) {
 
         final var writeConcern = persistenceConfig.getWithAcknowledgementsWriteConcern();
         LOGGER.info("Update writeConcern=<{}>", writeConcern);
         this.collection = collection.withWriteConcern(writeConcern);
+        this.maxWireVersion = maxWireVersion;
     }
 
     /**
@@ -71,26 +90,93 @@ final class MongoSearchUpdaterFlow {
      *
      * @param database the MongoDB database.
      * @param persistenceConfig the persistence configuration for the search updater stream.
+     * @param maxWireVersion the Mongo max wire version, used to select the incremental-update representation.
      * @return the MongoSearchUpdaterFlow object.
      */
     public static MongoSearchUpdaterFlow of(final MongoDatabase database,
-            final PersistenceStreamConfig persistenceConfig) {
+            final PersistenceStreamConfig persistenceConfig,
+            final int maxWireVersion) {
 
         return new MongoSearchUpdaterFlow(
                 database.getCollection(PersistenceConstants.THINGS_COLLECTION_NAME, BsonDocument.class),
-                persistenceConfig
+                persistenceConfig,
+                maxWireVersion
         );
     }
 
+    @Override
+    public Flow<UpdaterData, UpdaterResult, NotUsed> create() {
+        return Flow.<UpdaterData>create()
+                .flatMapConcat(updaterData -> {
+                    final var currentMongo = toMongoModel(updaterData.writeModel());
+                    final var lastMongo = toMongoModel(updaterData.lastWriteModel());
+                    final Optional<MongoWriteModel> mongoWriteModelOpt =
+                            currentMongo.toIncrementalMongo(lastMongo, maxWireVersion);
+                    if (mongoWriteModelOpt.isEmpty()) {
+                        // reproduce the historical mapper skip: emit nothing and dispatch a weak acknowledgement
+                        updaterData.writeModel().getMetadata().sendWeakAck(null);
+                        return Source.<UpdaterResult>empty();
+                    }
+                    ConsistencyLag.startS5MongoBulkWrite(updaterData.writeModel().getMetadata());
+                    final MongoWriteModel mongoWriteModel = mongoWriteModelOpt.orElseThrow();
+                    return executeBulkWrite(List.of(mongoWriteModel))
+                            .map(resultAndErrors -> new UpdaterResult(updaterData.writeModel(),
+                                    toSearchWriteResult(resultAndErrors)));
+                });
+    }
+
     /**
-     * Create a flow that performs the database operation described by a MongoWriteModel.
-     *
-     * @return The flow.
+     * Bridge a backend-neutral write model into the corresponding service-internal Mongo write model.
      */
-    public Flow<MongoWriteModel, ThingUpdater.Result, NotUsed> create() {
-        return Flow.<MongoWriteModel>create()
-                .flatMapConcat(writeModel -> executeBulkWrite(List.of(writeModel))
-                        .map(resultOrErrors -> new ThingUpdater.Result(writeModel, resultOrErrors)));
+    private static org.eclipse.ditto.thingsearch.service.persistence.write.model.AbstractWriteModel toMongoModel(
+            final AbstractWriteModel neutral) {
+
+        final Metadata metadata = neutral.getMetadata();
+        if (neutral instanceof ThingDeleteModel) {
+            return org.eclipse.ditto.thingsearch.service.persistence.write.model.ThingDeleteModel.of(metadata);
+        } else if (neutral instanceof ThingWriteModel neutralWrite) {
+            if (neutralWrite.isEmptiedOut()) {
+                return org.eclipse.ditto.thingsearch.service.persistence.write.model.ThingWriteModel
+                        .ofEmptiedOut(metadata);
+            } else if (neutralWrite.isNoop()) {
+                return org.eclipse.ditto.thingsearch.service.persistence.write.model.ThingWriteModel
+                        .noopWriteModel(metadata);
+            } else {
+                return org.eclipse.ditto.thingsearch.service.persistence.write.model.ThingWriteModel.of(metadata,
+                        SearchIndexDocumentMongoEncoder.encode(neutralWrite.getDocument()));
+            }
+        } else {
+            throw new IllegalArgumentException("Unsupported neutral write model: " + neutral);
+        }
+    }
+
+    /**
+     * Adapt a Mongo {@link WriteResultAndErrors} into the backend-neutral {@link SearchWriteResult}.
+     */
+    static SearchWriteResult toSearchWriteResult(final WriteResultAndErrors writeResultAndErrors) {
+        final Optional<Throwable> unexpectedError = writeResultAndErrors.getUnexpectedError();
+        final int writeModelCount = writeResultAndErrors.getWriteModels().size();
+        if (unexpectedError.isPresent()) {
+            return SearchWriteResult.unexpectedError(writeModelCount, unexpectedError.get());
+        }
+        final BulkWriteResult bulkWriteResult = writeResultAndErrors.getBulkWriteResult();
+        if (!bulkWriteResult.wasAcknowledged()) {
+            return SearchWriteResult.unacknowledged(writeModelCount);
+        }
+        final int nonDeleteWriteModelCount = (int) writeResultAndErrors.getWriteModels().stream()
+                .filter(model -> !(model.getDitto()
+                        instanceof org.eclipse.ditto.thingsearch.service.persistence.write.model.ThingDeleteModel))
+                .count();
+        final List<SearchWriteError> errors = writeResultAndErrors.getBulkWriteErrors().stream()
+                .map(error -> new SearchWriteError(error.getIndex(),
+                        error.getCategory() == ErrorCategory.DUPLICATE_KEY
+                                ? SearchWriteError.Category.DUPLICATE_KEY
+                                : SearchWriteError.Category.OTHER,
+                        error.getMessage()))
+                .toList();
+        return SearchWriteResult.acknowledged(writeModelCount, nonDeleteWriteModelCount,
+                bulkWriteResult.getMatchedCount(), bulkWriteResult.getModifiedCount(),
+                bulkWriteResult.getUpserts().size(), errors);
     }
 
     private Source<WriteResultAndErrors, NotUsed> executeBulkWrite(final Collection<MongoWriteModel> writeModels) {

@@ -1,0 +1,194 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  ~ Copyright (c) 2026 Contributors to the Eclipse Foundation
+  ~
+  ~ See the NOTICE file(s) distributed with this work for additional
+  ~ information regarding copyright ownership.
+  ~
+  ~ This program and the accompanying materials are made available under the
+  ~ terms of the Eclipse Public License 2.0 which is available at
+  ~ http://www.eclipse.org/legal/epl-2.0
+  ~
+  ~ SPDX-License-Identifier: EPL-2.0
+  -->
+<project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://maven.apache.org/POM/4.0.0"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>org.eclipse.ditto</groupId>
+        <artifactId>ditto-internal-utils</artifactId>
+        <version>${revision}</version>
+    </parent>
+
+    <artifactId>ditto-postgres-extension-it</artifactId>
+    <name>Eclipse Ditto :: Postgres :: Extension Classloading IT</name>
+
+    <!--
+        Classloading integration test for the three-JAR layered Postgres extension packaging (§6 D2). It resolves the
+        REAL shaded extension jars (base / thin persistence / thin search) and, in isolated child class loaders that
+        mimic the /opt/ditto/extensions/ drop-in on top of a service-allinone-like parent classpath, verifies:
+          (a) base + persistence resolves the Postgres persistence provider (and its base + third-party classes),
+          (b) base + search resolves the Postgres search provider,
+          (c) a thin extension jar WITHOUT the base fails with an actionable error naming the missing base jar.
+
+        The three extension jars are NOT declared as class path dependencies (that would put their provider/base classes
+        on the test app class loader and defeat the isolation) — they are copied into target/extensions by
+        maven-dependency-plugin from the reactor/local repo. This module therefore MUST build after the extension
+        modules, which is enforced by the ordering-only "pom"-type dependencies below (declaration order in
+        internal/utils/pom.xml does NOT order a parallel -T build). No docker.
+    -->
+
+    <properties>
+        <!-- forked-classpath-only ITs, no external services -->
+        <ditto.postgres.extensions.dir>${project.build.directory}/extensions</ditto.postgres.extensions.dir>
+        <!-- Mirror failsafe's skip semantics for the jar staging below: when no IT runs there is nothing to stage.
+             CLI -D values win over these defaults, so -Dmaven.test.skip / -DskipTests / -DskipITs each skip the copy. -->
+        <maven.test.skip>false</maven.test.skip>
+        <skipTests>${maven.test.skip}</skipTests>
+        <skipITs>${skipTests}</skipITs>
+    </properties>
+
+    <dependencies>
+        <!-- ORDERING ONLY — NOT classpath entries: the three extension jars are consumed as artifactItems (see the
+             maven-dependency-plugin below); putting them on the class path would defeat the child-loader isolation.
+             Reactor declaration order alone only orders a SERIAL build: a parallel build (-T, as used by the image
+             build pipelines) schedules purely by the dependency graph, so without these edges this module runs its
+             copy before the extension modules are built and the copy fails with "Could not find artifact
+             org.eclipse.ditto:ditto-postgres-<...>-extension". Type "pom" is never added to a class path and the
+             wildcard exclusion keeps the extensions' transitives (which DO carry the provider classes) off it too,
+             so these dependencies buy build order and nothing else. Versions are explicit because the bom manages
+             these artifacts as type "jar". -->
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-postgres-client-extension</artifactId>
+            <version>${project.version}</version>
+            <type>pom</type>
+            <exclusions>
+                <exclusion>
+                    <groupId>*</groupId>
+                    <artifactId>*</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-postgres-persistence-extension</artifactId>
+            <version>${project.version}</version>
+            <type>pom</type>
+            <exclusions>
+                <exclusion>
+                    <groupId>*</groupId>
+                    <artifactId>*</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-postgres-search-extension</artifactId>
+            <version>${project.version}</version>
+            <type>pom</type>
+            <exclusions>
+                <exclusion>
+                    <groupId>*</groupId>
+                    <artifactId>*</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+
+        <!-- The "service allinone-like" PARENT classpath the child extension class loaders delegate to: the neutral
+             SPI interfaces the provider classes implement, plus the pekko/config types their signatures reference. -->
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-internal-utils-persistence-api</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-thingsearch-persistence-api</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.pekko</groupId>
+            <artifactId>pekko-actor_${scala.version}</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.typesafe</groupId>
+            <artifactId>config</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.assertj</groupId>
+            <artifactId>assertj-core</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <!-- Copy the REAL shaded extension jars (main artifacts) into target/extensions before the ITs run. They are
+                 resolved as artifactItems (NOT project dependencies) so their classes never reach the test class path. -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-dependency-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>copy-postgres-extension-jars</id>
+                        <phase>pre-integration-test</phase>
+                        <goals>
+                            <goal>copy</goal>
+                        </goals>
+                        <configuration>
+                            <!-- nothing to stage when the ITs are skipped (image builds run -DskipTests -DskipITs) -->
+                            <skip>${skipITs}</skip>
+                            <outputDirectory>${ditto.postgres.extensions.dir}</outputDirectory>
+                            <stripVersion>true</stripVersion>
+                            <overWriteReleases>true</overWriteReleases>
+                            <overWriteSnapshots>true</overWriteSnapshots>
+                            <artifactItems>
+                                <artifactItem>
+                                    <groupId>org.eclipse.ditto</groupId>
+                                    <artifactId>ditto-postgres-client-extension</artifactId>
+                                    <version>${project.version}</version>
+                                    <type>jar</type>
+                                    <destFileName>ditto-postgres-client-extension.jar</destFileName>
+                                </artifactItem>
+                                <artifactItem>
+                                    <groupId>org.eclipse.ditto</groupId>
+                                    <artifactId>ditto-postgres-persistence-extension</artifactId>
+                                    <version>${project.version}</version>
+                                    <type>jar</type>
+                                    <destFileName>ditto-postgres-persistence-extension.jar</destFileName>
+                                </artifactItem>
+                                <artifactItem>
+                                    <groupId>org.eclipse.ditto</groupId>
+                                    <artifactId>ditto-postgres-search-extension</artifactId>
+                                    <version>${project.version}</version>
+                                    <type>jar</type>
+                                    <destFileName>ditto-postgres-search-extension.jar</destFileName>
+                                </artifactItem>
+                            </artifactItems>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <!-- Pass the extensions dir to the failsafe ITs. -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-failsafe-plugin</artifactId>
+                <configuration>
+                    <systemPropertyVariables>
+                        <ditto.postgres.extensions.dir>${ditto.postgres.extensions.dir}</ditto.postgres.extensions.dir>
+                    </systemPropertyVariables>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+
+</project>

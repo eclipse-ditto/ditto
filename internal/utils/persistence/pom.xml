@@ -27,6 +27,10 @@
     <dependencies>
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-internal-utils-persistence-api</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-internal-utils-pekko</artifactId>
         </dependency>
         <dependency>
@@ -173,6 +177,17 @@
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-internal-utils-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <!-- ArchUnit for the pluggable-persistence boundary tests (switchability proof).
+             The rules are driven from plain JUnit 4 @Test methods via ArchUnit's core API
+             (ClassFileImporter + ImportOption.DoNotIncludeTests + ArchRuleDefinition), so this module keeps
+             running on its existing JUnit 4 / surefire setup - no JUnit Platform engine is introduced (which would
+             change how the pre-existing tests are discovered and indexed). The 'archunit' core artifact provides
+             the classes the tests use without dragging in the JUnit Platform engine. -->
+        <dependency>
+            <groupId>com.tngtech.archunit</groupId>
+            <artifactId>archunit</artifactId>
             <scope>test</scope>
         </dependency>
     </dependencies>

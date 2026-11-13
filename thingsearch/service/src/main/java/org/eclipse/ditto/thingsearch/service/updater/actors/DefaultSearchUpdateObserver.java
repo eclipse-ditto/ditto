@@ -15,7 +15,7 @@ package org.eclipse.ditto.thingsearch.service.updater.actors;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.thingsearch.service.persistence.write.model.Metadata;
+import org.eclipse.ditto.thingsearch.persistence.api.model.Metadata;
 
 import com.typesafe.config.Config;
 

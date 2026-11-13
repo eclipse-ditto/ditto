@@ -2,7 +2,9 @@
 paths:
   - "**/src/main/resources/*.conf"
   - "**/config/**/*Config*.java"
+  - "internal/utils/*-r2dbc/**/*Config*.java"
   - "deployment/helm/ditto/**"
+  - "deployment/postgres-local/*.conf"
 ---
 
 # HOCON config and the Helm chart
@@ -37,10 +39,21 @@ touches all of these:
 
 Feature toggles follow the same path with their values under `global.featureFlags`.
 
+## PostgreSQL keys (`ditto.postgresql.*`)
+
+These live in the extension profiles, not in the service `.conf`s and not in the chart:
+`ditto-postgres-client.conf` (`postgres-client`: URI, credentials, pool, SSL, schema, bootstrap),
+`ditto-postgres-persistence.conf` (`persistence-r2dbc`: provider, plugin blocks) and
+`ditto-postgres-search.conf` (`search-r2dbc`: provider, reaper, path indexes). A new key gets its
+default and `${?POSTGRES_…}` override there plus a `*Config` in the same module; operators set it
+through `extraEnv`. The chart carries only `postgres.tls.*` and `extraInitContainers` — no
+PostgreSQL connection values, by design.
+
 ## Every chart change
 
 - Bump `version` in `deployment/helm/ditto/Chart.yaml` (semver for the chart itself, independent
   of `appVersion`: new option = minor, fix = patch, breaking `values.yaml` change = major).
   CI Helm lint fails without it.
-- Add an entry under `## [Unreleased]` in `deployment/helm/ditto/CHANGELOG.md` (Keep a
-  Changelog sections: Added, Changed, Deprecated, Removed, Fixed, Security).
+- Add a `## [x.y.z]` section for that version in `deployment/helm/ditto/CHANGELOG.md`, right
+  below the empty `## [Unreleased]` heading, with Keep a Changelog subsections (Added, Changed,
+  Fixed, …).
