@@ -733,6 +733,45 @@
       "expectNonEmptySudo": true
     },
     {
+      "name": "exists-attributes-object",
+      "filter": "exists(attributes)",
+      "comment": "Complete-object battery (upstream #2637): exists()/empty() on the bare attributes or features object, a slash-mapped simple field on both backends. An empty attributes object ({}: rank-missing, walker-void-*) exists; the zsort-*/zzempty-* things carry no attributes.",
+      "expectNonEmptySudo": true
+    },
+    {
+      "name": "not-exists-attributes-object",
+      "filter": "not(exists(attributes))",
+      "comment": "Complete-object battery (upstream #2637): exists()/empty() on the bare attributes or features object, a slash-mapped simple field on both backends. The complement: only the things without an attributes object.",
+      "expectNonEmptySudo": true
+    },
+    {
+      "name": "empty-attributes-object",
+      "filter": "empty(attributes)",
+      "comment": "Complete-object battery (upstream #2637): exists()/empty() on the bare attributes or features object, a slash-mapped simple field on both backends. Matches a missing attributes object and an empty one ({}).",
+      "expectNonEmptySudo": true
+    },
+    {
+      "name": "exists-features-object",
+      "filter": "exists(features)",
+      "options": [
+        "sort(-thingId)"
+      ],
+      "comment": "Complete-object battery (upstream #2637): exists()/empty() on the bare attributes or features object, a slash-mapped simple field on both backends. Page 1 under sort(-thingId), so the feature-bearing zsort-*/zzempty-* things lead.",
+      "expectNonEmptySudo": true
+    },
+    {
+      "name": "not-exists-features-object",
+      "filter": "not(exists(features))",
+      "comment": "Complete-object battery (upstream #2637): exists()/empty() on the bare attributes or features object, a slash-mapped simple field on both backends. The complement: the things without a features object.",
+      "expectNonEmptySudo": true
+    },
+    {
+      "name": "empty-features-object",
+      "filter": "empty(features)",
+      "comment": "Complete-object battery (upstream #2637): exists()/empty() on the bare attributes or features object, a slash-mapped simple field on both backends. Matches a missing features object; no corpus thing holds features = {} (PostgresExistsIT and the MongoDB ExistsIT cover that shape).",
+      "expectNonEmptySudo": true
+    },
+    {
       "name": "eq-definition-null",
       "comment": "ne(path,null) Mongo-parity battery (Task 2), /definition path shape (slash-mapped simple field -> visitPointer, same flat probe as attributes): eq(p,null) matches ONLY the JSON-null leaf (nenull-nullvals).",
       "filter": "eq(definition,null)",
