@@ -39,9 +39,13 @@ public interface ThingPersistenceActorPropsFactory {
      * @param searchShardRegionProxy the proxy of the shard region of search updaters.
      * @param policyEnforcerProvider a provider for the used Policy {@code Enforcer} which "guards" the
      * ThingPersistenceActor for applying access control.
+     * @param timeseriesIngestPublisher the local Timeseries ingest publisher to also forward each
+     * persisted {@code ThingEvent} to. May be {@code null} in test contexts or when the
+     * Timeseries integration is disabled — the persistence actor short-circuits the forward.
      * @return Props of the thing-persistence-actor.
      */
     Props props(ThingId thingId, MongoReadJournal mongoReadJournal, ThingConfig thingConfig,
             DistributedPub<ThingEvent<?>> distributedPub, @Nullable ActorRef searchShardRegionProxy,
-            PolicyEnforcerProvider policyEnforcerProvider);
+            PolicyEnforcerProvider policyEnforcerProvider,
+            @Nullable ActorRef timeseriesIngestPublisher);
 }

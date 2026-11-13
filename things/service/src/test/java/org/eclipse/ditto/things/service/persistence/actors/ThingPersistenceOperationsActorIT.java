@@ -170,7 +170,8 @@ public final class ThingPersistenceOperationsActorIT extends MongoEventSourceITA
                 ThingPersistenceActor::props,
                 null,
                 policyEnforcerProvider,
-                Mockito.mock(MongoReadJournal.class));
+                Mockito.mock(MongoReadJournal.class),
+                null);
 
         return system.actorOf(props, id.toString());
     }

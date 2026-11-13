@@ -57,6 +57,38 @@ public final class EdgeCommandForwarderActorTest {
     }
 
     @Test
+    public void retrieveTimeseriesIsForwardedToTimeseriesShardRegion() {
+        // The per-Thing TimeseriesIngestActor handles both ingest and query, so the forwarder
+        // routes RetrieveTimeseries via askWithRetryCommandForwarder against the timeseries
+        // shard region — same shape as forwardToThings / forwardToPolicies.
+        assert actorSystem != null;
+        new TestKit(actorSystem) {{
+            final ShardRegions shardRegionsMock = Mockito.mock(ShardRegions.class);
+            final TestProbe timeseriesProbe = new TestProbe(actorSystem);
+            Mockito.when(shardRegionsMock.timeseries()).thenReturn(timeseriesProbe.ref());
+
+            final Props props = EdgeCommandForwarderActor.props(getRef(), shardRegionsMock);
+            final ActorRef underTest = actorSystem.actorOf(props);
+
+            final java.time.Instant from = java.time.Instant.parse("2026-01-14T00:00:00Z");
+            final java.time.Instant to = java.time.Instant.parse("2026-01-15T00:00:00Z");
+            final org.eclipse.ditto.timeseries.model.TimeseriesQuery query =
+                    org.eclipse.ditto.timeseries.model.TimeseriesQuery.of(THING_ID,
+                            java.util.Collections.singletonList(JsonPointer.of(
+                                    "/features/env/properties/temperature")),
+                            from, to);
+            final org.eclipse.ditto.timeseries.model.signals.commands.RetrieveTimeseries cmd =
+                    org.eclipse.ditto.timeseries.model.signals.commands.RetrieveTimeseries.of(
+                            query,
+                            DittoHeaders.newBuilder().correlationId("ts-fwd-test").build());
+
+            underTest.tell(cmd, getRef());
+
+            timeseriesProbe.expectMsg(cmd);
+        }};
+    }
+
+    @Test
     public void ensureCommandOrderIsMaintainedForSlowSignalTransformations() {
         assert actorSystem != null;
         new TestKit(actorSystem) {{

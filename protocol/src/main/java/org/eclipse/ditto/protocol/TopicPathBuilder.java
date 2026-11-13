@@ -57,6 +57,15 @@ public interface TopicPathBuilder {
     CommandsTopicPathBuilder commands();
 
     /**
+     * Sets the {@code Criterion} of this builder to {@link TopicPath.Criterion#TIMESERIES}. A previously set criterion
+     * is replaced.
+     *
+     * @return this builder to allow method chaining.
+     * @since 4.0.0
+     */
+    TimeseriesTopicPathBuilder timeseries();
+
+    /**
      * Sets the {@code Criterion} of this builder to {@link TopicPath.Criterion#ANNOUNCEMENTS}.
      *
      * @return this builder.

@@ -79,6 +79,18 @@ gateway:
     heapRamPercentage: 50
 
 ## ----------------------------------------------------------------------------
+## timeseries configuration
+timeseries:
+  # no released ditto-timeseries image exists yet that the chart install could pull
+  enabled: false
+  resources:
+    cpu: 0.15
+    memoryMi: 512
+  jvm:
+    activeProcessorCount: 2
+    heapRamPercentage: 50
+
+## ----------------------------------------------------------------------------
 ## nginx configuration
 nginx:
   resources:
