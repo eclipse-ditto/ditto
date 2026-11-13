@@ -37,8 +37,8 @@ import org.apache.pekko.persistence.SnapshotOffer;
  * <p>
  * Its behaviour mirrors the former {@code AbstractMongoSnapshotAdapter} exactly:
  * <ul>
- *   <li>{@link #toSnapshotStore(Jsonifiable)} = {@code codec.encode(serializer.toJson(entity))} — the
- *       {@link SnapshotSerializer#toJson(Jsonifiable)} call applies the {@code onSnapshotStoreConversion} side-effect
+ *   <li>{@link #toSnapshotStore} = {@code codec.encode(serializer.toJson(entity))} — the
+ *       {@link SnapshotSerializer#toJson} call applies the {@code onSnapshotStoreConversion} side-effect
  *       hook exactly once, preserving e.g. the Thing snapshot-taken publishing and the connection fields encryption,
  *       before the codec wraps the resulting {@link JsonObject} for storage.</li>
  *   <li>the {@code fromSnapshotStore} methods = {@code serializer.fromJson(codec.decode(rawStoredValue))} — the codec

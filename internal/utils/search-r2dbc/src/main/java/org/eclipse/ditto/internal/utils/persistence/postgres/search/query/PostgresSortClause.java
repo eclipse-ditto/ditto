@@ -109,7 +109,6 @@ import org.slf4j.LoggerFactory;
  *       aggregate across every feature on the thing — a worse divergence than failing loudly. This
  *       stricter-than-Mongo behavior is sanctioned by plan §3.5's "needn't support" note on wildcard sort.</li>
  * </ul>
- * </p>
  */
 public final class PostgresSortClause {
 

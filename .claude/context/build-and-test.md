@@ -50,7 +50,7 @@ docker compose logs -f gateway
 ```
 
 Services need 30–60 s to form the cluster. On PostgreSQL: `deployment/postgres-local/README.md`
-(Compose file for the database, `run-compound-postgres.sh`, `.run/* (Postgres)` run configurations).
+(Compose file for the database, `run-compound-postgres.sh`, `.run/*-Postgres.run.xml` run configurations).
 
 ## UI
 

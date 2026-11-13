@@ -46,7 +46,7 @@ import org.apache.pekko.actor.ActorSystem;
  * backends.
  * <p>
  * It is a {@link DittoExtensionPoint}: each service selects its default concrete serializer via the {@code
- * ditto.extensions.snapshot-adapter} config key, and {@link org.eclipse.ditto.internal.utils.persistentactors.AbstractPersistenceActor}
+ * ditto.extensions.snapshot-adapter} config key, and {@code org.eclipse.ditto.internal.utils.persistentactors.AbstractPersistenceActor}
  * resolves it (through its overridable {@code resolveSnapshotSerializer} hook, so an actor managing a different entity
  * type than the JVM default — e.g. the WoT validation-config actor in the Things JVM — can supply its own) and combines
  * it with the single-per-JVM {@code provider.snapshotCodec()}.
@@ -97,7 +97,7 @@ public abstract class SnapshotSerializer<T extends Jsonifiable.WithFieldSelector
 
     /**
      * Converts the specified snapshot entity to its {@link JsonObject} representation, applying the
-     * {@link #onSnapshotStoreConversion(Jsonifiable, JsonObject)} side-effect hook exactly once.
+     * {@link #onSnapshotStoreConversion} side-effect hook exactly once.
      *
      * @param snapshotEntity the snapshot entity to be converted.
      * @return {@code snapshotEntity} as JsonObject.

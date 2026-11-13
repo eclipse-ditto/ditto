@@ -196,7 +196,7 @@ public final class ThingSupervisorActor extends AbstractPersistenceSupervisor<Th
      * @param propsFactory factory for creating Props to be used for creating
      * @param blockedNamespaces the blocked namespaces functionality to retrieve/subscribe for blocked namespaces.
      * @param policyEnforcerProvider used to load the policy enforcer.
-     * @param mongoReadJournal the ReadJournal used for gaining access to historical values of the thing.
+     * @param readJournal the ReadJournal used for gaining access to historical values of the thing.
      * @return the {@link Props} to create this actor.
      */
     public static Props props(final ActorRef pubSubMediator,

@@ -2,7 +2,8 @@
 
 **Related Issue**: [GitHub #2629 - Support PostgreSQL as persistence and search backend via pluggable persistence providers](https://github.com/eclipse-ditto/ditto/issues/2629)
 
-**Status**: Implemented on branch `feat/postgres-persistance-search`; pull request pending; §9 lists the open items
+**Status**: Implemented on branch `feat/postgres-persistance-search`; pull request
+[#2651](https://github.com/eclipse-ditto/ditto/pull/2651); §9 lists the open items
 **Last Updated**: 2026-11-13
 
 ---
@@ -184,7 +185,7 @@ file, so reaching it takes a hand-split configuration.
   `ditto.extensions.snapshot-adapter`; three of the four keep their Mongo-era names `ThingMongoSnapshotAdapter`,
   `PolicyMongoSnapshotAdapter`, `ConnectionMongoSnapshotAdapter`) are backend-neutral JSON serializers; the
   provider's `SnapshotCodec` decides between the BSON and the JSONB envelope, so no per-service override is needed.
-- **Dev profiles** `<service>-pg-dev.conf` (four, shipped inert in the allinone JARs) and six `.run/* (Postgres)`
+- **Dev profiles** `<service>-pg-dev.conf` (four, shipped inert in the allinone JARs) and six `.run/*-Postgres.run.xml`
   run configurations (one per service plus the compound; the gateway one carries no PostgreSQL config) exist for
   local runs only.
 - **Helm.** The chart (4.11.0) activates no backend by itself, and `/opt/ditto/<service>-extension.conf` is
@@ -738,7 +739,7 @@ existing indexes (§4.6), for a shape RQL cannot query into on either backend.
 |-------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | User-facing setup and operations          | `documentation/.../installation-postgresql.md` (JARs, activation config, provisioning, env vars, Compose, Helm), `documentation/.../operating-postgresql.md` (schema lifecycle, self-heal, pool, PgBouncer, TLS, ping, encryption, search tunables and indexes, cutover, differences, vacuum); `installation-extending.md` keeps a `### PostgreSQL backends` pointer; `installation-operating.md`, `operating-configuration.md` |
 | Operator runbook, provisioning, PgBouncer | `deployment/postgres/README.md`, `deployment/postgres/provisioning/01-roles-and-grants.sql`                                                                                                                                                                                                                                                                                                                                     |
-| Local development                         | `deployment/postgres-local/README.md`, `.run/* (Postgres).run.xml`, the `ide-postgres-launcher` Maven module (pom-only classpath aggregator for the run configs)                                                                                                                                                                                                                                                                |
+| Local development                         | `deployment/postgres-local/README.md`, `.run/*-Postgres.run.xml`, the `ide-postgres-launcher` Maven module (pom-only classpath aggregator for the run configs)                                                                                                                                                                                                                                                                  |
 | Persistence schema                        | `…/persistence/postgres/schema/PostgresSchema.java` (Javadoc explains every table decision)                                                                                                                                                                                                                                                                                                                                     |
 | Search schema and translator              | `…/postgres/search/PostgresSearchSchema.java`, `…/search/query/`, `…/search/pathindex/`                                                                                                                                                                                                                                                                                                                                         |
 | Search parity corpus                      | `internal/utils/search-r2dbc/src/test/resources/parity/` (`queries.json`, `divergence-allowlist.json`, the corpus of things and policies)                                                                                                                                                                                                                                                                                       |

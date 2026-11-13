@@ -32,7 +32,7 @@ import org.apache.pekko.persistence.SnapshotOffer;
  * <p>
  * The pure domain&harr;{@link JsonObject} serialization logic lives in {@link SnapshotSerializer}, which this class
  * extends. This class adds <em>only</em> the BSON envelope, delegating it to {@link MongoSnapshotCodec}:
- * {@link #toSnapshotStore(Jsonifiable)} encodes the serializer's JsonObject to BSON via the codec, and the
+ * {@link #toSnapshotStore} encodes the serializer's JsonObject to BSON via the codec, and the
  * {@code fromSnapshotStore} methods decode a stored BSON value back to a JsonObject via the codec before feeding the
  * serializer. A PostgreSQL snapshot adapter reuses the same serializer with a JSONB envelope instead.
  *

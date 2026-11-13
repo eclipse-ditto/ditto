@@ -25,7 +25,7 @@ the base JAR `ditto-postgres-client-extension`; `persistence-r2dbc` and `search-
 `postgres-*-extension` modules); `postgres-extension-it` loads the real shaded JARs in child class
 loaders. All are internal Java 25 modules — none is Java 8 or japicmp-guarded.
 `enforce-no-r2dbc-in-service` keeps R2DBC out of the service allinones; `ide-postgres-launcher` is an
-unpublished classpath aggregator for the `.run/* (Postgres)` run configurations.
+unpublished classpath aggregator for the `.run/*-Postgres.run.xml` run configurations.
 
 ## Activation
 

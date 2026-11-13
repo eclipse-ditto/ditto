@@ -44,7 +44,6 @@ import org.eclipse.ditto.rql.query.criteria.Criteria;
  * alone gets no CTE (see {@link SelectiveLegCte}). Reads do NOT filter
  * {@code delete_at} (plan §3.6): a purge-marked row stays visible until the reaper removes it, matching Mongo (whose
  * TTL-marked docs likewise remain queryable until physically deleted).
- * </p>
  */
 public final class SearchQueryAssembler {
 

@@ -34,7 +34,7 @@ import com.typesafe.config.Config;
  * <p>
  * Beyond plugin IDs and the read journal, the provider also exposes the backend's collaborator
  * accessors — {@link #pluginConfig()}, {@link #operations(String)}, {@link #healthCheck()},
- * {@link #streaming(String)}, {@link #snapshotCodec()} and {@link #payloadStore(String)} — including the factory for
+ * {@link #streaming}, {@link #snapshotCodec()} and {@link #payloadStore(String)} — including the factory for
  * backend-specific namespace persistence operations. These accessors default to throwing
  * {@link UnsupportedOperationException} so a backend can wire them incrementally; each backend overrides them as it is
  * implemented. The two boot hooks, {@link #bootstrapSchema()} and {@link #verifyPluginWiring(String)}, default to

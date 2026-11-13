@@ -38,12 +38,12 @@ import org.slf4j.LoggerFactory;
  * backend snapshot codec stays single-per-JVM and shared.
  * <p>
  * Unlike the Thing serializer, WoT validation configs have no "snapshot taken" event to publish, so
- * {@link #onSnapshotStoreConversion(WotValidationConfig, JsonObject)} is left at the base no-op.
+ * {@link #onSnapshotStoreConversion} is left at the base no-op.
  * <p>
  * Deletion is modelled by the boolean {@code _deleted} field
  * ({@link WotValidationConfig.JsonFields#DELETED}): a {@link WotValidationConfig} is deleted iff that field is
  * {@code true} (see {@link WotValidationConfig#isDeleted()}), and the base
- * {@link SnapshotSerializer#convertToJson(Object)}/{@link SnapshotSerializer#fromJson(JsonObject)} pair use
+ * {@link SnapshotSerializer#convertToJson}/{@link SnapshotSerializer#fromJson} pair use
  * {@link #getDeletedLifecycleJsonField()} accordingly.
  *
  * @since 4.0.0

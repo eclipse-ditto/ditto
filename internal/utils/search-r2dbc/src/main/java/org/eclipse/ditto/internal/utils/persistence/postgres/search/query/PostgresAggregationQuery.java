@@ -52,7 +52,6 @@ import org.eclipse.ditto.rql.query.criteria.Criteria;
  *       raw keys, NOT the flat-table RFC-6901 {@code wpath} encoding — see {@code AuthFilterSqlBuilder}).</li>
  *   <li>{@code Accumulators.sum("count", 1)} (Mongo:121) → {@code count(*) AS count}.</li>
  * </ul>
- * </p>
  * <p>
  * <b>Mongo {@code $group} zero-input parity (no-grouping metrics).</b> Mongo's {@code $group} emits ZERO documents
  * when the preceding {@code $match} selects zero input documents — there is nothing to group. A SQL aggregate
