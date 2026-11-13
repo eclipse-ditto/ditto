@@ -880,6 +880,9 @@ policies:
         authorizationMemoMaxSize: 10000
         # expireAfterWrite the maximum duration of inconsistency after losing a cache invalidation
         expireAfterWrite: 4h
+        # expireAfterWriteJitter the fraction by which expireAfterWrite is randomly varied per loaded enforcer
+        #  (e.g. 0.2 = +/-20%), spreading out the reloads of enforcers loaded at the same time; 0.0 disables it
+        expireAfterWriteJitter: 0.0
         # expireAfterAccess prolonged on each cache access by that duration
         expireAfterAccess: 2h
 
@@ -1260,6 +1263,9 @@ things:
         authorizationMemoMaxSize: 10000
         # expireAfterWrite the maximum duration of inconsistency after losing a cache invalidation
         expireAfterWrite: 4h
+        # expireAfterWriteJitter the fraction by which expireAfterWrite is randomly varied per loaded enforcer
+        #  (e.g. 0.2 = +/-20%), spreading out the reloads of enforcers loaded at the same time; 0.0 disables it
+        expireAfterWriteJitter: 0.0
         # expireAfterAccess prolonged on each cache access by that duration
         expireAfterAccess: 2h
     # merge contains configuration for merge operations with patch conditions
@@ -2013,6 +2019,9 @@ connectivity:
         authorizationMemoMaxSize: 10000
         # expireAfterWrite the maximum duration of inconsistency after losing a cache invalidation
         expireAfterWrite: 4h
+        # expireAfterWriteJitter the fraction by which expireAfterWrite is randomly varied per loaded enforcer
+        #  (e.g. 0.2 = +/-20%), spreading out the reloads of enforcers loaded at the same time; 0.0 disables it
+        expireAfterWriteJitter: 0.0
         # expireAfterAccess prolonged on each cache access by that duration
         expireAfterAccess: 2h
     # edge contains edge service configuration

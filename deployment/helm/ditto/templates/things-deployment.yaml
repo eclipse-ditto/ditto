@@ -326,6 +326,8 @@ spec:
               value: "{{ .Values.things.config.policiesEnforcer.cache.authorizationMemoMaxSize }}"
             - name: DITTO_POLICIES_ENFORCER_CACHE_EXPIRE_AFTER_WRITE
               value: "{{ .Values.things.config.policiesEnforcer.cache.expireAfterWrite }}"
+            - name: DITTO_POLICIES_ENFORCER_CACHE_EXPIRE_AFTER_WRITE_JITTER
+              value: "{{ .Values.things.config.policiesEnforcer.cache.expireAfterWriteJitter }}"
             - name: DITTO_POLICIES_ENFORCER_CACHE_EXPIRE_AFTER_ACCESS
               value: "{{ .Values.things.config.policiesEnforcer.cache.expireAfterAccess }}"
             - name: MERGE_REMOVE_EMPTY_OBJECTS_AFTER_PATCH_CONDITION_FILTERING
