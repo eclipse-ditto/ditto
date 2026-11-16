@@ -32,10 +32,11 @@ public class JsonViewScenario8 implements JsonViewScenario {
 
     public JsonViewScenario8() {
         setup = Scenario.newScenarioSetup( //
-                true, //
+                false, //
                 "Subject has READ granted on '/features'. "
                         + "Subject has READ revoked on '/features'. " //
-                        + "Is able to READ '/'. Can see in JsonView: empty JsonObject.", //
+                        + "Is NOT able to READ '/' or any of its sub-resources, as the revoke wins over the grant "
+                        + "on the same level. Can see in JsonView: empty JsonObject.", //
                 getPolicy(), //
                 Scenario.newAuthorizationContext(SUBJECT_ALL_FEATURES_REVOKED, SUBJECT_FEATURES_READ_GRANTED), //
                 "/", //
