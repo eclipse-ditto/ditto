@@ -209,28 +209,48 @@ public final class JsonMergePatch {
             final JsonObject jsonObject2) {
 
         final List<JsonKey> toBeNulledKeysByRegex = new ArrayList<>();
-        final List<JsonKey> keyRegexes = jsonObject1.getKeys().stream()
-                .filter(JsonMergePatch::isEnclosedByCurlyBraces)
-                .collect(Collectors.toList());
-        keyRegexes.forEach(keyRegex -> {
-            final String keyRegexWithoutCurly = keyRegex.toString().substring(2, keyRegex.length() - 2).trim();
-            if (isEnclosedByRegexDelimiter(keyRegexWithoutCurly)) {
-                final String regexStr = keyRegexWithoutCurly.substring(1, keyRegexWithoutCurly.length() - 1);
-                final Pattern pattern = Pattern.compile(regexStr);
-                jsonObject1.getValue(keyRegex)
-                        .filter(JsonValue::isNull) // only support deletion via regex, so only support "null" values
-                        .ifPresent(keyRegexValue ->
-                                jsonObject2.getKeys().stream()
-                                        .filter(key -> pattern.matcher(key).matches())
-                                        .forEach(toBeNulledKeysByRegex::add)
-                );
+        jsonObject1.forEach(jsonField -> {
+            if (isDeletionByRegex(jsonField.getKey(), jsonField.getValue())) {
+                final Pattern pattern = Pattern.compile(extractDeletionRegex(jsonField.getKey()));
+                jsonObject2.getKeys().stream()
+                        .filter(key -> pattern.matcher(key).matches())
+                        .forEach(toBeNulledKeysByRegex::add);
             }
         });
         return toBeNulledKeysByRegex;
     }
 
-    private static boolean isEnclosedByCurlyBraces(final JsonKey key) {
-        return key.toString().startsWith("{{") && key.toString().endsWith("}}");
+    /**
+     * Determines whether the given field of a merge patch deletes all keys of its enclosing JSON object matching a
+     * regular expression. This is the case if the key has the form {@code {{ ~<regex>~ }}} or
+     * {@code {{ /<regex>/ }}} and the value is {@code null}.
+     * <p>
+     * Applying a merge patch containing such a field modifies all keys of the enclosing JSON object matching the
+     * regular expression, so authorizing such a merge patch must take the enclosing JSON object into account.
+     * </p>
+     *
+     * @param key the key of the merge patch field.
+     * @param value the value of the merge patch field.
+     * @return {@code true} if the field deletes keys of its enclosing JSON object by a regular expression.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @since 3.8.15
+     */
+    public static boolean isDeletionByRegex(final JsonKey key, final JsonValue value) {
+        Objects.requireNonNull(key, "key");
+        Objects.requireNonNull(value, "value");
+        return value.isNull() && extractDeletionRegex(key) != null;
+    }
+
+    @Nullable
+    private static String extractDeletionRegex(final JsonKey key) {
+        final String keyString = key.toString();
+        if (keyString.startsWith("{{") && keyString.endsWith("}}")) {
+            final String keyRegexWithoutCurly = keyString.substring(2, keyString.length() - 2).trim();
+            if (keyRegexWithoutCurly.length() >= 2 && isEnclosedByRegexDelimiter(keyRegexWithoutCurly)) {
+                return keyRegexWithoutCurly.substring(1, keyRegexWithoutCurly.length() - 1);
+            }
+        }
+        return null;
     }
 
     private static boolean isEnclosedByRegexDelimiter(final String keyRegexWithoutCurly) {

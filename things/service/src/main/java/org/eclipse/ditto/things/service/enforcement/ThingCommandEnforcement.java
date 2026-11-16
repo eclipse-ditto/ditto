@@ -44,6 +44,7 @@ import org.eclipse.ditto.internal.utils.pekko.logging.ThreadSafeDittoLogger;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonKey;
+import org.eclipse.ditto.json.JsonMergePatch;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonPointerInvalidException;
@@ -580,15 +581,27 @@ final class ThingCommandEnforcement
             final ResourceKey thingResourceKey,
             final AuthorizationContext authorizationContext) {
 
-        if (enforcer.hasUnrestrictedPermissions(thingResourceKey, authorizationContext, Permission.WRITE)) {
-            // unrestricted permissions at thingResourceKey level
+        final JsonValue mergeValue = command.getEntity().orElseGet(command::getValue);
+        final JsonPointer path = command.getPath();
+        // a regex deletion key as last path segment modifies the keys of its parent:
+        final boolean regexDeletionAtPath = !path.isEmpty() &&
+                path.getLeaf().filter(leaf -> JsonMergePatch.isDeletionByRegex(leaf, mergeValue)).isPresent();
+        final ResourceKey mergedResourceKey =
+                regexDeletionAtPath ? PoliciesResourceType.thingResource(path.cutLeaf()) : thingResourceKey;
+
+        if (enforcer.hasUnrestrictedPermissions(mergedResourceKey, authorizationContext, Permission.WRITE)) {
+            // unrestricted permissions at mergedResourceKey level
             return true;
-        } else if (enforcer.hasPartialPermissions(thingResourceKey, authorizationContext, Permission.WRITE)) {
-            // in case of partial permissions at thingResourceKey level check all leaves of merge patch for
-            // unrestricted permissions
-            final Set<ResourceKey> resourceKeys = calculateLeaves(command.getPath(),
-                    command.getEntity().orElseGet(command::getValue));
-            return enforcer.hasUnrestrictedPermissions(resourceKeys, authorizationContext, Permission.WRITE);
+        } else if (enforcer.hasPartialPermissions(mergedResourceKey, authorizationContext, Permission.WRITE)) {
+            // in case of partial permissions at mergedResourceKey level check all leaves of merge patch for
+            // unrestricted permissions - the leaves are calculated on the merge patch wrapped at its path, the same
+            // way as the merge patch is applied
+            final JsonValue mergePatch = path.isEmpty() ? mergeValue : JsonFactory.newObject(path, mergeValue);
+            final Set<ResourceKey> resourceKeys = calculateLeaves(JsonPointer.empty(), mergePatch);
+            // without any leaves there is nothing to check - require the (already missing) unrestricted permissions
+            // at mergedResourceKey level instead of authorizing the command
+            return !resourceKeys.isEmpty() &&
+                    enforcer.hasUnrestrictedPermissions(resourceKeys, authorizationContext, Permission.WRITE);
         } else {
             // not even partial permission
             return false;
@@ -596,11 +609,14 @@ final class ThingCommandEnforcement
     }
 
     private static Set<ResourceKey> calculateLeaves(final JsonPointer path, final JsonValue value) {
-        if (value.isObject()) {
+        // a JSON null also is an (empty) JsonObject, so check for null first - deleting a field is writing it:
+        if (value.isNull() || !value.isObject()) {
+            return Set.of(PoliciesResourceType.thingResource(path));
+        } else {
             return value.asObject().stream()
                     .map(f -> {
                         final JsonKey key = f.getKey();
-                        if (isMergeWithNulledKeysByRegex(key, f.getValue())) {
+                        if (JsonMergePatch.isDeletionByRegex(key, f.getValue())) {
                             // if regex is contained, writing all below that path must be granted in the policy:
                             return Set.of(PoliciesResourceType.thingResource(path));
                         } else {
@@ -608,25 +624,12 @@ final class ThingCommandEnforcement
                         }
                     })
                     .reduce(new HashSet<>(), ThingCommandEnforcement::addAll, ThingCommandEnforcement::addAll);
-        } else {
-            return Set.of(PoliciesResourceType.thingResource(path));
         }
     }
 
     private static Set<ResourceKey> addAll(final Set<ResourceKey> result, final Set<ResourceKey> toBeAdded) {
         result.addAll(toBeAdded);
         return result;
-    }
-
-    private static boolean isMergeWithNulledKeysByRegex(final JsonKey key, final JsonValue value) {
-        final String keyString = key.toString();
-        if (keyString.startsWith("{{") && keyString.endsWith("}}")) {
-            final String keyRegexWithoutCurly = keyString.substring(2, keyString.length() - 2).trim();
-            return keyRegexWithoutCurly.startsWith("/") && keyRegexWithoutCurly.endsWith("/") &&
-                    value.isNull();
-        } else {
-            return false;
-        }
     }
 
 }
