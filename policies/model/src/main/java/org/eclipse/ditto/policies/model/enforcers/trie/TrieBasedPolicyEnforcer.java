@@ -14,7 +14,10 @@ package org.eclipse.ditto.policies.model.enforcers.trie;
 
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
+import java.util.Collection;
 import java.util.Collections;
+import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
 import org.eclipse.ditto.base.model.auth.AuthorizationContext;
@@ -133,15 +136,48 @@ public final class TrieBasedPolicyEnforcer implements Enforcer {
      * bottomUpGrantTrie} to detect whether any permission is <em>granted</em> on a sub-resource. If the given resource
      * is not mentioned in the policy, then its grants/revokes are inherited from a super-resource, and we use {@code
      * inheritedTrie} to locate the inherited grants/revokes.
+     * <p>
+     * {@code bottomUpGrantTrie} pushes up the grants of each subject on its own. For an authorization context with
+     * several subjects, the revoke of one subject on a sub-resource therefore does not cancel the grant of another
+     * subject on the same sub-resource. If any subject of the authorization context has a permission revoked on the
+     * resource or one of its sub-resources, the sub-resources of {@code inheritedTrie} are checked one by one instead.
      */
     @Override
     public boolean hasPartialPermissions(final ResourceKey resourceKey, final AuthorizationContext authorizationContext,
             final Permissions permissions) {
 
-        final PolicyTrie policyTrie = seekWithFallback(resourceKey, bottomUpGrantTrie, inheritedTrie);
-        final GrantRevokeIndex grantRevokeIndex = policyTrie.getGrantRevokeIndex();
+        final List<String> subjectIds = authorizationContext.getAuthorizationSubjectIds();
+        final Optional<PolicyTrie> bottomUpGrantNode =
+                bottomUpGrantTrie.seekToExactNode(PolicyTrie.getJsonKeyIterator(resourceKey));
+        if (!bottomUpGrantNode.isPresent()) {
+            return inheritedTrie.seekToLeastAncestor(PolicyTrie.getJsonKeyIterator(resourceKey))
+                    .getGrantRevokeIndex()
+                    .hasPermissions(subjectIds, permissions);
+        }
 
-        return grantRevokeIndex.hasPermissions(authorizationContext.getAuthorizationSubjectIds(), permissions);
+        final boolean hasPermissions = bottomUpGrantNode.get().getGrantRevokeIndex()
+                .hasPermissions(subjectIds, permissions);
+        if (!hasPermissions || subjectIds.size() < 2) {
+            return hasPermissions;
+        }
+        return hasPartialPermissionsOfSeveralSubjects(resourceKey, subjectIds, permissions);
+    }
+
+    private boolean hasPartialPermissionsOfSeveralSubjects(final ResourceKey resourceKey,
+            final Collection<String> subjectIds, final Permissions permissions) {
+
+        final PermissionSubjectsMap revokedOnSelfOrDescendants =
+                bottomUpRevokeTrie.seekToLeastAncestor(PolicyTrie.getJsonKeyIterator(resourceKey))
+                        .getGrantRevokeIndex()
+                        .getRevoked();
+        final PolicyTrie inheritedNode = inheritedTrie.seekToLeastAncestor(PolicyTrie.getJsonKeyIterator(resourceKey));
+        for (final String permission : permissions) {
+            if (revokedOnSelfOrDescendants.getMaxWeight(subjectIds, permission).isPresent() &&
+                    !inheritedNode.hasPermissionOnSelfOrAnyDescendant(subjectIds, permission)) {
+                return false;
+            }
+        }
+        return true;
     }
 
     @Override

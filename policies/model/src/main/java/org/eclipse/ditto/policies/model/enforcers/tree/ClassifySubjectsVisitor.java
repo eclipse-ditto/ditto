@@ -38,7 +38,7 @@ import org.eclipse.ditto.policies.model.enforcers.SubjectClassification;
  * <table>
  *   <tr><th>WeightedPermissions</th><th>ABOVE/SAME grants</th><th>ABOVE/SAME revokes</th>
  *       <th>BELOW grants</th><th>BELOW revokes</th></tr>
- *   <tr><td>partialWeights</td><td>yes</td><td>yes</td><td>yes</td><td>no</td></tr>
+ *   <tr><td>partialWeights</td><td>yes</td><td>yes</td><td>yes, unless revoked on the same level</td><td>no</td></tr>
  *   <tr><td>unrestrictedWeights</td><td>yes</td><td>yes</td><td>no</td><td>yes</td></tr>
  *   <tr><td>effectedWeights</td><td>yes</td><td>yes</td><td>no</td><td>no</td></tr>
  * </table>
@@ -144,8 +144,8 @@ final class ClassifySubjectsVisitor implements Visitor<SubjectClassification> {
                 effectedWeights.addGranted(grantedPermissions, level);
                 effectedWeights.addRevoked(revokedPermissions, level);
             } else if (PointerLocation.BELOW == pointerLocation) {
-                // Partial: BELOW grants only (no BELOW revokes)
-                partialWeights.addGranted(grantedPermissions, level);
+                // Partial: BELOW grants only, unless revoked on the same level (no BELOW revokes)
+                partialWeights.addGrantedUnlessRevoked(grantedPermissions, revokedPermissions, level);
 
                 // Unrestricted: BELOW revokes only (no BELOW grants)
                 unrestrictedWeights.addRevoked(revokedPermissions, level);

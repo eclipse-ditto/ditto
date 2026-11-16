@@ -222,6 +222,28 @@ final class PolicyTrie {
     }
 
     /**
+     * Returns whether the given permission is granted to the given subject IDs on the resource of this node or on any
+     * of its sub-resources. Each node is evaluated on its own, so the revoke of one subject wins over the grant of
+     * another subject on the same resource. Only meaningful on the inherited trie, whose nodes contain the grants and
+     * revokes pushed down from their ancestors.
+     *
+     * @param subjectIds the subject IDs to check.
+     * @param permission the permission to check.
+     * @return whether the permission is granted on this node or any of its descendants.
+     */
+    boolean hasPermissionOnSelfOrAnyDescendant(final Collection<String> subjectIds, final String permission) {
+        if (grantRevokeIndex.hasPermissions(subjectIds, Collections.singleton(permission))) {
+            return true;
+        }
+        for (final PolicyTrie child : children.values()) {
+            if (child.hasPermissionOnSelfOrAnyDescendant(subjectIds, permission)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
      * Returns whether a child exists for the given key.
      *
      * @param childKey Key of the child to check.

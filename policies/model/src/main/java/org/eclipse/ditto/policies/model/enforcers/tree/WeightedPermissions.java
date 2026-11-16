@@ -126,6 +126,26 @@ final class WeightedPermissions {
     }
 
     /**
+     * Adds the specified granted permissions with the specified weight to this collection, except those which are
+     * revoked on the same level. A revoke always wins over a grant with the same weight.
+     *
+     * @param grantedPermissions the granted permissions to be added.
+     * @param revokedPermissions the permissions revoked on the same level as {@code grantedPermissions}.
+     * @param weight the weight of each of {@code grantedPermissions}.
+     * @throws NullPointerException if any argument is {@code null}.
+     */
+    public void addGrantedUnlessRevoked(final Iterable<String> grantedPermissions,
+            final Collection<String> revokedPermissions, final int weight) {
+
+        checkNotNull(revokedPermissions, "revoked permissions");
+        for (final String permission : grantedPermissions) {
+            if (!revokedPermissions.contains(permission)) {
+                addGranted(permission, weight);
+            }
+        }
+    }
+
+    /**
      * Returns all revoked permissions. <em>Caution:</em> changes on the result are reflected back into this collection.
      *
      * @return the permissions.

@@ -28,7 +28,8 @@ import org.eclipse.ditto.policies.model.Permissions;
 
 /**
  * This visitor collects all subject IDs each of which has all the specified permissions granted on the specified
- * resource or on any sub resource down in the hierarchy. Revoked permissions are not taken into account.
+ * resource or on any sub resource down in the hierarchy. Revoked permissions of sub resources are only taken into
+ * account for the grants on the same sub resource, as a revoke wins over a grant on the same level.
  *
  * @since 1.1.0
  */
@@ -112,7 +113,8 @@ final class CollectPartialGrantedSubjectsVisitor implements Visitor<Set<Authoriz
                 weightedPermissionsForSubjectId.addGranted(grantedPermissions, resourceNode.getLevel());
                 weightedPermissionsForSubjectId.addRevoked(revokedPermissions, resourceNode.getLevel());
             } else if (PointerLocation.BELOW == pointerLocation) {
-                weightedPermissionsForSubjectId.addGranted(grantedPermissions, resourceNode.getLevel());
+                weightedPermissionsForSubjectId.addGrantedUnlessRevoked(grantedPermissions,
+                        effectedPermissions.getRevokedPermissions(), resourceNode.getLevel());
             }
         }
 
