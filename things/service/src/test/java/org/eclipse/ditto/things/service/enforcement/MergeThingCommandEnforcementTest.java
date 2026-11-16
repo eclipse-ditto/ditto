@@ -50,6 +50,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.ArgumentsProvider;
 import org.junit.jupiter.params.provider.ArgumentsSource;
+import org.junit.jupiter.params.provider.MethodSource;
 
 /**
  * Tests {@link org.eclipse.ditto.things.model.signals.commands.modify.MergeThing} by applying command enforcement to
@@ -172,6 +173,101 @@ final class MergeThingCommandEnforcementTest {
         final MergeThing mergeThing = MergeThing.of(TestSetup.THING_ID, JsonPointer.empty(), patch, TestArgument.headers());
         assertThatExceptionOfType(ThingNotModifiableException.class).isThrownBy(
                 () -> ThingCommandEnforcement.authorizeByPolicyOrThrow(policyEnforcer, mergeThing, true));
+    }
+
+    @ParameterizedTest(name = "[{index}] {0}: merge {1} with {2}")
+    @MethodSource("deletionsToReject")
+    void rejectDeletionWithoutWritePermission(final String policyName, final String path, final String value) {
+        final PolicyEnforcer policyEnforcer = deletionPolicyEnforcer(policyName);
+        final MergeThing mergeThing = MergeThing.of(TestSetup.THING_ID, JsonPointer.of(path),
+                JsonFactory.readFrom(value), TestArgument.headers());
+        assertThatExceptionOfType(ThingNotModifiableException.class).isThrownBy(
+                () -> ThingCommandEnforcement.authorizeByPolicyOrThrow(policyEnforcer, mergeThing, true));
+    }
+
+    @ParameterizedTest(name = "[{index}] {0}: merge {1} with {2}")
+    @MethodSource("deletionsToAccept")
+    void acceptDeletionWithWritePermission(final String policyName, final String path, final String value) {
+        final PolicyEnforcer policyEnforcer = deletionPolicyEnforcer(policyName);
+        final MergeThing mergeThing = MergeThing.of(TestSetup.THING_ID, JsonPointer.of(path),
+                JsonFactory.readFrom(value), TestArgument.headers());
+        final MergeThing authorizedMergeThing =
+                ThingCommandEnforcement.authorizeByPolicyOrThrow(policyEnforcer, mergeThing, true);
+        assertThat(authorizedMergeThing.getDittoHeaders().getAuthorizationContext()).isNotNull();
+    }
+
+    /**
+     * WRITE is granted on {@code /attributes} and revoked on {@code /attributes/firmware}.
+     */
+    private static final String FIRMWARE_REVOKED = "FIRMWARE_REVOKED";
+
+    /**
+     * WRITE is only granted on {@code /attributes/other}.
+     */
+    private static final String ONLY_OTHER_GRANTED = "ONLY_OTHER_GRANTED";
+
+    /**
+     * WRITE is granted on {@code /attributes} without any revokes.
+     */
+    private static final String ATTRIBUTES_GRANTED = "ATTRIBUTES_GRANTED";
+
+    private static PolicyEnforcer deletionPolicyEnforcer(final String policyName) {
+        final TestArgument testArgument = switch (policyName) {
+            case FIRMWARE_REVOKED -> TestArgument.of("/", Set.of("/attributes"), Set.of("/attributes/firmware"));
+            case ONLY_OTHER_GRANTED -> TestArgument.of("/", Set.of("/attributes/other"), Set.of());
+            case ATTRIBUTES_GRANTED -> TestArgument.of("/", Set.of("/attributes"), Set.of());
+            default -> throw new IllegalArgumentException(policyName);
+        };
+        return PolicyEnforcer.of(testArgument.getPolicy(),
+                TrieBasedPolicyEnforcer.newInstance(testArgument.getPolicy()));
+    }
+
+    static Stream<Arguments> deletionsToReject() {
+        return Stream.of(
+                // null values delete the field - which must be writable:
+                Arguments.of(FIRMWARE_REVOKED, "/attributes", "{\"firmware\":null}"),
+                Arguments.of(FIRMWARE_REVOKED, "/attributes", "{\"firmware\":{\"nested\":null}}"),
+                Arguments.of(FIRMWARE_REVOKED, "/attributes", "{\"other\":1,\"firmware\":null}"),
+                Arguments.of(FIRMWARE_REVOKED, "/", "{\"attributes\":{\"firmware\":null}}"),
+                Arguments.of(FIRMWARE_REVOKED, "/", "{\"attributes\":null}"),
+                Arguments.of(FIRMWARE_REVOKED, "/attributes/firmware", "null"),
+                Arguments.of(ONLY_OTHER_GRANTED, "/attributes", "{\"firmware\":null}"),
+                Arguments.of(ONLY_OTHER_GRANTED, "/", "{\"features\":null}"),
+                Arguments.of(ONLY_OTHER_GRANTED, "/", "{\"attributes\":null,\"features\":null,\"definition\":null}"),
+                Arguments.of(ONLY_OTHER_GRANTED, "/", "{\"attributes\":{\"other\":1},\"features\":null}"),
+                // regex deletion keys with both delimiters require WRITE on the enclosing object:
+                Arguments.of(FIRMWARE_REVOKED, "/attributes", "{\"{{ ~firmware~ }}\":null}"),
+                Arguments.of(FIRMWARE_REVOKED, "/attributes", "{\"{{ ~.*~ }}\":null}"),
+                Arguments.of(FIRMWARE_REVOKED, "/attributes", "{\"{{~.*~}}\":null}"),
+                Arguments.of(FIRMWARE_REVOKED, "/attributes", "{\"{{ /firmware/ }}\":null}"),
+                Arguments.of(FIRMWARE_REVOKED, "/", "{\"attributes\":{\"{{ ~.*~ }}\":null}}"),
+                Arguments.of(FIRMWARE_REVOKED, "/", "{\"{{ ~.*~ }}\":null}"),
+                Arguments.of(ONLY_OTHER_GRANTED, "/attributes", "{\"{{ ~.*~ }}\":null}"),
+                // regex deletion key as last segment of the merged path:
+                Arguments.of(FIRMWARE_REVOKED, "/attributes/{{ ~firmware~ }}", "null"),
+                Arguments.of(FIRMWARE_REVOKED, "/attributes/{{ ~.*~ }}", "null"),
+                Arguments.of(ONLY_OTHER_GRANTED, "/attributes/{{ ~.*~ }}", "null"),
+                // without any leaves there is nothing to authorize partially:
+                Arguments.of(ONLY_OTHER_GRANTED, "/attributes", "{}"),
+                Arguments.of(ONLY_OTHER_GRANTED, "/", "{}"),
+                Arguments.of(ONLY_OTHER_GRANTED, "/", "{\"attributes\":{}}")
+        );
+    }
+
+    static Stream<Arguments> deletionsToAccept() {
+        return Stream.of(
+                Arguments.of(FIRMWARE_REVOKED, "/attributes", "{\"other\":null}"),
+                Arguments.of(FIRMWARE_REVOKED, "/attributes", "{\"other\":1,\"another\":null}"),
+                Arguments.of(FIRMWARE_REVOKED, "/attributes/other", "null"),
+                Arguments.of(FIRMWARE_REVOKED, "/attributes", "{\"other\":{\"{{ ~.*~ }}\":null}}"),
+                Arguments.of(FIRMWARE_REVOKED, "/attributes/other/{{ ~.*~ }}", "null"),
+                Arguments.of(ONLY_OTHER_GRANTED, "/attributes", "{\"other\":null}"),
+                Arguments.of(ONLY_OTHER_GRANTED, "/", "{\"attributes\":{\"other\":null}}"),
+                Arguments.of(ONLY_OTHER_GRANTED, "/attributes/other", "{\"{{ ~.*~ }}\":null}"),
+                Arguments.of(ATTRIBUTES_GRANTED, "/", "{\"attributes\":{\"{{ ~.*~ }}\":null}}"),
+                Arguments.of(ATTRIBUTES_GRANTED, "/", "{\"attributes\":null}"),
+                Arguments.of(ATTRIBUTES_GRANTED, "/attributes/{{ ~.*~ }}", "null")
+        );
     }
 
     /**
