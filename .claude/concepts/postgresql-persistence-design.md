@@ -213,19 +213,29 @@ The designs that were not chosen, and why, so that the choices of §2–§4 can 
   backend that holds a service thread for the duration of every query. The price is the third-party content of the base
   JAR (§2.3: reactor, netty, r2dbc) and that schema tooling built on JDBC is out (below).
 - **`pekko-persistence-r2dbc` as the Pekko plugin.** Evaluated against version 1.1.0 and rejected; `bom/pom.xml` bans
-  it (§2.3) so it cannot return as a transitive dependency. Four facts, each sufficient on its own:
+  it (§2.3) so it cannot return as a transitive dependency. Four facts, each sufficient on its own, and each still
+  true in the 1.2.0 source (`R2dbcReadJournal`, `JournalDao`, `HighestSequenceNrDao`, `SnapshotDao`):
   - Its read journal implements slice, persistence-id and paged queries only — no `EventsByTagQuery`, and nothing like
     the persistence ping's query for distinct pids ordered by the priority tag of each pid's newest event (§3.4).
   - Its journal and snapshot payloads are `bytea` through Pekko serialization, with no JSON option, so Ditto's JSON
     adapters would need their own serializer and DAO anyway, and SQL could not read the payloads (§3.3).
   - Its `deleteMessagesTo` deletes the rows and inserts a marker row (`deleted = true`, empty payload) at the deleted
-    sequence number into the journal table, and the highest sequence number is read from the journal rows. Ditto's
+    sequence number into the journal table, and the highest sequence number is read from the journal rows
+    (`SELECT MAX(seq_nr)` on the journal table, the only place the plugin keeps that number). Ditto's
     background cleanup deletes journal rows by range outside the plugin (`Cleanup` through the read journal), so that
     number would depend on rows Ditto removes; the `<e>_journal_seq` row (§3.1) keeps it independent of the journal.
   - Its snapshot store keeps one row per persistence id (`ON CONFLICT (persistence_id) DO UPDATE`): no snapshot
     history, no recovery at an older sequence number, no retention of several snapshots (§3.1 keys on
     `(pid, sn, written_at)`).
-- **`pekko-persistence-jdbc`.** The same query gaps, and Slick runs blocking JDBC on a thread pool (first item).
+- **`pekko-persistence-jdbc`.** Checked against version 1.3.0. Slick runs blocking JDBC on a HikariCP thread pool
+  (first item), and the journal and snapshot payloads are `bytea` through Pekko serialization, as in the R2DBC plugin
+  (§3.3). Unlike that plugin it implements `EventsByTagQuery` and keeps a snapshot history
+  (`PRIMARY KEY (persistence_id, sequence_number)`); the persistence ping's query (§3.4) is missing here too.
+- **`pekko-persistence-postgres` (SwissBorg).** Checked against version 0.9.0. A PostgreSQL-only fork of the JDBC
+  plugin: tags as an `int[]` column with a GIN index, optional journal partitioning, `EventsByTagQuery`, a snapshot
+  history. Rejected for the same two reasons as the JDBC plugin: Slick on a HikariCP thread pool (first item), and
+  `bytea` event and snapshot payloads — only its `metadata` column is `jsonb` (§3.3). The persistence ping's query
+  (§3.4) is missing here as well.
 - **Flyway or Liquibase for the schema.** Both need a JDBC driver next to R2DBC in the base JAR and keep a migration
   history of their own. The service owns its DDL instead (§3.2): idempotent statements, a version + checksum row as the
   history, an advisory lock as the coordinator. The price is that transforming changes cannot be expressed (§3.2).
