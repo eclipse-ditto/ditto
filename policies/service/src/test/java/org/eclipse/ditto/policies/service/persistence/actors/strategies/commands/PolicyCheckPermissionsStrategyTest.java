@@ -186,4 +186,60 @@ public final class PolicyCheckPermissionsStrategyTest extends AbstractPolicyComm
         assertThat(CheckPolicyPermissionsResponse.toMap(response.getPermissionsResults()))
                 .containsEntry("thingRead", true);
     }
+
+    @Test
+    public void checkMultiplePermissionsIsDeniedIfOneIsRevokedForAnotherSubjectOfTheAuthorizationContext() {
+        final PolicyId localPolicyId = PolicyId.of("org.eclipse.ditto", "multi-subject-policy");
+        final SubjectId restrictedGroupId = SubjectId.newInstance(SubjectIssuer.GOOGLE, "restricted-group");
+        final ResourceKey publicAttributeResource = ResourceKey.newInstance("thing", "/attributes/pub");
+        final Policy localPolicy = PoliciesModelFactory.newPolicyBuilder(localPolicyId)
+                .forLabel(Label.of("user"))
+                .setSubject(AUTH_SUBJECT)
+                .setGrantedPermissions(THING_ROOT_RESOURCE, Permissions.newInstance("WRITE"))
+                .setGrantedPermissions(publicAttributeResource, Permissions.newInstance("READ"))
+                .forLabel(Label.of("restricted"))
+                .setSubject(Subject.newInstance(restrictedGroupId, SubjectType.GENERATED))
+                .setRevokedPermissions(ResourceKey.newInstance("thing", "/attributes"),
+                        Permissions.newInstance("WRITE"))
+                .build();
+        final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
+                .authorizationContext(AuthorizationContext.newInstance(
+                        DittoAuthorizationContextType.UNSPECIFIED,
+                        AuthorizationSubject.newInstance(AUTH_SUBJECT_ID.toString()),
+                        AuthorizationSubject.newInstance(restrictedGroupId.toString())))
+                .build();
+
+        final PolicyEnforcerProvider provider = policyId ->
+                CompletableFuture.completedFuture(Optional.of(PolicyEnforcer.of(localPolicy)));
+
+        final PolicyCheckPermissionsStrategy underTest = new PolicyCheckPermissionsStrategy(
+                DefaultPolicyConfig.of(ConfigFactory.load("policy-test")), provider);
+
+        final CheckPolicyPermissions command = CheckPolicyPermissions.of(
+                localPolicyId,
+                Map.of(
+                        "readWrite", ResourcePermissionFactory.newInstance(publicAttributeResource,
+                                List.of("READ", "WRITE")),
+                        "write", ResourcePermissionFactory.newInstance(publicAttributeResource, List.of("WRITE")),
+                        "read", ResourcePermissionFactory.newInstance(publicAttributeResource, List.of("READ"))
+                ),
+                dittoHeaders
+        );
+
+        final Result<?> result = applyStrategy(underTest, getDefaultContext(), localPolicy, command);
+
+        final Dummy<?> mock = Dummy.mock();
+        result.accept((ResultVisitor) mock, null);
+
+        final ArgumentCaptor<CompletionStage<WithDittoHeaders>> responseCaptor =
+                ArgumentCaptor.forClass(CompletionStage.class);
+        verify(mock).onStagedQuery(any(), responseCaptor.capture(), isNull());
+
+        final CheckPolicyPermissionsResponse response =
+                (CheckPolicyPermissionsResponse) responseCaptor.getValue().toCompletableFuture().join();
+        assertThat(CheckPolicyPermissionsResponse.toMap(response.getPermissionsResults()))
+                .containsEntry("readWrite", false)
+                .containsEntry("write", false)
+                .containsEntry("read", true);
+    }
 }
