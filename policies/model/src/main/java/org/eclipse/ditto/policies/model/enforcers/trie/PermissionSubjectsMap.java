@@ -129,7 +129,11 @@ final class PermissionSubjectsMap extends AbstractMap<String, Map<String, Intege
     Map<String, Integer> getSubjectIntersect(final Set<String> permissions) {
         validatePermissions(permissions);
 
-        final Stream<Map<String, Integer>> subjectsOfPermissions = intersect(keySet(), permissions).map(this::get);
+        if (!data.keySet().containsAll(permissions)) {
+            // a permission which is not related to any subject leaves no subject related to all permissions
+            return Collections.emptyMap();
+        }
+        final Stream<Map<String, Integer>> subjectsOfPermissions = permissions.stream().map(data::get);
 
         final Optional<Map<String, Integer>> reduceResult = subjectsOfPermissions.reduce((map1, map2) ->
                 intersect(map1.keySet(), map2.keySet())

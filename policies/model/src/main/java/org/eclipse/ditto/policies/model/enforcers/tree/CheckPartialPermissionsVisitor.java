@@ -13,6 +13,10 @@
 package org.eclipse.ditto.policies.model.enforcers.tree;
 
 import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
 
 import javax.annotation.ParametersAreNonnullByDefault;
 import javax.annotation.concurrent.NotThreadSafe;
@@ -22,10 +26,15 @@ import org.eclipse.ditto.policies.model.EffectedPermissions;
 import org.eclipse.ditto.policies.model.Permissions;
 
 /**
+ * Checks whether the authorization subjects have the expected permissions granted on the resource or on any of its
+ * sub resources. A grant on a sub resource only counts if none of the authorization subjects has the same permission
+ * revoked on that sub resource, as a revoke wins over a grant on the same level.
  */
 @NotThreadSafe
 @ParametersAreNonnullByDefault
 final class CheckPartialPermissionsVisitor extends CheckPermissionsVisitor {
+
+    private final Map<JsonPointer, SubResourcePermissions> subResourcePermissions;
 
     /**
      * Constructs a new {@code CheckPartialPermissionsVisitor} object.
@@ -41,6 +50,7 @@ final class CheckPartialPermissionsVisitor extends CheckPermissionsVisitor {
             final Permissions expectedPermissions) {
 
         super(resourcePointer, authSubjectIds, expectedPermissions);
+        subResourcePermissions = new HashMap<>();
     }
 
     @Override
@@ -55,9 +65,43 @@ final class CheckPartialPermissionsVisitor extends CheckPermissionsVisitor {
         if (PointerLocation.ABOVE == pointerLocation || PointerLocation.SAME == pointerLocation) {
             weightedPermissions.addGranted(grantedPermissions, resourceNode.getLevel());
             weightedPermissions.addRevoked(revokedPermissions, resourceNode.getLevel());
-        } else if (PointerLocation.BELOW == pointerLocation) {
-            weightedPermissions.addGranted(grantedPermissions, resourceNode.getLevel());
+        } else if (PointerLocation.BELOW == pointerLocation &&
+                (!grantedPermissions.isEmpty() || !revokedPermissions.isEmpty())) {
+            // the grants and revokes of all authorization subjects on a sub resource have to be known before the
+            // grants of that sub resource can be aggregated
+            subResourcePermissions.computeIfAbsent(resourceNode.getAbsolutePointer(),
+                            pointer -> new SubResourcePermissions(resourceNode.getLevel()))
+                    .add(grantedPermissions, revokedPermissions);
         }
+    }
+
+    @Override
+    protected void completeWeightedPermissions(final WeightedPermissions weightedPermissions) {
+        for (final SubResourcePermissions permissions : subResourcePermissions.values()) {
+            weightedPermissions.addGrantedUnlessRevoked(permissions.granted, permissions.revoked, permissions.level);
+        }
+    }
+
+    /**
+     * The granted and revoked permissions of all authorization subjects on one sub resource.
+     */
+    private static final class SubResourcePermissions {
+
+        private final int level;
+        private final Set<String> granted;
+        private final Set<String> revoked;
+
+        private SubResourcePermissions(final int level) {
+            this.level = level;
+            granted = new HashSet<>();
+            revoked = new HashSet<>();
+        }
+
+        private void add(final Collection<String> grantedPermissions, final Collection<String> revokedPermissions) {
+            granted.addAll(grantedPermissions);
+            revoked.addAll(revokedPermissions);
+        }
+
     }
 
 }

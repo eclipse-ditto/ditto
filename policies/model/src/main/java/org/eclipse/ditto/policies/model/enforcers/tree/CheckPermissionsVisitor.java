@@ -103,7 +103,18 @@ abstract class CheckPermissionsVisitor implements Visitor<Boolean> {
         return determineResult();
     }
 
+    /**
+     * Hook which is called once after all resource nodes were visited and before the result is determined. Allows
+     * subclasses to add weighted permissions which can only be determined after all subjects were visited.
+     *
+     * @param weightedPermissions the weighted permissions to be used for aggregation.
+     */
+    protected void completeWeightedPermissions(final WeightedPermissions weightedPermissions) {
+        // nothing to complete by default
+    }
+
     private boolean determineResult() {
+        completeWeightedPermissions(weightedPermissions);
         final Map<String, WeightedPermission> granted =
                 weightedPermissions.getGrantedWithHighestWeight(expectedPermissions);
 

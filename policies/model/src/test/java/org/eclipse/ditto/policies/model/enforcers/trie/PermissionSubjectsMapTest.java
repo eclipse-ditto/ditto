@@ -207,10 +207,23 @@ public final class PermissionSubjectsMapTest {
     }
 
     @Test
+    public void getSubjectIntersectReturnsEmptyMapIfAPermissionIsNotRelatedToAnySubject() {
+        underTest.put("READ", Collections.singletonMap(subjectId, 0));
+        underTest.put("READ", Collections.singletonMap(anotherSubjectId, 23));
+
+        final Map<String, Integer> subjectIntersect = underTest.getSubjectIntersect(permissions);
+
+        assertThat(subjectIntersect).isEmpty();
+    }
+
+    @Test
     public void getSubjectIntersectReturnsExpected() {
         final int maxWeight = 23;
-        underTest.put("READ", Collections.singletonMap(subjectId, 0));
-        underTest.put("READ", Collections.singletonMap(anotherSubjectId, maxWeight));
+        final Map<String, Integer> readSubjects = new HashMap<>();
+        readSubjects.put(subjectId, 0);
+        readSubjects.put(anotherSubjectId, maxWeight);
+        underTest.put("READ", readSubjects);
+        underTest.put("WRITE", Collections.singletonMap(anotherSubjectId, 1));
 
         final Map<String, Integer> subjectIntersect = underTest.getSubjectIntersect(permissions);
 
