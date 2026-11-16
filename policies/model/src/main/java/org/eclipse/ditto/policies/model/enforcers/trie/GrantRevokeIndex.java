@@ -98,14 +98,31 @@ final class GrantRevokeIndex {
      * Check whether each of the given permissions is granted to some of the given authorization subject such that
      * none of the permissions is revoked from any of the subject IDs with the same or a greater weight.
      *
+     * The grant and revoke weights are compared for each permission on its own: a grant of one permission must not
+     * hide a revoke of another permission.
+     *
      * @param subjectIds Authorization subject IDs to check.
      * @param permissions Permissions to check.
-     * @return Result of the check.
+     * @return Result of the check; {@code false} if {@code permissions} is empty.
      * @throws NullPointerException if any argument is {@code null}.
      */
     boolean hasPermissions(final Collection<String> subjectIds, final Collection<String> permissions) {
-        final Optional<Integer> grantWeight = grantMap.getMaxNonemptyWeightForAllPermissions(subjectIds, permissions);
-        final Optional<Integer> revokeWeight = revokeMap.getMaxWeightForAllPermissions(subjectIds, permissions);
+        checkNotNull(subjectIds, "subject IDs to check");
+        checkNotNull(permissions, "permissions to check");
+        if (permissions.isEmpty()) {
+            return false;
+        }
+        for (final String permission : permissions) {
+            if (!hasPermission(subjectIds, permission)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private boolean hasPermission(final Collection<String> subjectIds, final String permission) {
+        final Optional<Integer> grantWeight = grantMap.getMaxWeight(subjectIds, permission);
+        final Optional<Integer> revokeWeight = revokeMap.getMaxWeight(subjectIds, permission);
 
         return grantWeight.isPresent() && (!revokeWeight.isPresent() || revokeWeight.get() < grantWeight.get());
     }
