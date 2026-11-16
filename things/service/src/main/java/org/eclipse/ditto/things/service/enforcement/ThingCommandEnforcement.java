@@ -14,6 +14,7 @@ package org.eclipse.ditto.things.service.enforcement;
 
 import static org.eclipse.ditto.policies.enforcement.AbstractEnforcerActor.ENFORCEMENT_DISPATCHER;
 
+import java.text.MessageFormat;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -28,6 +29,7 @@ import org.apache.pekko.Done;
 import org.apache.pekko.actor.ActorRef;
 import org.apache.pekko.actor.ActorSystem;
 import org.eclipse.ditto.base.model.auth.AuthorizationContext;
+import org.eclipse.ditto.base.model.exceptions.DittoHeaderInvalidException;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
@@ -163,6 +165,8 @@ final class ThingCommandEnforcement
             // authorization is not necessary for WoT TD requesting thing query command, this is treated as public
             // information:
             FeatureToggle.checkWotIntegrationFeatureEnabled(command.getType(), command.getDittoHeaders());
+            // conditions would be evaluated against the full thing, even when the TD itself is public information:
+            rejectConditionHeadersOfWotTdRequest(command.getDittoHeaders());
             // for retrieving the WoT TD, assume that full TD gets returned unfiltered:
             authorizedCommand = prepareThingCommandBeforeSendingToPersistence(command);
         } else {
@@ -244,6 +248,30 @@ final class ThingCommandEnforcement
                 thingCommand.getDittoHeaders().getAccept()
                         .filter(ContentType.APPLICATION_TD_JSON.getValue()::equals)
                         .isPresent();
+    }
+
+    private static void rejectConditionHeadersOfWotTdRequest(final DittoHeaders dittoHeaders) {
+        if (dittoHeaders.getCondition().isPresent()) {
+            throw conditionHeaderNotAllowedForWotTdRequest(DittoHeaderDefinition.CONDITION, dittoHeaders);
+        }
+        if (dittoHeaders.getLiveChannelCondition().isPresent()) {
+            throw conditionHeaderNotAllowedForWotTdRequest(DittoHeaderDefinition.LIVE_CHANNEL_CONDITION,
+                    dittoHeaders);
+        }
+    }
+
+    private static DittoHeaderInvalidException conditionHeaderNotAllowedForWotTdRequest(
+            final DittoHeaderDefinition headerDefinition, final DittoHeaders dittoHeaders) {
+
+        final String headerKey = headerDefinition.getKey();
+        return DittoHeaderInvalidException.newBuilder()
+                .withInvalidHeaderKey(headerKey)
+                .message(MessageFormat.format(
+                        "The header ''{0}'' is not supported when requesting a WoT Thing Description.", headerKey))
+                .description(MessageFormat.format("Remove the ''{0}'' header or request the Thing without " +
+                        "''Accept: {1}''.", headerKey, ContentType.APPLICATION_TD_JSON.getValue()))
+                .dittoHeaders(dittoHeaders)
+                .build();
     }
 
     /**
@@ -358,7 +386,9 @@ final class ThingCommandEnforcement
         if (!(command instanceof CreateThing) && condition.isPresent()) {
             enforceReadPermissionOnCondition(condition.get(), enforcer, dittoHeaders,
                     () -> ThingConditionFailedException.newBuilderForInsufficientPermission(dittoHeaders).build());
-        } else if ((command instanceof ThingQueryCommand)) {
+        }
+        // checked independently of the condition, as both are evaluated against the full thing:
+        if (command instanceof ThingQueryCommand) {
             dittoHeaders.getLiveChannelCondition()
                     .ifPresent(liveChannelCondition -> enforceReadPermissionOnCondition(liveChannelCondition, enforcer,
                             dittoHeaders,
