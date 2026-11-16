@@ -522,6 +522,10 @@ To successfully execute merge update the authorized subject needs to have *WRITE
 affected by the provided JSON merge patch. If the permission is missing for one of the affected resources the whole 
 merge patch is *rejected*, i.e. the merge update is executed as a whole or not at all.
 
+Deleting is writing:
+* A field with a `null` value requires unrestricted `WRITE` permission on that field, including everything below it.
+* A regex-based removal (`{%raw%}{{ ~<regex>~ }}{%endraw%}`) requires unrestricted `WRITE` permission on the JSON object containing it, as it can remove any of its keys.
+
 ### Merge update example
 
 Given an existing thing with the JSON structure:
