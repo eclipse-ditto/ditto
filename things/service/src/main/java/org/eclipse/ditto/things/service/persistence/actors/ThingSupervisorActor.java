@@ -20,6 +20,7 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.CompletionStage;
+import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Nullable;
 
@@ -51,7 +52,6 @@ import org.eclipse.ditto.base.model.signals.events.Event;
 import org.eclipse.ditto.base.service.actors.ShutdownBehaviour;
 import org.eclipse.ditto.internal.utils.cacheloaders.AskWithRetry;
 import org.eclipse.ditto.internal.utils.cluster.ShardRegionProxyActorFactory;
-import org.eclipse.ditto.internal.utils.cluster.StopShardedActor;
 import org.eclipse.ditto.internal.utils.namespaces.BlockedNamespaces;
 import org.eclipse.ditto.internal.utils.persistence.mongo.streaming.MongoReadJournal;
 import org.eclipse.ditto.internal.utils.persistentactors.AbstractPersistenceSupervisor;
@@ -100,7 +100,6 @@ public final class ThingSupervisorActor extends AbstractPersistenceSupervisor<Th
     private final DistributedPub<ThingEvent<?>> distributedPubThingEventsForTwin;
     @Nullable private final ThingPersistenceActorPropsFactory thingPersistenceActorPropsFactory;
     private final PolicyEnforcerProvider policyEnforcerProvider;
-    private final Duration shutdownTimeout;
     private final Materializer materializer;
     private final ResponseReceiverCache responseReceiverCache;
 
@@ -137,10 +136,10 @@ public final class ThingSupervisorActor extends AbstractPersistenceSupervisor<Th
         this.thingPersistenceActorPropsFactory = thingPersistenceActorPropsFactory;
         this.policyEnforcerProvider = policyEnforcerProvider;
         persistenceActorChild = thingPersistenceActorRef;
-        shutdownTimeout = thingsConfig.getThingConfig().getShutdownTimeout();
 
-        materializer = Materializer.createMaterializer(getContext());
         final var system = getContext().getSystem();
+        // not bound to this actor's lifecycle: a response stream started before this actor stopped must still run
+        materializer = Materializer.matFromSystem(system);
         responseReceiverCache = ResponseReceiverCache.lookup(system);
 
         final ActorSelection thingPersistenceActorSelection;
@@ -340,7 +339,9 @@ public final class ThingSupervisorActor extends AbstractPersistenceSupervisor<Th
                                 .map(Object.class::cast);
                     } else if (RollbackCreatedPolicy.shouldRollbackBasedOnTargetActorResponse(pair.command(),
                             pair.response())) {
-                        final CompletableFuture<Object> responseF = new CompletableFuture<>();
+                        final Duration rollbackTimeout = enforcementConfig.getAskWithRetryConfig().getAskTimeout();
+                        final CompletableFuture<Object> responseF = new CompletableFuture<>()
+                                .completeOnTimeout(pair.response(), rollbackTimeout.toMillis(), TimeUnit.MILLISECONDS);
                         getSelf().tell(RollbackCreatedPolicy.of(pair.command(), pair.response(), responseF), getSelf());
                         return Source.completionStage(responseF);
                     } else {
@@ -460,18 +461,9 @@ public final class ThingSupervisorActor extends AbstractPersistenceSupervisor<Th
     }
 
     @Override
-    protected void stopShardedActor(final StopShardedActor trigger) {
-        super.stopShardedActor(trigger);
-        if (getOpCounter() > 0) {
-            getTimers().startSingleTimer(Control.SHUTDOWN_TIMEOUT, Control.SHUTDOWN_TIMEOUT, shutdownTimeout);
-        }
-    }
-
-    @Override
     protected Receive activeBehaviour(final Runnable matchProcessNextTwinMessageBehavior,
             final FI.UnitApply<Object> matchAnyBehavior) {
         return ReceiveBuilder.create()
-                .matchEquals(Control.SHUTDOWN_TIMEOUT, this::shutdownActor)
                 .match(ThingPolicyCreated.class, msg -> {
                     log.withCorrelationId(msg.dittoHeaders())
                             .debug("ThingPolicyCreated msg received: <{}>", msg.policyId());
@@ -512,16 +504,7 @@ public final class ThingSupervisorActor extends AbstractPersistenceSupervisor<Th
         return queryFilterCriteriaFactory.filterCriteria(filter, dittoHeaders);
     }
 
-    private void shutdownActor(final Control shutdown) {
-        log.warning("Shutdown timeout <{}> reached; aborting <{}> ops and stopping myself", shutdownTimeout,
-                getOpCounter());
-        getContext().stop(getSelf());
-    }
     private record CommandResponsePair<C, R>(C command, R response) {}
-
-    private enum Control {
-        SHUTDOWN_TIMEOUT
-    }
 
     /**
      * Used from the {@link org.eclipse.ditto.things.service.persistence.actors.ThingSupervisorActor} to signal itself
