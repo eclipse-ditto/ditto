@@ -58,8 +58,23 @@ public final class DefaultWotThingModelValidatorMergeLeavesTest {
     }
 
     @Test
-    public void emptyObjectHasNoLeaves() {
-        assertThat(leaves("/", "{}")).isEmpty();
+    public void emptyObjectsAreLeaves() {
+        assertThat(leaves("/attributes", "{\"firmware\":{}}")).containsExactly(JsonPointer.of("/attributes/firmware"));
+        assertThat(leaves("/attributes/firmware", "{}")).containsExactly(JsonPointer.of("/attributes/firmware"));
+        assertThat(leaves("/", "{\"attributes\":{\"a\":1,\"b\":{}}}"))
+                .containsExactlyInAnyOrder(JsonPointer.of("/attributes/a"), JsonPointer.of("/attributes/b"));
+        assertThat(leaves("/", "{\"features\":{\"f\":{\"properties\":{}}}}"))
+                .containsExactly(JsonPointer.of("/features/f/properties"));
+    }
+
+    @Test
+    public void onlyEmptyMergePatchAtThingLevelIsEmptyObject() {
+        assertThat(DefaultWotThingModelValidator.isEmptyObject(
+                DefaultWotThingModelValidator.toMergePatch(JsonPointer.empty(), JsonFactory.readFrom("{}")))).isTrue();
+        assertThat(DefaultWotThingModelValidator.isEmptyObject(
+                DefaultWotThingModelValidator.toMergePatch(JsonPointer.of("/attributes"), JsonFactory.readFrom("{}"))))
+                .isFalse();
+        assertThat(DefaultWotThingModelValidator.isEmptyObject(JsonValue.nullLiteral())).isFalse();
     }
 
     @Test
