@@ -232,7 +232,13 @@ final class MergeThingCommandEnforcementTest {
                 Arguments.of(FIRMWARE_REVOKED, "/attributes/{{ ~firmware~ }}", "null"),
                 Arguments.of(FIRMWARE_REVOKED, "/attributes/{{ ~.*~ }}", "null"),
                 Arguments.of(ONLY_OTHER_GRANTED, "/attributes/{{ ~.*~ }}", "null"),
-                // without any leaves there is nothing to authorize partially:
+                // an empty object replaces a non-object value or creates the field, so it must be writable:
+                Arguments.of(FIRMWARE_REVOKED, "/attributes", "{\"firmware\":{}}"),
+                Arguments.of(FIRMWARE_REVOKED, "/attributes", "{\"firmware\":{},\"other\":1}"),
+                Arguments.of(FIRMWARE_REVOKED, "/attributes/firmware", "{}"),
+                Arguments.of(ONLY_OTHER_GRANTED, "/", "{\"attributes\":{\"other\":1,\"x\":{}}}"),
+                Arguments.of(ONLY_OTHER_GRANTED, "/",
+                        "{\"attributes\":{\"other\":1},\"features\":{\"f\":{\"properties\":{\"temp\":{}}}}}"),
                 Arguments.of(ONLY_OTHER_GRANTED, "/attributes", "{}"),
                 Arguments.of(ONLY_OTHER_GRANTED, "/", "{}"),
                 Arguments.of(ONLY_OTHER_GRANTED, "/", "{\"attributes\":{}}")
@@ -251,7 +257,11 @@ final class MergeThingCommandEnforcementTest {
                 Arguments.of(ONLY_OTHER_GRANTED, "/attributes/other", "{\"{{ ~.*~ }}\":null}"),
                 Arguments.of(ATTRIBUTES_GRANTED, "/", "{\"attributes\":{\"{{ ~.*~ }}\":null}}"),
                 Arguments.of(ATTRIBUTES_GRANTED, "/", "{\"attributes\":null}"),
-                Arguments.of(ATTRIBUTES_GRANTED, "/attributes/{{ ~.*~ }}", "null")
+                Arguments.of(ATTRIBUTES_GRANTED, "/attributes/{{ ~.*~ }}", "null"),
+                Arguments.of(FIRMWARE_REVOKED, "/attributes", "{\"other\":{}}"),
+                Arguments.of(FIRMWARE_REVOKED, "/attributes", "{\"other\":{},\"another\":1}"),
+                Arguments.of(ONLY_OTHER_GRANTED, "/attributes", "{\"other\":{}}"),
+                Arguments.of(ONLY_OTHER_GRANTED, "/attributes/other", "{}")
         );
     }
 
