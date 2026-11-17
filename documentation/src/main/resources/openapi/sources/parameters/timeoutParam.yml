@@ -15,8 +15,10 @@ description: |-
   acknowledgements via the `requested-acks` param. Can be specified without unit (then seconds are assumed) or
   together with `s`, `ms` or `m` unit. Example: `42s`, `1m`.
 
-  The default (if omitted) and maximum timeout is `60s`. A value of `0` applies fire and forget semantics for
-  the command resulting in setting `response-required=false`.
+  The default (if omitted) and maximum timeout is `60s`. For thing commands, a value of `0` applies fire and
+  forget semantics for the command resulting in setting `response-required=false`. For other commands (e.g.
+  policy or DevOps commands), `response-required=false` has to be set explicitly together with a timeout of `0`,
+  otherwise the request is rejected with status `400`.
 required: false
 schema:
   type: string

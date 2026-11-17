@@ -38,9 +38,12 @@ import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
 import org.eclipse.ditto.base.model.auth.DittoAuthorizationContextType;
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.correlationid.TestNameCorrelationId;
+import org.eclipse.ditto.base.model.exceptions.DittoHeaderInvalidException;
+import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.translator.HeaderTranslator;
+import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.edge.service.acknowledgements.AcknowledgementAggregatorActorStarter;
 import org.eclipse.ditto.gateway.service.endpoints.routes.whoami.DefaultUserInformation;
 import org.eclipse.ditto.gateway.service.endpoints.routes.whoami.Whoami;
@@ -66,6 +69,8 @@ import org.junit.ClassRule;
 import org.junit.Rule;
 
 import com.typesafe.config.ConfigFactory;
+
+import scala.concurrent.duration.FiniteDuration;
 
 /**
  * Abstract class to set up the infrastructure to test HttpRequestActor.
@@ -141,6 +146,33 @@ public abstract class AbstractHttpRequestActorTest {
 
             assertThat(httpResponse.getHeaders()).isEqualTo(expectedHttpResponseHeaders);
         }
+    }
+
+    void testCommandRejectedForInvalidTimeout(final Command<?> command, final HttpRequest httpRequest)
+            throws InterruptedException, ExecutionException {
+
+        final var proxyActorProbe = ACTOR_SYSTEM_RESOURCE.newTestProbe();
+        final var responseFuture = new CompletableFuture<HttpResponse>();
+        final var underTest = createHttpRequestActor(proxyActorProbe.ref(), httpRequest, responseFuture);
+
+        underTest.tell(command, ActorRef.noSender());
+
+        final var httpResponse = responseFuture.get();
+        assertThat(httpResponse.status()).isEqualTo(StatusCodes.BAD_REQUEST);
+        final var responseBody = JsonObject.of(httpResponse.entity()
+                .toStrict(1000L, ACTOR_SYSTEM_RESOURCE.getMaterializer())
+                .toCompletableFuture()
+                .join()
+                .getData()
+                .utf8String());
+        assertThat(responseBody.getValue(DittoRuntimeException.JsonFields.ERROR_CODE))
+                .contains(DittoHeaderInvalidException.ERROR_CODE);
+        assertThat(responseBody.getValue(DittoRuntimeException.JsonFields.MESSAGE))
+                .hasValueSatisfying(message -> assertThat(message)
+                        .contains("'" + DittoHeaderDefinition.TIMEOUT.getKey() + "'"));
+
+        // a wrong forward happens synchronously before the error response is completed, so there is no need to wait
+        proxyActorProbe.expectNoMessage(FiniteDuration.Zero());
     }
 
     private static DittoHeaders assertAndRemoveReplySignalAcceptedHeader(final DittoHeaders expectedHeaders,
