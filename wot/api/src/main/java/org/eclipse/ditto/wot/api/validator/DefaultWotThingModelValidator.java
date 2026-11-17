@@ -911,6 +911,10 @@ public final class DefaultWotThingModelValidator implements WotThingModelValidat
     ) {
         final JsonValue mergePatch = toMergePatch(mergeThing.getResourcePath(),
                 mergeThing.getEntity().orElseGet(mergeThing::getValue));
+        if (isEmptyObject(mergePatch)) {
+            // an empty merge patch at Thing level does not modify anything
+            return success();
+        }
         final Set<JsonPointer> affectedLeaves = calculateLeaves(JsonPointer.empty(), mergePatch);
 
         final boolean containsDefinition = affectedLeaves.contains(Thing.JsonFields.DEFINITION.getPointer());
@@ -1209,9 +1213,14 @@ public final class DefaultWotThingModelValidator implements WotThingModelValidat
                 affectedLeaves.contains(Thing.JsonFields.FEATURES.getPointer());
     }
 
+    static boolean isEmptyObject(final JsonValue value) {
+        return !value.isNull() && value.isObject() && value.asObject().isEmpty();
+    }
+
     static Set<JsonPointer> calculateLeaves(final JsonPointer path, final JsonValue value) {
-        // a JSON null also is an (empty) JsonObject, so check for null first - a deleted field is a leaf:
-        if (value.isNull() || !value.isObject()) {
+        // a JSON null also is an (empty) JsonObject, so check for null first - a deleted field is a leaf;
+        // an empty JsonObject is a leaf as well, as it replaces a non-object value or creates the field:
+        if (value.isNull() || !value.isObject() || value.asObject().isEmpty()) {
             return Set.of(path);
         } else {
             return value.asObject().stream()

@@ -598,10 +598,7 @@ final class ThingCommandEnforcement
             // way as the merge patch is applied
             final JsonValue mergePatch = path.isEmpty() ? mergeValue : JsonFactory.newObject(path, mergeValue);
             final Set<ResourceKey> resourceKeys = calculateLeaves(JsonPointer.empty(), mergePatch);
-            // without any leaves there is nothing to check - require the (already missing) unrestricted permissions
-            // at mergedResourceKey level instead of authorizing the command
-            return !resourceKeys.isEmpty() &&
-                    enforcer.hasUnrestrictedPermissions(resourceKeys, authorizationContext, Permission.WRITE);
+            return enforcer.hasUnrestrictedPermissions(resourceKeys, authorizationContext, Permission.WRITE);
         } else {
             // not even partial permission
             return false;
@@ -609,8 +606,9 @@ final class ThingCommandEnforcement
     }
 
     private static Set<ResourceKey> calculateLeaves(final JsonPointer path, final JsonValue value) {
-        // a JSON null also is an (empty) JsonObject, so check for null first - deleting a field is writing it:
-        if (value.isNull() || !value.isObject()) {
+        // a JSON null also is an (empty) JsonObject, so check for null first - deleting a field is writing it;
+        // an empty JsonObject is a leaf as well, as it replaces a non-object value or creates the field:
+        if (value.isNull() || !value.isObject() || value.asObject().isEmpty()) {
             return Set.of(PoliciesResourceType.thingResource(path));
         } else {
             return value.asObject().stream()
