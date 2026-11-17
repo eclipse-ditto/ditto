@@ -125,7 +125,9 @@ public interface Enforcer {
     /**
      * Returns a set of authorization subjects each of which has all the given permissions granted on the given resource
      * or on any sub resource down in the hierarchy.
-     * Revoked permissions are not taken into account.
+     * Each subject is evaluated on its own: a grant on a sub resource is not taken into account if the same
+     * permission is revoked for the same subject on that sub resource, as a revoke wins over a grant on the same
+     * level.
      *
      * @param resourceKey the ResourceKey (containing Resource type and path) to use as starting point to check the
      * partial permission(s) in the hierarchy for.
