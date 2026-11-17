@@ -302,6 +302,14 @@ or(empty(attributes/tags),eq(attributes/tags,"default"))
 empty(features)
 ```
 
+A subject which is only granted `READ` on the queried field (e.g. on `thing:/attributes/tags`, but not on
+`thing:/`) finds a thing via `empty` also when the field does not exist in that thing, and a revoked `READ` on the
+field applies whether it exists or not.
+
+{% include note.html content="Things whose search index entry was written by an older Ditto version only pick up
+    grants and revokes on fields which do not exist in the thing on their next thing or policy update. To update all
+    of them at once, [force a search index update](installation-operating.html#force-search-index-update-of-all-things)." %}
+
 
 ### Logical operators
 
