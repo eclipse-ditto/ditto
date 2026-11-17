@@ -139,8 +139,9 @@ public final class TrieBasedPolicyEnforcer implements Enforcer {
      * <p>
      * {@code bottomUpGrantTrie} pushes up the grants of each subject on its own. For an authorization context with
      * several subjects, the revoke of one subject on a sub-resource therefore does not cancel the grant of another
-     * subject on the same sub-resource. If any subject of the authorization context has a permission revoked on the
-     * resource or one of its sub-resources, the sub-resources of {@code inheritedTrie} are checked one by one instead.
+     * subject on the same sub-resource. If any subject of the authorization context has a permission revoked on one of
+     * the sub-resources, the resource and its sub-resources in {@code inheritedTrie} are checked one by one instead,
+     * stopping at the first one granting the permission.
      */
     @Override
     public boolean hasPartialPermissions(final ResourceKey resourceKey, final AuthorizationContext authorizationContext,
@@ -172,12 +173,26 @@ public final class TrieBasedPolicyEnforcer implements Enforcer {
                         .getRevoked();
         final PolicyTrie inheritedNode = inheritedTrie.seekToLeastAncestor(PolicyTrie.getJsonKeyIterator(resourceKey));
         for (final String permission : permissions) {
-            if (revokedOnSelfOrDescendants.getMaxWeight(subjectIds, permission).isPresent() &&
+            if (isRevokedOnAnyDescendant(revokedOnSelfOrDescendants, subjectIds, permission) &&
                     !inheritedNode.hasPermissionOnSelfOrAnyDescendant(subjectIds, permission)) {
                 return false;
             }
         }
         return true;
+    }
+
+    /*
+     * bottomUpRevokeTrie contains the revokes inherited from super-resources (negative weight), the revokes on the
+     * resource itself (weight 0) and the revokes on its sub-resources (positive weight). Only the latter can cancel the
+     * grant of another subject on the same sub-resource, which bottomUpGrantTrie does not take into account: all other
+     * revokes are compared with the grants by their weight in bottomUpGrantTrie already.
+     */
+    private static boolean isRevokedOnAnyDescendant(final PermissionSubjectsMap revokedOnSelfOrDescendants,
+            final Collection<String> subjectIds, final String permission) {
+
+        return revokedOnSelfOrDescendants.getMaxWeight(subjectIds, permission)
+                .filter(weight -> weight > 0)
+                .isPresent();
     }
 
     @Override
