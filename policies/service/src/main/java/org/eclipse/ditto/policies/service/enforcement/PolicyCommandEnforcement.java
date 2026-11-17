@@ -228,14 +228,17 @@ public final class PolicyCommandEnforcement
 
     private CompletionStage<RetrievePolicyResponse> resolveAndRebuildResponse(final RetrievePolicyResponse response) {
         final PolicyId policyId = response.getEntityId();
-        return policyResolver.apply(policyId)
+        final AuthorizationContext authCtx = response.getDittoHeaders().getAuthorizationContext();
+        final CallerReadablePolicyLoader readablePolicyLoader =
+                new CallerReadablePolicyLoader(policyResolver, namespacePoliciesConfig, authCtx);
+        return readablePolicyLoader.loadRawPolicy(policyId)
                 .thenCompose(rawPolicyOpt -> {
                     if (rawPolicyOpt.isEmpty()) {
                         return CompletableFuture.completedFuture(response);
                     }
                     final Policy rawPolicy = rawPolicyOpt.get();
-                    final AuthorizationContext authCtx = response.getDittoHeaders().getAuthorizationContext();
-                    return mergeAndRestrictToSourceView(rawPolicy, authCtx, response.getImplementedSchemaVersion())
+                    return mergeAndRestrictToSourceView(policyId, rawPolicy, readablePolicyLoader, authCtx,
+                            response.getImplementedSchemaVersion())
                             .thenApply(filtered -> rebuildResponseWithMergedPolicy(response, filtered));
                 })
                 .exceptionally(throwable -> {
@@ -253,23 +256,26 @@ public final class PolicyCommandEnforcement
     }
 
     /**
-     * Builds the merged policy and restricts all content of other policies to what the caller may READ in them.
+     * Builds the merged policy and restricts all content copied from other entries to what the caller may READ in
+     * the policy it originates from.
      * <p>
-     * The merge loads every other policy via a {@link CallerReadablePolicyLoader}, which restricts each policy to
-     * the caller's READ view of it. This covers declared imports, transitive imports, the imports of
-     * namespace-root policies and content copied by {@code references}, at any depth. Afterwards, every directly
+     * The merge starts from the requested policy and loads every other policy via the
+     * {@link CallerReadablePolicyLoader}, which restricts each policy, including the requested one, to the caller's
+     * READ view of it. This covers declared imports, transitive imports, the imports of namespace-root policies and
+     * content copied by {@code references}, also within the requested policy, at any depth. Own entries without
+     * {@code references} are kept as persisted, as the final view of the requested policy restricts them field by
+     * field anyway. Afterwards, every directly
      * imported and namespace-root entry is restricted to the caller's READ view of it within its source, i.e. the
      * view a direct read of the source policy returns, field by field. Entries without any readable field are
      * dropped. Without this, broad READ on the importing policy would expose the contents of every imported and
      * namespace-root policy, regardless of the caller's permissions on the source.
      * </p>
      */
-    private CompletionStage<JsonObject> mergeAndRestrictToSourceView(final Policy rawPolicy,
-            final AuthorizationContext authCtx, final JsonSchemaVersion version) {
+    private CompletionStage<JsonObject> mergeAndRestrictToSourceView(final PolicyId policyId, final Policy rawPolicy,
+            final CallerReadablePolicyLoader readablePolicyLoader, final AuthorizationContext authCtx,
+            final JsonSchemaVersion version) {
         final List<PolicyId> nsRootIds = namespacePoliciesConfig.getRootPoliciesForNamespace(
                 rawPolicy.getNamespace().orElse(""));
-        final CallerReadablePolicyLoader readablePolicyLoader =
-                new CallerReadablePolicyLoader(policyResolver, namespacePoliciesConfig, authCtx);
 
         final Map<PolicyId, CompletableFuture<Optional<PolicyEnforcer>>> sources = new LinkedHashMap<>();
         for (final PolicyImport imp : rawPolicy.getPolicyImports()) {
@@ -278,10 +284,15 @@ public final class PolicyCommandEnforcement
         for (final PolicyId nsRootId : nsRootIds) {
             sources.computeIfAbsent(nsRootId, readablePolicyLoader::getSourceEnforcer);
         }
-        final CompletionStage<JsonObject> mergedStage = PolicyEnforcer
-                .withResolvedImportsAndNamespacePolicies(rawPolicy, readablePolicyLoader, namespacePoliciesConfig)
-                .thenApply(enforcer -> enforcer.getPolicy().orElse(rawPolicy))
-                .thenApply(merged -> merged.toJson(version, FieldType.regularOrSpecial()));
+        // references unresolvable because the caller may not read the referenced entry are expected here
+        final CompletionStage<JsonObject> mergedStage = readablePolicyLoader.apply(policyId)
+                .thenCompose(readablePolicy -> PolicyEnforcer
+                        .resolveImportsAndNamespacePoliciesIgnoringUnresolvedReferences(
+                                readablePolicy.orElseThrow(() -> new IllegalStateException(
+                                        "Loaded policy <" + policyId + "> could not be restricted.")),
+                                readablePolicyLoader, namespacePoliciesConfig))
+                .thenApply(merged -> withOwnEntriesWithoutReferences(
+                        merged.toJson(version, FieldType.regularOrSpecial()), rawPolicy, version));
         if (sources.isEmpty()) {
             return mergedStage;
         }
@@ -344,6 +355,23 @@ public final class PolicyCommandEnforcement
                             : mergedEntries.setValue(mergedKey, sourceView);
                 })
                 .orElse(mergedEntries);
+    }
+
+    /**
+     * Replaces the own entries of the requested policy which have no {@code references} with their persisted
+     * version. They contain no content of other entries, and the final view of the requested policy restricts them
+     * field by field, exactly as without the resolved view.
+     */
+    private static JsonObject withOwnEntriesWithoutReferences(final JsonObject mergedJson, final Policy rawPolicy,
+            final JsonSchemaVersion version) {
+        JsonObject entries = mergedJson.getValue(Policy.JsonFields.ENTRIES).orElseGet(JsonObject::empty);
+        for (final PolicyEntry entry : rawPolicy) {
+            if (entry.getReferences().isEmpty()) {
+                entries = entries.setValue(JsonKey.of(entry.getLabel()),
+                        entry.toJson(version, FieldType.regularOrSpecial()));
+            }
+        }
+        return mergedJson.set(Policy.JsonFields.ENTRIES, entries);
     }
 
     private static boolean isContributedByImport(final PolicyEntry sourceEntry, final PolicyImport imp) {

@@ -335,14 +335,45 @@ public final class PolicyEnforcer {
         return (int) Math.min(authorizationMemoMaxSize, Integer.MAX_VALUE);
     }
 
+    /**
+     * Resolves the imports, references and namespace root policies of the passed policy in the same way as
+     * {@link #withResolvedImportsAndNamespacePolicies(Policy, Function, NamespacePoliciesConfig)}, without creating
+     * an enforcer and without logging unresolved references. To be used for views of a policy built from policies
+     * restricted to what a requester may read, in which references may legitimately not be resolvable.
+     *
+     * @param policy the policy to resolve.
+     * @param policyResolver the resolver for imported and namespace root policies.
+     * @param namespacePoliciesConfig the namespace root policies configuration.
+     * @return the resolved policy.
+     * @since 3.9.9
+     */
+    public static CompletionStage<Policy> resolveImportsAndNamespacePoliciesIgnoringUnresolvedReferences(
+            final Policy policy,
+            final Function<PolicyId, CompletionStage<Optional<Policy>>> policyResolver,
+            final NamespacePoliciesConfig namespacePoliciesConfig) {
+
+        return resolveImportsAndNamespacePolicies(policy, policyResolver, namespacePoliciesConfig,
+                ignored -> (referencingEntry, reference) -> {});
+    }
+
     private static CompletionStage<Policy> resolveImportsAndNamespacePolicies(
             final Policy policy,
             final Function<PolicyId, CompletionStage<Optional<Policy>>> policyResolver,
             final NamespacePoliciesConfig namespacePoliciesConfig) {
 
-        return policy.withResolvedImports(policyResolver, missingReferenceLogger(policy))
+        return resolveImportsAndNamespacePolicies(policy, policyResolver, namespacePoliciesConfig,
+                PolicyEnforcer::missingReferenceLogger);
+    }
+
+    private static CompletionStage<Policy> resolveImportsAndNamespacePolicies(
+            final Policy policy,
+            final Function<PolicyId, CompletionStage<Optional<Policy>>> policyResolver,
+            final NamespacePoliciesConfig namespacePoliciesConfig,
+            final Function<Policy, BiConsumer<PolicyEntry, EntryReference>> missingReferenceHandler) {
+
+        return policy.withResolvedImports(policyResolver, missingReferenceHandler.apply(policy))
                 .thenCompose(resolvedPolicy -> mergeNamespacePolicies(resolvedPolicy, policyResolver,
-                        namespacePoliciesConfig));
+                        namespacePoliciesConfig, missingReferenceHandler));
     }
 
     /**
@@ -361,7 +392,8 @@ public final class PolicyEnforcer {
     private static CompletionStage<Policy> mergeNamespacePolicies(
             final Policy resolvedPolicy,
             final Function<PolicyId, CompletionStage<Optional<Policy>>> policyResolver,
-            final NamespacePoliciesConfig namespacePoliciesConfig) {
+            final NamespacePoliciesConfig namespacePoliciesConfig,
+            final Function<Policy, BiConsumer<PolicyEntry, EntryReference>> missingReferenceHandler) {
 
         final Optional<PolicyId> entityId = resolvedPolicy.getEntityId();
         final String namespace = resolvedPolicy.getNamespace().orElse("");
@@ -385,7 +417,7 @@ public final class PolicyEnforcer {
                                 }
                                 final Policy rootPolicy = rootPolicyOpt.get();
                                 return rootPolicy.withResolvedImports(policyResolver,
-                                                missingReferenceLogger(rootPolicy))
+                                                missingReferenceHandler.apply(rootPolicy))
                                         .thenApply(Optional::of);
                             })
                             .toCompletableFuture());
