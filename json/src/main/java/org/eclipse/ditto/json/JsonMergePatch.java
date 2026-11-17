@@ -233,7 +233,7 @@ public final class JsonMergePatch {
      * @param value the value of the merge patch field.
      * @return {@code true} if the field deletes keys of its enclosing JSON object by a regular expression.
      * @throws NullPointerException if any argument is {@code null}.
-     * @since 3.8.15
+     * @since 3.9.9
      */
     public static boolean isDeletionByRegex(final JsonKey key, final JsonValue value) {
         Objects.requireNonNull(key, "key");
