@@ -44,8 +44,9 @@ import org.eclipse.ditto.policies.model.enforcers.Enforcer;
  * Loads the policies contributing to the resolved policy view ({@code policy-view=resolved}) of a single request.
  * <p>
  * Every policy loaded via {@link #apply(PolicyId)} is restricted to what the caller may READ in that policy itself.
- * Imports, transitive imports, the imports of namespace root policies and {@code references} are all resolved via
- * this loader, so the merged policy can only contain content of other policies the caller may read in them.
+ * The requested policy, its imports, transitive imports, namespace root policies with their imports and
+ * {@code references} are all resolved via this loader, so the merged policy can only contain content the caller may
+ * read in the policy it originates from.
  * </p>
  * <p>
  * Each policy and the enforcer used to restrict it are loaded only once per request, so the merged policy and the
@@ -112,7 +113,13 @@ final class CallerReadablePolicyLoader implements Function<PolicyId, CompletionS
                         .orElseGet(() -> CompletableFuture.completedFuture(Optional.empty()))));
     }
 
-    private CompletableFuture<Optional<Policy>> loadRawPolicy(final PolicyId policyId) {
+    /**
+     * Loads the policy with the given ID unrestricted, i.e. as it is persisted.
+     *
+     * @param policyId the ID of the policy to load.
+     * @return the policy or an empty Optional if the policy does not exist.
+     */
+    CompletableFuture<Optional<Policy>> loadRawPolicy(final PolicyId policyId) {
         return memoize(rawPolicies, policyId, () -> policyResolver.apply(policyId).toCompletableFuture());
     }
 

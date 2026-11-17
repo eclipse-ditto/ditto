@@ -748,6 +748,79 @@ public final class PolicyCommandEnforcementResolvedViewTest {
         assertThat(filteredEntries.toString()).doesNotContain(ADMIN_ID.toString());
     }
 
+    /**
+     * An own entry of the requested policy references another own entry, whose resources the caller may not read.
+     * Resolving the local reference must not copy them into the referencing entry.
+     */
+    @Test
+    public void resolvedViewRestrictsContentCopiedByLocalReferences() throws Exception {
+        final SubjectId localSubjectId = SubjectId.newInstance(SubjectIssuer.GOOGLE, "local");
+        final Policy importing = Policy.newBuilder(IMPORTING_ID)
+                .forLabel("VIEWER")
+                .setSubject(VIEWER)
+                .setGrantedPermissions(POLICY_ROOT, Permission.READ)
+                .setRevokedPermissions(PoliciesResourceType.policyResource("/entries/HIDDEN/resources"),
+                        Permission.READ)
+                .setImportable(ImportableType.NEVER)
+                .forLabel("HIDDEN")
+                .setSubject(ADMIN)
+                .setGrantedPermissions(THING_ROOT, Permission.READ, Permission.WRITE)
+                .setImportable(ImportableType.IMPLICIT)
+                .build()
+                .setEntry(PoliciesModelFactory.newPolicyEntry(Label.of("LOCAL"),
+                        Subjects.newInstance(Subject.newInstance(localSubjectId)),
+                        PoliciesModelFactory.emptyResources(), null, ImportableType.NEVER, null,
+                        Collections.singletonList(PoliciesModelFactory.newLocalEntryReference(Label.of("HIDDEN")))));
+
+        final JsonObject filteredEntries = runResolvedView(importing, policyResolver(importing),
+                emptyNamespacePoliciesConfig());
+
+        final JsonObject local = getEntry(filteredEntries, "LOCAL");
+        assertThat(local.getValue(JsonKey.of("subjects")).map(JsonValue::asObject).orElseThrow().getKeys())
+                .as("own subject and the readable subject of HIDDEN are kept")
+                .containsExactlyInAnyOrder(JsonKey.of(localSubjectId), JsonKey.of(ADMIN_ID));
+        assertNoResources(local);
+        assertNoResources(getEntry(filteredEntries, "HIDDEN"));
+    }
+
+    /**
+     * Own entries without {@code references} contain no content of other entries; the resolved view must return them
+     * exactly as the original view does, also when the caller may read only parts of a subject.
+     */
+    @Test
+    public void resolvedViewKeepsOwnEntriesWithoutReferencesAsInOriginalView() throws Exception {
+        final Policy importing = Policy.newBuilder(IMPORTING_ID)
+                .forLabel("VIEWER")
+                .setSubject(VIEWER)
+                .setGrantedPermissions(POLICY_ROOT, Permission.READ)
+                .setRevokedPermissions(PoliciesResourceType.policyResource("/entries/OWN/subjects/" + ADMIN_ID +
+                        "/type"), Permission.READ)
+                .setImportable(ImportableType.NEVER)
+                .forLabel("OWN")
+                .setSubject(ADMIN)
+                .setGrantedPermissions(THING_ROOT, Permission.READ)
+                .setImportable(ImportableType.NEVER)
+                .build();
+        final Function<PolicyId, CompletionStage<Optional<Policy>>> resolver = policyResolver(importing);
+        final PolicyEnforcer enforcer = PolicyEnforcer
+                .withResolvedImportsAndNamespacePolicies(importing, resolver, emptyNamespacePoliciesConfig())
+                .toCompletableFuture().get();
+        final DittoHeaders originalViewHeaders = RESOLVED_VIEW_HEADERS.toBuilder()
+                .removeHeader(DittoHeaderDefinition.POLICY_VIEW.getKey())
+                .build();
+        final PolicyCommandResponse<?> originalView =
+                new PolicyCommandEnforcement(resolver, emptyNamespacePoliciesConfig())
+                        .filterResponse(RetrievePolicyResponse.of(IMPORTING_ID, importing.toJson(),
+                                originalViewHeaders), enforcer)
+                        .toCompletableFuture().get();
+        final JsonObject originalEntries = ((RetrievePolicyResponse) originalView).getEntity().asObject()
+                .getValue("entries").orElseThrow().asObject();
+
+        final JsonObject filteredEntries = runResolvedView(importing, resolver, emptyNamespacePoliciesConfig());
+
+        assertThat(getEntry(filteredEntries, "OWN")).isEqualTo(getEntry(originalEntries, "OWN"));
+    }
+
     private static Policy viewerReadablePolicy(final PolicyId policyId, final PolicyImports policyImports) {
         return Policy.newBuilder(policyId)
                 .forLabel("VIEWER")
