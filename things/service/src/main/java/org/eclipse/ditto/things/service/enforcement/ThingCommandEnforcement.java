@@ -483,6 +483,22 @@ final class ThingCommandEnforcement
         return signal.setDittoHeaders(newHeaders);
     }
 
+    /**
+     * Enforces READ permission on all resources referenced in the {@code condition} header of the passed headers, if
+     * present, as the condition is evaluated against the full thing.
+     *
+     * @param enforcer the enforcer to check the permissions with.
+     * @param dittoHeaders the headers containing the condition and the authorization context.
+     * @throws ThingConditionFailedException if the requester lacks READ permission on any referenced resource.
+     * @throws ThingConditionInvalidException if the condition could not be parsed.
+     */
+    static void enforceReadPermissionOnConditionHeader(final Enforcer enforcer, final DittoHeaders dittoHeaders) {
+        dittoHeaders.getCondition()
+                .ifPresent(condition -> enforceReadPermissionOnCondition(condition, enforcer, dittoHeaders,
+                        () -> ThingConditionFailedException.newBuilderForInsufficientPermission(dittoHeaders)
+                                .build()));
+    }
+
     private static void enforceReadPermissionOnCondition(final String condition,
             final Enforcer enforcer,
             final DittoHeaders dittoHeaders,

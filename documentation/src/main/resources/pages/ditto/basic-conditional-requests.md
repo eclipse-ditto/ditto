@@ -34,7 +34,18 @@ Conditional requests are supported by HTTP API, WebSocket, Ditto protocol and Di
 
 ### Permissions for conditions
 
-READ permission is necessary on the resource specified in the condition, otherwise, the request will fail.
+You need READ permission on the resource referenced in the condition. Otherwise, the request fails.
+This applies to all requests supporting a condition, including [live messages](basic-messages.html) and live
+events.
+
+### Unsupported requests
+
+Ditto rejects the `condition` header with status code `400` for:
+
+- Requests for a [WoT Thing Description](basic-wot-integration.html) (`Accept: application/td+json`), which also
+  applies to the `live-channel-condition` header.
+- [Claim messages](basic-messages.html#claim-messages), as the sender of a claim message does not need any
+  permission on the Thing.
 
 ## Examples
 

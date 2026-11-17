@@ -532,7 +532,9 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
     private CompletionStage<Object> askOrForwardToTargetActor(
             @Nullable final TargetActorWithMessage targetActorWithMessage) {
 
-        if (null != targetActorWithMessage) {
+        if (null != targetActorWithMessage && targetActorWithMessage.isTargetActorResponse()) {
+            return CompletableFuture.completedFuture(targetActorWithMessage.message());
+        } else if (null != targetActorWithMessage) {
             final ActorRef targetActor = targetActorWithMessage.targetActor();
             if (!targetActorWithMessage.messageTimeout().isZero()) {
                 return Patterns.ask(

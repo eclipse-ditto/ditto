@@ -310,7 +310,7 @@ public final class ThingSupervisorActor extends AbstractPersistenceSupervisor<Th
         } else if (message instanceof ThingQueryCommand<?> thingQueryCommand &&
                 Signal.isChannelSmart(thingQueryCommand)) {
 
-            return smartChannelDispatching.dispatchSmartChannelThingQueryCommand(thingQueryCommand, sender,
+            return smartChannelDispatching.dispatchSmartChannelThingQueryCommand(thingQueryCommand,
                     determineAskTimeoutForPersistenceActorForwarding(true));
         } else if (message instanceof ThingQueryCommand<?> thingQueryCommand &&
                 Command.isLiveCommand(thingQueryCommand)) {
