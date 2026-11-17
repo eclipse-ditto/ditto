@@ -256,25 +256,33 @@ public final class PolicyCommandEnforcement
     }
 
     /**
-     * Builds the merged policy and restricts every imported and namespace-root entry to the caller's READ view of
-     * it within its source, i.e. the view a direct read of the source policy returns. Entries without any readable
-     * field are dropped. Without this source-side view, broad READ on the importing policy would expose the
-     * contents of every imported and namespace-root policy, regardless of the caller's permissions on the source.
+     * Builds the merged policy and restricts all content of other policies to what the caller may READ in them.
+     * <p>
+     * The merge loads every other policy via a {@link CallerReadablePolicyLoader}, which restricts each policy to
+     * the caller's READ view of it. This covers declared imports, transitive imports, the imports of
+     * namespace-root policies and content copied by {@code references}, at any depth. Afterwards, every directly
+     * imported and namespace-root entry is restricted to the caller's READ view of it within its source, i.e. the
+     * view a direct read of the source policy returns, field by field. Entries without any readable field are
+     * dropped. Without this, broad READ on the importing policy would expose the contents of every imported and
+     * namespace-root policy, regardless of the caller's permissions on the source.
+     * </p>
      */
     private CompletionStage<JsonObject> mergeAndRestrictToSourceView(final Policy rawPolicy,
             final AuthorizationContext authCtx, final JsonSchemaVersion version) {
         final List<PolicyId> nsRootIds = namespacePoliciesConfig.getRootPoliciesForNamespace(
                 rawPolicy.getNamespace().orElse(""));
+        final CallerReadablePolicyLoader readablePolicyLoader =
+                new CallerReadablePolicyLoader(policyResolver, namespacePoliciesConfig, authCtx);
 
         final Map<PolicyId, CompletableFuture<Optional<PolicyEnforcer>>> sources = new LinkedHashMap<>();
         for (final PolicyImport imp : rawPolicy.getPolicyImports()) {
-            sources.computeIfAbsent(imp.getImportedPolicyId(), this::resolveSourceEnforcer);
+            sources.computeIfAbsent(imp.getImportedPolicyId(), readablePolicyLoader::getSourceEnforcer);
         }
         for (final PolicyId nsRootId : nsRootIds) {
-            sources.computeIfAbsent(nsRootId, this::resolveSourceEnforcer);
+            sources.computeIfAbsent(nsRootId, readablePolicyLoader::getSourceEnforcer);
         }
         final CompletionStage<JsonObject> mergedStage = PolicyEnforcer
-                .withResolvedImportsAndNamespacePolicies(rawPolicy, policyResolver, namespacePoliciesConfig)
+                .withResolvedImportsAndNamespacePolicies(rawPolicy, readablePolicyLoader, namespacePoliciesConfig)
                 .thenApply(enforcer -> enforcer.getPolicy().orElse(rawPolicy))
                 .thenApply(merged -> merged.toJson(version, FieldType.regularOrSpecial()));
         if (sources.isEmpty()) {
@@ -287,6 +295,7 @@ public final class PolicyCommandEnforcement
             JsonObject entries = mergedJson.getValue(Policy.JsonFields.ENTRIES).orElseGet(JsonObject::empty);
             // Declared imports — labels are unique per source via the imported-<sourceId>- prefix
             // (transitive imports nest as imported-<B>-imported-<C>-<label>), so no precedence concern.
+            // A source without enforcer was not found by the loader either, so it contributed no entries.
             for (final PolicyImport imp : rawPolicy.getPolicyImports()) {
                 final PolicyEnforcer src = sources.get(imp.getImportedPolicyId()).join().orElse(null);
                 if (src == null) continue;
@@ -313,24 +322,6 @@ public final class PolicyCommandEnforcement
             }
             return mergedJson.set(Policy.JsonFields.ENTRIES, entries);
         });
-    }
-
-    private CompletableFuture<Optional<PolicyEnforcer>> resolveSourceEnforcer(final PolicyId sourceId) {
-        // Source-side READ views must see the same effective grants the caller has on the source policy at
-        // enforcement time, which includes operator-configured namespace-root entries. Without the ns-policy
-        // merge, a caller whose READ on the source comes only via the namespace-root (e.g. a global devops
-        // admin) has no READ on any entry of the source and silently loses all imported entries in the
-        // resolved view.
-        return policyResolver.apply(sourceId)
-                .thenCompose(opt -> opt
-                        .map(policyEntries -> PolicyEnforcer.withResolvedImportsAndNamespacePolicies(
-                                policyEntries,
-                                policyResolver,
-                                namespacePoliciesConfig).thenApply(Optional::of)
-                        )
-                        .orElseGet(() -> CompletableFuture.completedFuture(Optional.empty()))
-                )
-                .toCompletableFuture();
     }
 
     /**
