@@ -122,6 +122,7 @@ final class ThingCommandEnforcement
     private final AskWithRetryConfig askWithRetryConfig;
     private final Executor enforcementExecutor;
     private final boolean partialAccessEventsEnabled;
+    private final boolean wotTdPermissionFilteringEnabled;
 
     /**
      * Creates a new instance of the thing command enforcer.
@@ -137,10 +138,22 @@ final class ThingCommandEnforcement
             final EnforcementConfig enforcementConfig,
             final boolean partialAccessEventsEnabled) {
 
+        this(actorSystem, policiesShardRegion, enforcementConfig, partialAccessEventsEnabled,
+                FeatureToggle.isWotTdPermissionFilteringEnabled());
+    }
+
+    ThingCommandEnforcement(
+            final ActorSystem actorSystem,
+            final ActorRef policiesShardRegion,
+            final EnforcementConfig enforcementConfig,
+            final boolean partialAccessEventsEnabled,
+            final boolean wotTdPermissionFilteringEnabled) {
+
         this.actorSystem = actorSystem;
         this.policiesShardRegion = policiesShardRegion;
         this.askWithRetryConfig = enforcementConfig.getAskWithRetryConfig();
         this.partialAccessEventsEnabled = partialAccessEventsEnabled;
+        this.wotTdPermissionFilteringEnabled = wotTdPermissionFilteringEnabled;
         enforcementExecutor = actorSystem.dispatchers().lookup(ENFORCEMENT_DISPATCHER);
         enforcementConfig.getSpecialLoggingInspectedNamespaces()
                 .forEach(loggedNamespace -> NAMESPACE_INSPECTION_LOGGERS.put(
@@ -180,16 +193,19 @@ final class ThingCommandEnforcement
         final ThingCommand<?> authorizedCommand;
         if (isWotTdRequestingThingQueryCommand(command)) {
             FeatureToggle.checkWotIntegrationFeatureEnabled(command.getType(), command.getDittoHeaders());
-            // conditions would be evaluated against the full thing, even when the TD itself is public information:
-            rejectConditionHeadersOfWotTdRequest(command.getDittoHeaders());
-            if (FeatureToggle.isWotTdPermissionFilteringEnabled()) {
+            // conditions would be evaluated against the full thing, even when the TD itself is public information,
+            // so they are rejected for TD requests
+            if (wotTdPermissionFilteringEnabled) {
                 // user needs at least partial READ permission; TD will be filtered in filterResponse()
                 final var commandWithReadSubjects =
                         authorizeByPolicyOrThrow(policyEnforcer, command, partialAccessEventsEnabled);
+                // rejected only after authorization in order to not reveal the thing's existence:
+                rejectConditionHeadersOfWotTdRequest(command.getDittoHeaders());
                 authorizedCommand = prepareThingCommandBeforeSendingToPersistence(
                         ensureTwinChannel((ThingQueryCommand<?>) commandWithReadSubjects));
             } else {
                 // legacy behavior: TD is public information, no authorization check
+                rejectConditionHeadersOfWotTdRequest(command.getDittoHeaders());
                 authorizedCommand = prepareThingCommandBeforeSendingToPersistence(command);
             }
         } else {
@@ -250,7 +266,7 @@ final class ThingCommandEnforcement
             final PolicyEnforcer policyEnforcer) {
 
         if (commandResponse instanceof RetrieveWotThingDescriptionResponse tdResponse
-                && FeatureToggle.isWotTdPermissionFilteringEnabled()) {
+                && wotTdPermissionFilteringEnabled) {
             try {
                 return WotThingDescriptionEnforcement.filterThingDescription(tdResponse,
                         policyEnforcer.getEnforcer())
@@ -571,6 +587,22 @@ final class ThingCommandEnforcement
                 .build();
 
         return signal.setDittoHeaders(newHeaders);
+    }
+
+    /**
+     * Enforces READ permission on all resources referenced in the {@code condition} header of the passed headers, if
+     * present, as the condition is evaluated against the full thing.
+     *
+     * @param enforcer the enforcer to check the permissions with.
+     * @param dittoHeaders the headers containing the condition and the authorization context.
+     * @throws ThingConditionFailedException if the requester lacks READ permission on any referenced resource.
+     * @throws ThingConditionInvalidException if the condition could not be parsed.
+     */
+    static void enforceReadPermissionOnConditionHeader(final Enforcer enforcer, final DittoHeaders dittoHeaders) {
+        dittoHeaders.getCondition()
+                .ifPresent(condition -> enforceReadPermissionOnCondition(condition, enforcer, dittoHeaders,
+                        () -> ThingConditionFailedException.newBuilderForInsufficientPermission(dittoHeaders)
+                                .build()));
     }
 
     private static void enforceReadPermissionOnCondition(final String condition,

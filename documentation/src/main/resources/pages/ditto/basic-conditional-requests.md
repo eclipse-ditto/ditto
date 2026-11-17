@@ -36,6 +36,17 @@ Conditional requests work with HTTP API, WebSocket, Ditto Protocol, and the Ditt
 ### Permissions for conditions
 
 You need READ permission on the resource referenced in the condition. Otherwise, the request fails.
+This applies to all requests supporting a condition, including [live messages](basic-messages.html) and live
+events.
+
+### Unsupported requests
+
+Ditto rejects the `condition` header with status code `400` for:
+
+- Requests for a [WoT Thing Description](basic-wot-integration.html) (`Accept: application/td+json`), which also
+  applies to the `live-channel-condition` header.
+- [Claim messages](basic-messages.html#claim-messages), as the sender of a claim message does not need any
+  permission on the Thing.
 
 ## Examples
 
@@ -110,7 +121,8 @@ client.twin().forFeature(ThingId.of("org.eclipse.ditto:fancy-thing"), "temperatu
 
 Ditto supports automatic switching between [twin](protocol-twinlive.html#twin-channel) and [live](protocol-twinlive.html#live-channel) channels based on a condition.
 
-Define the condition with RQL. If it matches, Ditto retrieves data from the device itself:
+Define the condition with RQL. If it matches, Ditto retrieves data from the device itself.
+As for the `condition` header, you need READ permission on the resources referenced in the condition:
 
 ```text
 GET .../things/{thingId}?live-channel-condition=eq(attributes/useLiveChannel,true)

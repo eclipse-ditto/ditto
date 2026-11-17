@@ -255,8 +255,9 @@ final class SupervisorLiveChannelDispatching {
         final Optional<RetrieveThing> result;
         if (signal instanceof WithEntityId withEntityId) {
             if (withEntityId.getEntityId() instanceof ThingId thingId) {
-                // don't use SudoRetrieveThing in order to make sure that only the parts of the thing are visible
-                //  according to the user's permissions in the policy:
+                // the thing is retrieved directly from the persistence actor and therefore not filtered by the
+                //  user's permissions - READ permission on the fields referenced in the condition is enforced in
+                //  LiveSignalEnforcement before:
                 result = Optional.of(RetrieveThing.of(thingId, signal.getDittoHeaders()
                         .toBuilder()
                         .removePreconditionHeaders()
