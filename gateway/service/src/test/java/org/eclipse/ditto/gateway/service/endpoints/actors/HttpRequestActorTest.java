@@ -60,6 +60,9 @@ import org.eclipse.ditto.messages.model.MessageDirection;
 import org.eclipse.ditto.messages.model.MessageHeaders;
 import org.eclipse.ditto.messages.model.signals.commands.SendThingMessage;
 import org.eclipse.ditto.messages.model.signals.commands.SendThingMessageResponse;
+import org.eclipse.ditto.policies.model.Label;
+import org.eclipse.ditto.policies.model.PolicyId;
+import org.eclipse.ditto.policies.model.signals.commands.modify.DeletePolicyEntry;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.devops.WotValidationConfigId;
 import org.eclipse.ditto.things.model.devops.commands.DeleteWotValidationConfig;
@@ -175,6 +178,20 @@ public final class HttpRequestActorTest extends AbstractHttpRequestActorTest {
                 ModifyAttributeResponse.modified(thingId, attributePointer, expectedHeaders),
                 StatusCodes.NO_CONTENT,
                 setResponseRequiredToFalse(expectedHeaders));
+    }
+
+    @Test
+    public void doesNotForwardPolicyCommandWithZeroTimeout() throws ExecutionException, InterruptedException {
+        final var policyId = PolicyId.generateRandom();
+        final var label = Label.of("FRESH");
+        final var dittoHeaders = DittoHeaders.newBuilder(createAuthorizedHeaders())
+                .timeout(Duration.ZERO)
+                .build();
+        final var deletePolicyEntry = DeletePolicyEntry.of(policyId, label, dittoHeaders);
+        final var httpRequest =
+                HttpRequest.DELETE("/api/2/policies/" + policyId + "/entries/" + label + "?timeout=0");
+
+        testCommandRejectedForInvalidTimeout(deletePolicyEntry, httpRequest);
     }
 
     private static DittoHeaders setResponseRequiredToFalse(final DittoHeaders dittoHeaders) {

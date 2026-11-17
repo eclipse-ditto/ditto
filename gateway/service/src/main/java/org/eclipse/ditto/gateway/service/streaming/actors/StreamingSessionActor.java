@@ -638,14 +638,16 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
                     if (shouldStart && entityIdOptional.isPresent() && s instanceof Command<?> command) {
                         // websocket-specific header check: acks requested with response-required=false are forbidden
                         final Optional<DittoHeaderInvalidException> headerInvalid = checkForAcksWithoutResponse(command);
-                        return headerInvalid.map(this::publishResponseOrError)
-                                .orElseGet(() -> ackregatorStarter.doStart(entityIdOptional.get(),
-                                        command, null, this::publishResponseOrError,
-                                        (ackregator, adjustedSignal) -> {
-                                            commandForwarder.tell(adjustedSignal, ackregator);
-                                            return Done.getInstance();
-                                        }
-                                ));
+                        if (headerInvalid.isPresent()) {
+                            return publishResponseOrError(headerInvalid.get());
+                        }
+                        return ackregatorStarter.doStart(entityIdOptional.get(),
+                                command, null, this::publishResponseOrError,
+                                (ackregator, adjustedSignal) -> {
+                                    commandForwarder.tell(adjustedSignal, ackregator);
+                                    return Done.getInstance();
+                                }
+                        );
                     } else {
                         return doNothing(s);
                     }
