@@ -293,9 +293,12 @@ public final class PolicyCommandEnforcement
 
         return mergedStage.thenCombine(allSources, (mergedJson, ignored) -> {
             JsonObject entries = mergedJson.getValue(Policy.JsonFields.ENTRIES).orElseGet(JsonObject::empty);
-            // Declared imports — labels are unique per source via the imported-<sourceId>- prefix
-            // (transitive imports nest as imported-<B>-imported-<C>-<label>), so no precedence concern.
-            // A source without enforcer was not found by the loader either, so it contributed no entries.
+            // Declared imports land under imported-<sourceId>-<label> (transitive imports nest as
+            // imported-<B>-imported-<C>-<label>). As policy IDs may contain '-', such a label is not unique per
+            // source (imported-ns:a-b-c for "ns:a" + "b-c" and for "ns:a-b" + "c"): the views of all sources
+            // producing the label are then applied, which can only restrict the entry further.
+            // A source without enforcer was not found by the loader either, so it contributed no entries. Removing
+            // entries by the label prefix of such a source would not be reliable, as the prefix is not unique.
             for (final PolicyImport imp : rawPolicy.getPolicyImports()) {
                 final PolicyEnforcer src = sources.get(imp.getImportedPolicyId()).join().orElse(null);
                 if (src == null) continue;
@@ -308,7 +311,7 @@ public final class PolicyCommandEnforcement
                 }
             }
             // Ns-roots land under nsimported-<rootId>-<originalLabel>; the view must be applied to the rewritten
-            // label or silently no-op. The rewrite also makes labels unique per source, so no precedence handling.
+            // label or silently no-op. As for declared imports, colliding labels only lead to further restriction.
             for (final PolicyId nsRootId : nsRootIds) {
                 final PolicyEnforcer src = sources.get(nsRootId).join().orElse(null);
                 if (src == null) continue;
