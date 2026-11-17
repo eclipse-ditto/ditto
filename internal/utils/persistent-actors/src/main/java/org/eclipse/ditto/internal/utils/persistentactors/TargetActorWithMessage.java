@@ -15,20 +15,42 @@ package org.eclipse.ditto.internal.utils.persistentactors;
 import java.time.Duration;
 import java.util.function.Function;
 
+import javax.annotation.Nullable;
+
 import org.apache.pekko.actor.ActorRef;
 
 /**
  * A supervisor internal message combining a {@code targetActor} as target for a contained {@code message} and
  * when configured with a non-zero {@code messageTimeout} applying a {@code Patterns.ask()} style.
  *
- * @param targetActor the target actor to ask/send the passed {@code message} to
+ * @param targetActor the target actor to ask/send the passed {@code message} to - {@code null} if the
+ * {@code message} already is the response of the target actor, see {@link #ofTargetActorResponse(Object)}
  * @param message the message to pass/ask the {@code targetActor}
  * @param messageTimeout the duration to apply as message timeout - a {@link java.time.Duration#ZERO} will not use
  * "Patterns.ask", but will {@code tell} the passed {@code targetActor} the {@code message} instead.
  * @param responseOrErrorConverter a converter function which can convert the response or an occurred
  * {@link Throwable} to the actual response.
  */
-public record TargetActorWithMessage(ActorRef targetActor,
+public record TargetActorWithMessage(@Nullable ActorRef targetActor,
                                      Object message,
                                      Duration messageTimeout,
-                                     Function<Object, Object> responseOrErrorConverter) {}
+                                     Function<Object, Object> responseOrErrorConverter) {
+
+    /**
+     * Creates a TargetActorWithMessage for a response which was already retrieved from the target actor, so that it is
+     * handled like the response of an "ask" to the target actor, including response filtering by the enforcer.
+     *
+     * @param targetActorResponse the response of the target actor.
+     * @return the TargetActorWithMessage.
+     */
+    public static TargetActorWithMessage ofTargetActorResponse(final Object targetActorResponse) {
+        return new TargetActorWithMessage(null, targetActorResponse, Duration.ZERO, Function.identity());
+    }
+
+    /**
+     * @return whether the contained {@code message} already is the response of the target actor.
+     */
+    public boolean isTargetActorResponse() {
+        return null == targetActor;
+    }
+}
