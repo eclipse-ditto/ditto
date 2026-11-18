@@ -36,24 +36,7 @@ import org.eclipse.ditto.json.JsonPointer;
  * @param paths the map of JsonPointer paths to lists of subject indices
  * @since 3.9.0
  */
-public record IndexedPartialAccessPaths(
+record IndexedPartialAccessPaths(
         List<String> subjects,
         Map<JsonPointer, List<Integer>> paths
-) {
-
-    /**
-     * Empty instance representing no partial access paths.
-     */
-    public static final IndexedPartialAccessPaths EMPTY =
-            new IndexedPartialAccessPaths(List.of(), Map.of());
-
-    /**
-     * Checks if this instance is empty (no subjects or paths).
-     *
-     * @return true if empty, false otherwise
-     */
-    public boolean isEmpty() {
-        return subjects.isEmpty() || paths.isEmpty();
-    }
-}
-
+) {}

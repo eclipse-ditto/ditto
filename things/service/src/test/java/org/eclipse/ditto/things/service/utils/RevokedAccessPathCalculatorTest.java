@@ -31,6 +31,7 @@ import org.eclipse.ditto.policies.model.SubjectType;
 import org.eclipse.ditto.policies.model.enforcers.Enforcer;
 import org.eclipse.ditto.policies.model.enforcers.PolicyEnforcers;
 import org.junit.Test;
+import org.mockito.Mockito;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
@@ -140,13 +141,112 @@ public final class RevokedAccessPathCalculatorTest {
                 .build();
         final PolicyEnforcer policyEnforcer = enforcer(policy);
 
-        assertThat(policyEnforcer.getReadRevokedThingResourcePaths()).isEmpty();
+        assertThat(policyEnforcer.getReadRevokedThingResourcePathsBySubject()).isEmpty();
         assertThat(calculate(policy)).isEmpty();
+    }
+
+    @Test
+    public void ownGrantBelowOwnRevokeLiftsTheRevokeOnlyThere() {
+        final Policy policy = policyBuilder()
+                .forLabel("ERIN").setSubject(subject("erin"))
+                .setGrantedPermissions("thing", "/", "READ")
+                .setRevokedPermissions("thing", "/attributes/other", "READ")
+                .setGrantedPermissions("thing", "/attributes/other/a", "READ")
+                .build();
+
+        assertThat(calculate(policy)).containsOnlyKeys("test:erin");
+        assertThat(calculate(policy).get("test:erin")).containsExactly(JsonPointer.of("/attributes/other/b"));
+    }
+
+    @Test
+    public void deeperGrantOfAnotherSubjectDoesNotLiftTheRevoke() {
+        final Policy policy = policyBuilder()
+                .forLabel("GROUP_X").setSubject(subject("group-x"))
+                .setRevokedPermissions("thing", "/attributes/other", "READ")
+                .forLabel("ALICE").setSubject(subject("alice"))
+                .setGrantedPermissions("thing", "/attributes/other/a", "READ")
+                .build();
+
+        final Map<String, List<JsonPointer>> result = calculate(policy);
+
+        assertThat(result).containsOnlyKeys("test:group-x");
+        assertThat(result.get("test:group-x")).containsExactly(JsonPointer.of("/attributes/other"));
+    }
+
+    @Test
+    public void revokesOfEntriesForOtherNamespacesAreIgnored() {
+        final Policy policy = policyBuilder()
+                .forLabel("GROUP_X").setSubject(subject("group-x"))
+                .setRevokedPermissions("thing", "/attributes/secret", "READ")
+                .build();
+        final Policy scoped = policy.toBuilder()
+                .setNamespacesFor("GROUP_X", List.of("some.other.namespace"))
+                .build();
+
+        assertThat(RevokedAccessPathCalculator.calculateRevokedAccessPaths(THING,
+                enforcer(scoped).forNamespace("org.eclipse.ditto.test"), true)).isEmpty();
+        assertThat(RevokedAccessPathCalculator.calculateRevokedAccessPaths(THING,
+                enforcer(scoped).forNamespace("some.other.namespace"), true)).containsOnlyKeys("test:group-x");
+    }
+
+    @Test
+    public void leavesAreNotCollapsedOnRequest() {
+        final Policy policy = policyBuilder()
+                .forLabel("GROUP_Y").setSubject(subject("group-y"))
+                .setRevokedPermissions("thing", "/attributes/other", "READ")
+                .build();
+
+        assertThat(RevokedAccessPathCalculator.calculateRevokedAccessPaths(THING, enforcer(policy), false)
+                .get("test:group-y"))
+                .containsExactlyInAnyOrder(JsonPointer.of("/attributes/other/a"), JsonPointer.of("/attributes/other/b"));
+    }
+
+    @Test
+    public void headerValueMarksSubjectsWithRevokedThingRoot() {
+        final Policy policy = policyBuilder()
+                .forLabel("GROUP_Z").setSubject(subject("group-z"))
+                .setRevokedPermissions("thing", "/", "READ")
+                .setGrantedPermissions("thing", "/attributes/pub", "READ")
+                .forLabel("GROUP_X").setSubject(subject("group-x"))
+                .setRevokedPermissions("thing", "/attributes/secret", "READ")
+                .build();
+        final PolicyEnforcer policyEnforcer = enforcer(policy);
+
+        final JsonObject headerValue = RevokedAccessPathCalculator.toHeaderValue(
+                RevokedAccessPathCalculator.calculateRevokedAccessPaths(JsonObject.of("{\"attributes\":{\"pub\":1}}"),
+                        policyEnforcer, true),
+                RevokedAccessPathCalculator.getRootRevokedSubjects(policyEnforcer));
+
+        // nothing of this Thing JSON is revoked for group-z, but it is still listed with its root marker
+        assertThat(headerValue).isEqualTo(
+                JsonObject.of("{\"subjects\":[\"test:group-z\"],\"paths\":{},\"root\":[0]}"));
+    }
+
+    @Test
+    public void headerValueHasNoRootMarkerWithoutRootRevokes() {
+        final JsonObject headerValue = RevokedAccessPathCalculator.toHeaderValue(
+                Map.of("test:a", List.of(JsonPointer.of("/attributes/secret"))), java.util.Set.of());
+
+        assertThat(headerValue.contains("root")).isFalse();
+    }
+
+    @Test
+    public void doesNotLookUpEffectedSubjectsPerLeaf() {
+        final Policy policy = policyBuilder()
+                .forLabel("GROUP_Z").setSubject(subject("group-z"))
+                .setRevokedPermissions("thing", "/", "READ")
+                .build();
+        final Enforcer enforcer = Mockito.spy(evaluator.apply(policy));
+
+        RevokedAccessPathCalculator.calculateRevokedAccessPaths(THING, PolicyEnforcer.of(policy, enforcer), true);
+
+        Mockito.verify(enforcer, Mockito.never())
+                .getSubjectsWithPermission(Mockito.any(), Mockito.any(org.eclipse.ditto.policies.model.Permissions.class));
     }
 
     private Map<String, List<JsonPointer>> calculate(final Policy policy) {
         final PolicyEnforcer policyEnforcer = enforcer(policy);
-        return RevokedAccessPathCalculator.calculateRevokedAccessPaths(THING, policyEnforcer);
+        return RevokedAccessPathCalculator.calculateRevokedAccessPaths(THING, policyEnforcer, true);
     }
 
     private PolicyEnforcer enforcer(final Policy policy) {

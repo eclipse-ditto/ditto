@@ -104,10 +104,8 @@ import org.eclipse.ditto.internal.utils.pekko.controlflow.Filter;
 import org.eclipse.ditto.internal.utils.pekko.controlflow.LimitRateByRejection;
 import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.pekko.logging.ThreadSafeDittoLogger;
-import org.eclipse.ditto.internal.utils.protocol.AdaptablePartialAccessFilter;
-import org.eclipse.ditto.internal.utils.protocol.JsonPartialAccessFilter;
-import org.eclipse.ditto.internal.utils.protocol.PartialAccessPathResolver;
 import org.eclipse.ditto.internal.utils.protocol.PartialAccessSignalFilter;
+import org.eclipse.ditto.internal.utils.protocol.ReadableSignalView;
 import org.eclipse.ditto.internal.utils.pubsub.StreamingType;
 import org.eclipse.ditto.internal.utils.tracing.DittoTracing;
 import org.eclipse.ditto.internal.utils.tracing.span.SpanOperationName;
@@ -117,7 +115,6 @@ import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.jwt.model.ImmutableJsonWebToken;
 import org.eclipse.ditto.jwt.model.JsonWebToken;
@@ -775,55 +772,28 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
                     .orElse(null);
 
             final Adaptable adaptable = jsonifiableToAdaptable(jsonifiable, adapter, subscriberAuthContext);
+            @Nullable final ReadableSignalView view;
+            if (jsonifiable instanceof Signal<?> signal) {
+                final Optional<ReadableSignalView> readableView =
+                        PartialAccessSignalFilter.viewFor(signal, adaptable, subscriberAuthContext);
+                if (readableView.isEmpty()) {
+                    issuePotentialWeakAcknowledgements(sessionedJsonifiable);
+                    sessionedJsonifiable.finishSpan();
+                    return CompletableFuture.completedFuture(Collections.emptyList());
+                }
+                view = readableView.get();
+            } else {
+                view = null;
+            }
 
-            final CompletionStage<JsonObject> extraFuture = sessionedJsonifiable.retrieveExtraFields(facade);
+            final CompletionStage<JsonObject> extraFuture = view == null
+                    ? CompletableFuture.completedFuture(JsonObject.empty())
+                    : sessionedJsonifiable.retrieveExtraFields(facade, view.getSignal());
             return extraFuture.<Collection<String>>thenApply(extra -> {
-                final Set<JsonPointer> revokedPaths = PartialAccessPathResolver.resolveRevokedPathsFromHeaders(
-                        adaptable.getDittoHeaders(), subscriberAuthContext);
-                final JsonObject readableExtra = JsonPartialAccessFilter.removePaths(extra, revokedPaths,
-                        AdaptablePartialAccessFilter.ALWAYS_INCLUDED_THING_FIELDS);
-                final Adaptable filteredAdaptable = AdaptablePartialAccessFilter.filterAdaptableForPartialAccess(
-                        adaptable, subscriberAuthContext);
-                // the filter must only see what the subscriber may read, otherwise it discloses the rest
-                final Optional<Signal<?>> readableSignal = jsonifiable instanceof Signal<?> signal
-                        ? PartialAccessSignalFilter.readableSignal(signal, adaptable, filteredAdaptable,
-                                subscriberAuthContext)
-                        : Optional.empty();
-                final boolean readable = !(jsonifiable instanceof Signal<?>) || readableSignal.isPresent();
-                if (readable && matchesFilter(sessionedJsonifiable, readableSignal.orElse(null), readableExtra)) {
-
-                    final boolean isThingEvent = TopicPath.Group.THINGS.equals(filteredAdaptable.getTopicPath().getGroup()) &&
-                            TopicPath.Criterion.EVENTS.equals(filteredAdaptable.getTopicPath().getCriterion());
-
-                    final boolean partialAccessFilteringApplied = adaptable.getDittoHeaders()
-                            .get(DittoHeaderDefinition.PARTIAL_ACCESS_PATHS.getKey()) != null ||
-                            !revokedPaths.isEmpty();
-
-                    final boolean isEmptyPayload = filteredAdaptable.getPayload().getValue()
-                            .map(value -> {
-                                if (value.isObject() && !value.isNull()) {
-                                    return value.asObject().isEmpty();
-                                }
-                                return false;
-                            })
-                            .orElse(false);
-
-                    final boolean isEmptyOriginalPayload = adaptable.getPayload().getValue()
-                            .map(value -> {
-                                if (value.isObject() && !value.isNull()) {
-                                    return value.asObject().isEmpty();
-                                }
-                                return false;
-                            })
-                            .orElse(false);
-
-                    if (isThingEvent && partialAccessFilteringApplied && isEmptyPayload && !isEmptyOriginalPayload) {
-                        issuePotentialWeakAcknowledgements(sessionedJsonifiable);
-                        sessionedJsonifiable.finishSpan();
-                        return Collections.emptyList();
-                    }
-
-                    return Collections.singletonList(toJsonStringWithExtra(filteredAdaptable, readableExtra));
+                final JsonObject readableExtra = view == null ? extra : view.filterThingJson(extra);
+                if (matchesFilter(sessionedJsonifiable, view == null ? null : view.getSignal(), readableExtra)) {
+                    return Collections.singletonList(
+                            toJsonStringWithExtra(view == null ? adaptable : view.getAdaptable(), readableExtra));
                 }
                 issuePotentialWeakAcknowledgements(sessionedJsonifiable);
                 sessionedJsonifiable.finishSpan();

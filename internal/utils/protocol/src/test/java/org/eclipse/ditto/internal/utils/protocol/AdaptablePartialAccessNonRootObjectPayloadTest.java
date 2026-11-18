@@ -99,7 +99,7 @@ public final class AdaptablePartialAccessNonRootObjectPayloadTest {
                 JsonPointer.of("features/deviceStatus/properties/status/updatedAt"),
                 JsonValue.of("2026-08-31T09:50:46.416636777Z"));
 
-        final Adaptable result = AdaptablePartialAccessFilter.filterAdaptableForPartialAccess(
+        final Adaptable result = SubscriberFilters.filter(
                 adaptable, authContext());
 
         assertThat(result.getPayload().getValue())
@@ -114,7 +114,7 @@ public final class AdaptablePartialAccessNonRootObjectPayloadTest {
         final JsonObject mergeValue = deviceStatusMergeValue();
         final Adaptable adaptable = eventAdaptable(JsonPointer.of("features/deviceStatus"), mergeValue);
 
-        final Adaptable result = AdaptablePartialAccessFilter.filterAdaptableForPartialAccess(
+        final Adaptable result = SubscriberFilters.filter(
                 adaptable, authContext());
 
         assertThat(payloadObject(result))
@@ -130,7 +130,7 @@ public final class AdaptablePartialAccessNonRootObjectPayloadTest {
         final Adaptable adaptable =
                 eventAdaptable(JsonPointer.of("features/deviceStatus/properties/status"), value);
 
-        final Adaptable result = AdaptablePartialAccessFilter.filterAdaptableForPartialAccess(
+        final Adaptable result = SubscriberFilters.filter(
                 adaptable, authContext());
 
         assertThat(payloadObject(result))
@@ -151,7 +151,7 @@ public final class AdaptablePartialAccessNonRootObjectPayloadTest {
                 .build();
         final Adaptable adaptable = eventAdaptable(JsonPointer.of("features"), value);
 
-        final Adaptable result = AdaptablePartialAccessFilter.filterAdaptableForPartialAccess(
+        final Adaptable result = SubscriberFilters.filter(
                 adaptable, authContext());
 
         final JsonObject filtered = payloadObject(result);
@@ -170,7 +170,7 @@ public final class AdaptablePartialAccessNonRootObjectPayloadTest {
                 .build();
         final Adaptable adaptable = eventAdaptable(JsonPointer.of("features/grid"), value);
 
-        final Adaptable result = AdaptablePartialAccessFilter.filterAdaptableForPartialAccess(
+        final Adaptable result = SubscriberFilters.filter(
                 adaptable, authContext());
 
         assertThat(payloadObject(result))
@@ -194,7 +194,7 @@ public final class AdaptablePartialAccessNonRootObjectPayloadTest {
         final Adaptable adaptable = eventAdaptableWithExtra(JsonPointer.of("features/deviceStatus"), mergeValue,
                 extra, GRANT_ON_DEVICE_STATUS_AND_ATTRIBUTES);
 
-        final Adaptable result = AdaptablePartialAccessFilter.filterAdaptableForPartialAccess(
+        final Adaptable result = SubscriberFilters.filter(
                 adaptable, authContext());
 
         assertThat(payloadObject(result))
@@ -226,7 +226,7 @@ public final class AdaptablePartialAccessNonRootObjectPayloadTest {
         final Adaptable adaptable = eventAdaptableWithExtra(JsonPointer.of("features/deviceStatus"),
                 deviceStatusMergeValue(), extra, GRANT_ON_DEVICE_STATUS);
 
-        final Adaptable result = AdaptablePartialAccessFilter.filterAdaptableForPartialAccess(
+        final Adaptable result = SubscriberFilters.filter(
                 adaptable, authContext());
 
         assertThat(result.getPayload().getExtra().orElse(JsonFactory.newObject()))
@@ -251,7 +251,7 @@ public final class AdaptablePartialAccessNonRootObjectPayloadTest {
         final Adaptable adaptable = eventAdaptableWithExtra(JsonPointer.of("features/grid"),
                 JsonFactory.newObject(), extra, GRANT_ON_DEVICE_STATUS);
 
-        final Adaptable result = AdaptablePartialAccessFilter.filterAdaptableForPartialAccess(
+        final Adaptable result = SubscriberFilters.filter(
                 adaptable, authContext());
 
         assertThat(payloadObject(result))

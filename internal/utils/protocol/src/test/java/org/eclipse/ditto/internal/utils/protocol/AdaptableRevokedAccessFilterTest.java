@@ -66,7 +66,7 @@ public final class AdaptableRevokedAccessFilterTest {
                 headers(Map.of("attributes/secret", GROUP_X), null));
 
         final Adaptable filtered =
-                AdaptablePartialAccessFilter.filterAdaptableForPartialAccess(adaptable, context(ALICE, GROUP_X));
+                SubscriberFilters.filter(adaptable, context(ALICE, GROUP_X));
 
         assertThat(payloadValue(filtered)).isEqualTo(JsonObject.newBuilder()
                 .set("thingId", THING_ID.toString())
@@ -81,7 +81,7 @@ public final class AdaptableRevokedAccessFilterTest {
                 headers(Map.of("attributes/secret", GROUP_X), null));
 
         final Adaptable filtered =
-                AdaptablePartialAccessFilter.filterAdaptableForPartialAccess(adaptable, context(ALICE, GROUP_X));
+                SubscriberFilters.filter(adaptable, context(ALICE, GROUP_X));
 
         assertThat(payloadValue(filtered)).isEqualTo(JsonObject.newBuilder().set("pub", "p").build());
     }
@@ -92,7 +92,7 @@ public final class AdaptableRevokedAccessFilterTest {
                 headers(Map.of("attributes/secret", GROUP_X), null));
 
         final Adaptable filtered =
-                AdaptablePartialAccessFilter.filterAdaptableForPartialAccess(adaptable, context(ALICE, GROUP_X));
+                SubscriberFilters.filter(adaptable, context(ALICE, GROUP_X));
 
         assertThat(filtered.getPayload().getValue()).contains(JsonObject.empty());
     }
@@ -103,7 +103,7 @@ public final class AdaptableRevokedAccessFilterTest {
                 headers(Map.of("attributes/secret", GROUP_X), null));
 
         final Adaptable filtered =
-                AdaptablePartialAccessFilter.filterAdaptableForPartialAccess(adaptable, context(ALICE, GROUP_X));
+                SubscriberFilters.filter(adaptable, context(ALICE, GROUP_X));
 
         assertThat(filtered.getPayload().getValue()).contains(JsonObject.empty());
     }
@@ -114,7 +114,7 @@ public final class AdaptableRevokedAccessFilterTest {
                 headers(Map.of("attributes/secret", GROUP_X), null));
 
         final Adaptable filtered =
-                AdaptablePartialAccessFilter.filterAdaptableForPartialAccess(adaptable, context(ALICE));
+                SubscriberFilters.filter(adaptable, context(ALICE));
 
         assertThat(payloadValue(filtered)).isEqualTo(THING);
     }
@@ -126,7 +126,7 @@ public final class AdaptableRevokedAccessFilterTest {
                 headers(Map.of("attributes/secret", GROUP_X), null));
 
         final Adaptable filtered =
-                AdaptablePartialAccessFilter.filterAdaptableForPartialAccess(adaptable, context(ALICE, GROUP_X));
+                SubscriberFilters.filter(adaptable, context(ALICE, GROUP_X));
 
         assertThat(payloadValue(filtered))
                 .isEqualTo(JsonObject.newBuilder().set("pub", "p").set("secretive", "v").build());
@@ -142,7 +142,7 @@ public final class AdaptableRevokedAccessFilterTest {
                 headers(Map.of("attributes/secret", GROUP_X), null));
 
         final Adaptable filtered =
-                AdaptablePartialAccessFilter.filterAdaptableForPartialAccess(adaptable, context(ALICE, GROUP_X));
+                SubscriberFilters.filter(adaptable, context(ALICE, GROUP_X));
 
         assertThat(filtered.getPayload().getValue()).contains(JsonValue.of("p"));
         assertThat(filtered.getPayload().getExtra()).contains(JsonObject.newBuilder()
@@ -157,7 +157,7 @@ public final class AdaptableRevokedAccessFilterTest {
                 headers(Map.of("attributes/secret", GROUP_X), Map.of("attributes", PARTIAL)));
 
         final Adaptable filtered =
-                AdaptablePartialAccessFilter.filterAdaptableForPartialAccess(adaptable, context(PARTIAL, GROUP_X));
+                SubscriberFilters.filter(adaptable, context(PARTIAL, GROUP_X));
 
         assertThat(payloadValue(filtered).getValue(JsonPointer.of("/attributes")))
                 .contains(JsonObject.newBuilder().set("pub", "p").build());
@@ -169,7 +169,7 @@ public final class AdaptableRevokedAccessFilterTest {
                 headers(Map.of("thingId", GROUP_X, "policyId", GROUP_X, "attributes", GROUP_X), null));
 
         final Adaptable filtered =
-                AdaptablePartialAccessFilter.filterAdaptableForPartialAccess(adaptable, context(ALICE, GROUP_X));
+                SubscriberFilters.filter(adaptable, context(ALICE, GROUP_X));
 
         assertThat(filtered.getPayload().getValue()).contains(JsonObject.empty());
         assertThat(filtered.getPayload().getExtra())
@@ -187,7 +187,7 @@ public final class AdaptableRevokedAccessFilterTest {
                 .withHeaders(headers(Map.of("attributes/secret", GROUP_X), null))
                 .build();
 
-        assertThat(AdaptablePartialAccessFilter.filterAdaptableForPartialAccess(command, context(ALICE, GROUP_X)))
+        assertThat(SubscriberFilters.filter(command, context(ALICE, GROUP_X)))
                 .isSameAs(command);
     }
 
@@ -206,7 +206,7 @@ public final class AdaptableRevokedAccessFilterTest {
                 .withHeaders(DittoHeaders.empty())
                 .build();
 
-        final Adaptable filtered = AdaptablePartialAccessFilter.removeRevokedPaths(message,
+        final Adaptable filtered = SubscriberFilters.removeRevokedPaths(message,
                 Set.of(JsonPointer.of("/attributes/secret")));
 
         assertThat(filtered.getPayload().getValue()).isEqualTo(message.getPayload().getValue());
@@ -220,13 +220,13 @@ public final class AdaptableRevokedAccessFilterTest {
     public void eventPathIsNotReadableBelowARevokedPath() {
         final DittoHeaders revoked = headers(Map.of("attributes/secret", GROUP_X), null);
 
-        assertThat(AdaptablePartialAccessFilter.isEventPathReadable(
+        assertThat(SubscriberFilters.isPathReadable(
                 thingEvent(JsonPointer.of("/attributes/secret"), JsonValue.of("s"), null, revoked),
                 context(ALICE, GROUP_X))).isFalse();
-        assertThat(AdaptablePartialAccessFilter.isEventPathReadable(
+        assertThat(SubscriberFilters.isPathReadable(
                 thingEvent(JsonPointer.of("/attributes"), ATTRIBUTES, null, revoked), context(ALICE, GROUP_X)))
                 .isTrue();
-        assertThat(AdaptablePartialAccessFilter.isEventPathReadable(
+        assertThat(SubscriberFilters.isPathReadable(
                 thingEvent(JsonPointer.of("/attributes/secret"), JsonValue.of("s"), null, revoked), context(ALICE)))
                 .isTrue();
     }
@@ -239,34 +239,52 @@ public final class AdaptableRevokedAccessFilterTest {
                 .readGrantedSubjects(List.of(PARTIAL))
                 .build();
 
-        assertThat(AdaptablePartialAccessFilter.isEventPathReadable(
+        assertThat(SubscriberFilters.isPathReadable(
                 thingEvent(JsonPointer.of("/attributes/secret"), JsonValue.of("s"), null, partial),
                 context(PARTIAL))).isFalse();
-        assertThat(AdaptablePartialAccessFilter.isEventPathReadable(
+        assertThat(SubscriberFilters.isPathReadable(
                 thingEvent(JsonPointer.of("/attributes"), ATTRIBUTES, null, partial), context(PARTIAL))).isTrue();
-        assertThat(AdaptablePartialAccessFilter.isEventPathReadable(
+        assertThat(SubscriberFilters.isPathReadable(
                 thingEvent(JsonPointer.empty(), THING, null, partial), context(PARTIAL))).isTrue();
     }
 
     @Test
     public void eventPathIsReadableWithoutRestrictions() {
-        assertThat(AdaptablePartialAccessFilter.isEventPathReadable(
+        assertThat(SubscriberFilters.isPathReadable(
                 thingEvent(JsonPointer.of("/attributes/secret"), JsonValue.of("s"), null, DittoHeaders.empty()),
                 context(GROUP_X))).isTrue();
     }
 
     @Test
-    public void thingRootEventIsNotReadableIfTheThingRootIsRevoked() {
-        final DittoHeaders rootRevoked = headers(Map.of("thingId", GROUP_X, "policyId", GROUP_X,
-                "attributes", GROUP_X), null);
+    public void revokedThingIdAloneDoesNotHideThingRootEvents() {
+        final DittoHeaders thingIdRevoked = headers(Map.of("thingId", GROUP_X), null);
+        final Adaptable event = thingEvent(JsonPointer.empty(), THING, null, thingIdRevoked);
 
-        assertThat(AdaptablePartialAccessFilter.isEventPathReadable(
-                thingEvent(JsonPointer.empty(), THING, null, rootRevoked), context(ALICE, GROUP_X))).isFalse();
-        assertThat(AdaptablePartialAccessFilter.isEventPathReadable(
-                thingEvent(JsonPointer.empty(), THING, null, rootRevoked), context(ALICE))).isTrue();
-        assertThat(AdaptablePartialAccessFilter.isEventPathReadable(
-                thingEvent(JsonPointer.empty(), THING, null, headers(Map.of("attributes", GROUP_X), null)),
-                context(ALICE, GROUP_X))).isTrue();
+        assertThat(SubscriberFilters.isPathReadable(event, context(ALICE, GROUP_X))).isTrue();
+        assertThat(payloadValue(SubscriberFilters.filter(event,
+                context(ALICE, GROUP_X)))).isEqualTo(THING);
+    }
+
+    @Test
+    public void onlyTheThingIdIsKeptIfTheThingRootIsRevoked() {
+        final DittoHeaders rootRevoked = DittoHeaders.newBuilder()
+                .putHeader(DittoHeaderDefinition.REVOKED_ACCESS_PATHS.getKey(),
+                        "{\"subjects\":[\"test:group-x\"],\"paths\":{\"thingId\":[0],\"policyId\":[0]," +
+                                "\"attributes/secret\":[0]},\"root\":[0]}")
+                .build();
+        final Adaptable event = thingEvent(JsonPointer.empty(), THING, THING, rootRevoked);
+
+        final Adaptable filtered =
+                SubscriberFilters.filter(event, context(ALICE, GROUP_X));
+
+        final JsonObject expected = JsonObject.newBuilder()
+                .set("thingId", THING.getValue("thingId").orElseThrow())
+                .set("attributes", JsonObject.newBuilder().set("pub", "p").build())
+                .build();
+        assertThat(payloadValue(filtered)).isEqualTo(expected);
+        assertThat(filtered.getPayload().getExtra()).contains(expected);
+        assertThat(payloadValue(SubscriberFilters.filter(event, context(ALICE))))
+                .isEqualTo(THING);
     }
 
     @Test
@@ -278,9 +296,9 @@ public final class AdaptableRevokedAccessFilterTest {
                 .build();
         final Adaptable event = thingEvent(JsonPointer.of("/attributes"), ATTRIBUTES, null, partialWithoutPaths);
 
-        assertThat(AdaptablePartialAccessFilter.isEventPathReadable(event, context(PARTIAL))).isFalse();
-        assertThat(AdaptablePartialAccessFilter.isEventPathReadable(event, context(PARTIAL, ALICE))).isTrue();
-        assertThat(AdaptablePartialAccessFilter.filterAdaptableForPartialAccess(event, context(PARTIAL, ALICE)))
+        assertThat(SubscriberFilters.isPathReadable(event, context(PARTIAL))).isFalse();
+        assertThat(SubscriberFilters.isPathReadable(event, context(PARTIAL, ALICE))).isTrue();
+        assertThat(SubscriberFilters.filter(event, context(PARTIAL, ALICE)))
                 .isSameAs(event);
     }
 

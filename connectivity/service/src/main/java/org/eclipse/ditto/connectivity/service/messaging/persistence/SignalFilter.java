@@ -51,6 +51,7 @@ import org.eclipse.ditto.edge.service.placeholders.ThingPlaceholder;
 import org.eclipse.ditto.internal.utils.pekko.logging.DittoLogger;
 import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.protocol.PartialAccessSignalFilter;
+import org.eclipse.ditto.internal.utils.protocol.ReadableSignalView;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.messages.model.signals.commands.MessageCommand;
@@ -162,12 +163,19 @@ public final class SignalFilter {
 
     private boolean isTargetSubscribedForTopicWithFiltering(final Target target, final Signal<?> signal,
             final ConnectionId connectionId) {
-        // filters must only see what the target may read, otherwise they disclose the rest
-        final Optional<Signal<?>> readableSignal =
-                PartialAccessSignalFilter.filterForSubscriber(signal, target.getAuthorizationContext());
-        return readableSignal.isPresent() && target.getTopics().stream()
+        final List<FilteredTopic> matchingTopics = target.getTopics().stream()
                 .filter(applyTopicFilter(signal))
                 .filter(applyNamespaceFilter(signal))
+                .toList();
+        if (matchingTopics.isEmpty()) {
+            return false;
+        }
+        // filters must only see what the target may read, otherwise they disclose the rest
+        final Optional<Signal<?>> readableSignal = signal instanceof MessageCommand
+                ? Optional.of(signal)
+                : PartialAccessSignalFilter.viewFor(signal, target.getAuthorizationContext())
+                        .map(ReadableSignalView::getSignal);
+        return readableSignal.isPresent() && matchingTopics.stream()
                 .anyMatch(filteredTopic ->
                         matchesFilterBeforeEnrichment(filteredTopic, target, readableSignal.get(), connectionId));
     }

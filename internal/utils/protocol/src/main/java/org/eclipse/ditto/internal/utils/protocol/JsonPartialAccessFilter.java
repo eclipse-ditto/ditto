@@ -16,10 +16,12 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
+import org.eclipse.ditto.json.JsonKey;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
@@ -29,7 +31,7 @@ import org.eclipse.ditto.json.JsonValue;
  * Shared utility for filtering JSON objects based on partial access paths.
  * Used by both Gateway (SSE) and Connectivity (Kafka/WebSocket) services.
  */
-public final class JsonPartialAccessFilter {
+final class JsonPartialAccessFilter {
 
     private static final JsonPointer ROOT_PATH = JsonPointer.empty();
 
@@ -38,21 +40,6 @@ public final class JsonPartialAccessFilter {
 
     private JsonPartialAccessFilter() {
         // No instantiation
-    }
-
-    /**
-     * Parses a JSON object containing partial access paths from headers.
-     * Supports indexed format: { "subjects": ["subj1", "subj2"], "paths": { "/path1": [0, 1], "/path2": [1] } }
-     *
-     * @param jsonObject the JSON object from headers (must contain "subjects" and "paths" keys)
-     * @return map of subject IDs to accessible paths
-     */
-    public static Map<String, List<JsonPointer>> parsePartialAccessPaths(final JsonObject jsonObject) {
-        if (!jsonObject.contains(SUBJECTS_KEY) || !jsonObject.contains(PATHS_KEY)) {
-            return Map.of();
-        }
-        final IndexedPartialAccessPaths indexed = parseIndexedPartialAccessPaths(jsonObject);
-        return expandIndexed(indexed);
     }
 
     /**
@@ -184,12 +171,13 @@ public final class JsonPartialAccessFilter {
 
     /**
      * Removes the given paths from a JSON object. A path in {@code keptPaths} is kept even if it is removed or lies
-     * below a removed path.
+     * below a removed path. Objects which become empty by a removal are removed as well, objects which were empty
+     * before are kept.
      *
      * @param jsonObject the JSON object to remove the paths from.
      * @param removedPaths the paths to remove, relative to {@code jsonObject}; the empty path removes everything.
      * @param keptPaths top-level paths which are never removed.
-     * @return the JSON object without the removed paths.
+     * @return the JSON object without the removed paths, the same instance if nothing was removed.
      */
     public static JsonObject removePaths(final JsonObject jsonObject,
             final Set<JsonPointer> removedPaths,
@@ -204,10 +192,31 @@ public final class JsonPartialAccessFilter {
         JsonObject result = jsonObject;
         for (final JsonPointer removedPath : removedPaths) {
             if (!keptPaths.contains(removedPath)) {
-                result = result.remove(removedPath);
+                result = removePathPruningEmptiedParents(result, removedPath);
             }
         }
         return result;
+    }
+
+    private static JsonObject removePathPruningEmptiedParents(final JsonObject jsonObject, final JsonPointer path) {
+        final JsonKey key = path.getRoot().orElseThrow();
+        final Optional<JsonValue> child = jsonObject.getValue(key);
+        if (child.isEmpty()) {
+            return jsonObject;
+        }
+        if (path.getLevelCount() == 1) {
+            return jsonObject.remove(key);
+        }
+        final JsonValue childValue = child.get();
+        if (!childValue.isObject() || childValue.isNull()) {
+            return jsonObject;
+        }
+        final JsonObject childObject = childValue.asObject();
+        final JsonObject filteredChild = removePathPruningEmptiedParents(childObject, path.nextLevel());
+        if (filteredChild == childObject) {
+            return jsonObject;
+        }
+        return filteredChild.isEmpty() ? jsonObject.remove(key) : jsonObject.setValue(key, filteredChild);
     }
 
     /**

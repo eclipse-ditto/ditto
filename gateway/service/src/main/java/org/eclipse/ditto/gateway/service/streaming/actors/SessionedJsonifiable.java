@@ -59,9 +59,12 @@ public interface SessionedJsonifiable {
      * If the Jsonifiable supports extra fields but retrieval is impossible, then a failed future is returned.
      *
      * @param facade the signal enrichment facade with which extra fields are retrieved.
+     * @param readableSignal the part of the signal the subscriber may read; it resolves the placeholders of the extra
+     * fields and is the only part of the signal the facade may merge into its cache for the subscriber.
      * @return future of the result of retrieval.
      */
-    CompletionStage<JsonObject> retrieveExtraFields(@Nullable SignalEnrichmentFacade facade);
+    CompletionStage<JsonObject> retrieveExtraFields(@Nullable SignalEnrichmentFacade facade,
+            Signal<?> readableSignal);
 
     /**
      * Retrieve the streaming session if this is a signal and has an associated session.

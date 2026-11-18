@@ -18,6 +18,8 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
+import javax.annotation.Nullable;
+
 import org.eclipse.ditto.base.model.auth.AuthorizationContext;
 import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
 import org.eclipse.ditto.base.model.auth.DittoAuthorizationContextType;
@@ -64,22 +66,39 @@ public final class PartialAccessSignalFilterTest {
     public void returnsSameSignalWithoutAccessRestrictions() {
         final AttributesModified event = attributesModified(DittoHeaders.empty());
 
-        assertThat(PartialAccessSignalFilter.filterForSubscriber(event, context(ALICE, GROUP_X)))
+        assertThat(readable(event, context(ALICE, GROUP_X)))
                 .containsSame(event);
     }
 
     @Test
-    public void returnsSameSignalWithoutSubscriberContext() {
+    public void restrictedEventIsNotReadableWithoutSubscriberContext() {
         final AttributesModified event = attributesModified(REVOKED_FOR_GROUP_X);
 
-        assertThat(PartialAccessSignalFilter.filterForSubscriber(event, null)).containsSame(event);
+        assertThat(readable(event, null)).isEmpty();
+        assertThat(readable(event, AuthorizationContext.empty())).isEmpty();
+        assertThat(readable(attributesModified(PARTIAL_FOR_CAROL), null)).isEmpty();
+    }
+
+    @Test
+    public void restrictedLiveCommandIsNotReadableWithoutSubscriberContext() {
+        final ModifyAttributes command = ModifyAttributes.of(THING_ID, ATTRIBUTES,
+                REVOKED_FOR_GROUP_X.toBuilder().channel("live").build());
+
+        assertThat(readable(command, null)).isEmpty();
+    }
+
+    @Test
+    public void restrictedSignalWithoutFilterablePayloadIsReadableWithoutSubscriberContext() {
+        final ModifyAttributes twinCommand = ModifyAttributes.of(THING_ID, ATTRIBUTES, REVOKED_FOR_GROUP_X);
+
+        assertThat(readable(twinCommand, null)).containsSame(twinCommand);
     }
 
     @Test
     public void returnsSameSignalForSubscriberWithoutRestrictedSubject() {
         final AttributesModified event = attributesModified(REVOKED_FOR_GROUP_X);
 
-        assertThat(PartialAccessSignalFilter.filterForSubscriber(event, context(ALICE))).containsSame(event);
+        assertThat(readable(event, context(ALICE))).containsSame(event);
     }
 
     @Test
@@ -109,7 +128,7 @@ public final class PartialAccessSignalFilterTest {
         final AttributeModified event = AttributeModified.of(THING_ID, JsonPointer.of("secret"), JsonValue.of("s"),
                 1L, Instant.EPOCH, REVOKED_FOR_GROUP_X, null);
 
-        assertThat(PartialAccessSignalFilter.filterForSubscriber(event, context(ALICE, GROUP_X))).isEmpty();
+        assertThat(readable(event, context(ALICE, GROUP_X))).isEmpty();
     }
 
     @Test
@@ -129,7 +148,7 @@ public final class PartialAccessSignalFilterTest {
     public void leavesCommandsUntouched() {
         final ModifyAttributes command = ModifyAttributes.of(THING_ID, ATTRIBUTES, REVOKED_FOR_GROUP_X);
 
-        assertThat(PartialAccessSignalFilter.filterForSubscriber(command, context(ALICE, GROUP_X)))
+        assertThat(readable(command, context(ALICE, GROUP_X)))
                 .containsSame(command);
     }
 
@@ -138,8 +157,8 @@ public final class PartialAccessSignalFilterTest {
         final AttributeDeleted event = AttributeDeleted.of(THING_ID, JsonPointer.of("secret"), 1L, Instant.EPOCH,
                 REVOKED_FOR_GROUP_X, null);
 
-        assertThat(PartialAccessSignalFilter.filterForSubscriber(event, context(ALICE, GROUP_X))).isEmpty();
-        assertThat(PartialAccessSignalFilter.filterForSubscriber(event, context(ALICE))).containsSame(event);
+        assertThat(readable(event, context(ALICE, GROUP_X))).isEmpty();
+        assertThat(readable(event, context(ALICE))).containsSame(event);
     }
 
     @Test
@@ -147,11 +166,15 @@ public final class PartialAccessSignalFilterTest {
         final AttributeModified event = AttributeModified.of(THING_ID, JsonPointer.of("secret"), JsonValue.of("s"),
                 1L, Instant.EPOCH, PARTIAL_FOR_CAROL, null);
 
-        assertThat(PartialAccessSignalFilter.filterForSubscriber(event, context(CAROL))).isEmpty();
+        assertThat(readable(event, context(CAROL))).isEmpty();
+    }
+
+    private static Optional<Signal<?>> readable(final Signal<?> signal, @Nullable final AuthorizationContext context) {
+        return PartialAccessSignalFilter.viewFor(signal, context).map(ReadableSignalView::getSignal);
     }
 
     private static Signal<?> filter(final Signal<?> signal, final AuthorizationContext context) {
-        final Optional<Signal<?>> result = PartialAccessSignalFilter.filterForSubscriber(signal, context);
+        final Optional<Signal<?>> result = readable(signal, context);
         assertThat(result).isPresent();
         return result.orElseThrow();
     }

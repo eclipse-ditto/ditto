@@ -15,6 +15,8 @@ package org.eclipse.ditto.things.service.persistence.actors.enrichment;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.CompletableFutureAssert.assertThatCompletionStage;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.time.Instant;
@@ -25,6 +27,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Function;
 
+import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.json.JsonArray;
@@ -54,10 +57,12 @@ import org.eclipse.ditto.messages.model.Message;
 import org.eclipse.ditto.messages.model.MessageDirection;
 import org.eclipse.ditto.messages.model.MessageHeaders;
 import org.eclipse.ditto.messages.model.signals.commands.SendThingMessage;
+import org.eclipse.ditto.things.model.signals.events.ThingDefinitionMigrated;
 import org.eclipse.ditto.things.model.signals.events.ThingEvent;
 import org.eclipse.ditto.things.model.signals.events.ThingMerged;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Mockito;
 
 import com.typesafe.config.ConfigFactory;
 
@@ -350,11 +355,11 @@ public final class ThingEventEnricherTest {
                 Instant.now(), DittoHeaders.empty(), null);
         final Thing thingWithoutFolder = KNOWN_THING.removeAttribute(JsonPointer.of("folder"));
 
-        final String first = sut.enrichWithPredefinedExtraFields(List.of(), KNOWN_THING_ID, KNOWN_THING,
+        final String first = sut.enrichWithPredefinedExtraFields(List.of(), KNOWN_THING_ID, null, KNOWN_THING,
                         KNOWN_POLICY_ID, event)
                 .toCompletableFuture().join()
                 .getDittoHeaders().get(DittoHeaderDefinition.REVOKED_ACCESS_PATHS.getKey());
-        final String second = sut.enrichWithPredefinedExtraFields(List.of(), KNOWN_THING_ID, thingWithoutFolder,
+        final String second = sut.enrichWithPredefinedExtraFields(List.of(), KNOWN_THING_ID, null, thingWithoutFolder,
                         KNOWN_POLICY_ID, event)
                 .toCompletableFuture().join()
                 .getDittoHeaders().get(DittoHeaderDefinition.REVOKED_ACCESS_PATHS.getKey());
@@ -403,13 +408,215 @@ public final class ThingEventEnricherTest {
                 DittoHeaders.empty());
 
         final DittoHeaders headers = new ThingEventEnricher(revokingProvider(), true, true)
-                .enrichWithPredefinedExtraFields(List.of(), KNOWN_THING_ID, KNOWN_THING, KNOWN_POLICY_ID, message)
+                .enrichWithPredefinedExtraFields(List.of(), KNOWN_THING_ID, null, KNOWN_THING, KNOWN_POLICY_ID,
+                        message)
                 .toCompletableFuture().join()
                 .getDittoHeaders();
 
         assertThat(headers.get(DittoHeaderDefinition.REVOKED_ACCESS_PATHS.getKey()))
                 .isEqualTo(EXPECTED_REVOKED_ACCESS_PATHS);
         assertThat(headers.get(DittoHeaderDefinition.PARTIAL_ACCESS_PATHS.getKey())).isNull();
+    }
+
+    @Test
+    public void ignoresGrantsOfPolicyEntriesForOtherNamespacesWhenCalculatingPartialAccessPaths() {
+        final Policy policy = KNOWN_POLICY.toBuilder()
+                .setSubjectFor("restricted-other-namespace", Subject.newInstance(
+                        SubjectId.newInstance(KNOWN_ISSUER_RESTRICTED_SUBJECT), SubjectType.GENERATED))
+                .setGrantedPermissionsFor("restricted-other-namespace",
+                        ResourceKey.newInstance("thing", "/attributes/private"), "READ")
+                .setNamespacesFor("restricted-other-namespace", List.of("some.other.namespace"))
+                .build();
+        final ThingEventEnricher sut = new ThingEventEnricher(provider(policy), true, true);
+
+        final JsonObject header = partialAccessHeader(sut, KNOWN_THING);
+
+        assertThat(header.toString()).contains("attributes/public1").doesNotContain("attributes/private");
+    }
+
+    @Test
+    public void ignoresGrantsOfPolicyEntriesForOtherNamespacesInPredefinedExtraFieldsReadGrant() {
+        final Policy policy = KNOWN_POLICY.toBuilder()
+                .setSubjectFor("restricted-other-namespace", Subject.newInstance(
+                        SubjectId.newInstance(KNOWN_ISSUER_RESTRICTED_SUBJECT), SubjectType.GENERATED))
+                .setGrantedPermissionsFor("restricted-other-namespace",
+                        ResourceKey.newInstance("thing", "/attributes/private"), "READ")
+                .setNamespacesFor("restricted-other-namespace", List.of("some.other.namespace"))
+                .build();
+        final ThingEventEnricher sut = new ThingEventEnricher(provider(policy), true, true);
+        final var configs = getPreDefinedExtraFieldsConfigs("extra-fields = [\"attributes/private\"]");
+
+        final DittoHeaders headers = calculateEnrichedSignalHeaders(sut, configs).toCompletableFuture().join();
+
+        assertThat(JsonObject.of(headers.get(
+                DittoHeaderDefinition.PRE_DEFINED_EXTRA_FIELDS_READ_GRANT_OBJECT.getKey())))
+                .isEqualTo(JsonObject.newBuilder()
+                        .set(JsonKey.of("/attributes/private"), JsonArray.of(JsonValue.of(KNOWN_ISSUER_FULL_SUBJECT)))
+                        .build());
+    }
+
+    @Test
+    public void coversFieldsOfADeletedObjectFromThePreviousThing() {
+        final Policy policy = FULL_ACCESS_POLICY.toBuilder()
+                .setSubjectFor("group", Subject.newInstance(
+                        SubjectId.newInstance(KNOWN_ISSUER_GROUP_SUBJECT), SubjectType.GENERATED))
+                .setRevokedPermissionsFor("group", ResourceKey.newInstance("thing", "/attributes/obj/secret"), "READ")
+                .build();
+        final Thing previousThing = KNOWN_THING.setAttribute(JsonPointer.of("obj/secret"), JsonValue.of("s"));
+        final AttributeDeleted deleted = AttributeDeleted.of(KNOWN_THING_ID, JsonPointer.of("obj"), 5L,
+                Instant.now(), DittoHeaders.empty(), null);
+
+        final DittoHeaders headers = new ThingEventEnricher(provider(policy), true, true)
+                .enrichWithPredefinedExtraFields(List.of(), KNOWN_THING_ID, previousThing, KNOWN_THING,
+                        KNOWN_POLICY_ID, deleted)
+                .toCompletableFuture().join()
+                .getDittoHeaders();
+
+        assertThat(JsonObject.of(headers.get(DittoHeaderDefinition.REVOKED_ACCESS_PATHS.getKey())))
+                .isEqualTo(JsonObject.of("{\"subjects\":[\"" + KNOWN_ISSUER_GROUP_SUBJECT +
+                        "\"],\"paths\":{\"attributes/obj\":[0]}}"));
+    }
+
+    @Test
+    public void coversFieldsOfAnObjectDeletedByMergeFromThePreviousThing() {
+        final Policy policy = FULL_ACCESS_POLICY.toBuilder()
+                .setSubjectFor("group", Subject.newInstance(
+                        SubjectId.newInstance(KNOWN_ISSUER_GROUP_SUBJECT), SubjectType.GENERATED))
+                .setRevokedPermissionsFor("group", ResourceKey.newInstance("thing", "/attributes/obj/secret"), "READ")
+                .build();
+        final Thing previousThing = KNOWN_THING.setAttribute(JsonPointer.of("obj/secret"), JsonValue.of("s"));
+        final ThingMerged merged = ThingMerged.of(KNOWN_THING_ID, JsonPointer.of("/attributes"),
+                JsonObject.of("{\"obj\":null}"), 5L, Instant.now(), DittoHeaders.empty(), null);
+
+        final DittoHeaders headers = new ThingEventEnricher(provider(policy), true, true)
+                .enrichWithPredefinedExtraFields(List.of(), KNOWN_THING_ID, previousThing, KNOWN_THING,
+                        KNOWN_POLICY_ID, merged)
+                .toCompletableFuture().join()
+                .getDittoHeaders();
+
+        assertThat(JsonObject.of(headers.get(DittoHeaderDefinition.REVOKED_ACCESS_PATHS.getKey())))
+                .isEqualTo(JsonObject.of("{\"subjects\":[\"" + KNOWN_ISSUER_GROUP_SUBJECT +
+                        "\"],\"paths\":{\"attributes/obj\":[0]}}"));
+    }
+
+    @Test
+    public void coversFieldsDeletedByThingDefinitionMigration() {
+        final Thing thingWithoutFolder = KNOWN_THING.removeAttribute(JsonPointer.of("folder"));
+        final ThingDefinitionMigrated migrated = ThingDefinitionMigrated.of(Thing.newBuilder()
+                        .setId(KNOWN_THING_ID)
+                        .setAttribute(JsonPointer.of("folder"), JsonValue.nullLiteral())
+                        .build(),
+                5L, Instant.now(), DittoHeaders.empty(), null);
+
+        final DittoHeaders headers = enrich(new ThingEventEnricher(revokingProvider(), true, true),
+                thingWithoutFolder, migrated);
+
+        assertThat(headers.get(DittoHeaderDefinition.REVOKED_ACCESS_PATHS.getKey()))
+                .isEqualTo(EXPECTED_REVOKED_ACCESS_PATHS);
+    }
+
+    @Test
+    public void removesRestrictedSubjectWhichMayReadNothingOfTheThingFromReadGrantedSubjects() {
+        final Policy policy = KNOWN_POLICY.toBuilder()
+                .setSubjectFor("features-only", Subject.newInstance(
+                        SubjectId.newInstance("foo-issuer:features-only"), SubjectType.GENERATED))
+                .setGrantedPermissionsFor("features-only", ResourceKey.newInstance("thing", "/features"), "READ")
+                .build();
+        final AttributeModified event = AttributeModified.of(KNOWN_THING_ID, JsonPointer.of("public1"),
+                JsonValue.of(false), 4L, Instant.now(), DittoHeaders.newBuilder()
+                        .readGrantedSubjects(List.of(
+                                AuthorizationSubject.newInstance(KNOWN_ISSUER_FULL_SUBJECT),
+                                AuthorizationSubject.newInstance(KNOWN_ISSUER_RESTRICTED_SUBJECT),
+                                AuthorizationSubject.newInstance("foo-issuer:features-only")))
+                        .build(), null);
+
+        final DittoHeaders headers = enrich(new ThingEventEnricher(provider(policy), true, true), KNOWN_THING, event);
+
+        assertThat(headers.getReadGrantedSubjects()).containsExactlyInAnyOrder(
+                AuthorizationSubject.newInstance(KNOWN_ISSUER_FULL_SUBJECT),
+                AuthorizationSubject.newInstance(KNOWN_ISSUER_RESTRICTED_SUBJECT));
+        assertThat(headers.get(DittoHeaderDefinition.PARTIAL_ACCESS_PATHS.getKey()))
+                .doesNotContain("foo-issuer:features-only");
+    }
+
+    @Test
+    public void marksSubjectsWithRevokedThingRoot() {
+        final Policy policy = FULL_ACCESS_POLICY.toBuilder()
+                .setSubjectFor("group", Subject.newInstance(
+                        SubjectId.newInstance(KNOWN_ISSUER_GROUP_SUBJECT), SubjectType.GENERATED))
+                .setRevokedPermissionsFor("group", ResourceKey.newInstance("thing", "/"), "READ")
+                .build();
+
+        final DittoHeaders headers = calculateEnrichedSignalHeaders(
+                new ThingEventEnricher(provider(policy), false, true), List.of()).toCompletableFuture().join();
+
+        final JsonObject revoked = JsonObject.of(headers.get(DittoHeaderDefinition.REVOKED_ACCESS_PATHS.getKey()));
+        assertThat(revoked.getValue("subjects")).contains(JsonArray.of(JsonValue.of(KNOWN_ISSUER_GROUP_SUBJECT)));
+        assertThat(revoked.getValue("root")).contains(JsonArray.of(JsonValue.of(0)));
+    }
+
+    @Test
+    public void failsWithoutPolicyEnforcerAlsoWhenPartialAccessEventsAreDisabled() {
+        final PolicyEnforcerProvider provider = mock(PolicyEnforcerProvider.class);
+        when(provider.getPolicyEnforcer(KNOWN_POLICY_ID))
+                .thenReturn(CompletableFuture.completedFuture(Optional.empty()));
+
+        assertThatCompletionStage(calculateEnrichedSignalHeaders(new ThingEventEnricher(provider, false, true),
+                List.of())).isCompletedExceptionally();
+        assertThatCompletionStage(calculateEnrichedSignalHeaders(new ThingEventEnricher(provider, true, true),
+                List.of())).isCompletedExceptionally();
+    }
+
+    @Test
+    public void failsWithFailedPolicyEnforcerLookup() {
+        final PolicyEnforcerProvider provider = mock(PolicyEnforcerProvider.class);
+        when(provider.getPolicyEnforcer(KNOWN_POLICY_ID))
+                .thenReturn(CompletableFuture.failedFuture(new IllegalStateException("lookup failed")));
+
+        assertThatCompletionStage(calculateEnrichedSignalHeaders(new ThingEventEnricher(provider, true, true),
+                List.of())).isCompletedExceptionally();
+    }
+
+    @Test
+    public void eventsAndMessagesDoNotEvictEachOthersRestrictions() {
+        final PolicyEnforcer namespaceEnforcer = Mockito.spy(PolicyEnforcer.of(REVOKING_POLICY.toBuilder()
+                .set(KNOWN_POLICY.getEntryFor(KNOWN_LABEL_RESTRICTED).orElseThrow())
+                .build()));
+        final PolicyEnforcer policyEnforcer = mock(PolicyEnforcer.class);
+        when(policyEnforcer.forNamespace(KNOWN_THING_ID.getNamespace())).thenReturn(namespaceEnforcer);
+        final PolicyEnforcerProvider provider = mock(PolicyEnforcerProvider.class);
+        when(provider.getPolicyEnforcer(KNOWN_POLICY_ID))
+                .thenReturn(CompletableFuture.completedFuture(Optional.of(policyEnforcer)));
+        final ThingEventEnricher sut = new ThingEventEnricher(provider, true, true);
+        final SendThingMessage<String> message = SendThingMessage.of(KNOWN_THING_ID,
+                Message.<String>newBuilder(MessageHeaders.newBuilder(MessageDirection.TO, KNOWN_THING_ID, "hello")
+                        .build()).build(),
+                DittoHeaders.empty());
+
+        calculateEnrichedSignalHeaders(sut, List.of()).toCompletableFuture().join();
+        sut.enrichWithPredefinedExtraFields(List.of(), KNOWN_THING_ID, null, KNOWN_THING, KNOWN_POLICY_ID, message)
+                .toCompletableFuture().join();
+        final int calculations = Mockito.mockingDetails(namespaceEnforcer).getInvocations().stream()
+                .filter(invocation -> "getEnforcer".equals(invocation.getMethod().getName()))
+                .mapToInt(invocation -> 1)
+                .sum();
+        final DittoHeaders headers = calculateEnrichedSignalHeaders(sut, List.of()).toCompletableFuture().join();
+        final DittoHeaders messageHeaders = sut.enrichWithPredefinedExtraFields(List.of(), KNOWN_THING_ID, null,
+                KNOWN_THING, KNOWN_POLICY_ID, message).toCompletableFuture().join().getDittoHeaders();
+
+        verify(namespaceEnforcer, times(calculations)).getEnforcer();
+        assertThat(messageHeaders.get(DittoHeaderDefinition.REVOKED_ACCESS_PATHS.getKey())).isNotNull();
+        assertThat(messageHeaders.get(DittoHeaderDefinition.PARTIAL_ACCESS_PATHS.getKey())).isNull();
+        assertThat(headers.get(DittoHeaderDefinition.REVOKED_ACCESS_PATHS.getKey()))
+                .isEqualTo(EXPECTED_REVOKED_ACCESS_PATHS);
+        assertThat(headers.get(DittoHeaderDefinition.PARTIAL_ACCESS_PATHS.getKey())).isNotNull();
+    }
+
+    private static PolicyEnforcerProvider provider(final Policy policy) {
+        final PolicyEnforcerProvider provider = mock(PolicyEnforcerProvider.class);
+        when(provider.getPolicyEnforcer(KNOWN_POLICY_ID))
+                .thenReturn(CompletableFuture.completedFuture(Optional.of(PolicyEnforcer.of(policy))));
+        return provider;
     }
 
     private static PolicyEnforcerProvider revokingProvider() {
@@ -424,7 +631,7 @@ public final class ThingEventEnricherTest {
     }
 
     private static DittoHeaders enrich(final ThingEventEnricher sut, final Thing thing, final ThingEvent<?> event) {
-        return sut.enrichWithPredefinedExtraFields(List.of(), KNOWN_THING_ID, thing, KNOWN_POLICY_ID, event)
+        return sut.enrichWithPredefinedExtraFields(List.of(), KNOWN_THING_ID, null, thing, KNOWN_POLICY_ID, event)
                 .toCompletableFuture().join()
                 .getDittoHeaders();
     }
@@ -439,7 +646,7 @@ public final class ThingEventEnricherTest {
                 Instant.now(), DittoHeaders.empty(), null);
 
         final CompletionStage<AttributeModified> resultStage =
-                sut.enrichWithPredefinedExtraFields(List.of(), KNOWN_THING_ID, thing, KNOWN_POLICY_ID, event);
+                sut.enrichWithPredefinedExtraFields(List.of(), KNOWN_THING_ID, null, thing, KNOWN_POLICY_ID, event);
 
         assertThatCompletionStage(resultStage).isCompletedExceptionally();
     }
@@ -646,7 +853,7 @@ public final class ThingEventEnricherTest {
                 KNOWN_THING_ID, JsonPointer.of("something"), JsonValue.of(true), 4L,
                 Instant.now(), DittoHeaders.empty(), null);
         final DittoHeaders headers = sut.enrichWithPredefinedExtraFields(
-                        List.of(), KNOWN_THING_ID, thing, KNOWN_POLICY_ID, event)
+                        List.of(), KNOWN_THING_ID, null, thing, KNOWN_POLICY_ID, event)
                 .thenApply(AttributeModified::getDittoHeaders)
                 .toCompletableFuture().join();
         final String value = headers.get(DittoHeaderDefinition.PARTIAL_ACCESS_PATHS.getKey());
@@ -671,8 +878,8 @@ public final class ThingEventEnricherTest {
                 Instant.now(), DittoHeaders.empty(), null);
 
         final CompletionStage<AttributeModified> resultStage =
-                sut.enrichWithPredefinedExtraFields(
-                        preDefinedExtraFieldsConfigs, KNOWN_THING_ID, KNOWN_THING, KNOWN_POLICY_ID, event);
+                sut.enrichWithPredefinedExtraFields(preDefinedExtraFieldsConfigs, KNOWN_THING_ID, null, KNOWN_THING,
+                        KNOWN_POLICY_ID, event);
         return resultStage.thenApply(AttributeModified::getDittoHeaders);
     }
 

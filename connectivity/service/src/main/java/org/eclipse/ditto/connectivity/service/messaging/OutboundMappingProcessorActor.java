@@ -98,17 +98,14 @@ import org.eclipse.ditto.internal.models.signalenrichment.SignalEnrichmentFacade
 import org.eclipse.ditto.internal.utils.config.ScopedConfig;
 import org.eclipse.ditto.internal.utils.pekko.controlflow.AbstractGraphActor;
 import org.eclipse.ditto.internal.utils.pekko.logging.ThreadSafeDittoLoggingAdapter;
-import org.eclipse.ditto.internal.utils.protocol.AdaptablePartialAccessFilter;
-import org.eclipse.ditto.internal.utils.protocol.JsonPartialAccessFilter;
-import org.eclipse.ditto.internal.utils.protocol.PartialAccessPathResolver;
 import org.eclipse.ditto.internal.utils.protocol.PartialAccessSignalFilter;
+import org.eclipse.ditto.internal.utils.protocol.ReadableSignalView;
 import org.eclipse.ditto.internal.utils.pubsub.StreamingType;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonKey;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.placeholders.ExpressionResolver;
 import org.eclipse.ditto.placeholders.PlaceholderFactory;
@@ -449,8 +446,20 @@ public final class OutboundMappingProcessorActor
     // Called inside stream; must be thread-safe
     private CompletionStage<Collection<OutboundSignalWithSender>> enrichAndFilterSignal(
             final Pair<OutboundSignalWithSender, Set<FilteredTopic>> outboundSignalWithExtraFields) {
-        final OutboundSignalWithSender outboundSignal = outboundSignalWithExtraFields.first();
         final Set<FilteredTopic> topics = outboundSignalWithExtraFields.second();
+        if (outboundSignalWithExtraFields.first().getTargets().size() != 1) {
+            return CompletableFuture.completedFuture(Collections.singletonList(outboundSignalWithExtraFields.first()));
+        }
+        final Target target = outboundSignalWithExtraFields.first().getTargets().getFirst();
+        // the extra fields' placeholders, the facade, the filters, the extra fields and the mapping must only see what
+        // the target may read, otherwise they disclose the rest
+        final Optional<ReadableSignalView> readableView = PartialAccessSignalFilter.viewFor(
+                outboundSignalWithExtraFields.first().getSource(), target.getAuthorizationContext());
+        if (readableView.isEmpty()) {
+            return CompletableFuture.completedFuture(Collections.emptyList());
+        }
+        final ReadableSignalView view = readableView.get();
+        final OutboundSignalWithSender outboundSignal = outboundSignalWithExtraFields.first().setReadableView(view);
 
         final List<JsonFieldSelector> allExtraFields = topics.stream()
                 .map(FilteredTopic::getExtraFields)
@@ -464,7 +473,6 @@ public final class OutboundMappingProcessorActor
         // depend on signal enrichment
         final boolean topicWithoutThingFilterExists = topics.stream().anyMatch(topic -> topic.getFilter().isEmpty());
 
-        final Target target = outboundSignal.getTargets().getFirst();
         final DittoHeaders headers = DittoHeaders.newBuilder()
                 .authorizationContext(target.getAuthorizationContext())
                 // the correlation-id MUST NOT be set! as the DittoHeaders are used as a caching key in the Caffeine
@@ -473,12 +481,12 @@ public final class OutboundMappingProcessorActor
                 .schemaVersion(JsonSchemaVersion.LATEST)
                 .build();
 
-        final ExpressionResolver expressionResolver =
-                Resolvers.forSignal(outboundSignal.getSource(), connection.getId());
+        final Signal<?> readableSource = view.getSignal();
+        final ExpressionResolver expressionResolver = Resolvers.forSignal(readableSource, connection.getId());
         final Optional<JsonFieldSelector> allExtraFieldsOptional = getExtraFields(expressionResolver, allExtraFields);
 
         // Avoid multiple calls to 'retrievePartialThing' (for each topic with extra fields) by combining extra fields from all topics
-        final Optional<CompletionStage<JsonObject>> partialThingOptional = extractEntityId(outboundSignal.delegate.getSource())
+        final Optional<CompletionStage<JsonObject>> partialThingOptional = extractEntityId(readableSource)
                 .filter(ThingId.class::isInstance)
                 .map(ThingId.class::cast)
                 .flatMap(thingId -> allExtraFieldsOptional
@@ -487,23 +495,15 @@ public final class OutboundMappingProcessorActor
                                         thingId,
                                         resolvedExtraFields,
                                         headers,
-                                        outboundSignal.getSource())));
+                                        readableSource)));
 
-        @Nullable final Signal<?> readableSource = PartialAccessSignalFilter
-                .filterForSubscriber(outboundSignal.getSource(), target.getAuthorizationContext())
-                .orElse(null);
-        final Set<JsonPointer> revokedPaths = PartialAccessPathResolver.resolveRevokedPathsFromHeaders(
-                outboundSignal.getSource().getDittoHeaders(), target.getAuthorizationContext());
         return partialThingOptional
                 .map(partialThing -> partialThing
                         .<Collection<OutboundSignalWithSender>>thenApply(extra -> {
-                            final Thing enrichedThing = null == readableSource ? null :
-                                    ThingEventToThingConverter.mergeThingWithExtraFields(
-                                            readableSource,
-                                            allExtraFieldsOptional.get(),
-                                            JsonPartialAccessFilter.removePaths(extra, revokedPaths,
-                                                    AdaptablePartialAccessFilter.ALWAYS_INCLUDED_THING_FIELDS))
-                                            .orElse(null);
+                            final JsonObject readableExtra = view.filterThingJson(extra);
+                            final Thing enrichedThing = ThingEventToThingConverter.mergeThingWithExtraFields(
+                                            readableSource, allExtraFieldsOptional.get(), readableExtra)
+                                    .orElse(null);
                             return topics.stream()
                                     .sorted(Comparator.comparing((FilteredTopic t) -> t.getExtraFields().isEmpty())
                                             .thenComparing(t ->
@@ -512,7 +512,8 @@ public final class OutboundMappingProcessorActor
                                     .filter(_ -> enrichedThing != null || topicWithoutThingFilterExists)
                                     .flatMap(topic -> applyFilter(outboundSignal, readableSource, enrichedThing,
                                             topic)
-                                            .map(signal -> enrichWithNeededExtra(signal, topic, expressionResolver, extra))
+                                            .map(signal -> enrichWithNeededExtra(signal, topic, expressionResolver,
+                                                    readableExtra))
                                             .stream())
                                     .findFirst()
                                     .map(Collections::singletonList)
@@ -729,7 +730,7 @@ public final class OutboundMappingProcessorActor
                         })
                         .build();
 
-        return outboundMappingProcessor.process(outbound).stream()
+        return outboundMappingProcessor.process(outbound, outbound.readableView).stream()
                 .<Source<OutboundSignalWithSender, ?>>map(visitor::eval)
                 .reduce(Source::concat)
                 .orElse(Source.empty());
@@ -863,14 +864,10 @@ public final class OutboundMappingProcessorActor
     }
 
     private Optional<OutboundSignalWithSender> applyFilter(final OutboundSignalWithSender outboundSignal,
-            @Nullable final Signal<?> readableSignal,
+            final Signal<?> signal,
             @Nullable final Thing thing,
             final FilteredTopic topic) {
 
-        if (null == readableSignal) {
-            return Optional.empty();
-        }
-        final Signal<?> signal = readableSignal;
         final TopicPath topicPath = DITTO_PROTOCOL_ADAPTER.toTopicPath(signal);
 
         // all fn-filters of the topic must match (AND); the first non-match or failure decides
@@ -1025,26 +1022,31 @@ public final class OutboundMappingProcessorActor
         private final Pair<DittoRuntimeException, Target> enrichmentFailure;
         @Nullable
         private final JsonObject extra;
+        // the view for the only target, derived from the source and the target, hence not part of equals
+        @Nullable
+        private final ReadableSignalView readableView;
 
         private OutboundSignalWithSender(final OutboundSignal delegate,
                 final ActorRef sender,
                 @Nullable final Pair<DittoRuntimeException, Target> enrichmentFailure,
-                @Nullable final JsonObject extra) {
+                @Nullable final JsonObject extra,
+                @Nullable final ReadableSignalView readableView) {
 
             this.delegate = delegate;
             this.sender = sender;
             this.enrichmentFailure = enrichmentFailure;
             this.extra = extra;
+            this.readableView = readableView;
         }
 
         static OutboundSignalWithSender of(final Signal<?> signal, final ActorRef sender) {
             final OutboundSignal outboundSignal =
                     OutboundSignalFactory.newOutboundSignal(signal, Collections.emptyList());
-            return new OutboundSignalWithSender(outboundSignal, sender, null, null);
+            return new OutboundSignalWithSender(outboundSignal, sender, null, null, null);
         }
 
         static OutboundSignalWithSender of(final OutboundSignal outboundSignal, final ActorRef sender) {
-            return new OutboundSignalWithSender(outboundSignal, sender, null, null);
+            return new OutboundSignalWithSender(outboundSignal, sender, null, null, null);
         }
 
         @Override
@@ -1069,25 +1071,29 @@ public final class OutboundMappingProcessorActor
 
         private OutboundSignalWithSender setTargets(final List<Target> targets) {
             return new OutboundSignalWithSender(OutboundSignalFactory.newOutboundSignal(delegate.getSource(), targets),
-                    sender, enrichmentFailure, extra);
+                    sender, enrichmentFailure, extra, null);
+        }
+
+        private OutboundSignalWithSender setReadableView(final ReadableSignalView readableView) {
+            return new OutboundSignalWithSender(delegate, sender, enrichmentFailure, extra, readableView);
         }
 
         // Also set target, because enrichment can fail per target.
         private OutboundSignalWithSender setFailedEnrichment(final DittoRuntimeException e, final Target t) {
             return new OutboundSignalWithSender(
                     OutboundSignalFactory.newOutboundSignal(delegate.getSource(), getTargets()),
-                    sender, Pair.apply(e, t), extra);
+                    sender, Pair.apply(e, t), extra, readableView);
         }
 
         public OutboundSignalWithSender setExtra(final JsonObject extra) {
             return new OutboundSignalWithSender(
                     OutboundSignalFactory.newOutboundSignal(delegate.getSource(), getTargets()),
-                    sender, enrichmentFailure, extra
+                    sender, enrichmentFailure, extra, readableView
             );
         }
 
         private OutboundSignalWithSender mapped(final Mapped mapped) {
-            return new OutboundSignalWithSender(mapped, sender, enrichmentFailure, extra);
+            return new OutboundSignalWithSender(mapped, sender, enrichmentFailure, extra, readableView);
         }
 
         private Mapped asMapped() {
@@ -1101,6 +1107,7 @@ public final class OutboundMappingProcessorActor
                     ", sender=" + sender +
                     ", enrichmentFailure=" + enrichmentFailure +
                     ", extra=" + extra +
+                    ", readableView=" + readableView +
                     "]";
         }
 

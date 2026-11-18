@@ -61,6 +61,10 @@ import org.eclipse.ditto.internal.utils.protocol.DittoProtocolAdapterProvider;
 import org.eclipse.ditto.internal.utils.protocol.ProtocolAdapterProvider;
 import org.eclipse.ditto.internal.utils.protocol.config.ProtocolConfig;
 import org.eclipse.ditto.internal.utils.tracing.DittoTracingInitResource;
+import org.eclipse.ditto.internal.utils.protocol.PartialAccessSignalFilter;
+import org.eclipse.ditto.internal.utils.protocol.ReadableSignalView;
+import org.eclipse.ditto.things.model.signals.events.AttributesModified;
+import org.eclipse.ditto.things.model.signals.commands.modify.ModifyAttributes;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
@@ -70,10 +74,12 @@ import org.eclipse.ditto.messages.model.MessageDirection;
 import org.eclipse.ditto.messages.model.MessageHeaders;
 import org.eclipse.ditto.messages.model.signals.commands.MessageCommand;
 import org.eclipse.ditto.messages.model.signals.commands.SendThingMessage;
+import org.eclipse.ditto.protocol.Adaptable;
 import org.eclipse.ditto.protocol.JsonifiableAdaptable;
 import org.eclipse.ditto.protocol.ProtocolFactory;
 import org.eclipse.ditto.protocol.TopicPath;
 import org.eclipse.ditto.protocol.adapter.DittoProtocolAdapter;
+import org.eclipse.ditto.protocol.adapter.ProtocolAdapter;
 import org.eclipse.ditto.things.model.signals.commands.modify.ModifyThingResponse;
 import org.eclipse.ditto.things.model.Attributes;
 import org.eclipse.ditto.things.model.Feature;
@@ -105,6 +111,7 @@ public final class OutboundMappingProcessorTest {
             ActorSystemResource.newInstance(TestConstants.CONFIG);
 
     private OutboundMappingProcessor underTest;
+    private Connection connection;
 
     private static final String DITTO_MAPPER = "ditto";
     private static final Map<String, String> DITTO_MAPPER_CONDITIONS = Map.of(
@@ -163,7 +170,7 @@ public final class OutboundMappingProcessorTest {
 
         final PayloadMappingDefinition payloadMappingDefinition =
                 ConnectivityModelFactory.newPayloadMappingDefinition(mappings);
-        final Connection connection =
+        connection =
                 ConnectivityModelFactory.newConnectionBuilder(ConnectionId.of("theConnection"),
                         ConnectionType.AMQP_10,
                         ConnectivityStatus.OPEN,
@@ -771,6 +778,89 @@ public final class OutboundMappingProcessorTest {
             assertThat(secretModified.get("alice-topic").getValue(JsonPointer.of("/value")))
                     .contains(JsonValue.of("s2"));
         }};
+    }
+
+    @Test
+    @SuppressWarnings({"unchecked", "rawtypes", "java:S3740"})
+    public void restrictedTargetIsMappedWithTheConnectionsProtocolAdapterAlsoWithTheViewOfTheCaller() {
+        new TestKit(ACTOR_SYSTEM_RESOURCE.getActorSystem()) {{
+            final AuthorizationSubject alice = AuthorizationSubject.newInstance("pre:alice");
+            final AuthorizationSubject groupX = AuthorizationSubject.newInstance("pre:group-x");
+            final AuthorizationContext multiSubject = AuthorizationContext.newInstance(
+                    DittoAuthorizationContextType.PRE_AUTHENTICATED_CONNECTION, alice, groupX);
+            final Signal<?> event = AttributesModified.of(TestConstants.Things.THING_ID,
+                    Attributes.newBuilder().set("pub", "p").set("secret", "s").build(), 1, TestConstants.INSTANT,
+                    revokedSecretFor(groupX, alice), TestConstants.METADATA);
+            final ProtocolAdapter customAdapter = Mockito.spy(protocolAdapterProvider.getProtocolAdapter(null));
+            Mockito.doAnswer(invocation -> {
+                final Adaptable adaptable = (Adaptable) invocation.callRealMethod();
+                return adaptable.setDittoHeaders(adaptable.getDittoHeaders().toBuilder()
+                        .putHeader("custom-adapter", "true")
+                        .build());
+            }).when(customAdapter).toAdaptable(any(Signal.class), any(TopicPath.Channel.class),
+                    any(AuthorizationContext.class));
+            final OutboundMappingProcessor processor = OutboundMappingProcessor.of(connection,
+                    TestConstants.CONNECTIVITY_CONFIG, ACTOR_SYSTEM_RESOURCE.getActorSystem(), customAdapter, logger);
+            final ReadableSignalView view = PartialAccessSignalFilter.viewFor(event, multiSubject).orElseThrow();
+            final MappingOutcome.Visitor<OutboundSignal.Mapped, Void> visitor =
+                    Mockito.mock(MappingOutcome.Visitor.class);
+
+            processor.process(OutboundSignalFactory.newOutboundSignal(event,
+                    List.of(target("multi-subject-topic", alice, groupX))), view)
+                    .forEach(outcome -> outcome.accept(visitor));
+
+            final ArgumentCaptor<OutboundSignal.Mapped> captor = ArgumentCaptor.forClass(OutboundSignal.Mapped.class);
+            verify(visitor).onMapped(any(String.class), captor.capture());
+            final Adaptable mapped = captor.getValue().getAdaptable();
+            assertThat(mapped.getDittoHeaders()).containsEntry("custom-adapter", "true");
+            assertThat(mapped.getPayload().getValue()).contains(JsonObject.newBuilder().set("pub", "p").build());
+        }};
+    }
+
+    @Test
+    public void liveCommandIsNotAlteredButDroppedForATargetWhichMayNotReadAllOfIt() {
+        new TestKit(ACTOR_SYSTEM_RESOURCE.getActorSystem()) {{
+            final AuthorizationSubject alice = AuthorizationSubject.newInstance("pre:alice");
+            final AuthorizationSubject groupX = AuthorizationSubject.newInstance("pre:group-x");
+            final DittoHeaders liveHeaders = revokedSecretFor(groupX, alice).toBuilder().channel("live").build();
+            final Target multiSubjectTarget = liveCommandsTarget("multi-subject-topic", alice, groupX);
+            final Target aliceTarget = liveCommandsTarget("alice-topic", alice);
+
+            final Map<String, JsonObject> withSecret = mapPerTarget(ModifyAttributes.of(
+                    TestConstants.Things.THING_ID, Attributes.newBuilder().set("pub", "p").set("secret", "s").build(),
+                    liveHeaders), multiSubjectTarget, aliceTarget);
+            final Map<String, JsonObject> withoutSecret = mapPerTarget(ModifyAttributes.of(
+                    TestConstants.Things.THING_ID, Attributes.newBuilder().set("pub", "p").build(), liveHeaders),
+                    multiSubjectTarget, aliceTarget);
+
+            assertThat(withSecret).containsOnlyKeys("alice-topic");
+            assertThat(withSecret.get("alice-topic").getValue(JsonPointer.of("/value")))
+                    .contains(JsonObject.newBuilder().set("pub", "p").set("secret", "s").build());
+            assertThat(withoutSecret).containsOnlyKeys("multi-subject-topic", "alice-topic");
+            assertThat(withoutSecret.get("multi-subject-topic").getValue(JsonPointer.of("/value")))
+                    .contains(JsonObject.newBuilder().set("pub", "p").build());
+        }};
+    }
+
+    private static DittoHeaders revokedSecretFor(final AuthorizationSubject revokedFor,
+            final AuthorizationSubject readGranted) {
+        return DittoHeaders.newBuilder()
+                .putHeader(DittoHeaderDefinition.REVOKED_ACCESS_PATHS.getKey(), JsonObject.newBuilder()
+                        .set("subjects", JsonFactory.newArrayBuilder().add(revokedFor.getId()).build())
+                        .set("paths", JsonObject.newBuilder()
+                                .set(JsonFactory.newKey("attributes/secret"),
+                                        JsonFactory.newArrayBuilder().add(0).build())
+                                .build())
+                        .build()
+                        .toString())
+                .readGrantedSubjects(Set.of(readGranted))
+                .build();
+    }
+
+    private static Target liveCommandsTarget(final String address, final AuthorizationSubject... subjects) {
+        return ConnectivityModelFactory.newTargetBuilder(target(address, subjects))
+                .topics(Topic.LIVE_COMMANDS)
+                .build();
     }
 
     private static Target target(final String address, final AuthorizationSubject... subjects) {
