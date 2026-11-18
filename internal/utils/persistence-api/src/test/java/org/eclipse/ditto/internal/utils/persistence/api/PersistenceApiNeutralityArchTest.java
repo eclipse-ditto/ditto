@@ -26,7 +26,8 @@ import com.tngtech.archunit.core.importer.ImportOption;
 /**
  * Rule 3 of the pluggable-persistence boundary rules: the persistence-API
  * ({@code org.eclipse.ditto.internal.utils.persistence.api..}) is backend-neutral. It must reference NEITHER backend:
- * no Mongo (com.mongodb / org.bson / the legacy {@code pekko.contrib.persistence.mongodb} plugin / MongoReadJournal)
+ * no Mongo (com.mongodb / org.bson / org.mongodb / the legacy {@code pekko.contrib.persistence.mongodb} plugin /
+ * MongoReadJournal / the Mongo module {@code ...internal.utils.persistence.mongo})
  * AND no Postgres (io.r2dbc / org.postgresql / the {@code ...persistence.postgres} backend package).
  * <p>
  * Hosted in the persistence-api module itself: that module has NO backend dependency on its classpath, which is
@@ -43,15 +44,19 @@ public final class PersistenceApiNeutralityArchTest {
     private static final String API_PKG = "org.eclipse.ditto.internal.utils.persistence.api..";
 
     private static final DescribedPredicate<JavaClass> IS_MONGO =
-            new DescribedPredicate<>("be a Mongo type (com.mongodb.., org.bson.., "
-                    + "pekko.contrib.persistence.mongodb.., or named MongoReadJournal)") {
+            new DescribedPredicate<>("be a Mongo type (com.mongodb.., org.bson.., org.mongodb.., "
+                    + "pekko.contrib.persistence.mongodb.., org.eclipse.ditto.internal.utils.persistence.mongo.., "
+                    + "or named MongoReadJournal)") {
                 @Override
                 public boolean test(final JavaClass javaClass) {
                     final String pkg = javaClass.getPackageName();
                     return pkg.equals("com.mongodb") || pkg.startsWith("com.mongodb.")
                             || pkg.equals("org.bson") || pkg.startsWith("org.bson.")
+                            || pkg.equals("org.mongodb") || pkg.startsWith("org.mongodb.")
                             || pkg.equals("pekko.contrib.persistence.mongodb")
                             || pkg.startsWith("pekko.contrib.persistence.mongodb.")
+                            || pkg.equals("org.eclipse.ditto.internal.utils.persistence.mongo")
+                            || pkg.startsWith("org.eclipse.ditto.internal.utils.persistence.mongo.")
                             || javaClass.getSimpleName().equals("MongoReadJournal");
                 }
             };

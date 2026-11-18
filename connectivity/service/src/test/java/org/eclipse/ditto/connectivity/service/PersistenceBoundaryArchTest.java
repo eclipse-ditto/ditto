@@ -17,6 +17,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import org.eclipse.ditto.internal.utils.persistence.mongo.MongoClientWrapper;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import com.tngtech.archunit.base.DescribedPredicate;
@@ -39,10 +40,9 @@ import com.tngtech.archunit.core.importer.ImportOption;
  *     {@code pekko.} prefix, NOT {@code org.apache.pekko.}), and</li>
  *     <li>any class named {@code MongoReadJournal} (obtained via {@code provider.getReadJournal()}).</li>
  * </ul>
- * It deliberately does NOT ban {@code ...internal.utils.persistence.mongo.AbstractMongoEventAdapter} or
- * {@code ...internal.utils.persistence.mongo.config..}: those are the INTENTIONAL bundled-Mongo default (the
- * per-service Mongo event-adapter base and the Mongo connection config the service needs to actually run on
- * MongoDB, which is the bundled default backend) - symmetric to the Postgres event adapters, not a switchable leak.
+ * A further rule, {@code serviceMainCodeDoesNotDependOnMongoModule}, bans the whole Mongo module
+ * {@code ...internal.utils.persistence.mongo..} with no whitelist; it is ignored until service code no longer needs
+ * the Mongo config types and event adapters.
  * <p>
  * There is no whitelist. The connection encryption migration ({@code EncryptionMigrationActor}) does not read and
  * rewrite the MongoDB journal and snapshot collections with the raw driver and BSON itself: it reaches the persisted
@@ -62,7 +62,7 @@ public final class PersistenceBoundaryArchTest {
     /**
      * The SWITCHABLE Mongo artifacts the pluggable-persistence provider owns. Service code
      * must not reference these directly. Deliberately does NOT match {@code AbstractMongoEventAdapter} or the
-     * {@code ...persistence.mongo.config..} types - those are the intentional bundled-Mongo default.
+     * {@code ...persistence.mongo.config..} types; {@code serviceMainCodeDoesNotDependOnMongoModule} bans those.
      */
     private static final DescribedPredicate<JavaClass> IS_SWITCHABLE_MONGO =
             new DescribedPredicate<>("be a switchable Mongo artifact (com.mongodb.., org.bson.., "
@@ -160,6 +160,23 @@ public final class PersistenceBoundaryArchTest {
                         + "(MongoClientWrapper, DittoMongoClient)")
                 .because("the backend's provider builds and owns the clients behind its accessors; no connectivity "
                         + "code may open a MongoDB connection pool")
+                .check(connectivityServiceMainClasses);
+    }
+
+    /**
+     * No connectivity-service MAIN class may depend on the Mongo module at all - no whitelist, not even for the Mongo
+     * config types and event adapters. Ignored until service code no longer needs them.
+     */
+    @Test
+    @Ignore("enabled by Task 5")
+    public void serviceMainCodeDoesNotDependOnMongoModule() {
+        noClasses()
+                .that().resideInAPackage("org.eclipse.ditto.connectivity.service..")
+                .should().dependOnClassesThat().resideInAPackage("org.eclipse.ditto.internal.utils.persistence.mongo..")
+                .as("connectivity-service MAIN code must not depend on the Mongo module "
+                        + "(org.eclipse.ditto.internal.utils.persistence.mongo..)")
+                .because("service code must reach the backend only through the persistence-API, so that MongoDB "
+                        + "can be shipped as an extension")
                 .check(connectivityServiceMainClasses);
     }
 
