@@ -656,6 +656,19 @@ public enum DittoHeaderDefinition implements HeaderDefinition {
             HeaderValueValidators.getJsonObjectValidator()),
 
     /**
+     * Internal header containing, per subject, the Thing paths whose READ permission is revoked for that subject,
+     * in the indexed format of {@link #PARTIAL_ACCESS_PATHS}. A subscriber of a thing event must not receive any of
+     * the paths revoked for one of its subjects, even if another of its subjects is granted READ on them.
+     *
+     * @since 3.9.9
+     */
+    REVOKED_ACCESS_PATHS("ditto-revoked-access-paths",
+            JsonObject.class,
+            false,
+            false,
+            HeaderValueValidators.getJsonObjectValidator()),
+
+    /**
      * Internal header containing pre-defined {@code extraFields} as JSON object sent along for emitted thing event.
      *
      * @since 3.7.0

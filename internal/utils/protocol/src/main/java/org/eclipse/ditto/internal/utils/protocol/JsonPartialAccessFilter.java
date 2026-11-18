@@ -59,14 +59,15 @@ public final class JsonPartialAccessFilter {
      * Expands an IndexedPartialAccessPaths into a map of subject IDs to their accessible paths.
      *
      * @param indexed the indexed partial access paths
-     * @return map of subject IDs to accessible paths
+     * @return map of subject IDs to accessible paths, including subjects without any accessible path
      */
     public static Map<String, List<JsonPointer>> expandIndexed(final IndexedPartialAccessPaths indexed) {
-        if (indexed == null || indexed.isEmpty()) {
+        if (indexed == null || indexed.subjects().isEmpty()) {
             return Map.of();
         }
 
         final Map<String, List<JsonPointer>> subjectMap = new LinkedHashMap<>();
+        indexed.subjects().forEach(subject -> subjectMap.put(subject, new ArrayList<>()));
 
         for (final Map.Entry<JsonPointer, List<Integer>> entry : indexed.paths().entrySet()) {
             final JsonPointer pointer = entry.getKey();
@@ -179,6 +180,34 @@ public final class JsonPartialAccessFilter {
         }
 
         return filteredRoot;
+    }
+
+    /**
+     * Removes the given paths from a JSON object. A path in {@code keptPaths} is kept even if it is removed or lies
+     * below a removed path.
+     *
+     * @param jsonObject the JSON object to remove the paths from.
+     * @param removedPaths the paths to remove, relative to {@code jsonObject}; the empty path removes everything.
+     * @param keptPaths top-level paths which are never removed.
+     * @return the JSON object without the removed paths.
+     */
+    public static JsonObject removePaths(final JsonObject jsonObject,
+            final Set<JsonPointer> removedPaths,
+            final Set<JsonPointer> keptPaths) {
+
+        if (removedPaths.isEmpty()) {
+            return jsonObject;
+        }
+        if (removedPaths.contains(ROOT_PATH)) {
+            return keptPaths.isEmpty() ? JsonFactory.newObject() : filterJsonByPaths(jsonObject, keptPaths);
+        }
+        JsonObject result = jsonObject;
+        for (final JsonPointer removedPath : removedPaths) {
+            if (!keptPaths.contains(removedPath)) {
+                result = result.remove(removedPath);
+            }
+        }
+        return result;
     }
 
     /**

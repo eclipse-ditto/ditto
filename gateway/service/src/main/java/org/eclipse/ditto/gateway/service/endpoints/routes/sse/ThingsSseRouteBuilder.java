@@ -96,6 +96,7 @@ import org.eclipse.ditto.internal.utils.metrics.instruments.counter.Counter;
 import org.eclipse.ditto.internal.utils.protocol.AdaptablePartialAccessFilter;
 import org.eclipse.ditto.internal.utils.protocol.JsonPartialAccessFilter;
 import org.eclipse.ditto.internal.utils.protocol.PartialAccessPathResolver;
+import org.eclipse.ditto.internal.utils.protocol.PartialAccessSignalFilter;
 import org.eclipse.ditto.internal.utils.pubsub.StreamingType;
 import org.eclipse.ditto.internal.utils.search.SearchSource;
 import org.eclipse.ditto.json.JsonArray;
@@ -733,18 +734,27 @@ public final class ThingsSseRouteBuilder extends RouteDirectives implements SseR
                         .map(session -> {
                             final AuthorizationContext subscriberAuthContext = jsonifiable.getSessionAuthorizationContext()
                                     .orElse(null);
+                            // the filter, _context and payload must only see what the subscriber may read
+                            final Optional<ThingEvent<?>> readableEvent =
+                                    PartialAccessSignalFilter.filterForSubscriber(event, subscriberAuthContext)
+                                            .map(signal -> (ThingEvent<?>) signal);
+                            final Set<JsonPointer> revokedPaths = PartialAccessPathResolver
+                                    .resolveRevokedPathsFromHeaders(event.getDittoHeaders(), subscriberAuthContext);
                             return jsonifiable.retrieveExtraFields(facade)
-                                    .thenApply(extra ->
-                                            Optional.of(session.mergeThingWithExtra(event, extra))
+                                    .thenApply(extra -> readableEvent
+                                            .flatMap(readable -> Optional.of(session.mergeThingWithExtra(readable,
+                                                            JsonPartialAccessFilter.removePaths(extra, revokedPaths,
+                                                                    AdaptablePartialAccessFilter.ALWAYS_INCLUDED_THING_FIELDS)))
                                                     .filter(thing -> {
-                                                        final boolean matches = session.matchesFilter(thing, event);
+                                                        final boolean matches = session.matchesFilter(thing, readable);
                                                         if (!matches) {
                                                             sessionStatistics.signalFilteredOut();
                                                         }
                                                         return matches;
                                                     })
-                                                    .map(thing -> toNonemptyValue(thing, event, fieldPointer, fields, subscriberAuthContext))
-                                                    .orElseGet(Collections::emptyList)
+                                                    .map(thing -> toNonemptyValue(thing, readable, fieldPointer, fields,
+                                                            subscriberAuthContext)))
+                                            .orElseGet(Collections::emptyList)
                                     )
                                     .exceptionally(error -> {
                                         sessionStatistics.enrichmentFailed();
@@ -782,7 +792,13 @@ public final class ThingsSseRouteBuilder extends RouteDirectives implements SseR
             return jsonifiable.getSession()
                     .map(session -> jsonifiable.retrieveExtraFields(facade)
                             .thenApply(extra ->
-                                    Optional.of(session.mergeThingWithExtra(messageCommand, extra))
+                                    Optional.of(session.mergeThingWithExtra(messageCommand,
+                                                    JsonPartialAccessFilter.removePaths(extra,
+                                                            PartialAccessPathResolver.resolveRevokedPathsFromHeaders(
+                                                                    messageCommand.getDittoHeaders(),
+                                                                    jsonifiable.getSessionAuthorizationContext()
+                                                                            .orElse(null)),
+                                                            AdaptablePartialAccessFilter.ALWAYS_INCLUDED_THING_FIELDS)))
                                             .filter(thing -> session.matchesFilter(thing, messageCommand))
                                             .map(thing -> List.of(messageCommand.getMessage()))
                                             .orElseGet(List::of)

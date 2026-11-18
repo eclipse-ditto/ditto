@@ -54,6 +54,8 @@ public final class AdaptablePartialAccessFilter {
             JsonPointer.of("_created")
     );
 
+    private static final JsonPointer THING_ID_POINTER = JsonPointer.of("thingId");
+
     private AdaptablePartialAccessFilter() {
         // No instantiation
     }
@@ -70,20 +72,106 @@ public final class AdaptablePartialAccessFilter {
             @Nullable final AuthorizationContext subscriberAuthContext) {
 
         final DittoHeaders headers = adaptable.getDittoHeaders();
-        final String partialAccessPathsHeader = headers.get(DittoHeaderDefinition.PARTIAL_ACCESS_PATHS.getKey());
-        if (partialAccessPathsHeader == null || partialAccessPathsHeader.isEmpty()) {
-            return adaptable;
-        }
-
         final TopicPath topicPath = adaptable.getTopicPath();
         if (!TopicPath.Group.THINGS.equals(topicPath.getGroup()) ||
                 !TopicPath.Criterion.EVENTS.equals(topicPath.getCriterion())) {
             return adaptable;
         }
 
+        final Set<JsonPointer> revokedPaths =
+                PartialAccessPathResolver.resolveRevokedPathsFromHeaders(headers, subscriberAuthContext);
+        final String partialAccessPathsHeader = headers.get(DittoHeaderDefinition.PARTIAL_ACCESS_PATHS.getKey());
+        if (partialAccessPathsHeader == null || partialAccessPathsHeader.isEmpty()) {
+            return removeRevokedPaths(adaptable, revokedPaths);
+        }
+
         final Map<String, List<JsonPointer>> partialAccessPaths =
                 PartialAccessPathResolver.parsePartialAccessPathsAsMap(partialAccessPathsHeader);
-        return filterAdaptableForPartialAccess(adaptable, subscriberAuthContext, partialAccessPaths);
+        return removeRevokedPaths(
+                filterAdaptableForPartialAccess(adaptable, subscriberAuthContext, partialAccessPaths),
+                revokedPaths);
+    }
+
+    /**
+     * Checks whether a subscriber may read anything at the path of a thing event, i.e. at the path itself, above or
+     * below it. If not, the event must not be delivered to the subscriber at all: even an empty payload would disclose
+     * that the path was changed or deleted.
+     *
+     * @param adaptable the event.
+     * @param subscriberAuthContext the authorization context of the subscriber (may be null).
+     * @return whether the subscriber may read anything at the event's path; {@code true} for other signals.
+     */
+    public static boolean isEventPathReadable(final Adaptable adaptable,
+            @Nullable final AuthorizationContext subscriberAuthContext) {
+
+        final TopicPath topicPath = adaptable.getTopicPath();
+        if (!TopicPath.Group.THINGS.equals(topicPath.getGroup()) ||
+                !TopicPath.Criterion.EVENTS.equals(topicPath.getCriterion())) {
+            return true;
+        }
+        final DittoHeaders headers = adaptable.getDittoHeaders();
+        final JsonPointer eventPath = JsonPointer.of(adaptable.getPayload().getPath().toString());
+        final Set<JsonPointer> revokedPaths =
+                PartialAccessPathResolver.resolveRevokedPathsFromHeaders(headers, subscriberAuthContext);
+        // a revoke of the thing root cannot be expressed in the header, it is revealed by the revoked thingId
+        if (eventPath.isEmpty() && revokedPaths.contains(THING_ID_POINTER) ||
+                revokedPaths.stream().anyMatch(revokedPath -> isDescendantOrSelf(eventPath, revokedPath))) {
+            return false;
+        }
+        final String partialAccessPathsHeader = headers.get(DittoHeaderDefinition.PARTIAL_ACCESS_PATHS.getKey());
+        if (partialAccessPathsHeader == null || partialAccessPathsHeader.isEmpty()) {
+            return true;
+        }
+        final PartialAccessPathResolver.AccessiblePathsResult result = PartialAccessPathResolver
+                .resolveAccessiblePathsFromHeader(partialAccessPathsHeader, subscriberAuthContext, headers);
+        if (result.hasUnrestrictedAccess()) {
+            return true;
+        }
+        return result.shouldFilter() && result.getAccessiblePaths().stream()
+                .anyMatch(path -> isDescendantOrSelf(eventPath, path) || isDescendantOrSelf(path, eventPath));
+    }
+
+    /**
+     * Removes the given thing-absolute paths from the payload value and the extra fields of a thing event, and from
+     * the extra fields of other thing signals (e.g. messages). An event whose own path is or lies below a removed path
+     * gets an empty payload. The thing identity and audit fields ({@link #ALWAYS_INCLUDED_THING_FIELDS}) are kept.
+     *
+     * @param adaptable the adaptable to filter.
+     * @param revokedPaths the thing-absolute paths the subscriber must not receive, see
+     * {@link PartialAccessPathResolver#resolveRevokedPaths(Map, AuthorizationContext)}.
+     * @return the filtered adaptable, or the original one if nothing is to be removed.
+     */
+    public static Adaptable removeRevokedPaths(final Adaptable adaptable, final Set<JsonPointer> revokedPaths) {
+        final TopicPath topicPath = adaptable.getTopicPath();
+        if (revokedPaths.isEmpty() || !TopicPath.Group.THINGS.equals(topicPath.getGroup())) {
+            return adaptable;
+        }
+        if (!TopicPath.Criterion.EVENTS.equals(topicPath.getCriterion())) {
+            return adaptable.getPayload().getExtra()
+                    .map(extra -> ProtocolFactory.setExtra(adaptable,
+                            JsonPartialAccessFilter.removePaths(extra, revokedPaths, ALWAYS_INCLUDED_THING_FIELDS)))
+                    .orElse(adaptable);
+        }
+
+        final JsonPointer eventPath = JsonPointer.of(adaptable.getPayload().getPath().toString());
+        final PayloadBuilder payloadBuilder = Payload.newBuilder(adaptable.getPayload());
+        if (revokedPaths.stream().anyMatch(revokedPath -> isDescendantOrSelf(eventPath, revokedPath))) {
+            payloadBuilder.withValue(JsonFactory.newObject());
+        } else {
+            adaptable.getPayload().getValue()
+                    .filter(value -> value.isObject() && !value.isNull())
+                    .map(JsonValue::asObject)
+                    .ifPresent(payloadObject -> payloadBuilder.withValue(JsonPartialAccessFilter.removePaths(
+                            payloadObject,
+                            rebaseOnEventPath(eventPath, revokedPaths),
+                            eventPath.isEmpty() ? ALWAYS_INCLUDED_THING_FIELDS : Set.of())));
+        }
+        adaptable.getPayload().getExtra().ifPresent(extra -> payloadBuilder.withExtra(
+                JsonPartialAccessFilter.removePaths(extra, revokedPaths, ALWAYS_INCLUDED_THING_FIELDS)));
+
+        return ProtocolFactory.newAdaptableBuilder(adaptable)
+                .withPayload(payloadBuilder.build())
+                .build();
     }
 
     /**

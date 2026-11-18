@@ -121,6 +121,20 @@ public final class PartialAccessPathCalculator {
         if (thing == null) {
             return Map.of();
         }
+        return calculatePartialAccessPaths(policyEnforcer, thingJson);
+    }
+
+    /**
+     * Calculates which JSON paths each subject with partial READ permissions can access within the given Thing JSON,
+     * which may also be only a part of a Thing, e.g. the payload of a live event.
+     *
+     * @param policyEnforcer the PolicyEnforcer to use for permission checks
+     * @param thingJson the (partial) Thing JSON
+     * @return a map from subject ID to list of accessible JsonPointer paths, empty map if no partial subjects exist
+     * @since 3.9.9
+     */
+    public static Map<String, List<JsonPointer>> calculatePartialAccessPaths(final PolicyEnforcer policyEnforcer,
+            final JsonObject thingJson) {
 
         final Set<AuthorizationSubject> subjectsWithRestrictedAccess = subjectsWithRestrictedAccess(policyEnforcer);
         if (subjectsWithRestrictedAccess.isEmpty()) {
@@ -255,10 +269,11 @@ public final class PartialAccessPathCalculator {
                 enforcer.getAccessiblePathsForSubjects(resourceKey, thingJson,
                         subjectsWithRestrictedAccess, READ_PERMISSIONS);
 
+        // a restricted subject missing from the header would be treated as unrestricted by subscribers
         final Map<String, List<JsonPointer>> result = new LinkedHashMap<>();
-        for (final Map.Entry<AuthorizationSubject, Set<JsonPointer>> entry : batchResult.entrySet()) {
-            final Set<JsonPointer> collapsed = collapseLeavesToAncestors(entry.getValue(), thingJson);
-            result.put(entry.getKey().getId(), new ArrayList<>(collapsed));
+        for (final AuthorizationSubject subject : subjectsWithRestrictedAccess) {
+            final Set<JsonPointer> leaves = batchResult.getOrDefault(subject, Set.of());
+            result.put(subject.getId(), new ArrayList<>(collapseLeavesToAncestors(leaves, thingJson)));
         }
         return result;
     }

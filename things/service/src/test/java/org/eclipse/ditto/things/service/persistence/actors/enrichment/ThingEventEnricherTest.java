@@ -46,9 +46,16 @@ import org.eclipse.ditto.policies.model.SubjectType;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.ThingsModelFactory;
+import org.eclipse.ditto.things.model.signals.events.AttributeDeleted;
 import org.eclipse.ditto.things.model.signals.events.AttributeModified;
 import org.eclipse.ditto.things.service.common.config.DefaultPreDefinedExtraFieldsConfig;
 import org.eclipse.ditto.things.service.common.config.PreDefinedExtraFieldsConfig;
+import org.eclipse.ditto.messages.model.Message;
+import org.eclipse.ditto.messages.model.MessageDirection;
+import org.eclipse.ditto.messages.model.MessageHeaders;
+import org.eclipse.ditto.messages.model.signals.commands.SendThingMessage;
+import org.eclipse.ditto.things.model.signals.events.ThingEvent;
+import org.eclipse.ditto.things.model.signals.events.ThingMerged;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -114,6 +121,23 @@ public final class ThingEventEnricherTest {
             )
             .setGrantedPermissionsFor(KNOWN_LABEL_FULL, ResourceKey.newInstance("thing", "/"), "READ", "WRITE")
             .build();
+
+    private static final String KNOWN_ISSUER_GROUP_SUBJECT = "foo-issuer:group-subject";
+
+    // the full-access subject is granted READ on everything, the group subject has READ revoked on a sub-path
+    private static final Policy REVOKING_POLICY = FULL_ACCESS_POLICY.toBuilder()
+            .setSubjectFor("group", Subject.newInstance(
+                    SubjectId.newInstance(KNOWN_ISSUER_GROUP_SUBJECT), SubjectType.GENERATED))
+            .setRevokedPermissionsFor("group", ResourceKey.newInstance("thing", "/attributes/folder"), "READ")
+            .build();
+
+    private static final String EXPECTED_REVOKED_ACCESS_PATHS = JsonObject.newBuilder()
+            .set("subjects", JsonArray.of(JsonValue.of(KNOWN_ISSUER_GROUP_SUBJECT)))
+            .set("paths", JsonObject.newBuilder()
+                    .set(JsonKey.of("attributes/folder"), JsonArray.of(JsonValue.of(0)))
+                    .build())
+            .build()
+            .toString();
 
     private PolicyEnforcerProvider policyEnforcerProvider;
 
@@ -240,6 +264,169 @@ public final class ThingEventEnricherTest {
                 headers.get(DittoHeaderDefinition.PARTIAL_ACCESS_PATHS.getKey())))
                 .isNotCompletedExceptionally()
                 .isCompletedWithValue(null);
+    }
+
+    @Test
+    public void addsRevokedAccessPathsHeaderAlsoWhenPartialAccessEventsAreDisabled() {
+        final PolicyEnforcerProvider provider = mock(PolicyEnforcerProvider.class);
+        when(provider.getPolicyEnforcer(KNOWN_POLICY_ID))
+                .thenReturn(CompletableFuture.completedFuture(Optional.of(PolicyEnforcer.of(REVOKING_POLICY))));
+        final ThingEventEnricher sut = new ThingEventEnricher(provider, false, true);
+
+        final CompletionStage<DittoHeaders> headersStage = calculateEnrichedSignalHeaders(sut, List.of());
+
+        assertThatCompletionStage(headersStage.thenApply(headers ->
+                headers.get(DittoHeaderDefinition.REVOKED_ACCESS_PATHS.getKey())))
+                .isNotCompletedExceptionally()
+                .isCompletedWithValue(EXPECTED_REVOKED_ACCESS_PATHS);
+    }
+
+    @Test
+    public void skipsRevokedAccessPathsHeaderWithoutReadRevokes() {
+        final ThingEventEnricher sut = new ThingEventEnricher(policyEnforcerProvider, true, true);
+
+        final CompletionStage<DittoHeaders> headersStage = calculateEnrichedSignalHeaders(sut, List.of());
+
+        assertThatCompletionStage(headersStage.thenApply(headers ->
+                headers.get(DittoHeaderDefinition.REVOKED_ACCESS_PATHS.getKey())))
+                .isNotCompletedExceptionally()
+                .isCompletedWithValue(null);
+    }
+
+    @Test
+    public void recalculatesRevokedAccessPathsWhenPolicyEnforcerChanges() {
+        final PolicyEnforcerProvider provider = mock(PolicyEnforcerProvider.class);
+        when(provider.getPolicyEnforcer(KNOWN_POLICY_ID))
+                .thenReturn(CompletableFuture.completedFuture(Optional.of(PolicyEnforcer.of(KNOWN_POLICY))))
+                .thenReturn(CompletableFuture.completedFuture(Optional.of(PolicyEnforcer.of(REVOKING_POLICY))));
+        final ThingEventEnricher sut = new ThingEventEnricher(provider, false, true);
+
+        final String first = calculateEnrichedSignalHeaders(sut, List.of()).toCompletableFuture().join()
+                .get(DittoHeaderDefinition.REVOKED_ACCESS_PATHS.getKey());
+        final String second = calculateEnrichedSignalHeaders(sut, List.of()).toCompletableFuture().join()
+                .get(DittoHeaderDefinition.REVOKED_ACCESS_PATHS.getKey());
+
+        assertThat(first).isNull();
+        assertThat(second).isEqualTo(EXPECTED_REVOKED_ACCESS_PATHS);
+    }
+
+    @Test
+    public void ignoresGrantsOfPolicyEntriesForOtherNamespacesWhenCalculatingRevokedAccessPaths() {
+        // without the namespace filter, the grant on folder/public would lift the revoke for the group subject
+        final Policy policy = REVOKING_POLICY.toBuilder()
+                .setSubjectFor("group-other-namespace", Subject.newInstance(
+                        SubjectId.newInstance(KNOWN_ISSUER_GROUP_SUBJECT), SubjectType.GENERATED))
+                .setGrantedPermissionsFor("group-other-namespace",
+                        ResourceKey.newInstance("thing", "/attributes/folder/public"), "READ")
+                .setNamespacesFor("group-other-namespace", List.of("some.other.namespace"))
+                .build();
+        final PolicyEnforcerProvider provider = mock(PolicyEnforcerProvider.class);
+        when(provider.getPolicyEnforcer(KNOWN_POLICY_ID))
+                .thenReturn(CompletableFuture.completedFuture(Optional.of(PolicyEnforcer.of(policy))));
+        final ThingEventEnricher sut = new ThingEventEnricher(provider, false, true);
+
+        final CompletionStage<DittoHeaders> headersStage = calculateEnrichedSignalHeaders(sut, List.of());
+
+        assertThatCompletionStage(headersStage.thenApply(headers ->
+                headers.get(DittoHeaderDefinition.REVOKED_ACCESS_PATHS.getKey())))
+                .isNotCompletedExceptionally()
+                .isCompletedWithValue(EXPECTED_REVOKED_ACCESS_PATHS);
+    }
+
+    @Test
+    public void recalculatesRevokedAccessPathsWhenThingStructureChanges() {
+        recalculatesRevokedAccessPathsWhenThingStructureChanges(true);
+        recalculatesRevokedAccessPathsWhenThingStructureChanges(false);
+    }
+
+    private void recalculatesRevokedAccessPathsWhenThingStructureChanges(final boolean cacheEnabled) {
+        final PolicyEnforcer policyEnforcer = PolicyEnforcer.of(REVOKING_POLICY);
+        final PolicyEnforcerProvider provider = mock(PolicyEnforcerProvider.class);
+        when(provider.getPolicyEnforcer(KNOWN_POLICY_ID))
+                .thenReturn(CompletableFuture.completedFuture(Optional.of(policyEnforcer)));
+        final ThingEventEnricher sut = new ThingEventEnricher(provider, false, cacheEnabled);
+        final AttributeModified event = AttributeModified.of(
+                KNOWN_THING_ID, JsonPointer.of("something"), JsonValue.of(true), 4L,
+                Instant.now(), DittoHeaders.empty(), null);
+        final Thing thingWithoutFolder = KNOWN_THING.removeAttribute(JsonPointer.of("folder"));
+
+        final String first = sut.enrichWithPredefinedExtraFields(List.of(), KNOWN_THING_ID, KNOWN_THING,
+                        KNOWN_POLICY_ID, event)
+                .toCompletableFuture().join()
+                .getDittoHeaders().get(DittoHeaderDefinition.REVOKED_ACCESS_PATHS.getKey());
+        final String second = sut.enrichWithPredefinedExtraFields(List.of(), KNOWN_THING_ID, thingWithoutFolder,
+                        KNOWN_POLICY_ID, event)
+                .toCompletableFuture().join()
+                .getDittoHeaders().get(DittoHeaderDefinition.REVOKED_ACCESS_PATHS.getKey());
+
+        assertThat(first).isEqualTo(EXPECTED_REVOKED_ACCESS_PATHS);
+        assertThat(second).isNull();
+    }
+
+    @Test
+    public void coversFieldsDeletedByMerge() {
+        final Thing thingWithoutFolder = KNOWN_THING.removeAttribute(JsonPointer.of("folder"));
+        final ThingMerged merged = ThingMerged.of(KNOWN_THING_ID, JsonPointer.empty(),
+                JsonObject.of("{\"attributes\":{\"folder\":null}}"), 5L, Instant.now(), DittoHeaders.empty(),
+                null);
+
+        final DittoHeaders headers = enrich(new ThingEventEnricher(revokingProvider(), true, true), thingWithoutFolder,
+                merged);
+
+        assertThat(headers.get(DittoHeaderDefinition.REVOKED_ACCESS_PATHS.getKey()))
+                .isEqualTo(EXPECTED_REVOKED_ACCESS_PATHS);
+        // the restricted subject may only read public1, public2 and folder/public: "attributes" must not collapse
+        assertThat(headers.get(DittoHeaderDefinition.PARTIAL_ACCESS_PATHS.getKey()))
+                .doesNotContain("\"attributes\":");
+    }
+
+    @Test
+    public void coversDeletedPaths() {
+        final Thing thingWithoutFolder = KNOWN_THING.removeAttribute(JsonPointer.of("folder"));
+        final AttributeDeleted deleted = AttributeDeleted.of(KNOWN_THING_ID, JsonPointer.of("folder"), 5L,
+                Instant.now(), DittoHeaders.empty(), null);
+
+        final DittoHeaders headers = enrich(new ThingEventEnricher(revokingProvider(), true, true), thingWithoutFolder,
+                deleted);
+
+        assertThat(headers.get(DittoHeaderDefinition.REVOKED_ACCESS_PATHS.getKey()))
+                .isEqualTo(EXPECTED_REVOKED_ACCESS_PATHS);
+        assertThat(headers.get(DittoHeaderDefinition.PARTIAL_ACCESS_PATHS.getKey()))
+                .doesNotContain("\"attributes\":");
+    }
+
+    @Test
+    public void addsRevokedAccessPathsToMessages() {
+        final SendThingMessage<String> message = SendThingMessage.of(KNOWN_THING_ID,
+                Message.<String>newBuilder(MessageHeaders.newBuilder(MessageDirection.TO, KNOWN_THING_ID, "hello")
+                        .build()).build(),
+                DittoHeaders.empty());
+
+        final DittoHeaders headers = new ThingEventEnricher(revokingProvider(), true, true)
+                .enrichWithPredefinedExtraFields(List.of(), KNOWN_THING_ID, KNOWN_THING, KNOWN_POLICY_ID, message)
+                .toCompletableFuture().join()
+                .getDittoHeaders();
+
+        assertThat(headers.get(DittoHeaderDefinition.REVOKED_ACCESS_PATHS.getKey()))
+                .isEqualTo(EXPECTED_REVOKED_ACCESS_PATHS);
+        assertThat(headers.get(DittoHeaderDefinition.PARTIAL_ACCESS_PATHS.getKey())).isNull();
+    }
+
+    private static PolicyEnforcerProvider revokingProvider() {
+        // REVOKING_POLICY plus the restricted subject of KNOWN_POLICY
+        final Policy policy = REVOKING_POLICY.toBuilder()
+                .set(KNOWN_POLICY.getEntryFor(KNOWN_LABEL_RESTRICTED).orElseThrow())
+                .build();
+        final PolicyEnforcerProvider provider = mock(PolicyEnforcerProvider.class);
+        when(provider.getPolicyEnforcer(KNOWN_POLICY_ID))
+                .thenReturn(CompletableFuture.completedFuture(Optional.of(PolicyEnforcer.of(policy))));
+        return provider;
+    }
+
+    private static DittoHeaders enrich(final ThingEventEnricher sut, final Thing thing, final ThingEvent<?> event) {
+        return sut.enrichWithPredefinedExtraFields(List.of(), KNOWN_THING_ID, thing, KNOWN_POLICY_ID, event)
+                .toCompletableFuture().join()
+                .getDittoHeaders();
     }
 
     @Test
