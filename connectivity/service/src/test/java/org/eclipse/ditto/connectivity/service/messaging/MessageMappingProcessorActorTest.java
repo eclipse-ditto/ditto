@@ -35,6 +35,7 @@ import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
 import org.eclipse.ditto.base.model.auth.DittoAuthorizationContextType;
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.common.ResponseType;
+import org.eclipse.ditto.base.model.exceptions.DittoHeaderInvalidException;
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.signals.Signal;
@@ -64,6 +65,9 @@ import org.eclipse.ditto.json.JsonParseOptions;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.placeholders.UnresolvedPlaceholderException;
+import org.eclipse.ditto.policies.model.PolicyId;
+import org.eclipse.ditto.policies.model.signals.commands.PolicyErrorResponse;
+import org.eclipse.ditto.policies.model.signals.commands.modify.DeletePolicy;
 import org.eclipse.ditto.protocol.JsonifiableAdaptable;
 import org.eclipse.ditto.protocol.ProtocolFactory;
 import org.eclipse.ditto.protocol.TopicPath;
@@ -899,6 +903,42 @@ public final class MessageMappingProcessorActorTest extends AbstractMessageMappi
 
             // THEN: the response collector actor is asked to acknowledge right away despite the ack request.
             expectMsg(ResponseCollectorActor.setCount(0));
+        }};
+    }
+
+    @Test
+    public void inboundPolicyCommandWithInvalidTimeoutIsAnsweredWithPolicyErrorResponse() {
+        new TestKit(actorSystem) {{
+            final TestProbe collectorProbe = TestProbe.apply("collector", actorSystem);
+            final ActorRef outboundMappingProcessorActor = createOutboundMappingProcessorActor(this);
+            final ActorRef inboundMappingProcessorActor =
+                    createInboundMappingProcessorActor(this, outboundMappingProcessorActor);
+            final PolicyId policyId = PolicyId.of("policy:id");
+
+            // WHEN: inbound mapping processor receives a policy command with a zero timeout requiring a response
+            final DeletePolicy deletePolicy = DeletePolicy.of(policyId, HEADERS_WITH_REPLY_INFORMATION.toBuilder()
+                    .timeout(Duration.ZERO)
+                    .responseRequired(true)
+                    .build());
+            inboundMappingProcessorActor.tell(
+                    new ExternalMessageWithSender(toExternalMessage(deletePolicy), collectorProbe.ref()),
+                    ActorRef.noSender()
+            );
+
+            // THEN: the command is rejected without being forwarded
+            collectorProbe.expectMsgClass(DittoHeaderInvalidException.class);
+            collectorProbe.expectMsg(ResponseCollectorActor.setCount(0));
+
+            // THEN: the published error response is a policy error response for the policy of the command
+            final BaseClientActor.PublishMappedMessage publish =
+                    fishForMsg(this, BaseClientActor.PublishMappedMessage.class);
+            final Signal<?> publishedSignal = publish.getOutboundSignal().getSource();
+            assertThat(publishedSignal).isInstanceOf(PolicyErrorResponse.class);
+            final PolicyErrorResponse policyErrorResponse = (PolicyErrorResponse) publishedSignal;
+            assertThat((Object) policyErrorResponse.getEntityId()).isEqualTo(policyId);
+            assertThat(policyErrorResponse.getHttpStatus()).isEqualTo(HttpStatus.BAD_REQUEST);
+            assertThat(policyErrorResponse.getDittoRuntimeException())
+                    .isInstanceOf(DittoHeaderInvalidException.class);
         }};
     }
 
