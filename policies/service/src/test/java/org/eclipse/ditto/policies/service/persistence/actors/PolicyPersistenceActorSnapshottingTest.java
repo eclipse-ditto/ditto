@@ -37,6 +37,7 @@ import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.base.model.signals.events.AbstractEventsourcedEvent;
 import org.eclipse.ditto.base.model.signals.events.EventsourcedEvent;
 import org.eclipse.ditto.internal.utils.persistence.mongo.DittoBsonJson;
+import org.eclipse.ditto.internal.utils.persistence.mongo.adapters.DefaultPolicyMongoEventAdapter;
 import org.eclipse.ditto.internal.utils.persistence.mongo.streaming.MongoReadJournal;
 import org.eclipse.ditto.internal.utils.pubsub.DistributedPub;
 import org.eclipse.ditto.internal.utils.test.Retry;
@@ -60,7 +61,6 @@ import org.eclipse.ditto.policies.model.signals.commands.query.RetrievePolicyRes
 import org.eclipse.ditto.policies.model.signals.events.PolicyCreated;
 import org.eclipse.ditto.policies.model.signals.events.PolicyDeleted;
 import org.eclipse.ditto.policies.model.signals.events.PolicyModified;
-import org.eclipse.ditto.policies.service.persistence.serializer.DefaultPolicyMongoEventAdapter;
 import org.eclipse.ditto.policies.service.persistence.testhelper.Assertions;
 import org.eclipse.ditto.policies.service.persistence.testhelper.PoliciesJournalTestHelper;
 import org.eclipse.ditto.policies.service.persistence.testhelper.PoliciesSnapshotTestHelper;

@@ -66,6 +66,7 @@ import org.eclipse.ditto.internal.utils.config.ScopedConfig;
 import org.eclipse.ditto.internal.utils.persistence.api.PersistenceBackendProvider;
 import org.eclipse.ditto.internal.utils.persistence.postgres.PostgresPersistenceBackendProvider;
 import org.eclipse.ditto.internal.utils.persistence.postgres.PostgresSnapshotCodec;
+import org.eclipse.ditto.internal.utils.persistence.postgres.adapters.ConnectivityPostgresEventAdapter;
 import org.eclipse.ditto.internal.utils.persistence.postgres.client.schema.PostgresSchemaManager;
 import org.eclipse.ditto.internal.utils.persistence.postgres.client.testkit.PostgresDbResource;
 import org.eclipse.ditto.internal.utils.persistence.postgres.schema.PostgresSchema;

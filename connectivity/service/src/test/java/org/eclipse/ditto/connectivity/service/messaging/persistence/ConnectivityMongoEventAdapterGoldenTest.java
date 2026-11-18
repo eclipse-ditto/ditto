@@ -50,6 +50,7 @@ import org.eclipse.ditto.connectivity.model.signals.events.ConnectionDeleted;
 import org.eclipse.ditto.connectivity.model.signals.events.ConnectionModified;
 import org.eclipse.ditto.connectivity.model.signals.events.ConnectivityEvent;
 import org.eclipse.ditto.internal.utils.persistence.mongo.DittoBsonJson;
+import org.eclipse.ditto.internal.utils.persistence.mongo.adapters.ConnectivityMongoEventAdapter;
 import org.junit.After;
 import org.junit.Test;
 import org.slf4j.LoggerFactory;
@@ -131,19 +132,19 @@ public final class ConnectivityMongoEventAdapterGoldenTest {
     }
 
     @Test
-    public void oneArgumentFromJournalJsonDecrypts() throws IOException {
-        final ConnectivityMongoEventAdapter underTest = adapter(ConnectionJournalEncryptionFixture.K_OLD, null);
+    public void oneArgumentFromJournalJsonOfTheSerializerDecrypts() throws IOException {
+        final ConnectivityEventSerializer serializer = serializer(ConnectionJournalEncryptionFixture.K_OLD, null);
         final BsonDocument created = rows().get(0).getDocument("payload");
 
         final List<Object> events = CollectionConverters.asJava(
-                underTest.fromJournalJson(DittoBsonJson.getInstance().serialize(created).asObject()).events());
+                serializer.fromJournalJson(DittoBsonJson.getInstance().serialize(created).asObject()).events());
 
         assertThat(events).containsExactly(recoveredEvents().get(0));
     }
 
     @Test
-    public void constructionLogsTheEncryptionFlagUnderTheAdapterLogger() {
-        assertConstructionLogsTheEncryptionFlagUnder(ConnectivityMongoEventAdapter.class.getName(),
+    public void constructionLogsTheEncryptionFlagUnderTheSerializerLogger() {
+        assertConstructionLogsTheEncryptionFlagUnderTheSerializerLogger(
                 () -> adapter(ConnectionJournalEncryptionFixture.K_OLD, null));
     }
 
@@ -167,34 +168,28 @@ public final class ConnectivityMongoEventAdapterGoldenTest {
     }
 
     /**
-     * Asserts that {@code construction} logs exactly one INFO {@code Connections fields encryption: true} under
-     * {@code adapterLoggerName} and none under the serializer's logger name.
+     * Asserts that {@code construction} logs exactly one INFO {@code Connections fields encryption: true}, under the
+     * logger of {@link ConnectivityEventSerializer}: the adapters of both backends instantiate the serializer through
+     * its one-argument constructor.
      */
-    static void assertConstructionLogsTheEncryptionFlagUnder(final String adapterLoggerName,
-            final Supplier<?> construction) {
-        final Logger adapterLogger = (Logger) LoggerFactory.getLogger(adapterLoggerName);
+    static void assertConstructionLogsTheEncryptionFlagUnderTheSerializerLogger(final Supplier<?> construction) {
         final Logger serializerLogger = (Logger) LoggerFactory.getLogger(SERIALIZER_LOGGER_NAME);
-        final Level adapterLevel = adapterLogger.getLevel();
         final Level serializerLevel = serializerLogger.getLevel();
         final ListAppender<ILoggingEvent> appender = new ListAppender<>();
         appender.start();
-        adapterLogger.setLevel(Level.INFO);
         serializerLogger.setLevel(Level.INFO);
-        adapterLogger.addAppender(appender);
         serializerLogger.addAppender(appender);
         try {
             construction.get();
         } finally {
-            adapterLogger.detachAppender(appender);
             serializerLogger.detachAppender(appender);
-            adapterLogger.setLevel(adapterLevel);
             serializerLogger.setLevel(serializerLevel);
             appender.stop();
         }
         assertThat(appender.list)
                 .filteredOn(event -> event.getLevel() == Level.INFO)
                 .extracting(ILoggingEvent::getLoggerName, ILoggingEvent::getFormattedMessage)
-                .containsExactly(tuple(adapterLoggerName, "Connections fields encryption: true"));
+                .containsExactly(tuple(SERIALIZER_LOGGER_NAME, "Connections fields encryption: true"));
     }
 
     static String readFixture(final String name) throws IOException {
@@ -241,6 +236,12 @@ public final class ConnectivityMongoEventAdapterGoldenTest {
         final ExtendedActorSystem system = actorSystem("ConnectivityMongoEventAdapterGoldenTest", key, oldKey);
         systems.add(system);
         return new ConnectivityMongoEventAdapter(system);
+    }
+
+    private ConnectivityEventSerializer serializer(final String key, @Nullable final String oldKey) {
+        final ExtendedActorSystem system = actorSystem("ConnectivityMongoEventAdapterGoldenTest", key, oldKey);
+        systems.add(system);
+        return new ConnectivityEventSerializer(system);
     }
 
     private static List<BsonDocument> rows() throws IOException {

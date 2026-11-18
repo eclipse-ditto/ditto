@@ -21,6 +21,7 @@ import java.util.Set;
 
 import org.bson.BsonDocument;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.internal.utils.persistence.mongo.adapters.ThingMongoEventAdapter;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.things.model.Attributes;
 import org.eclipse.ditto.things.model.Thing;

@@ -27,6 +27,7 @@ import org.apache.pekko.actor.ExtendedActorSystem;
 import org.apache.pekko.persistence.journal.Tagged;
 import org.apache.pekko.testkit.javadsl.TestKit;
 import org.eclipse.ditto.connectivity.model.signals.events.ConnectivityEvent;
+import org.eclipse.ditto.internal.utils.persistence.postgres.adapters.ConnectivityPostgresEventAdapter;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonValue;
@@ -93,19 +94,21 @@ public final class ConnectivityPostgresEventAdapterGoldenTest {
     }
 
     @Test
-    public void oneArgumentFromJournalJsonDecrypts() throws IOException {
-        final ConnectivityPostgresEventAdapter underTest = adapter(ConnectionJournalEncryptionFixture.K_OLD, null);
+    public void oneArgumentFromJournalJsonOfTheSerializerDecrypts() throws IOException {
+        final ExtendedActorSystem system = ConnectivityMongoEventAdapterGoldenTest.actorSystem(
+                "ConnectivityPostgresEventAdapterGoldenTest", ConnectionJournalEncryptionFixture.K_OLD, null);
+        systems.add(system);
+        final ConnectivityEventSerializer serializer = new ConnectivityEventSerializer(system);
 
         final List<Object> events =
-                CollectionConverters.asJava(underTest.fromJournalJson(payload(rows().get(0))).events());
+                CollectionConverters.asJava(serializer.fromJournalJson(payload(rows().get(0))).events());
 
         assertThat(events).containsExactly(ConnectivityMongoEventAdapterGoldenTest.recoveredEvents().get(0));
     }
 
     @Test
-    public void constructionLogsTheEncryptionFlagUnderTheAdapterLogger() {
-        ConnectivityMongoEventAdapterGoldenTest.assertConstructionLogsTheEncryptionFlagUnder(
-                ConnectivityPostgresEventAdapter.class.getName(),
+    public void constructionLogsTheEncryptionFlagUnderTheSerializerLogger() {
+        ConnectivityMongoEventAdapterGoldenTest.assertConstructionLogsTheEncryptionFlagUnderTheSerializerLogger(
                 () -> adapter(ConnectionJournalEncryptionFixture.K_OLD, null));
     }
 

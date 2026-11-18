@@ -25,6 +25,7 @@ import org.bson.BsonValue;
 import org.eclipse.ditto.base.model.entity.metadata.Metadata;
 import org.eclipse.ditto.base.model.entity.metadata.MetadataModelFactory;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.internal.utils.persistence.mongo.adapters.WotValidationConfigMongoEventAdapter;
 import org.eclipse.ditto.things.model.devops.FeatureValidationEnforceConfig;
 import org.eclipse.ditto.things.model.devops.FeatureValidationForbidConfig;
 import org.eclipse.ditto.things.model.devops.ThingValidationEnforceConfig;

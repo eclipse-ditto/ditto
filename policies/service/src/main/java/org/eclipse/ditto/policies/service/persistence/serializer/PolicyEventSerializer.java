@@ -32,6 +32,9 @@ import org.slf4j.LoggerFactory;
  * Backend-neutral journal serializer for {@link PolicyEvent}s, shared by the policy event adapters of both backends.
  * It discards journal rows whose manifest names a policy event type that was removed (see {@link #discards(String)})
  * and logs one INFO line per discarded row; everything else is the behaviour of {@link EventSerializer}.
+ * <p>
+ * This class is the extension point for custom policy journal serialization: subclass it and write a one-line event
+ * adapter naming the subclass.
  */
 public class PolicyEventSerializer extends EventSerializer<PolicyEvent<?>> {
 

@@ -10,20 +10,17 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.policies.service.persistence.serializer;
-
-import org.eclipse.ditto.policies.model.signals.events.PolicyEvent;
+package org.eclipse.ditto.internal.utils.persistence.mongo.adapters;
 
 import org.apache.pekko.actor.ExtendedActorSystem;
 
 /**
- * EventAdapter for {@link PolicyEvent}s persisted into pekko-persistence event-journal.
- * Converts Event to MongoDB BSON objects and vice versa.
+ * MongoDB event adapter delegating to {@code ConnectivityEventSerializer}.
  */
-public final class DefaultPolicyMongoEventAdapter extends AbstractPolicyMongoEventAdapter {
+public final class ConnectivityMongoEventAdapter extends DelegatingMongoEventAdapter {
 
-    public DefaultPolicyMongoEventAdapter(final ExtendedActorSystem system) {
-        super(system);
+    public ConnectivityMongoEventAdapter(final ExtendedActorSystem system) {
+        super(system, "org.eclipse.ditto.connectivity.service.messaging.persistence.ConnectivityEventSerializer");
     }
 
 }

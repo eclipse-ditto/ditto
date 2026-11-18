@@ -28,6 +28,7 @@ import org.apache.pekko.testkit.javadsl.TestKit;
 import org.bson.BsonDocument;
 import org.eclipse.ditto.base.model.entity.metadata.MetadataModelFactory;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.internal.utils.persistence.mongo.adapters.WotValidationConfigMongoEventAdapter;
 import org.eclipse.ditto.things.model.devops.FeatureValidationConfig;
 import org.eclipse.ditto.things.model.devops.FeatureValidationEnforceConfig;
 import org.eclipse.ditto.things.model.devops.FeatureValidationForbidConfig;

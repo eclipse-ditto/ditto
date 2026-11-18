@@ -34,6 +34,7 @@ import org.bson.BsonDocument;
 import org.bson.BsonString;
 import org.bson.BsonValue;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.internal.utils.persistence.mongo.adapters.DefaultPolicyMongoEventAdapter;
 import org.eclipse.ditto.policies.model.PoliciesModelFactory;
 import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.policies.model.PolicyId;
@@ -122,7 +123,7 @@ public final class PolicyMongoEventAdapterGoldenTest {
     public void replaysTheLegacyRowToNoEvent() throws IOException {
         final BsonDocument legacy = BsonDocument.parse(readFixture(LEGACY_FIXTURE));
         final DiscardLogCapture logCapture =
-                new DiscardLogCapture(AbstractPolicyMongoEventAdapter.class.getName());
+                new DiscardLogCapture(PolicyEventSerializer.class.getName());
         logCapture.start();
         try {
             assertThat(CollectionConverters.asJava(underTest.fromJournal(legacy, LEGACY_MANIFEST).events()))

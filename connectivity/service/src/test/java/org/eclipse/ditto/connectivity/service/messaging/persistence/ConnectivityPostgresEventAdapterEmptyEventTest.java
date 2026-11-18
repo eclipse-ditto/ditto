@@ -21,6 +21,7 @@ import org.apache.pekko.actor.ExtendedActorSystem;
 import org.apache.pekko.persistence.journal.Tagged;
 import org.apache.pekko.testkit.javadsl.TestKit;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.internal.utils.persistence.postgres.adapters.ConnectivityPostgresEventAdapter;
 import org.eclipse.ditto.internal.utils.persistentactors.EmptyEvent;
 import org.junit.Test;
 import scala.jdk.javaapi.CollectionConverters;

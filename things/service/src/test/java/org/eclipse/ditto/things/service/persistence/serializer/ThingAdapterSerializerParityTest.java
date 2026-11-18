@@ -20,6 +20,7 @@ import java.util.List;
 import org.bson.BsonValue;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.internal.utils.persistence.mongo.DittoBsonJson;
+import org.eclipse.ditto.internal.utils.persistence.mongo.adapters.ThingMongoEventAdapter;
 import org.eclipse.ditto.internal.utils.persistence.api.serializer.SnapshotSerializer;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
@@ -42,7 +43,8 @@ import scala.jdk.javaapi.CollectionConverters;
 
 /**
  * Proves that the serializer split keeps the MongoDB (BSON) and PostgreSQL (JSONB) envelopes equal at the
- * {@link JsonObject} level for both events and snapshots, using the <em>real</em> Thing adapters, and that the JSON text
+ * {@link JsonObject} level for both events and snapshots, using the <em>real</em> Thing adapter and its
+ * {@link ThingEventSerializer}, and that the JSON text
  * a PostgreSQL snapshot row holds recovers to the identical domain object that the Mongo BSON path recovers.
  */
 public final class ThingAdapterSerializerParityTest {
@@ -65,6 +67,7 @@ public final class ThingAdapterSerializerParityTest {
     @Test
     public void eventJournalJsonIsIdenticalAcrossBsonAndJsonbEnvelopes() {
         final ThingMongoEventAdapter adapter = new ThingMongoEventAdapter(SYSTEM);
+        final ThingEventSerializer serializer = new ThingEventSerializer(SYSTEM);
         final ThingCreated event = ThingCreated.of(sampleThing(), 1L,
                 Instant.parse("2021-02-24T14:17:37.581679843Z"), DittoHeaders.empty(), null);
 
@@ -73,7 +76,7 @@ public final class ThingAdapterSerializerParityTest {
         final JsonObject mongoJson = DittoBsonJson.getInstance().serialize((BsonValue) tagged.payload()).asObject();
 
         // Postgres envelope: the same serializer JsonObject rendered as JSONB text.
-        final JsonObject postgresJson = adapter.toJournalJson(event);
+        final JsonObject postgresJson = serializer.toJournalJson(event);
 
         assertThat(postgresJson.toString()).isEqualTo(mongoJson.toString());
     }
@@ -81,6 +84,7 @@ public final class ThingAdapterSerializerParityTest {
     @Test
     public void eventRecoveryIsIdenticalAcrossBsonAndJsonbEnvelopes() {
         final ThingMongoEventAdapter adapter = new ThingMongoEventAdapter(SYSTEM);
+        final ThingEventSerializer serializer = new ThingEventSerializer(SYSTEM);
         final ThingCreated event = ThingCreated.of(sampleThing(), 1L,
                 Instant.parse("2021-02-24T14:17:37.581679843Z"), DittoHeaders.empty(), null);
 
@@ -89,8 +93,9 @@ public final class ThingAdapterSerializerParityTest {
         final EventSeq mongoSeq = adapter.fromJournal(tagged.payload(), event.getType());
 
         // Postgres path: JSONB text -> JsonObject -> event (same serializer migration hooks).
-        final JsonObject jsonb = adapter.toJournalJson(event);
-        final EventSeq postgresSeq = adapter.fromJournalJson(JsonFactory.newObject(jsonb.toString()), event.getType());
+        final JsonObject jsonb = serializer.toJournalJson(event);
+        final EventSeq postgresSeq =
+                serializer.fromJournalJson(JsonFactory.newObject(jsonb.toString()), event.getType());
 
         assertThat(CollectionConverters.asJava(postgresSeq.events()))
                 .isEqualTo(CollectionConverters.asJava(mongoSeq.events()));
