@@ -39,6 +39,8 @@ import org.eclipse.ditto.internal.utils.cluster.config.ClusterConfig;
 import org.eclipse.ditto.internal.utils.config.ConfigWithFallback;
 import org.eclipse.ditto.internal.utils.config.ScopedConfig;
 import org.eclipse.ditto.internal.utils.config.WithConfigPath;
+import org.eclipse.ditto.internal.utils.persistence.api.operations.DefaultPersistenceOperationsConfig;
+import org.eclipse.ditto.internal.utils.persistence.api.operations.PersistenceOperationsConfig;
 import org.eclipse.ditto.internal.utils.persistence.mongo.indices.DefaultIndexKey;
 import org.eclipse.ditto.internal.utils.persistence.mongo.indices.Index;
 import org.eclipse.ditto.internal.utils.persistence.mongo.indices.IndexDirection;
@@ -51,8 +53,6 @@ import org.eclipse.ditto.internal.utils.persistence.mongo.config.DefaultIndexIni
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.DefaultMongoDbConfig;
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.IndexInitializationConfig;
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.MongoDbConfig;
-import org.eclipse.ditto.internal.utils.persistence.operations.DefaultPersistenceOperationsConfig;
-import org.eclipse.ditto.internal.utils.persistence.operations.PersistenceOperationsConfig;
 import org.eclipse.ditto.internal.utils.tracing.config.TracingConfig;
 
 import com.typesafe.config.Config;

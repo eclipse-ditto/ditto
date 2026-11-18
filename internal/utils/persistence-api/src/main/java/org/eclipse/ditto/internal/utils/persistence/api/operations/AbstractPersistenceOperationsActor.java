@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.internal.utils.persistence.operations;
+package org.eclipse.ditto.internal.utils.persistence.api.operations;
 
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
@@ -41,8 +41,6 @@ import org.eclipse.ditto.internal.utils.pekko.actors.AbstractActorWithShutdownBe
 import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.pekko.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
-import org.eclipse.ditto.internal.utils.persistence.api.operations.EntityPersistenceOperations;
-import org.eclipse.ditto.internal.utils.persistence.api.operations.NamespacePersistenceOperations;
 
 import org.apache.pekko.Done;
 import org.apache.pekko.actor.ActorRef;

@@ -17,9 +17,9 @@ import java.io.Closeable;
 import org.eclipse.ditto.connectivity.model.ConnectivityConstants;
 import org.eclipse.ditto.internal.utils.persistence.api.PersistenceBackendProvider;
 import org.eclipse.ditto.internal.utils.persistence.api.PersistenceOperationsCollaborators;
+import org.eclipse.ditto.internal.utils.persistence.api.operations.AbstractPersistenceOperationsActor;
 import org.eclipse.ditto.internal.utils.persistence.api.operations.EntityPersistenceOperations;
-import org.eclipse.ditto.internal.utils.persistence.operations.AbstractPersistenceOperationsActor;
-import org.eclipse.ditto.internal.utils.persistence.operations.PersistenceOperationsConfig;
+import org.eclipse.ditto.internal.utils.persistence.api.operations.PersistenceOperationsConfig;
 
 import org.apache.pekko.actor.ActorRef;
 import org.apache.pekko.actor.Props;

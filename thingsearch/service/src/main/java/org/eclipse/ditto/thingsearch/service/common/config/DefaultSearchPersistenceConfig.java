@@ -20,9 +20,9 @@ import javax.annotation.concurrent.Immutable;
 import org.eclipse.ditto.base.service.config.ThrottlingConfig;
 import org.eclipse.ditto.internal.utils.config.ConfigWithFallback;
 import org.eclipse.ditto.internal.utils.config.DittoConfigError;
+import org.eclipse.ditto.internal.utils.persistence.api.config.ReadConcern;
+import org.eclipse.ditto.internal.utils.persistence.api.config.ReadPreference;
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.MongoDbConfig;
-import org.eclipse.ditto.internal.utils.persistence.mongo.config.ReadConcern;
-import org.eclipse.ditto.internal.utils.persistence.mongo.config.ReadPreference;
 
 import com.typesafe.config.Config;
 

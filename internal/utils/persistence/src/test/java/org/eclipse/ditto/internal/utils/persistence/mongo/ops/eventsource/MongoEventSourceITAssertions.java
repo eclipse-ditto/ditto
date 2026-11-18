@@ -32,9 +32,9 @@ import org.eclipse.ditto.base.model.namespaces.signals.commands.PurgeNamespace;
 import org.eclipse.ditto.base.model.namespaces.signals.commands.PurgeNamespaceResponse;
 import org.eclipse.ditto.internal.utils.pekko.ActorSystemResource;
 import org.eclipse.ditto.internal.utils.config.raw.RawConfigSupplier;
+import org.eclipse.ditto.internal.utils.persistence.api.operations.PersistenceOperationsConfig;
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.DefaultMongoDbConfig;
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.MongoDbConfig;
-import org.eclipse.ditto.internal.utils.persistence.operations.PersistenceOperationsConfig;
 import org.eclipse.ditto.internal.utils.test.docker.mongo.MongoDbResource;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
@@ -51,7 +51,7 @@ import org.apache.pekko.cluster.pubsub.DistributedPubSub;
 import org.apache.pekko.testkit.javadsl.TestKit;
 
 /**
- * Tests subclasses of {@link org.eclipse.ditto.internal.utils.persistence.operations.AbstractPersistenceOperationsActor} which provide purging by namespace on a event source
+ * Tests subclasses of {@link org.eclipse.ditto.internal.utils.persistence.api.operations.AbstractPersistenceOperationsActor} which provide purging by namespace on a event source
  * persistence.
  */
 public abstract class MongoEventSourceITAssertions<I extends EntityId> {

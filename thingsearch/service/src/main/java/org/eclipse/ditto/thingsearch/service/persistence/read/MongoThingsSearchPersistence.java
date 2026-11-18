@@ -44,12 +44,13 @@ import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.internal.models.streaming.LowerBound;
 import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.pekko.logging.ThreadSafeDittoLogger;
+import org.eclipse.ditto.internal.utils.persistence.api.config.ReadConcern;
+import org.eclipse.ditto.internal.utils.persistence.api.config.ReadPreference;
 import org.eclipse.ditto.internal.utils.persistence.mongo.BsonUtil;
 import org.eclipse.ditto.internal.utils.persistence.mongo.DittoBsonJson;
 import org.eclipse.ditto.internal.utils.persistence.mongo.DittoMongoClient;
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.IndexInitializationConfig;
-import org.eclipse.ditto.internal.utils.persistence.mongo.config.ReadConcern;
-import org.eclipse.ditto.internal.utils.persistence.mongo.config.ReadPreference;
+import org.eclipse.ditto.internal.utils.persistence.mongo.config.MongoReadSettings;
 import org.eclipse.ditto.internal.utils.persistence.mongo.indices.Index;
 import org.eclipse.ditto.internal.utils.persistence.mongo.indices.IndexInitializer;
 import org.eclipse.ditto.json.JsonArray;
@@ -125,9 +126,9 @@ public final class MongoThingsSearchPersistence implements ThingsSearchPersisten
     ) {
         final MongoDatabase database = mongoClient.getDefaultDatabase();
         final var readConcern = persistenceConfig.readConcern();
-        final var readPreference = persistenceConfig.readPreference().getMongoReadPreference();
+        final var readPreference = MongoReadSettings.readPreference(persistenceConfig.readPreference());
         collection = database.getCollection(PersistenceConstants.THINGS_COLLECTION_NAME)
-                .withReadConcern(readConcern.getMongoReadConcern())
+                .withReadConcern(MongoReadSettings.readConcern(readConcern))
                 .withReadPreference(readPreference);
         indexInitializer = IndexInitializer.of(database, SystemMaterializer.get(actorSystem).materializer());
         maxQueryTime = mongoClient.getDittoSettings().getMaxQueryTime();
@@ -259,7 +260,7 @@ public final class MongoThingsSearchPersistence implements ThingsSearchPersisten
         if (readPreferenceOverride != null) {
             final Optional<ReadPreference> parsed = ReadPreference.ofReadPreference(readPreferenceOverride);
             if (parsed.isPresent()) {
-                result = result.withReadPreference(parsed.get().getMongoReadPreference());
+                result = result.withReadPreference(MongoReadSettings.readPreference(parsed.get()));
             } else {
                 LOGGER.withCorrelationId(dittoHeaders)
                         .warn("Ignoring unknown read preference override <{}> for count query.",
@@ -269,7 +270,7 @@ public final class MongoThingsSearchPersistence implements ThingsSearchPersisten
         if (readConcernOverride != null) {
             final Optional<ReadConcern> parsed = ReadConcern.ofReadConcern(readConcernOverride);
             if (parsed.isPresent()) {
-                result = result.withReadConcern(parsed.get().getMongoReadConcern());
+                result = result.withReadConcern(MongoReadSettings.readConcern(parsed.get()));
             } else {
                 LOGGER.withCorrelationId(dittoHeaders)
                         .warn("Ignoring unknown read concern override <{}> for count query.",

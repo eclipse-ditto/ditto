@@ -35,6 +35,7 @@ import org.bson.BsonString;
 import org.bson.Document;
 import org.bson.conversions.Bson;
 import org.eclipse.ditto.base.service.config.ThrottlingConfig;
+import org.eclipse.ditto.internal.utils.persistence.mongo.config.MongoReadSettings;
 import org.eclipse.ditto.policies.api.PolicyTag;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.things.model.ThingId;
@@ -67,8 +68,8 @@ public final class MongoThingsSearchUpdaterPersistence implements ThingsSearchUp
                 .getPolicyModificationCausedSearchIndexUpdateThrottling();
 
         collection = database.getCollection(PersistenceConstants.THINGS_COLLECTION_NAME)
-                .withReadConcern(updaterPersistenceConfig.readConcern().getMongoReadConcern())
-                .withReadPreference(updaterPersistenceConfig.readPreference().getMongoReadPreference());
+                .withReadConcern(MongoReadSettings.readConcern(updaterPersistenceConfig.readConcern()))
+                .withReadPreference(MongoReadSettings.readPreference(updaterPersistenceConfig.readPreference()));
     }
 
     /**

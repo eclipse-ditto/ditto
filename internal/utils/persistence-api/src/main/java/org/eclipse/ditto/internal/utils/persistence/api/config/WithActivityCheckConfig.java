@@ -10,9 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.internal.utils.persistence.mongo.config;
-
-import org.eclipse.ditto.internal.utils.persistence.api.config.ActivityCheckConfig;
+package org.eclipse.ditto.internal.utils.persistence.api.config;
 
 /**
  * This interface provides access to the configuration settings activity checking of entities.

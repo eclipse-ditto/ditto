@@ -40,7 +40,7 @@ import org.eclipse.ditto.internal.utils.pekko.logging.ThreadSafeDittoLogger;
 import org.eclipse.ditto.internal.utils.persistence.api.DittoReadJournal;
 import org.eclipse.ditto.internal.utils.persistence.api.PersistenceBackendProvider;
 import org.eclipse.ditto.internal.utils.persistence.api.config.ActivityCheckConfig;
-import org.eclipse.ditto.internal.utils.persistence.mongo.config.NamespaceActivityCheckConfigProvider;
+import org.eclipse.ditto.internal.utils.persistence.api.config.NamespaceActivityCheckConfigProvider;
 import org.eclipse.ditto.internal.utils.persistence.api.config.SnapshotConfig;
 import org.eclipse.ditto.internal.utils.persistentactors.AbstractPersistenceActor;
 import org.eclipse.ditto.internal.utils.persistentactors.commands.CommandStrategy;

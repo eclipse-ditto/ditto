@@ -26,10 +26,10 @@ import org.eclipse.ditto.internal.utils.config.ScopedConfig;
 import org.eclipse.ditto.internal.utils.persistence.api.config.ActivityCheckConfig;
 import org.eclipse.ditto.internal.utils.persistence.api.config.DefaultActivityCheckConfig;
 import org.eclipse.ditto.internal.utils.persistence.api.config.DefaultEventConfig;
-import org.eclipse.ditto.internal.utils.persistence.mongo.config.DefaultNamespaceActivityCheckConfig;
+import org.eclipse.ditto.internal.utils.persistence.api.config.DefaultNamespaceActivityCheckConfig;
 import org.eclipse.ditto.internal.utils.persistence.api.config.DefaultSnapshotConfig;
 import org.eclipse.ditto.internal.utils.persistence.api.config.EventConfig;
-import org.eclipse.ditto.internal.utils.persistence.mongo.config.NamespaceActivityCheckConfig;
+import org.eclipse.ditto.internal.utils.persistence.api.config.NamespaceActivityCheckConfig;
 import org.eclipse.ditto.internal.utils.persistence.api.config.SnapshotConfig;
 import org.eclipse.ditto.internal.utils.persistentactors.cleanup.CleanupConfig;
 

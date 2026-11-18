@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.internal.utils.persistence.mongo.config;
+package org.eclipse.ditto.internal.utils.persistence.api.config;
 
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
@@ -22,24 +22,17 @@ import java.util.Optional;
  */
 public enum ReadConcern {
 
-    DEFAULT("default", com.mongodb.ReadConcern.DEFAULT),
-    LOCAL("local", com.mongodb.ReadConcern.LOCAL),
-    MAJORITY("majority", com.mongodb.ReadConcern.MAJORITY),
-    LINEARIZABLE("linearizable", com.mongodb.ReadConcern.LINEARIZABLE),
-    SNAPSHOT("snapshot", com.mongodb.ReadConcern.SNAPSHOT),
-    AVAILABLE("available", com.mongodb.ReadConcern.AVAILABLE);
-
+    DEFAULT("default"),
+    LOCAL("local"),
+    MAJORITY("majority"),
+    LINEARIZABLE("linearizable"),
+    SNAPSHOT("snapshot"),
+    AVAILABLE("available");
 
     private final String name;
-    private final com.mongodb.ReadConcern mongoReadConcern;
 
-    ReadConcern(final String name, final com.mongodb.ReadConcern mongoReadConcern) {
+    ReadConcern(final String name) {
         this.name = name;
-        this.mongoReadConcern = mongoReadConcern;
-    }
-
-    public com.mongodb.ReadConcern getMongoReadConcern() {
-        return mongoReadConcern;
     }
 
     /**

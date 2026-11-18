@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.internal.utils.persistence.mongo.config;
+package org.eclipse.ditto.internal.utils.persistence.api.config;
 
 import java.time.Duration;
 import java.util.Objects;

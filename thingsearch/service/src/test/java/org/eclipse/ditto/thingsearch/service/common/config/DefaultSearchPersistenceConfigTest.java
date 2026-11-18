@@ -14,8 +14,8 @@ package org.eclipse.ditto.thingsearch.service.common.config;
 
 import org.assertj.core.api.JUnitSoftAssertions;
 import org.eclipse.ditto.base.service.config.ThrottlingConfig;
-import org.eclipse.ditto.internal.utils.persistence.mongo.config.ReadConcern;
-import org.eclipse.ditto.internal.utils.persistence.mongo.config.ReadPreference;
+import org.eclipse.ditto.internal.utils.persistence.api.config.ReadConcern;
+import org.eclipse.ditto.internal.utils.persistence.api.config.ReadPreference;
 import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;

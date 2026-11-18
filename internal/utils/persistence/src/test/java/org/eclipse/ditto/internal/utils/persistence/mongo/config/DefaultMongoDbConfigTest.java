@@ -16,6 +16,7 @@ import java.time.Duration;
 import java.util.Collections;
 
 import org.assertj.core.api.JUnitSoftAssertions;
+import org.eclipse.ditto.internal.utils.persistence.api.config.ReadPreference;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;

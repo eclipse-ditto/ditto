@@ -23,7 +23,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.internal.utils.persistence.operations;
+package org.eclipse.ditto.internal.utils.persistence.api.operations;
 
 import java.time.Duration;
 

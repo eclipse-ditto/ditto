@@ -16,8 +16,8 @@ import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.base.service.config.ThrottlingConfig;
 import org.eclipse.ditto.internal.utils.config.KnownConfigValue;
-import org.eclipse.ditto.internal.utils.persistence.mongo.config.ReadConcern;
-import org.eclipse.ditto.internal.utils.persistence.mongo.config.ReadPreference;
+import org.eclipse.ditto.internal.utils.persistence.api.config.ReadConcern;
+import org.eclipse.ditto.internal.utils.persistence.api.config.ReadPreference;
 
 /**
  * Provides configuration settings of the Search query and updater persistence.

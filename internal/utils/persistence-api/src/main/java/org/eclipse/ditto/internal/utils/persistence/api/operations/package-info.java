@@ -10,18 +10,10 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.internal.utils.persistence.operations;
 
 /**
- * This interface represents a service that has a persistence operations configuration.
+ * This package provides means to perform operations on the persistence without having to know the actual persistence
+ * technology.
  */
-public interface WithPersistenceOperationsConfig {
-
-    /**
-     * Returns the persistence operations configuration.
-     *
-     * @return the configuration.
-     */
-    PersistenceOperationsConfig getPersistenceOperationsConfig();
-
-}
+@org.eclipse.ditto.utils.jsr305.annotations.AllParametersAndReturnValuesAreNonnullByDefault
+package org.eclipse.ditto.internal.utils.persistence.api.operations;

@@ -22,8 +22,8 @@ import org.eclipse.ditto.edge.service.acknowledgements.AcknowledgementConfig;
 import org.eclipse.ditto.internal.utils.config.KnownConfigValue;
 import org.eclipse.ditto.internal.utils.persistence.api.config.EventConfig;
 import org.eclipse.ditto.internal.utils.persistence.api.config.SnapshotConfig;
-import org.eclipse.ditto.internal.utils.persistence.mongo.config.WithActivityCheckConfig;
-import org.eclipse.ditto.internal.utils.persistence.mongo.config.WithSnapshotConfig;
+import org.eclipse.ditto.internal.utils.persistence.api.config.WithActivityCheckConfig;
+import org.eclipse.ditto.internal.utils.persistence.api.config.WithSnapshotConfig;
 import org.eclipse.ditto.internal.utils.persistentactors.cleanup.WithCleanupConfig;
 
 /**

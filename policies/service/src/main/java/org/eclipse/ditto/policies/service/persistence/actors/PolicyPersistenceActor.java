@@ -30,7 +30,7 @@ import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.internal.utils.config.ScopedConfig;
 import org.eclipse.ditto.internal.utils.persistence.api.config.ActivityCheckConfig;
-import org.eclipse.ditto.internal.utils.persistence.mongo.config.NamespaceActivityCheckConfigProvider;
+import org.eclipse.ditto.internal.utils.persistence.api.config.NamespaceActivityCheckConfigProvider;
 import org.eclipse.ditto.internal.utils.persistence.api.config.SnapshotConfig;
 import org.eclipse.ditto.internal.utils.persistence.api.DittoReadJournal;
 import org.eclipse.ditto.internal.utils.persistence.api.PersistenceBackendProvider;

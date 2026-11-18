@@ -15,8 +15,8 @@ package org.eclipse.ditto.thingsearch.service.starter.config;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
-import org.eclipse.ditto.internal.utils.persistence.mongo.config.ReadConcern;
-import org.eclipse.ditto.internal.utils.persistence.mongo.config.ReadPreference;
+import org.eclipse.ditto.internal.utils.persistence.api.config.ReadConcern;
+import org.eclipse.ditto.internal.utils.persistence.api.config.ReadPreference;
 import org.eclipse.ditto.thingsearch.service.common.config.DittoSearchConfig;
 import org.junit.Test;
 

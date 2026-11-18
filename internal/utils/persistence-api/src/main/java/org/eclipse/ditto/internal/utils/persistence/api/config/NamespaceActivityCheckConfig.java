@@ -10,14 +10,13 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.internal.utils.persistence.mongo.config;
+package org.eclipse.ditto.internal.utils.persistence.api.config;
 
 import java.time.Duration;
 
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.internal.utils.config.KnownConfigValue;
-import org.eclipse.ditto.internal.utils.persistence.api.config.ActivityCheckConfig;
 
 /**
  * Provides configuration settings for namespace-scoped activity checks.

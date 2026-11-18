@@ -10,15 +10,13 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.internal.utils.persistence.mongo.config;
+package org.eclipse.ditto.internal.utils.persistence.api.config;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.time.Duration;
 import java.util.List;
 
-import org.eclipse.ditto.internal.utils.persistence.api.config.ActivityCheckConfig;
-import org.eclipse.ditto.internal.utils.persistence.api.config.DefaultActivityCheckConfig;
 import org.junit.Test;
 
 import com.typesafe.config.ConfigFactory;

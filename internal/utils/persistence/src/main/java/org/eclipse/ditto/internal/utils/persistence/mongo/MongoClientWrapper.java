@@ -35,6 +35,7 @@ import org.bson.codecs.configuration.CodecRegistry;
 import org.bson.conversions.Bson;
 import org.eclipse.ditto.internal.utils.persistence.mongo.auth.AwsAuthenticationHelper;
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.MongoDbConfig;
+import org.eclipse.ditto.internal.utils.persistence.mongo.config.MongoReadSettings;
 import org.reactivestreams.Publisher;
 
 import com.mongodb.ClientSessionOptions;
@@ -416,8 +417,8 @@ public final class MongoClientWrapper implements DittoMongoClient {
             builder.awsRegion(optionsConfig.awsRegion());
             builder.awsRoleArn(optionsConfig.awsRoleArn());
             builder.awsSessionName(optionsConfig.awsSessionName());
-            builder.setReadPreference(optionsConfig.readPreference().getMongoReadPreference());
-            builder.setReadConcern(optionsConfig.readConcern().getMongoReadConcern());
+            builder.setReadPreference(MongoReadSettings.readPreference(optionsConfig.readPreference()));
+            builder.setReadConcern(MongoReadSettings.readConcern(optionsConfig.readConcern()));
             builder.setWriteConcern(optionsConfig.writeConcern());
             builder.setRetryWrites(optionsConfig.isRetryWrites());
             builder.useX509Authentication(optionsConfig.isUseX509Authentication());

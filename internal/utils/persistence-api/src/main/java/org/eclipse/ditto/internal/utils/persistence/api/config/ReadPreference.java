@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.internal.utils.persistence.mongo.config;
+package org.eclipse.ditto.internal.utils.persistence.api.config;
 
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
@@ -22,22 +22,16 @@ import java.util.Optional;
  */
 public enum ReadPreference {
 
-    PRIMARY("primary", com.mongodb.ReadPreference.primary()),
-    PRIMARY_PREFERRED("primaryPreferred", com.mongodb.ReadPreference.primaryPreferred()),
-    SECONDARY("secondary", com.mongodb.ReadPreference.secondary()),
-    SECONDARY_PREFERRED("secondaryPreferred", com.mongodb.ReadPreference.secondaryPreferred()),
-    NEAREST("nearest", com.mongodb.ReadPreference.nearest());
+    PRIMARY("primary"),
+    PRIMARY_PREFERRED("primaryPreferred"),
+    SECONDARY("secondary"),
+    SECONDARY_PREFERRED("secondaryPreferred"),
+    NEAREST("nearest");
 
     private final String name;
-    private final com.mongodb.ReadPreference mongoReadPreference;
 
-    ReadPreference(final String name, final com.mongodb.ReadPreference mongoReadPreference) {
+    ReadPreference(final String name) {
         this.name = name;
-        this.mongoReadPreference = mongoReadPreference;
-    }
-
-    public com.mongodb.ReadPreference getMongoReadPreference() {
-        return mongoReadPreference;
     }
 
     /**

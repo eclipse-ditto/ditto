@@ -34,6 +34,7 @@ import org.bson.Document;
 import org.bson.conversions.Bson;
 import org.eclipse.ditto.internal.utils.persistence.mongo.DittoBsonJson;
 import org.eclipse.ditto.internal.utils.persistence.mongo.DittoMongoClient;
+import org.eclipse.ditto.internal.utils.persistence.mongo.config.MongoReadSettings;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonValue;
@@ -81,9 +82,9 @@ public final class MongoThingsAggregationPersistence implements ThingsAggregatio
                         RqlPredicateParser.getInstance());
         final MongoDatabase database = mongoClient.getDefaultDatabase();
         final var readConcern = persistenceConfig.readConcern();
-        final var readPreference = persistenceConfig.readPreference().getMongoReadPreference();
+        final var readPreference = MongoReadSettings.readPreference(persistenceConfig.readPreference());
         collection = database.getCollection(PersistenceConstants.THINGS_COLLECTION_NAME)
-                .withReadConcern(readConcern.getMongoReadConcern())
+                .withReadConcern(MongoReadSettings.readConcern(readConcern))
                 .withReadPreference(readPreference);
         this.log = log;
         maxQueryTime = mongoClient.getDittoSettings().getMaxQueryTime();
