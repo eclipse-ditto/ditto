@@ -52,7 +52,7 @@ import org.eclipse.ditto.things.model.signals.commands.ThingCommand;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.EventSendNotAllowedException;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingNotAccessibleException;
 import org.eclipse.ditto.things.model.signals.events.ThingEvent;
-import org.eclipse.ditto.things.service.utils.LiveEventAccessPaths;
+import org.eclipse.ditto.things.service.utils.LiveSignalAccessPaths;
 
 /**
  * Enforces live commands (including message commands) and live events.
@@ -62,9 +62,11 @@ final class LiveSignalEnforcement
         implements ThingEnforcementStrategy {
 
     private final boolean partialAccessEventsEnabled;
+    private final LiveSignalAccessPaths liveSignalAccessPaths;
 
     LiveSignalEnforcement(final boolean partialAccessEventsEnabled) {
         this.partialAccessEventsEnabled = partialAccessEventsEnabled;
+        liveSignalAccessPaths = new LiveSignalAccessPaths(partialAccessEventsEnabled);
     }
 
     @Override
@@ -197,8 +199,9 @@ final class LiveSignalEnforcement
                         enforcer,
                         (ThingCommand<?>) liveSignal,
                         partialAccessEventsEnabled);
-                final var withReadSubjects = addEffectedReadSubjectsToThingLiveSignal((ThingCommand<?>) liveSignal,
-                        enforcer.getEnforcer());
+                final var withReadSubjects = liveSignalAccessPaths.addTo(
+                        addEffectedReadSubjectsToThingLiveSignal((ThingCommand<?>) liveSignal, enforcer.getEnforcer()),
+                        enforcer);
 
                 LOGGER.withCorrelationId(withReadSubjects)
                         .info("Live Command was authorized: <{}>", withReadSubjects.getType());
@@ -242,12 +245,11 @@ final class LiveSignalEnforcement
                         liveSignal.getDittoHeaders().getAuthorizationContext(), WRITE)) {
             LOGGER.withCorrelationId(liveSignal)
                     .info("Live Event was authorized: <{}>", liveSignal);
-            return LiveEventAccessPaths.addTo(
+            return liveSignalAccessPaths.addTo(
                     ThingCommandEnforcement.addEffectedReadSubjectsToThingSignal((ThingEvent<?>) liveSignal,
                             policyEnforcer,
                             partialAccessEventsEnabled),
-                    policyEnforcer,
-                    partialAccessEventsEnabled);
+                    policyEnforcer);
         } else {
             LOGGER.withCorrelationId(liveSignal)
                     .info("Live Event was NOT authorized: <{}>", liveSignal);

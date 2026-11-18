@@ -162,28 +162,28 @@ public class PartialAccessPathCalculatorBenchmark {
     @Benchmark
     public void noRestrictedSubjects(final Blackhole bh) {
         final Map<String, List<JsonPointer>> result = PartialAccessPathCalculator
-                .calculatePartialAccessPaths(thingNoRestricted, enforcerNoRestricted, thingJsonNoRestricted);
+                .calculatePartialAccessPaths(enforcerNoRestricted, thingJsonNoRestricted, true);
         bh.consume(result);
     }
 
     @Benchmark
     public void largeThingRestricted(final Blackhole bh) {
         final Map<String, List<JsonPointer>> result = PartialAccessPathCalculator
-                .calculatePartialAccessPaths(thingLarge, enforcerLarge, thingJsonLarge);
+                .calculatePartialAccessPaths(enforcerLarge, thingJsonLarge, true);
         bh.consume(result);
     }
 
     @Benchmark
     public void smallThingRestricted(final Blackhole bh) {
         final Map<String, List<JsonPointer>> result = PartialAccessPathCalculator
-                .calculatePartialAccessPaths(thingSmall, enforcerSmall, thingJsonSmall);
+                .calculatePartialAccessPaths(enforcerSmall, thingJsonSmall, true);
         bh.consume(result);
     }
 
     @Benchmark
     public void manyRestrictedSubjects(final Blackhole bh) {
         final Map<String, List<JsonPointer>> result = PartialAccessPathCalculator
-                .calculatePartialAccessPaths(thingManySubjects, enforcerManySubjects, thingJsonManySubjects);
+                .calculatePartialAccessPaths(enforcerManySubjects, thingJsonManySubjects, true);
         bh.consume(result);
     }
 

@@ -61,6 +61,7 @@ import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingFieldSelector;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.ThingsModelFactory;
+import org.eclipse.ditto.things.model.signals.commands.modify.ModifyAttributes;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThing;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThingResponse;
 import org.eclipse.ditto.things.model.signals.events.FeatureModified;
@@ -131,6 +132,35 @@ public final class OutboundMappingProcessorActorTest {
                     .toList();
             assertThat(ackLabels).containsExactlyInAnyOrder("source1", "target1", "target2");
             acks.forEach(ack -> assertThat(ack.isWeak()).describedAs("Expect weak ack, got: " + ack).isTrue());
+        }};
+    }
+
+    @Test
+    public void sendWeakAckWhenLiveCommandIsNotReadableForTheTarget() {
+        new TestKit(actorSystemResource.getActorSystem()) {{
+            final ActorRef underTest = getTestActorRef(CONNECTION);
+            final ModifyAttributes liveCommand = ModifyAttributes.of(thingId(),
+                    Attributes.newBuilder().set("pub", "p").set("secret", "s").build(),
+                    DittoHeaders.newBuilder()
+                            .channel(TopicPath.Channel.LIVE.getName())
+                            .acknowledgementRequests(List.of(
+                                    AcknowledgementRequest.parseAcknowledgementRequest("source1"),
+                                    AcknowledgementRequest.parseAcknowledgementRequest("target1")))
+                            .readGrantedSubjects(List.of(target1Subject()))
+                            .putHeader(DittoHeaderDefinition.REVOKED_ACCESS_PATHS.getKey(),
+                                    "{\"subjects\":[\"" + target1Subject().getId() +
+                                            "\"],\"paths\":{\"attributes/secret\":[0]}}")
+                            .putHeader(DittoHeaderDefinition.DITTO_ACKREGATOR_ADDRESS.getKey(),
+                                    getRef().path().toSerializationFormat())
+                            .build());
+
+            underTest.tell(OutboundSignalFactory.newOutboundSignal(liveCommand, List.of(target1())), getRef());
+
+            final Acknowledgements acks = expectMsgClass(Acknowledgements.class);
+            assertThat(acks.getSuccessfulAcknowledgements().stream().map(ack -> ack.getLabel().toString()).toList())
+                    .containsExactlyInAnyOrder("source1", "target1");
+            acks.forEach(ack -> assertThat(ack.isWeak()).describedAs("Expect weak ack, got: " + ack).isTrue());
+            clientActorProbe.expectNoMessage(scala.concurrent.duration.FiniteDuration.apply(200, "ms"));
         }};
     }
 

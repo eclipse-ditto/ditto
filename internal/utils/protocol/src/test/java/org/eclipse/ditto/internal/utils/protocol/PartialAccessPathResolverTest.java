@@ -17,6 +17,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.util.Collections;
 import java.util.Set;
 
+import javax.annotation.Nullable;
+
 import org.eclipse.ditto.base.model.auth.AuthorizationContext;
 import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
 import org.eclipse.ditto.base.model.auth.DittoAuthorizationContextType;
@@ -50,7 +52,7 @@ public final class PartialAccessPathResolverTest {
     public void unrestrictedWhenHeaderMissing() {
         final AuthorizationContext context = authContext(SUBJECT_FULL);
 
-        final var result = PartialAccessPathResolver.resolveAccessiblePathsFromHeader(
+        final var result = resolve(
                 null,
                 context,
                 readGranted(SUBJECT_FULL));
@@ -64,7 +66,7 @@ public final class PartialAccessPathResolverTest {
     public void unrestrictedWhenSubjectNotIndexedButReadGranted() {
         final AuthorizationContext context = authContext(SUBJECT_FULL);
 
-        final var result = PartialAccessPathResolver.resolveAccessiblePathsFromHeader(
+        final var result = resolve(
                 PARTIAL_ACCESS_HEADER,
                 context,
                 readGranted(SUBJECT_FULL));
@@ -78,7 +80,7 @@ public final class PartialAccessPathResolverTest {
     public void filteredPathsReturnedForPartialSubject() {
         final AuthorizationContext context = authContext(SUBJECT_PARTIAL);
 
-        final var result = PartialAccessPathResolver.resolveAccessiblePathsFromHeader(
+        final var result = resolve(
                 PARTIAL_ACCESS_HEADER,
                 context,
                 readGranted(SUBJECT_PARTIAL));
@@ -95,7 +97,7 @@ public final class PartialAccessPathResolverTest {
     public void noAccessReturnedWhenSubscriberNotGranted() {
         final AuthorizationContext context = authContext(SUBJECT_PARTIAL);
 
-        final var result = PartialAccessPathResolver.resolveAccessiblePathsFromHeader(
+        final var result = resolve(
                 PARTIAL_ACCESS_HEADER,
                 context,
                 Set.of());
@@ -107,7 +109,7 @@ public final class PartialAccessPathResolverTest {
 
     @Test
     public void unrestrictedWhenAuthorizationContextMissing() {
-        final var result = PartialAccessPathResolver.resolveAccessiblePathsFromHeader(
+        final var result = resolve(
                 PARTIAL_ACCESS_HEADER,
                 null,
                 readGranted(SUBJECT_PARTIAL));
@@ -122,7 +124,7 @@ public final class PartialAccessPathResolverTest {
         final AuthorizationContext emptyContext =
                 AuthorizationContext.newInstance(DittoAuthorizationContextType.UNSPECIFIED, Collections.emptyList());
 
-        final var result = PartialAccessPathResolver.resolveAccessiblePathsFromHeader(
+        final var result = resolve(
                 PARTIAL_ACCESS_HEADER,
                 emptyContext,
                 readGranted(SUBJECT_PARTIAL));
@@ -139,7 +141,7 @@ public final class PartialAccessPathResolverTest {
         final AuthorizationContext context = AuthorizationContext.newInstance(
                 DittoAuthorizationContextType.UNSPECIFIED, SUBJECT_PARTIAL, SUBJECT_FULL);
 
-        final var result = PartialAccessPathResolver.resolveAccessiblePathsFromHeader(
+        final var result = resolve(
                 PARTIAL_ACCESS_HEADER,
                 context,
                 readGranted(SUBJECT_PARTIAL, SUBJECT_FULL));
@@ -155,7 +157,7 @@ public final class PartialAccessPathResolverTest {
         final AuthorizationContext context = AuthorizationContext.newInstance(
                 DittoAuthorizationContextType.UNSPECIFIED, SUBJECT_FULL, SUBJECT_PARTIAL);
 
-        final var result = PartialAccessPathResolver.resolveAccessiblePathsFromHeader(
+        final var result = resolve(
                 PARTIAL_ACCESS_HEADER,
                 context,
                 readGranted(SUBJECT_PARTIAL, SUBJECT_FULL));
@@ -187,7 +189,7 @@ public final class PartialAccessPathResolverTest {
         final AuthorizationContext context = authContext(partialSubject);
 
         // WHEN: Resolving accessible paths
-        final var result = PartialAccessPathResolver.resolveAccessiblePathsFromHeader(
+        final var result = resolve(
                 partialAccessHeader,
                 context,
                 readGranted(partialSubject));
@@ -224,13 +226,13 @@ public final class PartialAccessPathResolverTest {
                 .toString();
 
         // WHEN: Resolving for user1
-        final var user1Result = PartialAccessPathResolver.resolveAccessiblePathsFromHeader(
+        final var user1Result = resolve(
                 partialAccessHeader,
                 authContext(user1Subject),
                 readGranted(user1Subject));
 
         // WHEN: Resolving for user2
-        final var user2Result = PartialAccessPathResolver.resolveAccessiblePathsFromHeader(
+        final var user2Result = resolve(
                 partialAccessHeader,
                 authContext(user2Subject),
                 readGranted(user2Subject));
@@ -246,6 +248,12 @@ public final class PartialAccessPathResolverTest {
                 .containsExactlyInAnyOrder(
                         JsonPointer.of("/attributes/complex/some"),
                         JsonPointer.of("/features/other/properties/public"));
+    }
+
+    private static PartialAccessPathResolver.AccessiblePathsResult resolve(@Nullable final String header,
+            @Nullable final AuthorizationContext context, final Set<AuthorizationSubject> readGrantedSubjects) {
+        return PartialAccessPathResolver.resolveAccessiblePaths(AccessPathsHeader.parse(header).getPathsBySubject(),
+                context, readGrantedSubjects);
     }
 
     private static Set<AuthorizationSubject> readGranted(final AuthorizationSubject... subjects) {

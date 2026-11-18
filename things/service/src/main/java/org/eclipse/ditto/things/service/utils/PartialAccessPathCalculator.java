@@ -81,68 +81,26 @@ public final class PartialAccessPathCalculator {
     }
 
     /**
-     * Calculates which JSON paths each subject with partial READ permissions can access.
-     * <p>
-     * This method identifies subjects with partial permissions and calculates their accessible paths,
-     * excluding subjects that have full access to the root resource (as they don't need partial paths).
-     * </p>
-     *
-     * @param thing the current Thing state (may be null for ThingDeleted events)
-     * @param policyEnforcer the PolicyEnforcer to use for permission checks (must not be null)
-     * @return a map from subject ID to list of accessible JsonPointer paths, empty map if no partial subjects exist
-     * @throws NullPointerException if policyEnforcer is null
-     */
-    public static Map<String, List<JsonPointer>> calculatePartialAccessPaths(
-            @Nullable final Thing thing,
-            final PolicyEnforcer policyEnforcer) {
-
-        if (thing == null) {
-            return Map.of();
-        }
-
-        return calculatePartialAccessPaths(thing, policyEnforcer, thing.toJson());
-    }
-
-    /**
-     * Calculates which JSON paths each subject with partial READ permissions can access,
-     * using a pre-computed {@code thingJson} to avoid redundant serialization.
-     *
-     * @param thing the current Thing state (may be null for ThingDeleted events)
-     * @param policyEnforcer the PolicyEnforcer to use for permission checks (must not be null)
-     * @param thingJson the pre-computed JSON representation of the Thing
-     * @return a map from subject ID to list of accessible JsonPointer paths, empty map if no partial subjects exist
-     * @throws NullPointerException if policyEnforcer is null
-     */
-    public static Map<String, List<JsonPointer>> calculatePartialAccessPaths(
-            @Nullable final Thing thing,
-            final PolicyEnforcer policyEnforcer,
-            final JsonObject thingJson) {
-
-        if (thing == null) {
-            return Map.of();
-        }
-        return calculatePartialAccessPaths(policyEnforcer, thingJson);
-    }
-
-    /**
-     * Calculates which JSON paths each subject with partial READ permissions can access within the given Thing JSON,
-     * which may also be only a part of a Thing, e.g. the payload of a live event.
+     * Calculates which JSON paths each subject with partial READ permissions can access within the given Thing JSON.
+     * Subjects with partial READ permissions which can access nothing of the Thing JSON are omitted.
      *
      * @param policyEnforcer the PolicyEnforcer to use for permission checks
      * @param thingJson the (partial) Thing JSON
-     * @return a map from subject ID to list of accessible JsonPointer paths, empty map if no partial subjects exist
+     * @param collapseToAncestors whether fully accessible objects of {@code thingJson} are collapsed to their path,
+     * which must not be done if the paths are also applied to JSON other than {@code thingJson}.
+     * @return a map from subject ID to list of accessible JsonPointer paths
      * @since 3.9.9
      */
     public static Map<String, List<JsonPointer>> calculatePartialAccessPaths(final PolicyEnforcer policyEnforcer,
-            final JsonObject thingJson) {
+            final JsonObject thingJson, final boolean collapseToAncestors) {
 
-        final Set<AuthorizationSubject> subjectsWithRestrictedAccess = subjectsWithRestrictedAccess(policyEnforcer);
+        final Set<AuthorizationSubject> subjectsWithRestrictedAccess = getSubjectsWithRestrictedAccess(policyEnforcer);
         if (subjectsWithRestrictedAccess.isEmpty()) {
             return Map.of();
         }
 
         return calculateAccessiblePathsForSubjects(subjectsWithRestrictedAccess, thingJson,
-                policyEnforcer.getEnforcer());
+                policyEnforcer.getEnforcer(), collapseToAncestors);
     }
 
     /**
@@ -156,10 +114,18 @@ public final class PartialAccessPathCalculator {
      * @return {@code true} iff at least one subject has partial (not full-root) READ access.
      */
     public static boolean hasSubjectsWithRestrictedAccess(final PolicyEnforcer policyEnforcer) {
-        return !subjectsWithRestrictedAccess(policyEnforcer).isEmpty();
+        return !getSubjectsWithRestrictedAccess(policyEnforcer).isEmpty();
     }
 
-    private static Set<AuthorizationSubject> subjectsWithRestrictedAccess(final PolicyEnforcer policyEnforcer) {
+    /**
+     * Returns the subjects with partial (not full-root) READ access on the thing, the subjects
+     * {@link #calculatePartialAccessPaths} calculates the accessible paths for.
+     *
+     * @param policyEnforcer the enforcer to inspect.
+     * @return the subjects with restricted READ access.
+     * @since 3.9.9
+     */
+    public static Set<AuthorizationSubject> getSubjectsWithRestrictedAccess(final PolicyEnforcer policyEnforcer) {
         // Memoized on the PolicyEnforcer instance: paid once per policy revision, not per event.
         final SubjectClassification classification = policyEnforcer.getRootResourceReadClassification();
 
@@ -257,23 +223,28 @@ public final class PartialAccessPathCalculator {
      * @param subjectsWithRestrictedAccess subjects to calculate paths for
      * @param thingJson the Thing JSON representation
      * @param enforcer the Enforcer to use
-     * @return map of subject ID to their accessible paths (ancestor-collapsed)
+     * @param collapseToAncestors whether to collapse the accessible leaves to ancestors
+     * @return map of subject ID to their accessible paths, omitting subjects without any
      */
     private static Map<String, List<JsonPointer>> calculateAccessiblePathsForSubjects(
             final Set<AuthorizationSubject> subjectsWithRestrictedAccess,
             final JsonObject thingJson,
-            final Enforcer enforcer) {
+            final Enforcer enforcer,
+            final boolean collapseToAncestors) {
 
         final ResourceKey resourceKey = PoliciesResourceType.thingResource(ROOT_RESOURCE_POINTER);
         final Map<AuthorizationSubject, Set<JsonPointer>> batchResult =
                 enforcer.getAccessiblePathsForSubjects(resourceKey, thingJson,
                         subjectsWithRestrictedAccess, READ_PERMISSIONS);
 
-        // a restricted subject missing from the header would be treated as unrestricted by subscribers
         final Map<String, List<JsonPointer>> result = new LinkedHashMap<>();
-        for (final AuthorizationSubject subject : subjectsWithRestrictedAccess) {
-            final Set<JsonPointer> leaves = batchResult.getOrDefault(subject, Set.of());
-            result.put(subject.getId(), new ArrayList<>(collapseLeavesToAncestors(leaves, thingJson)));
+        for (final Map.Entry<AuthorizationSubject, Set<JsonPointer>> entry : batchResult.entrySet()) {
+            if (!entry.getValue().isEmpty()) {
+                final Set<JsonPointer> paths = collapseToAncestors
+                        ? collapseLeavesToAncestors(entry.getValue(), thingJson)
+                        : entry.getValue();
+                result.put(entry.getKey().getId(), new ArrayList<>(paths));
+            }
         }
         return result;
     }

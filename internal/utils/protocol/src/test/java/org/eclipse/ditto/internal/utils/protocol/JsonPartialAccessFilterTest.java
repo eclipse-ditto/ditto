@@ -217,7 +217,8 @@ public final class JsonPartialAccessFilterTest {
                         .build())
                 .build();
 
-        final var result = JsonPartialAccessFilter.parsePartialAccessPaths(indexedHeader);
+        final var result = JsonPartialAccessFilter.expandIndexed(
+                JsonPartialAccessFilter.parseIndexedPartialAccessPaths(indexedHeader));
 
         assertThat(result).isNotEmpty();
         assertThat(result).containsKey("nginx:partial-access");
@@ -233,16 +234,40 @@ public final class JsonPartialAccessFilterTest {
     }
 
     @Test
-    public void parsePartialAccessPathsReturnsEmptyForInvalidFormat() {
+    public void headerInInvalidFormatIsMalformed() {
         final JsonObject invalidHeader = JsonFactory.newObjectBuilder()
                 .set("nginx:partial-access", JsonFactory.newArrayBuilder()
                         .add("/attributes/public")
                         .build())
                 .build();
 
-        final var result = JsonPartialAccessFilter.parsePartialAccessPaths(invalidHeader);
+        final AccessPathsHeader result = AccessPathsHeader.parse(invalidHeader.toString());
 
-        assertThat(result).isEmpty();
+        assertThat(result.getMalformedReason()).isPresent();
+        assertThat(result.getPathsBySubject()).isEmpty();
+    }
+
+    @Test
+    public void removePathsPrunesObjectsEmptiedByTheRemovalOnly() {
+        final JsonObject json = JsonObject.of(
+                "{\"attributes\":{\"secret\":null,\"obj\":{\"secret\":1}},\"features\":{}}");
+
+        final JsonObject result = JsonPartialAccessFilter.removePaths(json,
+                Set.of(JsonPointer.of("/attributes/secret"), JsonPointer.of("/attributes/obj/secret")), Set.of());
+
+        assertThat(result).isEqualTo(JsonObject.of("{\"features\":{}}"));
+    }
+
+    @Test
+    public void removePathsKeepsSiblingsAndReturnsSameInstanceIfNothingRemoved() {
+        final JsonObject json = JsonObject.of("{\"attributes\":{\"secret\":1,\"pub\":2}}");
+
+        assertThat(JsonPartialAccessFilter.removePaths(json, Set.of(JsonPointer.of("/attributes/secret")), Set.of()))
+                .isEqualTo(JsonObject.of("{\"attributes\":{\"pub\":2}}"));
+        assertThat(JsonPartialAccessFilter.removePaths(json, Set.of(JsonPointer.of("/attributes/other/x")), Set.of()))
+                .isSameAs(json);
+        assertThat(JsonPartialAccessFilter.removePaths(json, Set.of(JsonPointer.of("/attributes/pub/x")), Set.of()))
+                .isSameAs(json);
     }
 }
 

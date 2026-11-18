@@ -25,7 +25,6 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -69,7 +68,6 @@ import org.eclipse.ditto.base.model.auth.AuthorizationContext;
 import org.eclipse.ditto.base.model.exceptions.DittoJsonException;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.exceptions.SignalEnrichmentFailedException;
-import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.translator.HeaderTranslator;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
@@ -93,10 +91,8 @@ import org.eclipse.ditto.internal.models.signalenrichment.SignalEnrichmentFacade
 import org.eclipse.ditto.internal.utils.config.ScopedConfig;
 import org.eclipse.ditto.internal.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.internal.utils.metrics.instruments.counter.Counter;
-import org.eclipse.ditto.internal.utils.protocol.AdaptablePartialAccessFilter;
-import org.eclipse.ditto.internal.utils.protocol.JsonPartialAccessFilter;
-import org.eclipse.ditto.internal.utils.protocol.PartialAccessPathResolver;
 import org.eclipse.ditto.internal.utils.protocol.PartialAccessSignalFilter;
+import org.eclipse.ditto.internal.utils.protocol.ReadableSignalView;
 import org.eclipse.ditto.internal.utils.pubsub.StreamingType;
 import org.eclipse.ditto.internal.utils.search.SearchSource;
 import org.eclipse.ditto.json.JsonArray;
@@ -734,26 +730,26 @@ public final class ThingsSseRouteBuilder extends RouteDirectives implements SseR
                         .map(session -> {
                             final AuthorizationContext subscriberAuthContext = jsonifiable.getSessionAuthorizationContext()
                                     .orElse(null);
-                            // the filter, _context and payload must only see what the subscriber may read
-                            final Optional<ThingEvent<?>> readableEvent =
-                                    PartialAccessSignalFilter.filterForSubscriber(event, subscriberAuthContext)
-                                            .map(signal -> (ThingEvent<?>) signal);
-                            final Set<JsonPointer> revokedPaths = PartialAccessPathResolver
-                                    .resolveRevokedPathsFromHeaders(event.getDittoHeaders(), subscriberAuthContext);
-                            return jsonifiable.retrieveExtraFields(facade)
-                                    .thenApply(extra -> readableEvent
-                                            .flatMap(readable -> Optional.of(session.mergeThingWithExtra(readable,
-                                                            JsonPartialAccessFilter.removePaths(extra, revokedPaths,
-                                                                    AdaptablePartialAccessFilter.ALWAYS_INCLUDED_THING_FIELDS)))
-                                                    .filter(thing -> {
-                                                        final boolean matches = session.matchesFilter(thing, readable);
-                                                        if (!matches) {
-                                                            sessionStatistics.signalFilteredOut();
-                                                        }
-                                                        return matches;
-                                                    })
-                                                    .map(thing -> toNonemptyValue(thing, readable, fieldPointer, fields,
-                                                            subscriberAuthContext)))
+                            final Optional<ReadableSignalView> readableView =
+                                    PartialAccessSignalFilter.viewFor(event, subscriberAuthContext);
+                            if (readableView.isEmpty()) {
+                                sessionStatistics.signalFilteredOut();
+                                return CompletableFuture.<Collection<JsonValue>>completedFuture(
+                                        Collections.emptyList());
+                            }
+                            final ReadableSignalView view = readableView.get();
+                            final ThingEvent<?> readable = (ThingEvent<?>) view.getSignal();
+                            return jsonifiable.retrieveExtraFields(facade, readable)
+                                    .thenApply(extra -> Optional.of(
+                                                    session.mergeThingWithExtra(readable, view.filterThingJson(extra)))
+                                            .filter(thing -> {
+                                                final boolean matches = session.matchesFilter(thing, readable);
+                                                if (!matches) {
+                                                    sessionStatistics.signalFilteredOut();
+                                                }
+                                                return matches;
+                                            })
+                                            .map(thing -> toNonemptyValue(thing, readable, fieldPointer, fields, view))
                                             .orElseGet(Collections::emptyList)
                                     )
                                     .exceptionally(error -> {
@@ -789,17 +785,19 @@ public final class ThingsSseRouteBuilder extends RouteDirectives implements SseR
                 () -> CompletableFuture.completedFuture(List.of());
         if (targetThingIds.contains(messageCommand.getEntityId())) {
             sessionStatistics.signalTargeted();
+            final Optional<ReadableSignalView> readableView = PartialAccessSignalFilter.viewFor(messageCommand,
+                    jsonifiable.getSessionAuthorizationContext().orElse(null));
+            if (readableView.isEmpty()) {
+                sessionStatistics.signalFilteredOut();
+                return emptySupplier.get();
+            }
+            final ReadableSignalView view = readableView.get();
             return jsonifiable.getSession()
-                    .map(session -> jsonifiable.retrieveExtraFields(facade)
+                    .map(session -> jsonifiable.retrieveExtraFields(facade, view.getSignal())
                             .thenApply(extra ->
-                                    Optional.of(session.mergeThingWithExtra(messageCommand,
-                                                    JsonPartialAccessFilter.removePaths(extra,
-                                                            PartialAccessPathResolver.resolveRevokedPathsFromHeaders(
-                                                                    messageCommand.getDittoHeaders(),
-                                                                    jsonifiable.getSessionAuthorizationContext()
-                                                                            .orElse(null)),
-                                                            AdaptablePartialAccessFilter.ALWAYS_INCLUDED_THING_FIELDS)))
-                                            .filter(thing -> session.matchesFilter(thing, messageCommand))
+                                    Optional.of(session.mergeThingWithExtra(view.getSignal(),
+                                                    view.filterThingJson(extra)))
+                                            .filter(thing -> session.matchesFilter(thing, view.getSignal()))
                                             .map(thing -> List.of(messageCommand.getMessage()))
                                             .orElseGet(List::of)
                             )
@@ -848,7 +846,7 @@ public final class ThingsSseRouteBuilder extends RouteDirectives implements SseR
     private Collection<JsonValue> toNonemptyValue(final Thing thing, final ThingEvent<?> event,
             final JsonPointer fieldPointer,
             @Nullable final JsonFieldSelector fields,
-            @Nullable final AuthorizationContext subscriberAuthContext) {
+            final ReadableSignalView view) {
         final var jsonSchemaVersion = event.getDittoHeaders()
                 .getSchemaVersion()
                 .orElse(event.getImplementedSchemaVersion());
@@ -856,10 +854,7 @@ public final class ThingsSseRouteBuilder extends RouteDirectives implements SseR
                 ? thing.toJson(jsonSchemaVersion, fields)
                 : thing.toJson(jsonSchemaVersion);
 
-        final JsonObject filteredThingJson = filterJsonByPartialAccessPaths(thingJson, event, subscriberAuthContext);
-
-        final boolean partialAccessFilteringApplied = event.getDittoHeaders()
-                .get(DittoHeaderDefinition.PARTIAL_ACCESS_PATHS.getKey()) != null;
+        final JsonObject filteredThingJson = view.filterThingJson(thingJson);
 
         @Nullable final JsonValue returnValue;
         if (!fieldPointer.isEmpty()) {
@@ -877,8 +872,7 @@ public final class ThingsSseRouteBuilder extends RouteDirectives implements SseR
             }
         }
 
-        final boolean filteredBecameEmpty = partialAccessFilteringApplied &&
-                filteredThingJson.isEmpty() && !thingJson.isEmpty();
+        final boolean filteredBecameEmpty = view.isRestricted() && filteredThingJson.isEmpty() && !thingJson.isEmpty();
         final boolean fieldSelectionResultedInEmpty = fields != null && thingJson.isEmpty();
         final boolean shouldDrop = filteredBecameEmpty || fieldSelectionResultedInEmpty;
         return (shouldDrop || null == returnValue) ? Collections.emptyList() :
@@ -956,33 +950,6 @@ public final class ThingsSseRouteBuilder extends RouteDirectives implements SseR
                 .stream()
                 .map(entry -> JsonFactory.newField(JsonKey.of(entry.getKey()), JsonFactory.newValue(entry.getValue())))
                 .collect(JsonCollectors.fieldsToObject());
-    }
-
-    private JsonObject filterJsonByPartialAccessPaths(final JsonObject thingJson, final ThingEvent<?> event,
-            @Nullable final AuthorizationContext subscriberAuthContext) {
-
-        final DittoHeaders headers = event.getDittoHeaders();
-        @Nullable final String partialAccessPathsHeader = headers.get(DittoHeaderDefinition.PARTIAL_ACCESS_PATHS.getKey());
-
-        if (partialAccessPathsHeader == null || partialAccessPathsHeader.isEmpty()) {
-            return thingJson;
-        }
-
-        final PartialAccessPathResolver.AccessiblePathsResult result =
-                PartialAccessPathResolver.resolveAccessiblePathsFromHeader(
-                        partialAccessPathsHeader, subscriberAuthContext, headers);
-
-        if (result.hasUnrestrictedAccess()) {
-            return thingJson;
-        }
-
-        if (!result.shouldFilter()) {
-            return JsonFactory.newObject();
-        }
-
-        final Set<JsonPointer> accessiblePaths = new HashSet<>(result.getAccessiblePaths());
-        accessiblePaths.addAll(AdaptablePartialAccessFilter.ALWAYS_INCLUDED_THING_FIELDS);
-        return JsonPartialAccessFilter.filterJsonByPaths(thingJson, accessiblePaths);
     }
 
 }

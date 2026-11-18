@@ -61,7 +61,7 @@ public final class AdaptablePartialAccessFilterTest {
         final Adaptable adaptable = createThingEventAdaptable(createThingPayload(), DittoHeaders.empty());
         final AuthorizationContext context = authContext(SUBJECT_PARTIAL);
 
-        final Adaptable result = AdaptablePartialAccessFilter.filterAdaptableForPartialAccess(
+        final Adaptable result = SubscriberFilters.filter(
                 adaptable, context);
 
         assertThat(result).isSameAs(adaptable);
@@ -75,7 +75,7 @@ public final class AdaptablePartialAccessFilterTest {
         final Adaptable adaptable = createCommandAdaptable(headers);
         final AuthorizationContext context = authContext(SUBJECT_PARTIAL);
 
-        final Adaptable result = AdaptablePartialAccessFilter.filterAdaptableForPartialAccess(
+        final Adaptable result = SubscriberFilters.filter(
                 adaptable, context);
 
         assertThat(result).isSameAs(adaptable);
@@ -90,7 +90,7 @@ public final class AdaptablePartialAccessFilterTest {
         final Adaptable adaptable = createThingEventAdaptable(createThingPayload(), headers);
         final AuthorizationContext context = authContext(SUBJECT_FULL);
 
-        final Adaptable result = AdaptablePartialAccessFilter.filterAdaptableForPartialAccess(
+        final Adaptable result = SubscriberFilters.filter(
                 adaptable, context);
 
         assertThat(result).isSameAs(adaptable);
@@ -106,7 +106,7 @@ public final class AdaptablePartialAccessFilterTest {
         final Adaptable adaptable = createThingEventAdaptable(fullPayload, headers);
         final AuthorizationContext context = authContext(SUBJECT_PARTIAL);
 
-        final Adaptable result = AdaptablePartialAccessFilter.filterAdaptableForPartialAccess(
+        final Adaptable result = SubscriberFilters.filter(
                 adaptable, context);
 
         assertThat(result).isNotSameAs(adaptable);
@@ -128,7 +128,7 @@ public final class AdaptablePartialAccessFilterTest {
         final Adaptable adaptable = createThingEventAdaptable(createThingPayload(), headers);
         final AuthorizationContext context = authContext(SUBJECT_PARTIAL);
 
-        final Adaptable result = AdaptablePartialAccessFilter.filterAdaptableForPartialAccess(
+        final Adaptable result = SubscriberFilters.filter(
                 adaptable, context);
 
         final JsonObject filteredPayload = result.getPayload().getValue()
@@ -139,7 +139,7 @@ public final class AdaptablePartialAccessFilterTest {
     }
 
     @Test
-    public void filterAdaptableWithResultFiltersBasedOnPreResolvedResult() {
+    public void keepsOnlyAccessiblePathsOfFilteredResult() {
         final JsonObject fullPayload = createThingPayload();
         final Adaptable adaptable = createThingEventAdaptable(fullPayload, DittoHeaders.empty());
         final PartialAccessPathResolver.AccessiblePathsResult result =
@@ -147,7 +147,7 @@ public final class AdaptablePartialAccessFilterTest {
                         Set.of(JsonPointer.of("/attributes/public"),
                                 JsonPointer.of("/features/temp/properties/value")));
 
-        final Adaptable filtered = AdaptablePartialAccessFilter.filterAdaptableWithResult(adaptable, result);
+        final Adaptable filtered = SubscriberFilters.filter(adaptable, result);
 
         final JsonObject filteredPayload = filtered.getPayload().getValue()
                 .filter(org.eclipse.ditto.json.JsonValue::isObject)
@@ -158,23 +158,23 @@ public final class AdaptablePartialAccessFilterTest {
     }
 
     @Test
-    public void filterAdaptableWithResultReturnsOriginalWhenUnrestricted() {
+    public void returnsSameAdaptableForUnrestrictedResult() {
         final Adaptable adaptable = createThingEventAdaptable(createThingPayload(), DittoHeaders.empty());
         final PartialAccessPathResolver.AccessiblePathsResult result =
                 PartialAccessPathResolver.AccessiblePathsResult.unrestricted();
 
-        final Adaptable filtered = AdaptablePartialAccessFilter.filterAdaptableWithResult(adaptable, result);
+        final Adaptable filtered = SubscriberFilters.filter(adaptable, result);
 
         assertThat(filtered).isSameAs(adaptable);
     }
 
     @Test
-    public void filterAdaptableWithResultReturnsEmptyWhenNoAccess() {
+    public void emptiesPayloadForNoAccessResult() {
         final Adaptable adaptable = createThingEventAdaptable(createThingPayload(), DittoHeaders.empty());
         final PartialAccessPathResolver.AccessiblePathsResult result =
                 PartialAccessPathResolver.AccessiblePathsResult.noAccess();
 
-        final Adaptable filtered = AdaptablePartialAccessFilter.filterAdaptableWithResult(adaptable, result);
+        final Adaptable filtered = SubscriberFilters.filter(adaptable, result);
 
         final JsonObject filteredPayload = filtered.getPayload().getValue()
                 .filter(org.eclipse.ditto.json.JsonValue::isObject)
@@ -209,7 +209,7 @@ public final class AdaptablePartialAccessFilterTest {
                 headers);
 
         final AuthorizationContext context = authContext(SUBJECT_PARTIAL);
-        final Adaptable result = AdaptablePartialAccessFilter.filterAdaptableForPartialAccess(
+        final Adaptable result = SubscriberFilters.filter(
                 adaptable, context);
 
         // THEN: The event should be filtered out (empty payload)
@@ -245,7 +245,7 @@ public final class AdaptablePartialAccessFilterTest {
                 headers);
 
         final AuthorizationContext context = authContext(SUBJECT_PARTIAL);
-        final Adaptable result = AdaptablePartialAccessFilter.filterAdaptableForPartialAccess(
+        final Adaptable result = SubscriberFilters.filter(
                 adaptable, context);
 
         // THEN: The event should be allowed
@@ -277,7 +277,7 @@ public final class AdaptablePartialAccessFilterTest {
                 headers);
 
         final AuthorizationContext context = authContext(SUBJECT_PARTIAL);
-        final Adaptable result = AdaptablePartialAccessFilter.filterAdaptableForPartialAccess(
+        final Adaptable result = SubscriberFilters.filter(
                 adaptable, context);
 
         assertThat(result.getPayload().getValue()).isPresent();
@@ -310,7 +310,7 @@ public final class AdaptablePartialAccessFilterTest {
                 headers);
 
         final AuthorizationContext context = authContext(SUBJECT_PARTIAL);
-        final Adaptable result = AdaptablePartialAccessFilter.filterAdaptableForPartialAccess(
+        final Adaptable result = SubscriberFilters.filter(
                 adaptable, context);
 
         // THEN: The event should be filtered out (empty payload)
@@ -359,11 +359,11 @@ public final class AdaptablePartialAccessFilterTest {
         final AuthorizationContext context = authContext(SUBJECT_PARTIAL);
 
         // THEN: All should be allowed
-        final Adaptable result1 = AdaptablePartialAccessFilter.filterAdaptableForPartialAccess(
+        final Adaptable result1 = SubscriberFilters.filter(
                 adaptable1, context);
-        final Adaptable result2 = AdaptablePartialAccessFilter.filterAdaptableForPartialAccess(
+        final Adaptable result2 = SubscriberFilters.filter(
                 adaptable2, context);
-        final Adaptable result3 = AdaptablePartialAccessFilter.filterAdaptableForPartialAccess(
+        final Adaptable result3 = SubscriberFilters.filter(
                 adaptable3, context);
 
         assertThat(result1.getPayload().getValue()).isPresent();
@@ -396,7 +396,7 @@ public final class AdaptablePartialAccessFilterTest {
                 headers);
 
         final AuthorizationContext context = authContext(SUBJECT_PARTIAL);
-        final Adaptable result = AdaptablePartialAccessFilter.filterAdaptableForPartialAccess(
+        final Adaptable result = SubscriberFilters.filter(
                 adaptable, context);
 
         // THEN: The event should be filtered out (empty payload)
@@ -519,7 +519,7 @@ public final class AdaptablePartialAccessFilterTest {
 
         final Adaptable adaptable = createThingEventAdaptableWithExtra(payload, extraFields, headers);
         final AuthorizationContext context = authContext(SUBJECT_PARTIAL);
-        final Adaptable result = AdaptablePartialAccessFilter.filterAdaptableForPartialAccess(
+        final Adaptable result = SubscriberFilters.filter(
                 adaptable, context);
 
         final JsonObject filteredPayload = result.getPayload().getValue()
@@ -551,7 +551,7 @@ public final class AdaptablePartialAccessFilterTest {
                 extraFields,
                 headers);
 
-        final Adaptable nonObjectResult = AdaptablePartialAccessFilter.filterAdaptableForPartialAccess(
+        final Adaptable nonObjectResult = SubscriberFilters.filter(
                 nonObjectAdaptable, context);
 
         assertThat(nonObjectResult.getPayload().getValue()).isPresent();
@@ -595,7 +595,7 @@ public final class AdaptablePartialAccessFilterTest {
         final AuthorizationContext context = authContext(SUBJECT_FULL);
 
         // WHEN: Filtering is applied (should return original due to unrestricted access)
-        final Adaptable result = AdaptablePartialAccessFilter.filterAdaptableForPartialAccess(
+        final Adaptable result = SubscriberFilters.filter(
                 adaptable, context);
 
         // THEN: Original adaptable should be returned (no filtering for unrestricted access)
@@ -651,7 +651,7 @@ public final class AdaptablePartialAccessFilterTest {
         final AuthorizationContext context = authContext(SUBJECT_PARTIAL);
 
         // WHEN: Filtering is applied
-        final Adaptable result = AdaptablePartialAccessFilter.filterAdaptableForPartialAccess(
+        final Adaptable result = SubscriberFilters.filter(
                 adaptable, context);
 
         // THEN: ExtraFields should be filtered correctly
@@ -682,7 +682,7 @@ public final class AdaptablePartialAccessFilterTest {
         final AuthorizationContext context = authContext(SUBJECT_PARTIAL);
 
         // WHEN: Filtering is applied
-        final Adaptable result = AdaptablePartialAccessFilter.filterAdaptableForPartialAccess(
+        final Adaptable result = SubscriberFilters.filter(
                 adaptable, context);
 
         // THEN: Should work normally (no extraFields to filter)
@@ -713,7 +713,7 @@ public final class AdaptablePartialAccessFilterTest {
                                 JsonPointer.of("/features/temp/properties/value")));
 
         // WHEN: Filtering is applied using pre-resolved result
-        final Adaptable filtered = AdaptablePartialAccessFilter.filterAdaptableWithResult(adaptable, result);
+        final Adaptable filtered = SubscriberFilters.filter(adaptable, result);
 
         // THEN: ExtraFields should be filtered
         final Optional<JsonObject> filteredExtra = filtered.getPayload().getExtra();
@@ -749,7 +749,7 @@ public final class AdaptablePartialAccessFilterTest {
         final AuthorizationContext context = authContext(SUBJECT_PARTIAL);
 
         // WHEN
-        final Adaptable result = AdaptablePartialAccessFilter.filterAdaptableForPartialAccess(adaptable, context);
+        final Adaptable result = SubscriberFilters.filter(adaptable, context);
 
         // THEN: identity + audit fields survive in the payload even though the policy only
         // grants /attributes/public.
@@ -795,7 +795,7 @@ public final class AdaptablePartialAccessFilterTest {
         final AuthorizationContext context = authContext(SUBJECT_PARTIAL);
 
         // WHEN
-        final Adaptable result = AdaptablePartialAccessFilter.filterAdaptableForPartialAccess(adaptable, context);
+        final Adaptable result = SubscriberFilters.filter(adaptable, context);
 
         // THEN: identity + audit extras pass through despite the policy only granting /attributes/public.
         final Optional<JsonObject> filteredExtra = result.getPayload().getExtra();
