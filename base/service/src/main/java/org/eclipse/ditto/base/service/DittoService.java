@@ -49,6 +49,7 @@ import org.eclipse.ditto.internal.utils.config.raw.RawConfigSupplier;
 import org.eclipse.ditto.internal.utils.health.status.StatusSupplierActor;
 import org.eclipse.ditto.internal.utils.metrics.config.MetricsConfig;
 import org.eclipse.ditto.internal.utils.metrics.service.prometheus.PrometheusReporterRoute;
+import org.eclipse.ditto.internal.utils.persistence.api.PersistenceBackendBootstrap;
 import org.eclipse.ditto.internal.utils.tracing.DittoTracing;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -96,8 +97,6 @@ public abstract class DittoService<C extends ServiceSpecificConfig> {
      * The config path expression which points to the supposed nested config with the Ditto settings.
      */
     public static final String DITTO_CONFIG_PATH = ScopedConfig.DITTO_SCOPE;
-
-    protected static final String MONGO_URI_CONFIG_PATH = "pekko.contrib.persistence.mongodb.mongo.mongouri";
 
     protected final Config rawConfig;
     protected final C serviceSpecificConfig;
@@ -205,7 +204,8 @@ public abstract class DittoService<C extends ServiceSpecificConfig> {
      */
     private ActorSystem doStart() {
         logRuntimeParameters();
-        final var actorSystemConfig = appendDittoInfo(appendPekkoPersistenceMongoUriToRawConfig());
+        final var actorSystemConfig = appendDittoInfo(
+                applyBootstraps(rawConfig, PersistenceBackendBootstrap.loadAll(getClass().getClassLoader())));
         injectSystemPropertiesLimits(serviceSpecificConfig);
         startKamon();
         final var actorSystem = createActorSystem(actorSystemConfig);
@@ -214,8 +214,26 @@ public abstract class DittoService<C extends ServiceSpecificConfig> {
         return actorSystem;
     }
 
-    protected Config appendPekkoPersistenceMongoUriToRawConfig() {
-        return rawConfig;
+    /**
+     * Folds the given persistence backend bootstraps over the raw config, in iteration order.
+     *
+     * @param rawConfig the raw config of the service.
+     * @param bootstraps the bootstraps to apply.
+     * @return the config returned by the last bootstrap, or {@code rawConfig} itself if there is none.
+     * @throws NullPointerException if any argument is {@code null} or a bootstrap returns {@code null}.
+     */
+    static Config applyBootstraps(final Config rawConfig, final Iterable<PersistenceBackendBootstrap> bootstraps) {
+        checkNotNull(rawConfig, "rawConfig");
+        checkNotNull(bootstraps, "bootstraps");
+        Config result = rawConfig;
+        for (final PersistenceBackendBootstrap bootstrap : bootstraps) {
+            result = bootstrap.adjustRawConfig(result);
+            if (null == result) {
+                throw new NullPointerException(MessageFormat.format(
+                        "Persistence backend bootstrap <{0}> returned null.", bootstrap.backendName()));
+            }
+        }
+        return result;
     }
 
     private void logRuntimeParameters() {

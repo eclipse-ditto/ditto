@@ -49,13 +49,6 @@
         </dependency>
 
         <dependency>
-            <!-- This dependency is required to build the MongoMetricsBuilder. It should be provided, because
-             parent is using mongodb -->
-            <groupId>com.github.scullxbones</groupId>
-            <artifactId>pekko-persistence-mongodb_${scala.version}</artifactId>
-            <scope>provided</scope>
-        </dependency>
-        <dependency>
             <!-- This dependency is required to build the ScalaDriverPersistenceExtension. Otherwise
              java.lang.ClassNotFoundException: nl.grons.metrics4.scala.BaseBuilder is thrown -->
             <groupId>nl.grons</groupId>

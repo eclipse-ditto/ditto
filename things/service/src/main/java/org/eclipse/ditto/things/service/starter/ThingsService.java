@@ -20,9 +20,6 @@ import org.eclipse.ditto.things.service.persistence.actors.ThingPersistenceActor
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.typesafe.config.Config;
-import com.typesafe.config.ConfigValueFactory;
-
 import org.apache.pekko.actor.ActorRef;
 import org.apache.pekko.actor.Props;
 
@@ -65,13 +62,6 @@ public final class ThingsService extends DittoService<ThingsConfig> {
     @Override
     protected Props getMainRootActorProps(final ThingsConfig thingsConfig, final ActorRef pubSubMediator) {
         return ThingsRootActor.props(thingsConfig, pubSubMediator, ThingPersistenceActor::props);
-    }
-
-    @Override
-    protected Config appendPekkoPersistenceMongoUriToRawConfig() {
-        final var mongoDbConfig = serviceSpecificConfig.getMongoDbConfig();
-        final String mongoDbUri = mongoDbConfig.getMongoDbUri();
-        return rawConfig.withValue(MONGO_URI_CONFIG_PATH, ConfigValueFactory.fromAnyRef(mongoDbUri));
     }
 
 }

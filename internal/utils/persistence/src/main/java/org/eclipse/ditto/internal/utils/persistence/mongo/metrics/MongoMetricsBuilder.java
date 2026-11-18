@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.internal.utils.metrics.service.mongo;
+package org.eclipse.ditto.internal.utils.persistence.mongo.metrics;
 
 import java.util.concurrent.atomic.LongAccumulator;
 

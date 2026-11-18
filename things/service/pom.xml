@@ -408,6 +408,7 @@
                                         <Can-Redefine-Classes>true</Can-Redefine-Classes>
                                     </manifestEntries>
                                 </transformer>
+                                <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/>
                             </transformers>
                         </configuration>
                     </execution>

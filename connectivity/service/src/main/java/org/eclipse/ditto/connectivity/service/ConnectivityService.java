@@ -20,9 +20,6 @@ import org.eclipse.ditto.utils.jsr305.annotations.AllParametersAndReturnValuesAr
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.typesafe.config.Config;
-import com.typesafe.config.ConfigValueFactory;
-
 import org.apache.pekko.actor.ActorRef;
 import org.apache.pekko.actor.Props;
 
@@ -65,13 +62,6 @@ public final class ConnectivityService extends DittoService<ConnectivityConfig> 
     @Override
     protected Props getMainRootActorProps(final ConnectivityConfig connectivityConfig, final ActorRef pubSubMediator) {
         return ConnectivityRootActor.props(connectivityConfig, pubSubMediator);
-    }
-
-    @Override
-    protected Config appendPekkoPersistenceMongoUriToRawConfig() {
-        final var mongoDbConfig = serviceSpecificConfig.getMongoDbConfig();
-        final String mongoDbUri = mongoDbConfig.getMongoDbUri();
-        return rawConfig.withValue(MONGO_URI_CONFIG_PATH, ConfigValueFactory.fromAnyRef(mongoDbUri));
     }
 
 }

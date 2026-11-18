@@ -420,6 +420,7 @@ jmh-generator-annprocess). jmh-generator-annprocess overwrites the whole META-IN
                                         </Main-Class>
                                     </manifestEntries>
                                 </transformer>
+                                <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/>
                             </transformers>
                         </configuration>
                     </execution>

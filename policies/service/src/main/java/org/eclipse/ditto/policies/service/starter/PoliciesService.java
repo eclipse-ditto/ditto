@@ -19,9 +19,6 @@ import org.eclipse.ditto.policies.service.common.config.PoliciesConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.typesafe.config.Config;
-import com.typesafe.config.ConfigValueFactory;
-
 import org.apache.pekko.actor.ActorRef;
 import org.apache.pekko.actor.Props;
 
@@ -59,13 +56,6 @@ public final class PoliciesService extends DittoService<PoliciesConfig> {
     @Override
     protected Props getMainRootActorProps(final PoliciesConfig policiesConfig, final ActorRef pubSubMediator) {
         return PoliciesRootActor.props(policiesConfig, pubSubMediator);
-    }
-
-    @Override
-    protected Config appendPekkoPersistenceMongoUriToRawConfig() {
-        final var mongoDbConfig = serviceSpecificConfig.getMongoDbConfig();
-        final String mongoDbUri = mongoDbConfig.getMongoDbUri();
-        return rawConfig.withValue(MONGO_URI_CONFIG_PATH, ConfigValueFactory.fromAnyRef(mongoDbUri));
     }
 
 }
