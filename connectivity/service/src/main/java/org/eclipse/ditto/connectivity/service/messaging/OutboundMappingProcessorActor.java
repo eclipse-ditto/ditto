@@ -98,12 +98,17 @@ import org.eclipse.ditto.internal.models.signalenrichment.SignalEnrichmentFacade
 import org.eclipse.ditto.internal.utils.config.ScopedConfig;
 import org.eclipse.ditto.internal.utils.pekko.controlflow.AbstractGraphActor;
 import org.eclipse.ditto.internal.utils.pekko.logging.ThreadSafeDittoLoggingAdapter;
+import org.eclipse.ditto.internal.utils.protocol.AdaptablePartialAccessFilter;
+import org.eclipse.ditto.internal.utils.protocol.JsonPartialAccessFilter;
+import org.eclipse.ditto.internal.utils.protocol.PartialAccessPathResolver;
+import org.eclipse.ditto.internal.utils.protocol.PartialAccessSignalFilter;
 import org.eclipse.ditto.internal.utils.pubsub.StreamingType;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonKey;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.placeholders.ExpressionResolver;
 import org.eclipse.ditto.placeholders.PlaceholderFactory;
@@ -484,20 +489,29 @@ public final class OutboundMappingProcessorActor
                                         headers,
                                         outboundSignal.getSource())));
 
+        @Nullable final Signal<?> readableSource = PartialAccessSignalFilter
+                .filterForSubscriber(outboundSignal.getSource(), target.getAuthorizationContext())
+                .orElse(null);
+        final Set<JsonPointer> revokedPaths = PartialAccessPathResolver.resolveRevokedPathsFromHeaders(
+                outboundSignal.getSource().getDittoHeaders(), target.getAuthorizationContext());
         return partialThingOptional
                 .map(partialThing -> partialThing
                         .<Collection<OutboundSignalWithSender>>thenApply(extra -> {
-                            final Thing enrichedThing = ThingEventToThingConverter.mergeThingWithExtraFields(
-                                    outboundSignal.getSource(),
-                                    allExtraFieldsOptional.get(),
-                                    extra).orElse(null);
+                            final Thing enrichedThing = null == readableSource ? null :
+                                    ThingEventToThingConverter.mergeThingWithExtraFields(
+                                            readableSource,
+                                            allExtraFieldsOptional.get(),
+                                            JsonPartialAccessFilter.removePaths(extra, revokedPaths,
+                                                    AdaptablePartialAccessFilter.ALWAYS_INCLUDED_THING_FIELDS))
+                                            .orElse(null);
                             return topics.stream()
                                     .sorted(Comparator.comparing((FilteredTopic t) -> t.getExtraFields().isEmpty())
                                             .thenComparing(t ->
                                                     t.getExtraFields().map(Object::toString).orElse(""))
                                             .thenComparing(FilteredTopic::toString))
                                     .filter(_ -> enrichedThing != null || topicWithoutThingFilterExists)
-                                    .flatMap(topic -> applyFilter(outboundSignal, enrichedThing, topic)
+                                    .flatMap(topic -> applyFilter(outboundSignal, readableSource, enrichedThing,
+                                            topic)
                                             .map(signal -> enrichWithNeededExtra(signal, topic, expressionResolver, extra))
                                             .stream())
                                     .findFirst()
@@ -827,8 +841,8 @@ public final class OutboundMappingProcessorActor
      * a placeholder resolving its value may throw others - is logged, recorded in the connection logs and treated
      * as a non-match.
      */
-    private boolean matchesFnFilterGuarded(final String fnFilter, final OutboundSignalWithSender outboundSignal) {
-        final Signal<?> signal = outboundSignal.getSource();
+    private boolean matchesFnFilterGuarded(final String fnFilter, final OutboundSignalWithSender outboundSignal,
+            final Signal<?> signal) {
         try {
             return TargetTopicFilter.matchesFnFilter(fnFilter, signal, connection.getId());
         } catch (final RuntimeException e) {
@@ -849,14 +863,19 @@ public final class OutboundMappingProcessorActor
     }
 
     private Optional<OutboundSignalWithSender> applyFilter(final OutboundSignalWithSender outboundSignal,
-            @Nullable final Thing thing, final FilteredTopic topic) {
+            @Nullable final Signal<?> readableSignal,
+            @Nullable final Thing thing,
+            final FilteredTopic topic) {
 
-        final Signal<?> signal = outboundSignal.getSource();
+        if (null == readableSignal) {
+            return Optional.empty();
+        }
+        final Signal<?> signal = readableSignal;
         final TopicPath topicPath = DITTO_PROTOCOL_ADAPTER.toTopicPath(signal);
 
         // all fn-filters of the topic must match (AND); the first non-match or failure decides
         for (final String fnFilter : topic.getFnFilters()) {
-            if (!matchesFnFilterGuarded(fnFilter, outboundSignal)) {
+            if (!matchesFnFilterGuarded(fnFilter, outboundSignal, signal)) {
                 return Optional.empty();
             }
         }

@@ -49,6 +49,7 @@ import org.eclipse.ditto.things.model.signals.commands.ThingCommand;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.EventSendNotAllowedException;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingNotAccessibleException;
 import org.eclipse.ditto.things.model.signals.events.ThingEvent;
+import org.eclipse.ditto.things.service.utils.LiveEventAccessPaths;
 
 /**
  * Enforces live commands (including message commands) and live events.
@@ -220,7 +221,10 @@ final class LiveSignalEnforcement
                         liveSignal.getDittoHeaders().getAuthorizationContext(), WRITE)) {
             LOGGER.withCorrelationId(liveSignal)
                     .info("Live Event was authorized: <{}>", liveSignal);
-            return ThingCommandEnforcement.addEffectedReadSubjectsToThingSignal((ThingEvent<?>) liveSignal,
+            return LiveEventAccessPaths.addTo(
+                    ThingCommandEnforcement.addEffectedReadSubjectsToThingSignal((ThingEvent<?>) liveSignal,
+                            policyEnforcer,
+                            partialAccessEventsEnabled),
                     policyEnforcer,
                     partialAccessEventsEnabled);
         } else {

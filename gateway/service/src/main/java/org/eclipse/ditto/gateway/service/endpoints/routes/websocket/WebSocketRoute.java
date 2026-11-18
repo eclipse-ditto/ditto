@@ -105,6 +105,9 @@ import org.eclipse.ditto.internal.utils.pekko.controlflow.LimitRateByRejection;
 import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.pekko.logging.ThreadSafeDittoLogger;
 import org.eclipse.ditto.internal.utils.protocol.AdaptablePartialAccessFilter;
+import org.eclipse.ditto.internal.utils.protocol.JsonPartialAccessFilter;
+import org.eclipse.ditto.internal.utils.protocol.PartialAccessPathResolver;
+import org.eclipse.ditto.internal.utils.protocol.PartialAccessSignalFilter;
 import org.eclipse.ditto.internal.utils.pubsub.StreamingType;
 import org.eclipse.ditto.internal.utils.tracing.DittoTracing;
 import org.eclipse.ditto.internal.utils.tracing.span.SpanOperationName;
@@ -114,6 +117,7 @@ import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.jwt.model.ImmutableJsonWebToken;
 import org.eclipse.ditto.jwt.model.JsonWebToken;
@@ -774,15 +778,26 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
 
             final CompletionStage<JsonObject> extraFuture = sessionedJsonifiable.retrieveExtraFields(facade);
             return extraFuture.<Collection<String>>thenApply(extra -> {
-                if (matchesFilter(sessionedJsonifiable, extra)) {
-                    final Adaptable filteredAdaptable = AdaptablePartialAccessFilter.filterAdaptableForPartialAccess(
-                            adaptable, subscriberAuthContext);
+                final Set<JsonPointer> revokedPaths = PartialAccessPathResolver.resolveRevokedPathsFromHeaders(
+                        adaptable.getDittoHeaders(), subscriberAuthContext);
+                final JsonObject readableExtra = JsonPartialAccessFilter.removePaths(extra, revokedPaths,
+                        AdaptablePartialAccessFilter.ALWAYS_INCLUDED_THING_FIELDS);
+                final Adaptable filteredAdaptable = AdaptablePartialAccessFilter.filterAdaptableForPartialAccess(
+                        adaptable, subscriberAuthContext);
+                // the filter must only see what the subscriber may read, otherwise it discloses the rest
+                final Optional<Signal<?>> readableSignal = jsonifiable instanceof Signal<?> signal
+                        ? PartialAccessSignalFilter.readableSignal(signal, adaptable, filteredAdaptable,
+                                subscriberAuthContext)
+                        : Optional.empty();
+                final boolean readable = !(jsonifiable instanceof Signal<?>) || readableSignal.isPresent();
+                if (readable && matchesFilter(sessionedJsonifiable, readableSignal.orElse(null), readableExtra)) {
 
                     final boolean isThingEvent = TopicPath.Group.THINGS.equals(filteredAdaptable.getTopicPath().getGroup()) &&
                             TopicPath.Criterion.EVENTS.equals(filteredAdaptable.getTopicPath().getCriterion());
 
                     final boolean partialAccessFilteringApplied = adaptable.getDittoHeaders()
-                            .get(DittoHeaderDefinition.PARTIAL_ACCESS_PATHS.getKey()) != null;
+                            .get(DittoHeaderDefinition.PARTIAL_ACCESS_PATHS.getKey()) != null ||
+                            !revokedPaths.isEmpty();
 
                     final boolean isEmptyPayload = filteredAdaptable.getPayload().getValue()
                             .map(value -> {
@@ -808,7 +823,7 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
                         return Collections.emptyList();
                     }
 
-                    return Collections.singletonList(toJsonStringWithExtra(filteredAdaptable, extra));
+                    return Collections.singletonList(toJsonStringWithExtra(filteredAdaptable, readableExtra));
                 }
                 issuePotentialWeakAcknowledgements(sessionedJsonifiable);
                 sessionedJsonifiable.finishSpan();
@@ -884,15 +899,14 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
      * @param extra extra fields from signal enrichment.
      * @return whether the Jsonifiable passes filter defined in the session together with the extra fields.
      */
-    private static boolean matchesFilter(final SessionedJsonifiable sessionedJsonifiable, final JsonObject extra) {
-        final Jsonifiable.WithPredicate<JsonObject, JsonField> jsonifiable = sessionedJsonifiable.getJsonifiable();
+    private static boolean matchesFilter(final SessionedJsonifiable sessionedJsonifiable,
+            @Nullable final Signal<?> readableSignal,
+            final JsonObject extra) {
         return sessionedJsonifiable.getSession()
-                .filter(session -> jsonifiable instanceof Signal)
-                .map(session -> {
-                    // evaluate to false if filter is present but does not match or has insufficient info to match
-                    final Signal<?> signal = (Signal<?>) jsonifiable;
-                    return session.matchesFilter(session.mergeThingWithExtra(signal, extra), signal);
-                })
+                .filter(session -> readableSignal != null)
+                // evaluate to false if filter is present but does not match or has insufficient info to match
+                .map(session -> session.matchesFilter(session.mergeThingWithExtra(readableSignal, extra),
+                        readableSignal))
                 .orElse(true);
     }
 

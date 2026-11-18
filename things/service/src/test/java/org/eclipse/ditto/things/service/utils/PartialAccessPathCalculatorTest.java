@@ -94,6 +94,17 @@ public final class PartialAccessPathCalculatorTest {
     }
 
     @Test
+    public void listsPartialSubjectWithoutAccessiblePathInTheThing() {
+        final JsonObject thingWithoutFeatures = JsonObject.of("{\"attributes\":{\"public\":1,\"secret\":2}}");
+
+        final Map<String, List<JsonPointer>> result = PartialAccessPathCalculator.calculatePartialAccessPaths(
+                PolicyEnforcer.of(createPolicyWithPartialAccess()), thingWithoutFeatures);
+
+        assertThat(result.get(SUBJECT_PARTIAL_ATTRIBUTES)).containsExactly(JsonPointer.of("/attributes/public"));
+        assertThat(result).containsEntry(SUBJECT_PARTIAL_FEATURES, List.of());
+    }
+
+    @Test
     public void calculatesPathsForNullFeatureWithTrieEnforcer() {
         final String subject = "test:partial-null-feature";
         final Thing thing = ThingsModelFactory.newThingBuilder()

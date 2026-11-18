@@ -50,6 +50,7 @@ import org.eclipse.ditto.base.model.auth.AuthorizationContext;
 import org.eclipse.ditto.internal.utils.pekko.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.internal.utils.protocol.AdaptablePartialAccessFilter;
 import org.eclipse.ditto.internal.utils.protocol.PartialAccessPathResolver;
+import org.eclipse.ditto.internal.utils.protocol.PartialAccessSignalFilter;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.protocol.Adaptable;
 import org.eclipse.ditto.protocol.ProtocolFactory;
@@ -247,7 +248,10 @@ public final class OutboundMappingProcessor extends AbstractMappingProcessor<Out
                 PartialAccessPathResolver.parsePartialAccessPathsAsMap(partialAccessPathsHeader);
 
         final var mappingTimer = MappingTimer.outbound(connectionId, connectionType, dittoHeaders);
-        final boolean hasPartialAccessPaths = partialAccessPathsHeader != null && !partialAccessPathsHeader.isEmpty();
+        final Map<String, List<JsonPointer>> revokedAccessPaths = PartialAccessPathResolver.parsePartialAccessPathsAsMap(
+                dittoHeaders.get(DittoHeaderDefinition.REVOKED_ACCESS_PATHS.getKey()));
+        final boolean hasPartialAccessPaths = partialAccessPathsHeader != null && !partialAccessPathsHeader.isEmpty() ||
+                isAnyTargetSubjectRevoked(mappableSignals, revokedAccessPaths);
         final Map<PayloadMapping, List<MessageMapper>> mappersByPayloadMapping = new LinkedHashMap<>();
         for (final OutboundSignal.Mappable mappableSignal : mappableSignals) {
             mappersByPayloadMapping.computeIfAbsent(mappableSignal.getPayloadMapping(), this::getMappers);
@@ -265,13 +269,22 @@ public final class OutboundMappingProcessor extends AbstractMappingProcessor<Out
                     final TargetMappingStrategy mappingStrategy;
                     if (hasPartialAccessPaths && !targets.isEmpty()) {
                         mappingStrategy = new PartialAccessTargetMapping(mappableSignal, source, targets, outboundSignal,
-                                mappingTimer, mappers, partialAccessPathsHeader, partialAccessPaths);
+                                mappingTimer, mappers, partialAccessPathsHeader, partialAccessPaths,
+                                revokedAccessPaths);
                     } else {
                         mappingStrategy = new DefaultTargetMapping(mappableSignal, source, outboundSignal, mappingTimer, mappers);
                     }
                     return mappingStrategy.map();
                 })
                 .toList());
+    }
+
+    private static boolean isAnyTargetSubjectRevoked(final List<OutboundSignal.Mappable> mappableSignals,
+            final Map<String, List<JsonPointer>> revokedAccessPaths) {
+        return !revokedAccessPaths.isEmpty() && mappableSignals.stream()
+                .flatMap(mappable -> mappable.getTargets().stream())
+                .flatMap(target -> target.getAuthorizationContext().getAuthorizationSubjectIds().stream())
+                .anyMatch(revokedAccessPaths::containsKey);
     }
 
     private Stream<MappingOutcome<OutboundSignal.Mapped>> processWithoutPartialAccessPaths(
@@ -312,7 +325,8 @@ public final class OutboundMappingProcessor extends AbstractMappingProcessor<Out
             final MappingTimer mappingTimer,
             final List<MessageMapper> mappers,
             @Nullable final String partialAccessPathsHeader,
-            final Map<String, List<JsonPointer>> partialAccessPaths) {
+            final Map<String, List<JsonPointer>> partialAccessPaths,
+            final Map<String, List<JsonPointer>> revokedAccessPaths) {
         final DittoHeaders dittoHeaders = source.getDittoHeaders();
         
         return targets.stream()
@@ -328,8 +342,12 @@ public final class OutboundMappingProcessor extends AbstractMappingProcessor<Out
                                         .build());
                     }
                     
-                    final Adaptable effective = AdaptablePartialAccessFilter.filterAdaptableForPartialAccess(
-                            baseAdaptable, targetAuthContext, partialAccessPaths);
+                    final Set<JsonPointer> revokedPaths =
+                            PartialAccessPathResolver.resolveRevokedPaths(revokedAccessPaths, targetAuthContext);
+                    final Adaptable effective = AdaptablePartialAccessFilter.removeRevokedPaths(
+                            AdaptablePartialAccessFilter.filterAdaptableForPartialAccess(
+                                    baseAdaptable, targetAuthContext, partialAccessPaths),
+                            revokedPaths);
 
                     final TopicPath topicPath = effective.getTopicPath();
                     final boolean isThingEvent = TopicPath.Group.THINGS.equals(topicPath.getGroup()) &&
@@ -339,13 +357,13 @@ public final class OutboundMappingProcessor extends AbstractMappingProcessor<Out
                         final boolean hasPartialAccessHeader = partialAccessPathsHeader != null &&
                                 !partialAccessPathsHeader.isEmpty();
                         
-                        if (hasPartialAccessHeader) {
+                        if (hasPartialAccessHeader || !revokedPaths.isEmpty()) {
                             final PartialAccessPathResolver.AccessiblePathsResult targetPathsResult =
                                     PartialAccessPathResolver.resolveAccessiblePaths(
                                             partialAccessPaths, targetAuthContext, dittoHeaders.getReadGrantedSubjects());
                             
                             final boolean filteringOccurred = !targetPathsResult.hasUnrestrictedAccess() &&
-                                    targetPathsResult.shouldFilter();
+                                    targetPathsResult.shouldFilter() || !revokedPaths.isEmpty();
                             final boolean filteredEmpty = isEmptyPayloadForDrop(effective);
                             final boolean originalEmpty = isEmptyPayloadForDrop(baseAdaptable);
 
@@ -358,7 +376,11 @@ public final class OutboundMappingProcessor extends AbstractMappingProcessor<Out
                         }
                     }
                     
-                    return processTargetMapping(effective, target, source, mappableSignal, mappers, mappingTimer);
+                    // header mappings and mapper conditions resolve placeholders from the source signal
+                    return PartialAccessSignalFilter.readableSignal(source, baseAdaptable, effective, targetAuthContext)
+                            .map(readableSource -> processTargetMapping(effective, target, readableSource,
+                                    mappableSignal, mappers, mappingTimer))
+                            .orElseGet(Stream::empty);
                 });
     }
     
@@ -400,6 +422,7 @@ public final class OutboundMappingProcessor extends AbstractMappingProcessor<Out
         private final List<MessageMapper> mappers;
         @Nullable private final String partialAccessPathsHeader;
         private final Map<String, List<JsonPointer>> partialAccessPaths;
+        private final Map<String, List<JsonPointer>> revokedAccessPaths;
 
         private PartialAccessTargetMapping(final OutboundSignal.Mappable mappableSignal,
                 final Signal<?> source,
@@ -408,7 +431,8 @@ public final class OutboundMappingProcessor extends AbstractMappingProcessor<Out
                 final MappingTimer mappingTimer,
                 final List<MessageMapper> mappers,
                 @Nullable final String partialAccessPathsHeader,
-                final Map<String, List<JsonPointer>> partialAccessPaths) {
+                final Map<String, List<JsonPointer>> partialAccessPaths,
+                final Map<String, List<JsonPointer>> revokedAccessPaths) {
             this.mappableSignal = mappableSignal;
             this.source = source;
             this.targets = targets;
@@ -417,12 +441,13 @@ public final class OutboundMappingProcessor extends AbstractMappingProcessor<Out
             this.mappers = mappers;
             this.partialAccessPathsHeader = partialAccessPathsHeader;
             this.partialAccessPaths = partialAccessPaths;
+            this.revokedAccessPaths = revokedAccessPaths;
         }
 
         @Override
         public Stream<MappingOutcome<OutboundSignal.Mapped>> map() {
             return processWithPartialAccessPaths(mappableSignal, source, targets, outboundSignal, mappingTimer, mappers,
-                    partialAccessPathsHeader, partialAccessPaths);
+                    partialAccessPathsHeader, partialAccessPaths, revokedAccessPaths);
         }
     }
 

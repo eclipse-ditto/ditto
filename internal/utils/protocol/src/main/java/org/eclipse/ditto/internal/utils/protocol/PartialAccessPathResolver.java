@@ -22,6 +22,7 @@ import javax.annotation.Nullable;
 
 import org.eclipse.ditto.base.model.auth.AuthorizationContext;
 import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
+import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
@@ -197,6 +198,48 @@ public final class PartialAccessPathResolver {
         }
 
         return AccessiblePathsResult.filtered(accessiblePaths);
+    }
+
+    /**
+     * Resolves the thing-absolute paths a subscriber must not receive because READ on them is revoked for at least
+     * one subject of its authorization context. Grants of the other subjects do not lift such a revoke.
+     *
+     * @param revokedAccessPaths the parsed revoked access paths (subject ID -> paths whose READ is revoked).
+     * @param subscriberAuthContext the authorization context of the subscriber (may be null).
+     * @return the union of the revoked paths of all subjects of the subscriber, empty if there are none.
+     */
+    public static Set<JsonPointer> resolveRevokedPaths(final Map<String, List<JsonPointer>> revokedAccessPaths,
+            @Nullable final AuthorizationContext subscriberAuthContext) {
+
+        if (revokedAccessPaths.isEmpty() || subscriberAuthContext == null) {
+            return Set.of();
+        }
+        final Set<JsonPointer> revokedPaths = new HashSet<>();
+        for (final AuthorizationSubject subject : subscriberAuthContext.getAuthorizationSubjects()) {
+            final List<JsonPointer> subjectPaths = revokedAccessPaths.get(subject.getId());
+            if (subjectPaths != null) {
+                revokedPaths.addAll(subjectPaths);
+            }
+        }
+        return revokedPaths;
+    }
+
+    /**
+     * Resolves the revoked paths for a subscriber from the {@code ditto-revoked-access-paths} header.
+     *
+     * @param dittoHeaders the headers of the event.
+     * @param subscriberAuthContext the authorization context of the subscriber (may be null).
+     * @return the paths the subscriber must not receive, empty if there are none.
+     * @see #resolveRevokedPaths(Map, AuthorizationContext)
+     */
+    public static Set<JsonPointer> resolveRevokedPathsFromHeaders(final DittoHeaders dittoHeaders,
+            @Nullable final AuthorizationContext subscriberAuthContext) {
+
+        final String revokedAccessPathsHeader = dittoHeaders.get(DittoHeaderDefinition.REVOKED_ACCESS_PATHS.getKey());
+        if (revokedAccessPathsHeader == null || revokedAccessPathsHeader.isEmpty()) {
+            return Set.of();
+        }
+        return resolveRevokedPaths(parsePartialAccessPathsAsMap(revokedAccessPathsHeader), subscriberAuthContext);
     }
 
     /**

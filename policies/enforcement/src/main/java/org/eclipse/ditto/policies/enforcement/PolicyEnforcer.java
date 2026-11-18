@@ -15,7 +15,9 @@ package org.eclipse.ditto.policies.enforcement;
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -47,6 +49,7 @@ import org.eclipse.ditto.policies.model.PoliciesResourceType;
 import org.eclipse.ditto.policies.model.Permissions;
 import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.policies.model.PolicyEntry;
+import org.eclipse.ditto.policies.model.Resource;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.policies.model.PolicyImporter;
 import org.eclipse.ditto.policies.model.ResourceKey;
@@ -91,6 +94,8 @@ public final class PolicyEnforcer {
     // Single-slot memo for the root-only variant, whose value does not depend on the resource key. Volatile
     // rather than a Cache because it is a single reference read on the hot path.
     @Nullable private volatile JsonArray rootOnlyReadGrantedSubjectsHeaderValue;
+    // Single-slot memo like the one above: a pure function of the policy entries.
+    @Nullable private volatile Set<JsonPointer> readRevokedThingResourcePaths;
     // The read-classification bound (<= 0 means unbounded), kept so forNamespace children can inherit it:
     // the things-service hot path calls classifyReadSubjects on the namespace-filtered child, so its cache
     // must be bounded too (unlike the child's namespace cache, which stays empty).
@@ -556,6 +561,34 @@ public final class PolicyEnforcer {
         if (null == result) {
             result = renderSubjectIds(getRootResourceReadClassification().getUnrestricted());
             rootOnlyReadGrantedSubjectsHeaderValue = result;
+        }
+        return result;
+    }
+
+    /**
+     * Returns the paths of all thing resources on which a policy entry revokes READ, computed at most once for the
+     * lifetime of this instance. READ can only be revoked for a subject at or below these paths, so an empty result
+     * means READ is revoked for nobody.
+     *
+     * @return the paths of the thing resources with a READ revoke.
+     * @since 3.9.9
+     */
+    public Set<JsonPointer> getReadRevokedThingResourcePaths() {
+        Set<JsonPointer> result = readRevokedThingResourcePaths;
+        if (null == result) {
+            final Set<JsonPointer> paths = new LinkedHashSet<>();
+            if (null != policy) {
+                for (final PolicyEntry entry : policy.getEntriesSet()) {
+                    for (final Resource resource : entry.getResources()) {
+                        if (PoliciesResourceType.THING.equals(resource.getResourceKey().getResourceType()) &&
+                                resource.getEffectedPermissions().getRevokedPermissions().contains(Permission.READ)) {
+                            paths.add(resource.getResourceKey().getResourcePath());
+                        }
+                    }
+                }
+            }
+            result = Collections.unmodifiableSet(paths);
+            readRevokedThingResourcePaths = result;
         }
         return result;
     }

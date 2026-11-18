@@ -35,11 +35,13 @@ import org.eclipse.ditto.internal.utils.pekko.logging.ThreadSafeDittoLogger;
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonCollectors;
 import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.messages.model.signals.commands.MessageCommand;
 import org.eclipse.ditto.placeholders.HeadersPlaceholder;
 import org.eclipse.ditto.placeholders.PlaceholderFactory;
 import org.eclipse.ditto.placeholders.TimePlaceholder;
@@ -53,15 +55,17 @@ import org.eclipse.ditto.rql.query.things.ThingPredicateVisitor;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.events.ThingEvent;
+import org.eclipse.ditto.things.model.signals.events.ThingMerged;
 import org.eclipse.ditto.things.service.common.config.PreDefinedExtraFieldsConfig;
 import org.eclipse.ditto.things.service.utils.PartialAccessPathCalculator;
 import org.eclipse.ditto.things.service.utils.ReadGrant;
 import org.eclipse.ditto.things.service.utils.ReadGrantCollector;
+import org.eclipse.ditto.things.service.utils.RevokedAccessPathCalculator;
 
 /**
  * Encapsulates functionality in order to enrich ThingEvents with pre-defined {@code extraFields} via DittoHeaders
- * (fields defined per namespace in the Ditto things configuration) and with partial access paths for subjects
- * with restricted READ permissions.
+ * (fields defined per namespace in the Ditto things configuration), with partial access paths for subjects
+ * with restricted READ permissions and with the paths whose READ permission is revoked per subject.
  */
 public final class ThingEventEnricher {
 
@@ -80,6 +84,7 @@ public final class ThingEventEnricher {
     // on a policy-enforcer-provider thread rather than the actor thread, so a cache hit must observe a
     // consistent (policyId, revision, structureHash, result) tuple. Races merely cause a recompute.
     @Nullable private volatile PartialAccessPathsCacheEntry partialAccessPathsCache;
+    @Nullable private volatile RevokedAccessPathsCacheEntry revokedAccessPathsCache;
 
     /**
      * Constructs a new enricher for ThingEvents based on the provided policy enforcer.
@@ -126,7 +131,7 @@ public final class ThingEventEnricher {
         }
 
         final CompletionStage<T> partialAccessPathsStage =
-                enrichWithPartialAccessPathsIfNecessary(withDittoHeaders, thing, policyId, thingJson);
+                enrichWithAccessPathsIfNecessary(withDittoHeaders, thingId, thing, policyId, thingJson);
 
         if (null != thing && !preDefinedExtraFieldsConfigs.isEmpty()) {
             final List<PreDefinedExtraFieldsConfig> matchingPreDefinedFieldsConfigs =
@@ -177,28 +182,105 @@ public final class ThingEventEnricher {
         }
     }
 
-    private <T extends DittoHeadersSettable<? extends T>> CompletionStage<T> enrichWithPartialAccessPathsIfNecessary(
+    private <T extends DittoHeadersSettable<? extends T>> CompletionStage<T> enrichWithAccessPathsIfNecessary(
             final T withDittoHeaders,
+            final ThingId thingId,
             @Nullable final Thing thing,
             @Nullable final PolicyId policyId,
             @Nullable final JsonObject thingJson) {
 
-        if (!partialAccessEventsEnabled) {
+        final boolean isThingEvent = withDittoHeaders instanceof ThingEvent<?>;
+        if (thing == null || thingJson == null || !(isThingEvent || withDittoHeaders instanceof MessageCommand<?, ?>)) {
             return CompletableFuture.completedStage(withDittoHeaders);
         }
+        // the paths must also cover what the event deleted, which the thing no longer contains
+        final JsonObject structureJson = withDittoHeaders instanceof ThingEvent<?> thingEvent
+                ? withEventPayload(thingEvent, thingJson)
+                : thingJson;
 
-        if (thing == null || !(withDittoHeaders instanceof ThingEvent<?> thingEvent)) {
-            return CompletableFuture.completedStage(withDittoHeaders);
-        }
-
-        return enrichWithPartialAccessPaths(thingEvent, thing, policyId, thingJson)
-                .thenApply(partialAccessPathsJson -> {
-                    if (hasNoPartialSubjects(partialAccessPathsJson)) {
-                        return withDittoHeaders;
-                    }
-                    return addPartialAccessPathsHeader(withDittoHeaders, partialAccessPathsJson);
-                });
+        // one lookup for both headers, so that they are calculated from the same policy
+        return getPolicyEnforcerSafely(policyId).thenApply(policyEnforcerOpt -> {
+            T result = withDittoHeaders;
+            if (partialAccessEventsEnabled && withDittoHeaders instanceof ThingEvent<?> thingEvent) {
+                final JsonObject partialAccessPathsJson = calculatePartialAccessPaths(thingEvent, thing,
+                        policyEnforcerOpt.orElse(null), policyId, structureJson);
+                if (!hasNoSubjects(partialAccessPathsJson)) {
+                    result = addPartialAccessPathsHeader(result, partialAccessPathsJson);
+                }
+            }
+            // without a policy enforcer, enforcement grants READ to no subject, so the signal reaches no subscriber
+            if (policyEnforcerOpt.isPresent()) {
+                final JsonObject revokedAccessPaths = getRevokedAccessPaths(
+                        policyEnforcerOpt.get().forNamespace(thingId.getNamespace()), structureJson);
+                if (!hasNoSubjects(revokedAccessPaths)) {
+                    result = result.setDittoHeaders(result.getDittoHeaders().toBuilder()
+                            .putJsonHeader(DittoHeaderDefinition.REVOKED_ACCESS_PATHS.getKey(), revokedAccessPaths)
+                            .build());
+                }
+            }
+            return result;
+        });
     }
+
+    private static JsonObject withEventPayload(final ThingEvent<?> thingEvent, final JsonObject thingJson) {
+        final JsonPointer resourcePath = thingEvent.getResourcePath();
+        if (!(thingEvent instanceof ThingMerged)) {
+            return resourcePath.isEmpty() || thingJson.contains(resourcePath)
+                    ? thingJson
+                    : thingJson.setValue(resourcePath, JsonValue.nullLiteral());
+        }
+        return thingEvent.getEntity()
+                .map(value -> thingEvent.getResourcePath().isEmpty()
+                        ? (value.isObject() && !value.isNull() ? value.asObject() : null)
+                        : JsonObject.empty().setValue(thingEvent.getResourcePath(), value))
+                .map(eventJson -> overlay(thingJson, eventJson))
+                .orElse(thingJson);
+    }
+
+    // unlike a JSON merge patch, keeps null values, as they are fields of the event
+    private static JsonObject overlay(final JsonObject base, final JsonObject overlay) {
+        final JsonObjectBuilder builder = base.toBuilder();
+        for (final JsonField field : overlay) {
+            final JsonValue overlayValue = field.getValue();
+            final JsonValue baseValue = base.getValue(field.getKey()).orElse(null);
+            if (baseValue != null && baseValue.isObject() && !baseValue.isNull() &&
+                    overlayValue.isObject() && !overlayValue.isNull()) {
+                builder.set(field.getKey(), overlay(baseValue.asObject(), overlayValue.asObject()));
+            } else {
+                builder.set(field.getKey(), overlayValue);
+            }
+        }
+        return builder.build();
+    }
+
+    private JsonObject getRevokedAccessPaths(final PolicyEnforcer policyEnforcer, final JsonObject thingJson) {
+        if (policyEnforcer.getReadRevokedThingResourcePaths().isEmpty()) {
+            return createEmptyPartialAccessPathsJson();
+        }
+        final long structureHash =
+                partialAccessPathsCacheEnabled ? PartialAccessPathCalculator.structureHash(thingJson) : 0L;
+        if (partialAccessPathsCacheEnabled) {
+            final RevokedAccessPathsCacheEntry cached = revokedAccessPathsCache;
+            if (cached != null && cached.policyEnforcer == policyEnforcer && cached.structureHash == structureHash) {
+                return cached.result;
+            }
+        }
+        final Map<String, List<JsonPointer>> revokedAccessPaths =
+                RevokedAccessPathCalculator.calculateRevokedAccessPaths(thingJson, policyEnforcer);
+        final JsonObject result = revokedAccessPaths.isEmpty()
+                ? createEmptyPartialAccessPathsJson()
+                : PartialAccessPathCalculator.toIndexedJsonObject(revokedAccessPaths);
+        if (partialAccessPathsCacheEnabled) {
+            revokedAccessPathsCache = new RevokedAccessPathsCacheEntry(policyEnforcer, structureHash, result);
+        }
+        return result;
+    }
+
+    /**
+     * Snapshot of the last calculated revoked access paths, valid for the {@link PolicyEnforcer} instance (replaced on
+     * every change of the effective policy) and the structure of the Thing.
+     */
+    private record RevokedAccessPathsCacheEntry(PolicyEnforcer policyEnforcer, long structureHash, JsonObject result) {}
 
     /**
      * Applies RQL condition from config.
@@ -294,16 +376,19 @@ public final class ThingEventEnricher {
     }
 
     /**
-     * Enriches a ThingEvent with partial access paths header.
+     * Calculates the partial access paths header value for a ThingEvent.
      *
      * @param thingEvent the ThingEvent to enrich
      * @param thing the current Thing state
+     * @param policyEnforcer the policy enforcer of the Thing, {@code null} if none was found
      * @param policyId the Policy ID
-     * @return CompletionStage with the partial access paths JSON object
+     * @return the partial access paths JSON object
+     * @throws IllegalStateException if {@code policyEnforcer} is {@code null}
      */
-    private CompletionStage<JsonObject> enrichWithPartialAccessPaths(
+    private JsonObject calculatePartialAccessPaths(
             final ThingEvent<?> thingEvent,
             final Thing thing,
+            @Nullable final PolicyEnforcer policyEnforcer,
             @Nullable final PolicyId policyId,
             @Nullable final JsonObject thingJson
     ) {
@@ -312,56 +397,53 @@ public final class ThingEventEnricher {
                 .debug("Enriching event '{}' (thingId: {}) with partial access paths, policyId: {}",
                         thingEvent.getType(), thingEvent.getEntityId(), policyId);
         final JsonObject effectiveThingJson = thingJson != null ? thingJson : thing.toJson();
-        return getPolicyEnforcerSafely(policyId).thenApply(policyEnforcerOpt -> {
-                    if (policyEnforcerOpt.isEmpty()) {
-                        throw new IllegalStateException("No policy enforcer found for policyId: " + policyId);
-                    }
-                    final PolicyEnforcer policyEnforcer = policyEnforcerOpt.get();
+        if (policyEnforcer == null) {
+            throw new IllegalStateException("No policy enforcer found for policyId: " + policyId);
+        }
 
-                    // Cheap fast path (memoized classification, no Thing walk): with no restricted subjects
-                    // there is no partial-access header to emit. Bail out before hashing the Thing structure so
-                    // full-access things — the common case — cost the same as before this cache was added.
-                    if (partialAccessPathsCacheEnabled
-                            && !PartialAccessPathCalculator.hasSubjectsWithRestrictedAccess(policyEnforcer)) {
-                        return createEmptyPartialAccessPathsJson();
-                    }
+        // Cheap fast path (memoized classification, no Thing walk): with no restricted subjects
+        // there is no partial-access header to emit. Bail out before hashing the Thing structure so
+        // full-access things — the common case — cost the same as before this cache was added.
+        if (partialAccessPathsCacheEnabled
+                && !PartialAccessPathCalculator.hasSubjectsWithRestrictedAccess(policyEnforcer)) {
+            return createEmptyPartialAccessPathsJson();
+        }
 
-                    // The result depends only on (effective policy grants, Thing structure). Key the memo on
-                    // the PolicyEnforcer *instance* (not its policy revision): CachingPolicyEnforcerProvider
-                    // replaces the instance wholesale whenever the effective grants change from ANY source —
-                    // the policy itself, an imported policy, or a namespace-root policy (cascade invalidation
-                    // in PolicyEnforcerCache). The importing policy's own revision does NOT move when an
-                    // imported / ns-root policy changes, so keying on revision would serve a stale allowlist
-                    // and leak a revoked field to a restricted subject. Identity comparison avoids that.
-                    final boolean cacheable = partialAccessPathsCacheEnabled;
-                    final long structureHash =
-                            cacheable ? PartialAccessPathCalculator.structureHash(effectiveThingJson) : 0L;
-                    if (cacheable) {
-                        final PartialAccessPathsCacheEntry cached = partialAccessPathsCache;
-                        if (cached != null && cached.matches(policyEnforcer, structureHash)) {
-                            LOGGER.withCorrelationId(dittoHeaders)
-                                    .debug("Reusing cached partial access paths for event '{}' (thingId: {})",
-                                            thingEvent.getType(), thingEvent.getEntityId());
-                            return cached.result;
-                        }
-                    }
+        // The result depends only on (effective policy grants, Thing structure). Key the memo on
+        // the PolicyEnforcer *instance* (not its policy revision): CachingPolicyEnforcerProvider
+        // replaces the instance wholesale whenever the effective grants change from ANY source —
+        // the policy itself, an imported policy, or a namespace-root policy (cascade invalidation
+        // in PolicyEnforcerCache). The importing policy's own revision does NOT move when an
+        // imported / ns-root policy changes, so keying on revision would serve a stale allowlist
+        // and leak a revoked field to a restricted subject. Identity comparison avoids that.
+        final boolean cacheable = partialAccessPathsCacheEnabled;
+        final long structureHash =
+                cacheable ? PartialAccessPathCalculator.structureHash(effectiveThingJson) : 0L;
+        if (cacheable) {
+            final PartialAccessPathsCacheEntry cached = partialAccessPathsCache;
+            if (cached != null && cached.matches(policyEnforcer, structureHash)) {
+                LOGGER.withCorrelationId(dittoHeaders)
+                        .debug("Reusing cached partial access paths for event '{}' (thingId: {})",
+                                thingEvent.getType(), thingEvent.getEntityId());
+                return cached.result;
+            }
+        }
 
-                    final Map<String, List<JsonPointer>> partialAccessPaths =
-                            PartialAccessPathCalculator.calculatePartialAccessPaths(
-                                    thing, policyEnforcer, effectiveThingJson);
-                    // Return consistent empty structure (will be filtered out in caller)
-                    final JsonObject result = partialAccessPaths.isEmpty()
-                            ? createEmptyPartialAccessPathsJson()
-                            : PartialAccessPathCalculator.toIndexedJsonObject(partialAccessPaths);
-                    LOGGER.withCorrelationId(dittoHeaders)
-                            .debug("Calculated partial access paths for event '{}' (thingId: {}): {} subjects with partial access",
-                                    thingEvent.getType(), thingEvent.getEntityId(), partialAccessPaths.size());
-                    if (cacheable) {
-                        partialAccessPathsCache =
-                                new PartialAccessPathsCacheEntry(policyEnforcer, structureHash, result);
-                    }
-                    return result;
-                });
+        final Map<String, List<JsonPointer>> partialAccessPaths =
+                PartialAccessPathCalculator.calculatePartialAccessPaths(
+                        thing, policyEnforcer, effectiveThingJson);
+        // Return consistent empty structure (will be filtered out in caller)
+        final JsonObject result = partialAccessPaths.isEmpty()
+                ? createEmptyPartialAccessPathsJson()
+                : PartialAccessPathCalculator.toIndexedJsonObject(partialAccessPaths);
+        LOGGER.withCorrelationId(dittoHeaders)
+                .debug("Calculated partial access paths for event '{}' (thingId: {}): {} subjects with partial access",
+                        thingEvent.getType(), thingEvent.getEntityId(), partialAccessPaths.size());
+        if (cacheable) {
+            partialAccessPathsCache =
+                    new PartialAccessPathsCacheEntry(policyEnforcer, structureHash, result);
+        }
+        return result;
     }
 
     /**
@@ -408,7 +490,7 @@ public final class ThingEventEnricher {
      * @param partialAccessPathsJson the JSON object to check
      * @return true if there are no subjects, false otherwise
      */
-    private static boolean hasNoPartialSubjects(final JsonObject partialAccessPathsJson) {
+    private static boolean hasNoSubjects(final JsonObject partialAccessPathsJson) {
         return partialAccessPathsJson.getValue(PartialAccessPathCalculator.SUBJECTS_FIELD_DEFINITION)
                 .map(JsonValue::asArray)
                 .map(JsonArray::isEmpty)
