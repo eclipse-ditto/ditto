@@ -113,8 +113,11 @@ jobs:
             ditto-connectivity)  MODULE=connectivity/service ;;
             *) echo "No Maven build needed for $DITTO_IMAGE"; exit 1 ;;
           esac
+          echo "SERVICE=${MODULE%/service}" >> "$GITHUB_ENV"
+          # A release tag from before the backends layout has no stage-backends.sh and no extension modules.
+          EXT=""; if [ -f stage-backends.sh ]; then EXT=",$(bash ./stage-backends.sh --maven-modules)"; fi
           mvn clean install -T4 --batch-mode --errors -DskipTests -DskipITs -Dmaven.javadoc.skip=true \
-            -Drevision=$IMAGE_TAG -pl "$MODULE" -am
+            -Drevision=$IMAGE_TAG -pl "$MODULE$EXT" -am
       -
         name: Stage allinone jar for the Docker build context
         if: inputs.dittoImage != 'ditto-ui'
@@ -123,6 +126,18 @@ jobs:
           find . -path '*/service/target/*-allinone.jar' -exec cp -v {} docker-libs/ \;
           echo "Staged allinone jars:"
           ls -lh docker-libs
+      -
+        name: Stage persistence backend jars for the Docker build context
+        if: inputs.dittoImage != 'ditto-ui'
+        env:
+          DITTO_VERSION_INPUT: ${{ inputs.dittoVersion }}
+        run: |
+          if [ -f stage-backends.sh ]; then
+            bash ./stage-backends.sh "$SERVICE" "$IMAGE_TAG" "docker-libs/backends-ditto-$SERVICE-service"
+            ls -lR docker-libs
+          else
+            echo "stage-backends.sh not present at $DITTO_VERSION_INPUT: building a pre-backends image"
+          fi
       -
         name: Build and push ditto-policies
         if: env.MILESTONE_OR_RC_SUFFIX == env.IMAGE_TAG && inputs.dittoImage == 'ditto-policies'

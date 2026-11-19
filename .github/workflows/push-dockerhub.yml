@@ -140,7 +140,7 @@ jobs:
         run: |
           mvn clean install -T4 --batch-mode --errors -DskipTests -DskipITs -Dmaven.javadoc.skip=true \
             -Drevision=$IMAGE_TAG \
-            -pl policies/service,things/service,gateway/service,connectivity/service,thingsearch/service -am
+            -pl policies/service,things/service,gateway/service,connectivity/service,thingsearch/service,"$(bash ./stage-backends.sh --maven-modules)" -am
       -
         name: Stage allinone jars for the Docker build context
         run: |
@@ -148,6 +148,14 @@ jobs:
           find . -path '*/service/target/*-allinone.jar' -exec cp -v {} docker-libs/ \;
           echo "Staged allinone jars:"
           ls -lh docker-libs
+      -
+        name: Stage persistence backend jars for the Docker build context
+        run: |
+          VERSION="$IMAGE_TAG"
+          for m in policies things gateway thingsearch connectivity; do
+            bash ./stage-backends.sh "$m" "$VERSION" "docker-libs/backends-ditto-$m-service"
+          done
+          ls -lR docker-libs
       -
         name: Build and push ditto-policies
         if: env.MILESTONE_OR_RC_SUFFIX == env.IMAGE_TAG

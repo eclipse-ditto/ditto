@@ -37,15 +37,17 @@ ENV HTTP_PORT=8080 \
     HOSTING_ENVIRONMENT=Docker \
     JVM_CMD_ARGS_ENV=${JVM_CMD_ARGS} \
     MAIN_CLASS_ENV=${MAIN_CLASS} \
-    CLASSPATH=/opt/ditto/*:/opt/ditto/extensions/*
+    DITTO_PERSISTENCE_BACKEND=mongodb
 
 USER ditto
 WORKDIR $DITTO_HOME
 ENTRYPOINT ["/usr/bin/tini", "--"]
-CMD ["sh", "-c", "exec java ${JVM_CMD_ARGS_ENV} ${MAIN_CLASS_ENV}"]
+CMD ["sh", "-c", "exec java ${JVM_CMD_ARGS_ENV} -cp \"/opt/ditto/*:/opt/ditto/backends/${DITTO_PERSISTENCE_BACKEND}/*:/opt/ditto/extensions/*\" ${MAIN_CLASS_ENV}"]
 
 COPY --chown=ditto:ditto ${TARGET_DIR}/${SERVICE_STARTER}-${SERVICE_VERSION}-allinone.jar $DITTO_HOME
 
-# Extension JARs staged by build-images.sh (empty unless e.g. BAKE_POSTGRES_EXTENSIONS=true);
-# $DITTO_HOME/extensions/* is already on the CLASSPATH above.
+# Both persistence backends, staged by stage-backends.sh into backends/{mongodb,postgresql}/;
+# DITTO_PERSISTENCE_BACKEND puts one of them on the java classpath (CMD above).
+# The extensions dir is staged empty: $DITTO_HOME/extensions/ is on the classpath for user JARs mounted at runtime.
+COPY --chown=ditto:ditto ${TARGET_DIR}/backends/ $DITTO_HOME/backends/
 COPY --chown=ditto:ditto ${TARGET_DIR}/extensions/ $DITTO_HOME/extensions/

@@ -39,16 +39,21 @@ SERVICES=(
 : "${IMAGE_VERSION:="${SERVICE_VERSION}"}"
 : "${BAKE_POSTGRES_EXTENSIONS:=false}"
 
+if [[ "$BAKE_POSTGRES_EXTENSIONS" == "true" ]]; then
+  printf "BAKE_POSTGRES_EXTENSIONS is deprecated and has no effect: every image now ships both backends in /opt/ditto/backends/; select one with DITTO_PERSISTENCE_BACKEND.\n" >&2
+fi
+
 print_usage() {
   printf "%s [-uPh] [-p HTTP(S) PROXY HOST:PORT]\n" "$1"
   printf "  -u  build the ditto-ui as docker image\n" "$1"
   printf "  -P  push the built docker images\n" "$1"
   printf "  -h  display help\n" "$1"
-  printf "  BAKE_POSTGRES_EXTENSIONS=true (env) bakes the PostgreSQL extension JARs of this build into the\n"
-  printf "      things, policies, connectivity and things-search images (snapshot dockerfiles only).\n"
-  printf "      Refuses to bake a shaded extension JAR whose classes differ from the module JAR it bundles\n"
-  printf "      (stale after an incremental build): rebuild with mvn clean install -DskipTests -DskipITs\n"
-  printf "  CHECK_ONLY=1 (env) with BAKE_POSTGRES_EXTENSIONS=true: run only that staleness check, build nothing\n"
+  printf "  The images ship both persistence backends in /opt/ditto/backends/{mongodb,postgresql}/ (staged by\n"
+  printf "      stage-backends.sh); DITTO_PERSISTENCE_BACKEND (default mongodb) selects one at runtime.\n"
+  printf "      Before every build, refuses a shaded backend extension JAR whose classes differ from the module\n"
+  printf "      JAR it bundles (stale after an incremental build): rebuild with mvn clean install -DskipTests -DskipITs\n"
+  printf "  CHECK_ONLY=1 (env): run only that staleness check, build nothing\n"
+  printf "  BAKE_POSTGRES_EXTENSIONS (env) is deprecated and has no effect\n"
 }
 
 print_used_proxies() {
@@ -56,12 +61,15 @@ print_used_proxies() {
   printf "Using HTTPS_PROXY=%s\n" "$HTTPS_PROXY_LOCAL"
 }
 
-# The shaded PostgreSQL extension JARs and the Ditto module JAR each one bundles (its shade whitelist):
-# EXTENSION_MODULE_DIR:MODULE_DIR:MODULE_ARTIFACT_ID, all under internal/utils/.
-POSTGRES_EXTENSIONS=(
-  "postgres-client-extension:postgres-client:ditto-internal-utils-postgres-client"
-  "postgres-persistence-extension:persistence-r2dbc:ditto-internal-utils-persistence-r2dbc"
-  "postgres-search-extension:search-r2dbc:ditto-internal-utils-search-r2dbc"
+# The shaded backend extension JARs and the Ditto module JAR each one bundles (its shade whitelist):
+# EXTENSION_MODULE_DIR:MODULE_DIR:MODULE_ARTIFACT_ID. EXTENSION_MODULE_DIR is under internal/utils/,
+# MODULE_DIR is relative to the repository root.
+BACKEND_EXTENSIONS=(
+  "mongo-persistence-extension:internal/utils/persistence:ditto-internal-utils-persistence"
+  "mongo-search-extension:thingsearch/persistence-mongo:ditto-thingsearch-persistence-mongo"
+  "postgres-client-extension:internal/utils/postgres-client:ditto-internal-utils-postgres-client"
+  "postgres-persistence-extension:internal/utils/persistence-r2dbc:ditto-internal-utils-persistence-r2dbc"
+  "postgres-search-extension:internal/utils/search-r2dbc:ditto-internal-utils-search-r2dbc"
 )
 
 # Prints every .class entry of a JAR as "<path> <length> <crc-32>" (columns 8, 1 and 7 of `unzip -lv`). The
@@ -81,15 +89,15 @@ list_class_entries() {
 # of getting there (a partial `-pl` build of the module alone, a copied-in JAR, ...).
 #
 # Compares length + CRC-32 of EVERY class of the module JAR with the shaded JAR's copy. Any difference or
-# missing class fails the build before the first docker build. Only runs when BAKE_POSTGRES_EXTENSIONS=true.
-check_postgres_extension_jars() {
+# missing class fails the build before the first docker build.
+check_backend_extension_jars() {
   local entry extension module artifact shaded_jar module_jar jar module_classes shaded_classes stale stale_count
   local failed=0
-  printf "\nChecking the shaded PostgreSQL extension JARs against the module JARs they bundle ...\n"
-  for entry in "${POSTGRES_EXTENSIONS[@]}"; do
+  printf "\nChecking the shaded backend extension JARs against the module JARs they bundle ...\n"
+  for entry in "${BACKEND_EXTENSIONS[@]}"; do
     IFS=: read -r extension module artifact <<< "$entry"
     shaded_jar="$SCRIPTDIR/internal/utils/$extension/target/ditto-$extension-$SERVICE_VERSION.jar"
-    module_jar="$SCRIPTDIR/internal/utils/$module/target/$artifact-$SERVICE_VERSION.jar"
+    module_jar="$SCRIPTDIR/$module/target/$artifact-$SERVICE_VERSION.jar"
     for jar in "$shaded_jar" "$module_jar"; do
       if [ ! -f "$jar" ]; then
         printf "  ERROR: <%s> does not exist -- the tree is not built.\n" "${jar#"$SCRIPTDIR/"}" >&2
@@ -126,7 +134,7 @@ check_postgres_extension_jars() {
   done
   if [ "$failed" -ne 0 ]; then
     {
-      printf "\nERROR: refusing to bake stale PostgreSQL extension JARs into the images (the services would run the\n"
+      printf "\nERROR: refusing to bake stale backend extension JARs into the images (the services would run the\n"
       printf "classes of a previous build while every build step reported success). Rebuild the tree with\n"
       printf "\n    mvn clean install -DskipTests -DskipITs\n\n"
       printf "and run %s again. An incremental 'mvn install' without 'clean' is what leaves the shaded JARs stale.\n" "$0"
@@ -147,26 +155,13 @@ build_docker_image() {
     no_cache_option=--no-cache
   fi;
 
-  # Always (re)create the extensions staging dir the dockerfile COPYs; populate it with the Postgres
-  # extension JARs (must come from the same reactor build as the allinone JARs — a boot self-check
-  # fails fast on mismatch) when BAKE_POSTGRES_EXTENSIONS=true.
+  # Always (re)create the extensions staging dir the dockerfile COPYs, empty: /opt/ditto/extensions/ is for
+  # user JARs mounted at runtime. The backend JARs (from the same reactor build as the allinone JARs) are
+  # staged into backends/{mongodb,postgresql}/ by stage-backends.sh.
   extensions_dir="$SCRIPTDIR/$module_name_base/service/target/extensions"
   rm -rf "$extensions_dir"
   mkdir -p "$extensions_dir"
-  if [[ "$BAKE_POSTGRES_EXTENSIONS" == "true" ]]; then
-    case "$module_name_base" in
-      policies|things|connectivity)
-        cp "$SCRIPTDIR/internal/utils/postgres-client-extension/target/ditto-postgres-client-extension-$SERVICE_VERSION.jar" \
-          "$SCRIPTDIR/internal/utils/postgres-persistence-extension/target/ditto-postgres-persistence-extension-$SERVICE_VERSION.jar" \
-          "$extensions_dir/"
-        ;;
-      thingsearch)
-        cp "$SCRIPTDIR/internal/utils/postgres-client-extension/target/ditto-postgres-client-extension-$SERVICE_VERSION.jar" \
-          "$SCRIPTDIR/internal/utils/postgres-search-extension/target/ditto-postgres-search-extension-$SERVICE_VERSION.jar" \
-          "$extensions_dir/"
-        ;;
-    esac
-  fi
+  "$SCRIPTDIR/stage-backends.sh" "$module_name_base" "$SERVICE_VERSION" "$SCRIPTDIR/$module_name_base/service/target/backends"
   printf "\nBuilding Docker image <%s> for service module <%s> with jvm_args <%s>\n" \
     "$image_tag" \
     "$module_name" \
@@ -207,9 +202,7 @@ build_ditto_ui_docker_image() {
 
 build_all_docker_images() {
   # Stale shaded extension JARs are refused BEFORE the first docker build, once for all images.
-  if [[ "$BAKE_POSTGRES_EXTENSIONS" == "true" ]]; then
-    check_postgres_extension_jars || exit 1
-  fi
+  check_backend_extension_jars || exit 1
   if [ -n "$CHECK_ONLY" ]; then
     printf "CHECK_ONLY is set: building no image.\n"
     return 0

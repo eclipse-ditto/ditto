@@ -78,7 +78,7 @@ jobs:
         # The version stays at the master 'revision' default: 0-SNAPSHOT.
         run: |
           mvn clean install -T4 --batch-mode --errors -DskipTests -DskipITs -Dmaven.javadoc.skip=true \
-            -pl policies/service,things/service,gateway/service,connectivity/service,thingsearch/service -am
+            -pl policies/service,things/service,gateway/service,connectivity/service,thingsearch/service,"$(bash ./stage-backends.sh --maven-modules)" -am
       -
         name: Stage allinone jars for the Docker build context
         run: |
@@ -86,6 +86,14 @@ jobs:
           find . -path '*/service/target/*-allinone.jar' -exec cp -v {} docker-libs/ \;
           echo "Staged allinone jars:"
           ls -lh docker-libs
+      -
+        name: Stage persistence backend jars for the Docker build context
+        run: |
+          VERSION=0-SNAPSHOT
+          for m in policies things gateway thingsearch connectivity; do
+            bash ./stage-backends.sh "$m" "$VERSION" "docker-libs/backends-ditto-$m-service"
+          done
+          ls -lR docker-libs
       -
         name: Build and push ditto-policies
         uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
