@@ -14,7 +14,6 @@ package org.eclipse.ditto.internal.utils.persistence.mongo;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -29,42 +28,39 @@ import org.junit.runners.Parameterized;
 
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
-import com.typesafe.config.ConfigParseOptions;
 
 /**
  * HOCON drift test: asserts that {@link MongoPersistencePluginConfig#getAutoStartPluginIds(String)} returns the SAME
- * set as the union of {@code pekko.persistence.journal.auto-start-journals} and
- * {@code pekko.persistence.snapshot-store.auto-start-snapshot-stores} from each service's shipped
- * {@code <service>.conf}.
+ * set as the union of {@code ditto.persistence-backend.auto-start.<entity>.journals} and
+ * {@code ditto.persistence-backend.auto-start.<entity>.snapshots} declared by the shipped MongoDB persistence profile
+ * {@code ditto-mongo-persistence.conf}.
  *
  * <h2>Purpose</h2>
- * The static lists in Pekko's HOCON remain authoritative — Pekko reads them at boot. The Java constants in
+ * The profile's per-entity auto-start keys are authoritative: each service conf maps its own entity's keys onto
+ * {@code pekko.persistence.journal.auto-start-journals} and
+ * {@code pekko.persistence.snapshot-store.auto-start-snapshot-stores}, which Pekko reads at boot. The Java constants in
  * {@link MongoPersistencePluginConfig} mirror them. This test is the regression guard that catches DRIFT between
- * the Java constants and the shipped HOCON: if any service's {@code auto-start-*} list is updated in HOCON without a
+ * the Java constants and the profile: if an entity's auto-start keys are updated in the profile without a
  * corresponding update to the Java constants (or vice versa), this test fails.
  *
  * <h2>How it loads the config</h2>
- * The service conf files are NOT on the test classpath of this module (the service modules do not depend on
- * {@code internal/utils/persistence}). They are loaded directly from the source tree using
- * {@link ConfigFactory#parseFile(File, ConfigParseOptions)}, with the file located by walking up from
- * {@code user.dir} (the Maven surefire working directory, i.e. this module's directory) until the repo root is
- * found — the same strategy used by {@code PostgresPersistenceBackendProviderTest}. This keeps the assertion against
- * the real, shipped config rather than a copy or fixture.
+ * The profile ships in this module's {@code src/main/resources} and is therefore on the test classpath. It is
+ * self-contained (its only include is {@code ditto-mongo.conf} of the same module), so it is parsed and resolved on
+ * its own.
  *
  * <h2>WoT exclusion</h2>
- * The {@code pekko-contrib-mongodb-persistence-wot-validation-config-*} IDs appear in {@code things.conf} as Pekko
- * plugin blocks but are intentionally NOT in the {@code pekko.persistence.*.auto-start-*} lists (WoT is not
- * auto-started). The test explicitly asserts that neither WoT ID appears in the things auto-start set, mirroring the
- * intentional exclusion documented in {@code MongoPersistencePluginConfig}.
+ * The {@code pekko-contrib-mongodb-persistence-wot-validation-config-*} IDs appear in the profile as Pekko plugin
+ * blocks but are intentionally NOT in any auto-start list (WoT is not auto-started). The test explicitly asserts that
+ * neither WoT ID appears in the things auto-start set, mirroring the intentional exclusion documented in
+ * {@code MongoPersistencePluginConfig}.
  *
  * @since 4.0.0
  */
 @RunWith(Parameterized.class)
 public final class MongoAutoStartIdsMatchServiceHoconTest {
 
-    private static final String JOURNAL_AUTO_START_PATH = "pekko.persistence.journal.auto-start-journals";
-    private static final String SNAPSHOT_AUTO_START_PATH =
-            "pekko.persistence.snapshot-store.auto-start-snapshot-stores";
+    private static final String PROFILE_RESOURCE = "ditto-mongo-persistence.conf";
+    private static final String AUTO_START_PATH = "ditto.persistence-backend.auto-start";
 
     private static ActorSystem system;
     private static MongoPersistencePluginConfig pluginConfig;
@@ -88,16 +84,16 @@ public final class MongoAutoStartIdsMatchServiceHoconTest {
     }
 
     /**
-     * Each parameter row: [serviceName, confFileName]
-     * The conf file name differs for connectivity (service name = "connectivity", conf = "connectivity.conf").
-     * For things and policies the service name matches the conf name.
+     * Each parameter row: [serviceName, confFileName, entityKey]
+     * The entity key is the profile's {@code ditto.persistence-backend.auto-start.<entityKey>} key the service conf
+     * maps onto its Pekko auto-start lists; it differs for connectivity (entity key = "connections").
      */
     @Parameterized.Parameters(name = "service={0}")
     public static List<Object[]> parameters() {
         return List.of(
-                new Object[]{"things",        "things"},
-                new Object[]{"policies",      "policies"},
-                new Object[]{"connectivity",  "connectivity"}
+                new Object[]{"things",        "things",        "things"},
+                new Object[]{"policies",      "policies",      "policies"},
+                new Object[]{"connectivity",  "connectivity",  "connections"}
         );
     }
 
@@ -107,23 +103,26 @@ public final class MongoAutoStartIdsMatchServiceHoconTest {
     @Parameterized.Parameter(1)
     public String confBaseName;
 
+    @Parameterized.Parameter(2)
+    public String entityKey;
+
     // ── main assertion ────────────────────────────────────────────────────────
 
     /**
-     * Loads the service's shipped {@code <service>.conf} from the source tree, reads the two
-     * {@code auto-start-*} lists, and asserts they equal {@code pluginConfig.getAutoStartPluginIds(serviceName)}.
+     * Reads the profile's two {@code auto-start.<entityKey>.*} lists and asserts they equal
+     * {@code pluginConfig.getAutoStartPluginIds(serviceName)}.
      */
     @Test
     public void autoStartPluginIdsMatchShippedServiceHocon() {
-        final List<String> hoconAutoStartIds = loadHoconAutoStartIds(confBaseName);
+        final List<String> hoconAutoStartIds = loadProfileAutoStartIds(entityKey);
         final List<String> javaAutoStartIds = pluginConfig.getAutoStartPluginIds(serviceName);
 
         assertThat(javaAutoStartIds)
                 .as("MongoPersistencePluginConfig.getAutoStartPluginIds(\"%s\") must equal "
-                                + "the union of pekko.persistence.journal.auto-start-journals + "
-                                + "pekko.persistence.snapshot-store.auto-start-snapshot-stores "
-                                + "from %s.conf (drift guard)",
-                        serviceName, confBaseName)
+                                + "the union of %s.%s.journals + %s.%s.snapshots from %s, which %s.conf maps "
+                                + "onto pekko.persistence.* (drift guard)",
+                        serviceName, AUTO_START_PATH, entityKey, AUTO_START_PATH, entityKey, PROFILE_RESOURCE,
+                        confBaseName)
                 .containsExactlyInAnyOrderElementsOf(hoconAutoStartIds);
     }
 
@@ -150,54 +149,15 @@ public final class MongoAutoStartIdsMatchServiceHoconTest {
     // ── helpers ───────────────────────────────────────────────────────────────
 
     /**
-     * Parses the shipped {@code <confBaseName>.conf} from the source tree WITHOUT resolution and reads the two
-     * {@code pekko.persistence.*.auto-start-*} string lists directly from the unresolved parse tree.
-     *
-     * <p>Why no full resolution: connectivity.conf includes {@code connectivity-extension.conf} which contains a
-     * self-referential list append ({@code [...] ${ditto.extensions.signal-transformers-provider...}}) that
-     * creates a HOCON cyclic substitution. Calling {@code config.resolve()} — even with
-     * {@code setAllowUnresolved(true)} — trips over this cycle. Since the auto-start lists themselves contain
-     * only string literals (no {@code ${...}} placeholders), we can read them directly from the unresolved
-     * parse tree with {@code getStringList()} without triggering any substitution evaluation.
+     * Parses and resolves the shipped profile from the classpath and reads the entity's journal and snapshot
+     * auto-start lists. Both must be present: a missing key would leave the service with nothing to auto-start.
      */
-    private static List<String> loadHoconAutoStartIds(final String confBaseName) {
-        final File confFile = locateServiceConf(confBaseName);
-        // Parse without resolution: the auto-start lists are plain string literals — no substitution needed.
-        // Do NOT call .resolve() here: connectivity.conf (via connectivity-extension.conf) contains a cyclic
-        // HOCON substitution that causes ConfigException.UnresolvedSubstitution even with setAllowUnresolved(true).
-        final Config raw = ConfigFactory.parseFile(confFile,
-                ConfigParseOptions.defaults().setAllowMissing(false));
+    private static List<String> loadProfileAutoStartIds(final String entityKey) {
+        final Config profile = ConfigFactory.parseResources(PROFILE_RESOURCE).resolve();
+        final String entityPath = AUTO_START_PATH + "." + entityKey;
 
-        final List<String> ids = new ArrayList<>();
-        if (raw.hasPath(JOURNAL_AUTO_START_PATH)) {
-            ids.addAll(raw.getStringList(JOURNAL_AUTO_START_PATH));
-        }
-        if (raw.hasPath(SNAPSHOT_AUTO_START_PATH)) {
-            ids.addAll(raw.getStringList(SNAPSHOT_AUTO_START_PATH));
-        }
+        final List<String> ids = new ArrayList<>(profile.getStringList(entityPath + ".journals"));
+        ids.addAll(profile.getStringList(entityPath + ".snapshots"));
         return ids;
-    }
-
-    /**
-     * Walks up from the Maven surefire working directory ({@code user.dir}, the module directory) to the repo root
-     * and resolves the service's {@code src/main/resources/<confBaseName>.conf}. The service modules do not depend on
-     * this module, so the conf is not on the test classpath; reading from the source tree keeps the assertion against
-     * the real, shipped config.
-     */
-    private static File locateServiceConf(final String confBaseName) {
-        // Connectivity's conf is in connectivity/service/src/main/resources/connectivity.conf.
-        // Things and policies follow the same <service>/service/src/main/resources/<service>.conf pattern.
-        final String relative = confBaseName + "/service/src/main/resources/" + confBaseName + ".conf";
-        File dir = new File(System.getProperty("user.dir")).getAbsoluteFile();
-        while (dir != null) {
-            final File candidate = new File(dir, relative);
-            if (candidate.isFile()) {
-                return candidate;
-            }
-            dir = dir.getParentFile();
-        }
-        throw new IllegalStateException(
-                "Could not locate " + relative + " from user.dir=" + System.getProperty("user.dir")
-                        + " — ensure the test is run from within the ditto source tree");
     }
 }

@@ -23,23 +23,34 @@ import com.typesafe.config.ConfigResolveOptions;
 import pekko.contrib.persistence.mongodb.MetricsBuilder;
 
 /**
- * Pins the {@code metrics-builder.class} of the shipped {@code ditto-pekko-config.conf} against
- * {@link MongoMetricsBuilder}: a stale class name would only fail at runtime when the Pekko MongoDB plugin starts.
+ * Pins the {@code metrics-builder.class} of the shipped MongoDB persistence profile
+ * {@code ditto-mongo-persistence.conf} against {@link MongoMetricsBuilder}: a stale class name would only fail at
+ * runtime when the Pekko MongoDB plugin starts. Also pins that the {@code pekko.contrib.persistence.mongodb} block
+ * moved out of the backend-neutral {@code ditto-pekko-config.conf} rather than being copied.
  */
 public final class MongoMetricsBuilderConfigTest {
 
     private static final String METRICS_BUILDER_CLASS_PATH =
             "pekko.contrib.persistence.mongodb.mongo.metrics-builder.class";
+    private static final String MONGO_PLUGIN_PATH = "pekko.contrib.persistence.mongodb";
 
     @Test
     public void shippedConfigNamesLoadableMetricsBuilder() throws ClassNotFoundException {
-        final Config shippedConfig = ConfigFactory.parseResources("ditto-pekko-config.conf")
+        final Config shippedConfig = ConfigFactory.parseResources("ditto-mongo-persistence.conf")
                 .resolve(ConfigResolveOptions.defaults().setUseSystemEnvironment(false).setAllowUnresolved(true));
 
         final String metricsBuilderClass = shippedConfig.getString(METRICS_BUILDER_CLASS_PATH);
 
         assertThat(metricsBuilderClass).isEqualTo(MongoMetricsBuilder.class.getName());
         assertThat(MetricsBuilder.class).isAssignableFrom(Class.forName(metricsBuilderClass));
+    }
+
+    @Test
+    public void backendNeutralPekkoConfigHasNoMongoPluginBlock() {
+        final Config pekkoConfig = ConfigFactory.parseResources("ditto-pekko-config.conf");
+
+        assertThat(pekkoConfig.isEmpty()).as("ditto-pekko-config.conf must be on the classpath").isFalse();
+        assertThat(pekkoConfig.hasPath(MONGO_PLUGIN_PATH)).isFalse();
     }
 
 }

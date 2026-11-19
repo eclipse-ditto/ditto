@@ -31,6 +31,8 @@ import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 import com.typesafe.config.ConfigIncludeContext;
 import com.typesafe.config.ConfigIncluder;
+import com.typesafe.config.ConfigIncluderClasspath;
+import com.typesafe.config.ConfigIncluderFile;
 import com.typesafe.config.ConfigObject;
 import com.typesafe.config.ConfigParseOptions;
 import com.typesafe.config.ConfigResolveOptions;
@@ -73,13 +75,20 @@ public final class PostgresPluginCircuitBreakerConfTest {
             .getParent()
             .getParent();
 
-    /** Each service: real resources dir, its pg-dev profile and the Postgres plugins it auto-starts. */
+    /** The MongoDB persistence profile, which holds every MongoDB plugin block; read from the source tree. */
+    private static final String MONGO_PROFILE =
+            "internal/utils/persistence/src/main/resources/ditto-mongo-persistence.conf";
+
+    /**
+     * Each service: real resources dir, its pg-dev profile, the profile's auto-start entity key and the Postgres
+     * plugins it auto-starts.
+     */
     private static final List<ServiceProfile> SERVICES = List.of(
-            new ServiceProfile("things/service/src/main/resources", "things-pg-dev",
+            new ServiceProfile("things/service/src/main/resources", "things-pg-dev", "things",
                     "ditto-postgres-things-journal", "ditto-postgres-things-snapshots"),
-            new ServiceProfile("policies/service/src/main/resources", "policies-pg-dev",
+            new ServiceProfile("policies/service/src/main/resources", "policies-pg-dev", "policies",
                     "ditto-postgres-policies-journal", "ditto-postgres-policies-snapshots"),
-            new ServiceProfile("connectivity/service/src/main/resources", "connectivity-pg-dev",
+            new ServiceProfile("connectivity/service/src/main/resources", "connectivity-pg-dev", "connections",
                     "ditto-postgres-connections-journal", "ditto-postgres-connections-snapshots"));
 
     @Rule
@@ -128,33 +137,30 @@ public final class PostgresPluginCircuitBreakerConfTest {
     }
 
     /**
-     * Parity with the real MongoDB plugin blocks of each service: same values with no environment, and the same values
-     * again with every breaker variable set (so both read the same variable names).
+     * Parity with the real MongoDB plugin blocks of the MongoDB persistence profile: same values with no environment,
+     * and the same values again with every breaker variable set (so both read the same variable names).
      */
     @Test
     public void postgresBreakersMatchTheMongoPluginsOfTheSameEntity() {
         for (final Map<String, String> env : List.of(Map.<String, String>of(), ALL_BREAKER_ENV)) {
             final Config profile = profileWithEnv(env);
-            final Config things = serviceConfWithEnv("things/service/src/main/resources/things.conf", env);
-            final Config policies = serviceConfWithEnv("policies/service/src/main/resources/policies.conf", env);
-            final Config connectivity =
-                    serviceConfWithEnv("connectivity/service/src/main/resources/connectivity.conf", env);
+            final Config mongoProfile = sourceConfWithEnv(MONGO_PROFILE, env);
 
-            assertSameBreaker(things, "pekko-contrib-mongodb-persistence-things-journal",
+            assertSameBreaker(mongoProfile, "pekko-contrib-mongodb-persistence-things-journal",
                     profile, "ditto-postgres-things-journal", env);
-            assertSameBreaker(things, "pekko-contrib-mongodb-persistence-things-snapshots",
+            assertSameBreaker(mongoProfile, "pekko-contrib-mongodb-persistence-things-snapshots",
                     profile, "ditto-postgres-things-snapshots", env);
-            assertSameBreaker(things, "pekko-contrib-mongodb-persistence-wot-validation-config-journal",
+            assertSameBreaker(mongoProfile, "pekko-contrib-mongodb-persistence-wot-validation-config-journal",
                     profile, "ditto-postgres-wot-journal", env);
-            assertSameBreaker(things, "pekko-contrib-mongodb-persistence-wot-validation-config-snapshots",
+            assertSameBreaker(mongoProfile, "pekko-contrib-mongodb-persistence-wot-validation-config-snapshots",
                     profile, "ditto-postgres-wot-snapshots", env);
-            assertSameBreaker(policies, "pekko-contrib-mongodb-persistence-policies-journal",
+            assertSameBreaker(mongoProfile, "pekko-contrib-mongodb-persistence-policies-journal",
                     profile, "ditto-postgres-policies-journal", env);
-            assertSameBreaker(policies, "pekko-contrib-mongodb-persistence-policies-snapshots",
+            assertSameBreaker(mongoProfile, "pekko-contrib-mongodb-persistence-policies-snapshots",
                     profile, "ditto-postgres-policies-snapshots", env);
-            assertSameBreaker(connectivity, "pekko-contrib-mongodb-persistence-connection-journal",
+            assertSameBreaker(mongoProfile, "pekko-contrib-mongodb-persistence-connection-journal",
                     profile, "ditto-postgres-connections-journal", env);
-            assertSameBreaker(connectivity, "pekko-contrib-mongodb-persistence-connection-snapshots",
+            assertSameBreaker(mongoProfile, "pekko-contrib-mongodb-persistence-connection-snapshots",
                     profile, "ditto-postgres-connections-snapshots", env);
         }
     }
@@ -164,8 +170,9 @@ public final class PostgresPluginCircuitBreakerConfTest {
     public void eachServicesPostgresProfileStartsItsPluginsWithTheMongoBreakerValues() {
         for (final ServiceProfile service : SERVICES) {
             final Config config = pgDevConfigWithEnv(service, Map.of());
-            assertThat(config.getStringList("pekko.persistence.journal.auto-start-journals"))
-                    .as("%s auto-starts its journal", service.pgDevResource())
+            assertThat(config.getStringList(
+                    "ditto.persistence-backend.auto-start." + service.entityKey() + ".journals"))
+                    .as("%s declares its journal for auto-start", service.pgDevResource())
                     .containsExactly(service.journal());
             assertBreaker(effectiveBreaker(config, service.journal(), JOURNAL_FALLBACK), service.journal(),
                     5, Duration.ofSeconds(5), Duration.ofSeconds(3));
@@ -219,13 +226,14 @@ public final class PostgresPluginCircuitBreakerConfTest {
     }
 
     /**
-     * The real service conf ({@code <svc>.conf}) with its includes skipped, so that only the keys set in its own body
-     * remain, among them the MongoDB plugin blocks. Substitutions that pointed into skipped includes stay unresolved.
+     * A real conf from the source tree (this module has no MongoDB dependency) with its includes skipped, so that only
+     * the keys set in its own body remain, among them the MongoDB plugin blocks. Substitutions that pointed into
+     * skipped includes stay unresolved.
      */
-    private static Config serviceConfWithEnv(final String relativePath, final Map<String, String> env) {
+    private static Config sourceConfWithEnv(final String relativePath, final Map<String, String> env) {
         final File conf = PROJECT_ROOT.resolve(relativePath).toFile();
-        assertThat(conf).as("service conf %s", conf).isFile();
-        final ConfigIncluder skipIncludes = new ConfigIncluder() {
+        assertThat(conf).as("conf %s", conf).isFile();
+        final SkippingIncluder skipIncludes = new SkippingIncluder() {
             @Override
             public ConfigIncluder withFallback(final ConfigIncluder fallback) {
                 return this;
@@ -233,6 +241,16 @@ public final class PostgresPluginCircuitBreakerConfTest {
 
             @Override
             public ConfigObject include(final ConfigIncludeContext context, final String what) {
+                return ConfigFactory.empty().root();
+            }
+
+            @Override
+            public ConfigObject includeResources(final ConfigIncludeContext context, final String what) {
+                return ConfigFactory.empty().root();
+            }
+
+            @Override
+            public ConfigObject includeFile(final ConfigIncludeContext context, final File what) {
                 return ConfigFactory.empty().root();
             }
         };
@@ -267,6 +285,14 @@ public final class PostgresPluginCircuitBreakerConfTest {
         }
     }
 
-    private record ServiceProfile(String resourcesDir, String pgDevResource, String journal, String snapshots) {}
+    private record ServiceProfile(String resourcesDir, String pgDevResource, String entityKey, String journal,
+            String snapshots) {}
+
+    /**
+     * Skips {@code include "x"}, {@code include classpath("x")} and {@code include file("x")} alike, also in their
+     * {@code required(...)} form: a plain {@link ConfigIncluder} only replaces the first, the other two fall back to
+     * the default includer.
+     */
+    private interface SkippingIncluder extends ConfigIncluder, ConfigIncluderClasspath, ConfigIncluderFile {}
 
 }

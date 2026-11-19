@@ -33,6 +33,8 @@ import com.typesafe.config.ConfigFactory;
 import com.typesafe.config.ConfigResolveOptions;
 import com.typesafe.config.ConfigIncludeContext;
 import com.typesafe.config.ConfigIncluder;
+import com.typesafe.config.ConfigIncluderClasspath;
+import com.typesafe.config.ConfigIncluderFile;
 import com.typesafe.config.ConfigObject;
 import com.typesafe.config.ConfigParseOptions;
 import com.typesafe.config.ConfigRenderOptions;
@@ -46,8 +48,9 @@ import com.typesafe.config.ConfigUtil;
  * {@code connectivity-pg-dev.conf}) and asserts that the Postgres profile is truly "Mongo-free":
  *
  * <ol>
- *   <li><b>Positive anchor</b>: the config DOES contain the Postgres provider class and the
- *       per-service Postgres auto-start journal/snapshot IDs — proving we loaded the right
+ *   <li><b>Positive anchor</b>: the config DOES contain the Postgres provider class, and the composed
+ *       service config ({@code ditto-service-base} + {@code <svc>} + {@code ditto-postgres-persistence}) resolves
+ *       the per-service Postgres auto-start journal/snapshot IDs — proving we loaded the right
  *       (Postgres) profile and that the assertion of absence is non-vacuous.</li>
  *   <li><b>No Mongo plugin class strings</b>: no config value contains
  *       {@code pekko.contrib.persistence.mongodb} (the legacy Mongo plugin class package).</li>
@@ -127,6 +130,13 @@ public final class PostgresProfileHoconLintTest {
     private static final String PEKKO_AUTO_START_SNAPSHOTS =
             "pekko.persistence.snapshot-store.auto-start-snapshot-stores";
 
+    /** Config path of the profile's per-entity auto-start keys. */
+    private static final String PROFILE_AUTO_START_PATH = "ditto.persistence-backend.auto-start";
+
+    /** The list the edge include defines and {@code connectivity-extension.conf} appends to. */
+    private static final String EDGE_SIGNAL_TRANSFORMERS_PATH =
+            "ditto.extensions.signal-transformers-provider.extension-config.signal-transformers";
+
     /** Config path for read-journal entity (under the provider extension-config). */
     private static final String READ_JOURNAL_ENTITY_PATH =
             "ditto.extensions.persistence-backend-provider.extension-config.read-journal.entity";
@@ -152,7 +162,8 @@ public final class PostgresProfileHoconLintTest {
                         "things-pg-dev",
                         "ditto-postgres-things-journal",
                         "ditto-postgres-things-snapshots",
-                        "things"     // expected read-journal entity value (verified against real things.conf)
+                        "things",    // expected read-journal entity value (verified against real things.conf)
+                        "things"     // the profile's auto-start entity key that things.conf maps
                 },
                 new Object[]{
                         "policies",
@@ -160,6 +171,7 @@ public final class PostgresProfileHoconLintTest {
                         "policies-pg-dev",
                         "ditto-postgres-policies-journal",
                         "ditto-postgres-policies-snapshots",
+                        "policies",
                         "policies"
                 },
                 new Object[]{
@@ -168,6 +180,7 @@ public final class PostgresProfileHoconLintTest {
                         "connectivity-pg-dev",
                         "ditto-postgres-connections-journal",
                         "ditto-postgres-connections-snapshots",
+                        "connections",
                         "connections"
                 }
         );
@@ -190,6 +203,9 @@ public final class PostgresProfileHoconLintTest {
 
     @Parameterized.Parameter(5)
     public String expectedReadJournalEntity;
+
+    @Parameterized.Parameter(6)
+    public String autoStartEntityKey;
 
     /**
      * Builds a URLClassLoader that sees the REAL service resources directory as its primary
@@ -242,6 +258,27 @@ public final class PostgresProfileHoconLintTest {
     }
 
     /**
+     * Composes the effective service config the way {@code RawConfigSupplier} layers it at boot, with the Postgres
+     * profile as the environment layer: {@code ditto-postgres-persistence} over {@code <svc>} over
+     * {@code ditto-service-base} over the reference configs, all through {@link #buildServiceClassLoader()}. On this
+     * module's classpath the fixed-name {@code ditto-persistence-backend} include of {@code <svc>.conf} resolves only
+     * to the PostgreSQL wrapper. Unresolved substitutions are allowed because the edge and kamon includes of
+     * {@code connectivity.conf} are not on this classpath; the asserted paths must still resolve. The one value of the
+     * edge include that a self-referential list append of {@code connectivity-extension.conf} builds on is stood in
+     * by an empty list at the bottom, since a self-reference without a previous value is a cycle that
+     * {@code setAllowUnresolved} does not tolerate.
+     */
+    private Config loadComposedServiceConfig() {
+        final ClassLoader cl = buildServiceClassLoader();
+        return ConfigFactory.parseResources(cl, "ditto-postgres-persistence.conf")
+                .withFallback(ConfigFactory.parseResources(cl, serviceName + ".conf"))
+                .withFallback(ConfigFactory.parseResources(cl, "ditto-service-base.conf"))
+                .withFallback(ConfigFactory.defaultReference(cl))
+                .withFallback(ConfigFactory.parseString(EDGE_SIGNAL_TRANSFORMERS_PATH + " = []"))
+                .resolve(ConfigResolveOptions.defaults().setUseSystemEnvironment(false).setAllowUnresolved(true));
+    }
+
+    /**
      * Reads {@code read-journal.entity} directly from the REAL service base conf file
      * ({@code <svc>/service/src/main/resources/<svc>.conf}) using
      * {@code ConfigFactory.parseFile()}.
@@ -270,7 +307,17 @@ public final class PostgresProfileHoconLintTest {
         // the body of <svc>.conf (not in any included file), so it is always captured here.
         // setAllowUnresolved(true) tolerates ${?ENV_VAR} optional-substitution patterns that
         // appear alongside the literal defaults we need to read.
-        final ConfigIncluder noOpIncluder = new ConfigIncluder() {
+        return ConfigFactory.parseFile(serviceBaseConf,
+                ConfigParseOptions.defaults().setAllowMissing(true).setIncluder(noOpIncluder()))
+                .resolve(ConfigResolveOptions.noSystem().setAllowUnresolved(true));
+    }
+
+    /**
+     * An includer that skips every {@code include} directive, so a parse yields only the keys set in the body of the
+     * parsed file.
+     */
+    private static ConfigIncluder noOpIncluder() {
+        return new SkippingIncluder() {
             @Override
             public ConfigIncluder withFallback(final ConfigIncluder fallback) {
                 return this;
@@ -280,10 +327,17 @@ public final class PostgresProfileHoconLintTest {
             public ConfigObject include(final ConfigIncludeContext context, final String what) {
                 return ConfigFactory.empty().root();
             }
+
+            @Override
+            public ConfigObject includeResources(final ConfigIncludeContext context, final String what) {
+                return ConfigFactory.empty().root();
+            }
+
+            @Override
+            public ConfigObject includeFile(final ConfigIncludeContext context, final File what) {
+                return ConfigFactory.empty().root();
+            }
         };
-        return ConfigFactory.parseFile(serviceBaseConf,
-                ConfigParseOptions.defaults().setAllowMissing(true).setIncluder(noOpIncluder))
-                .resolve(ConfigResolveOptions.noSystem().setAllowUnresolved(true));
     }
 
     // --------------------------------------------------
@@ -308,25 +362,32 @@ public final class PostgresProfileHoconLintTest {
     }
 
     /**
-     * Positive anchor (part 2): the loaded pg-dev config DOES have the expected per-service
-     * Postgres auto-start journal and snapshot-store IDs. This further confirms we loaded the
-     * right profile.
+     * Positive anchor (part 2): the composed service config ({@code <svc>.conf} mapping the profile's per-entity
+     * auto-start keys onto Pekko's lists) auto-starts exactly the service's own Postgres journal and snapshot store,
+     * selects the Postgres provider and carries no MongoDB client config.
      */
     @Test
     public void postgresAutoStartIdsArePresentInEffectiveConfig() {
-        final Config config = loadPgDevConfig();
+        final Config config = loadComposedServiceConfig();
 
         final List<String> journals = config.getStringList(PEKKO_AUTO_START_JOURNALS);
         assertThat(journals)
-                .as("[%s] pekko.persistence.journal.auto-start-journals must contain %s",
+                .as("[%s] pekko.persistence.journal.auto-start-journals must be exactly [%s]",
                         serviceName, expectedJournalId)
-                .contains(expectedJournalId);
+                .containsExactly(expectedJournalId);
 
         final List<String> snapshots = config.getStringList(PEKKO_AUTO_START_SNAPSHOTS);
         assertThat(snapshots)
-                .as("[%s] pekko.persistence.snapshot-store.auto-start-snapshot-stores must contain %s",
+                .as("[%s] pekko.persistence.snapshot-store.auto-start-snapshot-stores must be exactly [%s]",
                         serviceName, expectedSnapshotId)
-                .contains(expectedSnapshotId);
+                .containsExactly(expectedSnapshotId);
+
+        assertThat(config.getString(PROVIDER_CLASS_PATH))
+                .as("[%s] composed config must select the Postgres provider", serviceName)
+                .isEqualTo(POSTGRES_PROVIDER_CLASS);
+        assertThat(config.hasPath("ditto.mongodb.uri"))
+                .as("[%s] no MongoDB client config without a MongoDB profile", serviceName)
+                .isFalse();
     }
 
     // --------------------------------------------------
@@ -459,31 +520,47 @@ public final class PostgresProfileHoconLintTest {
     }
 
     // --------------------------------------------------
-    // Assertion 5: the profile alone (no service overlay) sets the real Pekko auto-start paths
+    // Assertion 5: the profile alone declares per-entity auto-start keys and no Pekko auto-start lists
     // --------------------------------------------------
 
     /**
-     * Assertion 5: the profile itself — with NO service overlay involved — redirects Pekko's real
-     * auto-start config paths to the all-4-entity default, and the dead {@code ditto.persistence.*}
-     * block (a path nothing reads; Pekko reads {@code pekko.persistence.*}) is gone. This is NOT
-     * parameterized per-service: it loads {@code ditto-postgres-persistence.conf} directly, proving
-     * the header's "include this SINGLE file" contract for everything EXCEPT the one step every
-     * single-entity service deployment still owns — narrowing these lists to its own entity (see the
-     * header note and the auto-start block comment in the profile, and each service's *-pg-dev.conf).
+     * Assertion 5: the profile itself — with NO service overlay involved — declares one journal and one snapshot store
+     * per entity under {@code ditto.persistence-backend.auto-start.<entity>}, with no WoT entry, and sets no
+     * {@code pekko.persistence.*} auto-start list of its own: each service conf maps its own entity's keys onto Pekko's
+     * lists. The dead {@code ditto.persistence.*} block (a path nothing reads) stays gone. This uses the parameter
+     * row's ids but loads {@code ditto-postgres-persistence.conf} directly.
      */
     @Test
-    public void profileAloneRedirectsPekkoAutoStartLists() {
-        // The header promises: include this SINGLE file for everything except the per-entity narrowing every
-        // single-entity service deployment must still do (see the profile's header + auto-start block comment).
-        // Pekko reads pekko.persistence.*, never ditto.persistence.* — the profile must set the real path.
+    public void profileDeclaresPerEntityAutoStartKeys() {
         final Config profile = ConfigFactory.parseResources("ditto-postgres-persistence.conf").resolve();
-        assertThat(profile.getStringList("pekko.persistence.journal.auto-start-journals"))
-                .contains("ditto-postgres-things-journal", "ditto-postgres-policies-journal",
-                        "ditto-postgres-connections-journal", "ditto-postgres-wot-journal");
-        assertThat(profile.getStringList("pekko.persistence.snapshot-store.auto-start-snapshot-stores"))
-                .contains("ditto-postgres-things-snapshots", "ditto-postgres-policies-snapshots",
-                        "ditto-postgres-connections-snapshots", "ditto-postgres-wot-snapshots");
+        assertThat(profile.getString("ditto.persistence-backend.name")).isEqualTo("postgresql");
+        assertThat(profile.getStringList(PROFILE_AUTO_START_PATH + "." + autoStartEntityKey + ".journals"))
+                .containsExactly(expectedJournalId);
+        assertThat(profile.getStringList(PROFILE_AUTO_START_PATH + "." + autoStartEntityKey + ".snapshots"))
+                .containsExactly(expectedSnapshotId);
+        assertThat(profile.getConfig(PROFILE_AUTO_START_PATH).root().keySet())
+                .as("no WoT entry: the wot-validation-config plugins are not auto-started")
+                .containsExactlyInAnyOrder("things", "policies", "connections");
+        assertThat(profile.hasPath(PEKKO_AUTO_START_JOURNALS)).as("profile sets no Pekko journal list").isFalse();
+        assertThat(profile.hasPath(PEKKO_AUTO_START_SNAPSHOTS)).as("profile sets no Pekko snapshot list").isFalse();
         assertThat(profile.hasPath("ditto.persistence.journal")).as("dead ditto.persistence.* block removed")
+                .isFalse();
+    }
+
+    /**
+     * Assertion 5, per service: the pg-dev override layer ({@code <svc>-pg-dev.conf} alone, its includes skipped)
+     * sets no {@code pekko.persistence} path, so the narrowing it used to do is gone and the service conf's mapping of
+     * the profile's per-entity keys decides the auto-start lists.
+     */
+    @Test
+    public void pgDevLayerSetsNoAutoStartLists() {
+        final ClassLoader cl = buildServiceClassLoader();
+        assertThat(cl.getResource(pgDevResourceName + ".conf")).as("%s.conf must be found", pgDevResourceName)
+                .isNotNull();
+        final Config pgDevLayer = ConfigFactory.parseResources(cl, pgDevResourceName + ".conf",
+                ConfigParseOptions.defaults().setAllowMissing(false).setIncluder(noOpIncluder()));
+        assertThat(pgDevLayer.hasPath("pekko.persistence"))
+                .as("%s: the pg-dev layer must not narrow the auto-start lists any more", serviceName)
                 .isFalse();
     }
 
@@ -515,10 +592,14 @@ public final class PostgresProfileHoconLintTest {
             assertThat(profile.hasPath(block + ".plugin-dispatcher"))
                     .as(block + ": Pekko's default plugin dispatcher, as the MongoDB remember plugins").isFalse();
         }
-        assertThat(profile.getStringList("pekko.persistence.journal.auto-start-journals"))
-                .doesNotContain("ditto-postgres-connection-remember-journal");
-        assertThat(profile.getStringList("pekko.persistence.snapshot-store.auto-start-snapshot-stores"))
-                .doesNotContain("ditto-postgres-connection-remember-snapshots");
+        final Config autoStart = profile.getConfig(PROFILE_AUTO_START_PATH);
+        for (final String entity : autoStart.root().keySet()) {
+            for (final String list : List.of("journals", "snapshots")) {
+                assertThat(autoStart.getStringList(ConfigUtil.joinPath(entity, list)))
+                        .as("auto-start.%s.%s starts no remember plugin", entity, list)
+                        .noneMatch(id -> id.contains("-remember-"));
+            }
+        }
     }
 
     /**
@@ -554,4 +635,12 @@ public final class PostgresProfileHoconLintTest {
         assertThat(profile.getInt(ConfigUtil.joinPath("pekko", "coordinated-shutdown", "reason-overrides",
                 PostgresSchemaBootstrapper.BootstrapFailed.class.getName(), "exit-code"))).isEqualTo(1);
     }
+
+    /**
+     * Skips {@code include "x"}, {@code include classpath("x")} and {@code include file("x")} alike, also in their
+     * {@code required(...)} form: a plain {@link ConfigIncluder} only replaces the first, the other two fall back to
+     * the default includer.
+     */
+    private interface SkippingIncluder extends ConfigIncluder, ConfigIncluderClasspath, ConfigIncluderFile {}
+
 }

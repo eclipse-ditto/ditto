@@ -74,7 +74,8 @@ public final class PostgresPluginWiringCheckTest {
 
     @Test
     public void shippedProfileWiresOnlyPostgresClassesForEveryService() {
-        // The real profile: its four-entity auto-start lists make leg (b) visit every shipped plugin block.
+        // The real profile ships no pekko.persistence.* auto-start lists (each service conf maps the profile's
+        // per-entity keys onto them), so leg (b) skips here; leg (a) still visits every declared plugin id.
         final Config profile = ConfigFactory.parseResources("ditto-postgres-persistence.conf").resolve();
         final Map<String, List<String>> declaredIds = Map.of(
                 THINGS, List.of(THINGS_JOURNAL_ID, THINGS_SNAPSHOT_ID),

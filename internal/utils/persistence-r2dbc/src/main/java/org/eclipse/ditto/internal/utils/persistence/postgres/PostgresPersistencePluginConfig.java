@@ -29,8 +29,9 @@ import org.eclipse.ditto.internal.utils.persistence.api.PersistencePluginConfig;
  *
  * <h2>ID-sourcing approach — constants matching the shipped Postgres profile</h2>
  * The auto-start IDs are hardcoded as named constants whose values are verified verbatim against the shipped Postgres
- * profile {@code ditto-postgres-persistence.conf} ({@code journal.auto-start-journals} /
- * {@code snapshot-store.auto-start-snapshot-stores}). Hardcoding — rather than reading the conf at runtime — keeps these
+ * profile {@code ditto-postgres-persistence.conf}, which declares them per entity under
+ * {@code ditto.persistence-backend.auto-start.<entity>.journals} / {@code .snapshots}; each service conf maps its own
+ * entity's keys onto {@code pekko.persistence.*}. Hardcoding — rather than reading the conf at runtime — keeps these
  * values available to the HOCON drift tests and to the boot-time {@link PostgresPluginWiringCheck} without a
  * fully-loaded service config, and turns a value drift into a failing unit test. Any change to the shipped IDs must
  * update both the HOCON and these constants.
@@ -56,8 +57,9 @@ public final class PostgresPersistencePluginConfig implements PersistencePluginC
 
     // ── shipped ditto-postgres-persistence.conf block names ──────────────────
     // Verified against ditto-postgres-persistence.conf (PostgresPersistencePluginConfigTest):
-    //   pekko.persistence.journal.auto-start-journals                   (things|policies|connections|wot journals)
-    //   pekko.persistence.snapshot-store.auto-start-snapshot-stores     (things|policies|connections|wot snapshots)
+    //   ditto.persistence-backend.auto-start.<things|policies|connections>.journals    (one journal per entity)
+    //   ditto.persistence-backend.auto-start.<things|policies|connections>.snapshots   (one snapshot store per entity)
+    // Each service conf maps its own entity's keys onto pekko.persistence.*.auto-start-*.
 
     // things — auto-start
     static final String THINGS_JOURNAL = "ditto-postgres-things-journal";
@@ -79,8 +81,8 @@ public final class PostgresPersistencePluginConfig implements PersistencePluginC
 
     /**
      * Per-service auto-start sets (service name → immutable list of journal + snapshot IDs). A Postgres service persists
-     * a single entity type per actor system, so each service narrows to its single entity's pair — exactly as the
-     * per-service config narrows the full profile list (the {@code *-pg-dev.conf} auto-start overrides).
+     * a single entity type per actor system, so each service gets its single entity's pair — exactly the per-entity
+     * auto-start keys of the profile that the service conf maps onto {@code pekko.persistence.*}.
      */
     private static final Map<String, List<String>> AUTO_START_IDS_BY_SERVICE = Map.of(
             "things",       List.of(THINGS_JOURNAL, THINGS_SNAPSHOTS),
