@@ -15,7 +15,6 @@ package org.eclipse.ditto.thingsearch.service;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
 
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import com.tngtech.archunit.base.DescribedPredicate;
@@ -25,13 +24,10 @@ import com.tngtech.archunit.core.importer.ClassFileImporter;
 import com.tngtech.archunit.core.importer.ImportOption;
 
 /**
- * Rule 1 (no Mongo outside the Mongo zone) and Rule 2 (no Postgres in service code) of the pluggable-persistence
- * boundary rules, applied to the thingsearch service.
- * <p>
- * Per Rule 1, the Mongo zone is {@code ...internal.utils.persistence.mongo..} AND the thingsearch search-index
- * packages: the Ditto search index <em>is</em> MongoDB by design, so the thingsearch read/write/update/config
- * packages that implement it are an explicit, allowed part of the Mongo zone. This test pins down which packages
- * those are and asserts that Mongo usage does NOT leak into any OTHER thingsearch package.
+ * Persistence boundary of the thingsearch service: its MAIN code depends on no MongoDB type, no Mongo persistence
+ * module, no Mongo search backend and no R2DBC or Postgres type. The service reaches its search backend only through
+ * the thing-search persistence-API ({@code thingsearch/persistence-api}); the MongoDB search backend lives in
+ * {@code thingsearch/persistence-mongo}, which the service only has at {@code runtime} scope.
  * <p>
  * Driven via ArchUnit's core API from JUnit 4 {@code @Test} methods so the module keeps running on its existing
  * JUnit 4 / surefire setup; the imported classes are scoped to MAIN code via
@@ -40,31 +36,6 @@ import com.tngtech.archunit.core.importer.ImportOption;
  * @since 4.0.0
  */
 public final class PersistenceBoundaryArchTest {
-
-    /**
-     * The thingsearch search-index packages - the part of the Mongo zone that legitimately implements the
-     * Mongo-backed search index. Determined from the actual Mongo-coupled MAIN classes of this module.
-     */
-    private static final String[] SEARCH_INDEX_PACKAGES = {
-            "org.eclipse.ditto.thingsearch.service.persistence..",
-            "org.eclipse.ditto.thingsearch.service.common.config..",
-            "org.eclipse.ditto.thingsearch.service.starter.actors..",
-            "org.eclipse.ditto.thingsearch.service.updater.actors..",
-    };
-
-    private static final DescribedPredicate<JavaClass> IS_MONGO =
-            new DescribedPredicate<>("be a Mongo type (com.mongodb.., org.bson.., "
-                    + "pekko.contrib.persistence.mongodb.., or named MongoReadJournal)") {
-                @Override
-                public boolean test(final JavaClass javaClass) {
-                    final String pkg = javaClass.getPackageName();
-                    return pkg.equals("com.mongodb") || pkg.startsWith("com.mongodb.")
-                            || pkg.equals("org.bson") || pkg.startsWith("org.bson.")
-                            || pkg.equals("pekko.contrib.persistence.mongodb")
-                            || pkg.startsWith("pekko.contrib.persistence.mongodb.")
-                            || javaClass.getSimpleName().equals("MongoReadJournal");
-                }
-            };
 
     private static final DescribedPredicate<JavaClass> IS_POSTGRES =
             new DescribedPredicate<>("be a Postgres type (io.r2dbc.., org.postgresql.., "
@@ -89,31 +60,15 @@ public final class PersistenceBoundaryArchTest {
     }
 
     /**
-     * Rule 1: Mongo usage in the thingsearch service must stay WITHIN the search-index packages. Any thingsearch
-     * MAIN class outside those packages that depends on a Mongo type is a leak of the Mongo zone.
-     */
-    @Test
-    public void mongoUsageStaysWithinSearchIndexPackages() {
-        noClasses()
-                .that().resideOutsideOfPackages(SEARCH_INDEX_PACKAGES)
-                .should().dependOnClassesThat(IS_MONGO)
-                .as("thingsearch-service MAIN code outside the search-index packages "
-                        + "must not depend on any Mongo type")
-                .because("the Mongo-backed search index is confined to the thingsearch search-index packages; "
-                        + "Mongo must not leak elsewhere")
-                .check(thingsearchServiceMainClasses);
-    }
-
-    /**
-     * Rule 2: no thingsearch-service MAIN class may depend on a Postgres type. Thingsearch is "service code"; its
-     * backend is Mongo (the search index) - it must never couple to Postgres.
+     * Rule 2: no thingsearch-service MAIN class may depend on a Postgres type. Thingsearch is "service code"; it must
+     * not couple to a backend, it reaches the backend through the persistence-API.
      */
     @Test
     public void thingsearchMustNotDependOnPostgres() {
         noClasses()
                 .should().dependOnClassesThat(IS_POSTGRES)
                 .as("thingsearch-service MAIN code must not depend on any Postgres type")
-                .because("the thingsearch search index is Mongo-only; it must never couple to Postgres")
+                .because("service code must not couple to a backend; it reaches it through the persistence-API")
                 .check(thingsearchServiceMainClasses);
     }
 
@@ -122,7 +77,6 @@ public final class PersistenceBoundaryArchTest {
      * the Mongo search backend: service code reaches the search backend only through the persistence-API.
      */
     @Test
-    @Ignore("enabled once the Mongo search code has left this module")
     public void serviceMainCodeDoesNotDependOnMongo() {
         noClasses()
                 .should().dependOnClassesThat().resideInAnyPackage("com.mongodb..", "org.bson..", "org.mongodb..",

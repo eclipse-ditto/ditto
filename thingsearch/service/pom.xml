@@ -50,6 +50,7 @@
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-thingsearch-persistence-mongo</artifactId>
+            <scope>runtime</scope>
         </dependency>
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
@@ -74,6 +75,7 @@
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-internal-utils-persistence</artifactId>
+            <scope>runtime</scope>
         </dependency>
         <dependency>
             <groupId>org.eclipse.ditto</groupId>

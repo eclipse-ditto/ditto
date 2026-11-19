@@ -32,6 +32,8 @@ paths:
 
 - MongoDB `*IT`s start a container through `MongoDbResource` and fail without Docker;
   `HOSTING_ENVIRONMENT=IDE` points them at a MongoDB on localhost instead.
+- The MongoDB search `*IT`s live in `thingsearch/persistence-mongo`; only `SearchActorIT` stays in
+  `thingsearch/service`.
 - PostgreSQL `*IT`s use Testcontainers through `PostgresDbResource` (`postgres-client` test-jar),
   the image from `-Dditto.test.postgres.image`, and skip via `Assume` without Docker — read the
   `Skipped` count, not the exit code. CI's `postgres-its` job fails on any skip.
@@ -42,4 +44,7 @@ paths:
   `divergence` and pins for both backends; `expectNonEmptySudo` keeps a case from passing on
   empty results.
 - ArchUnit tests (`PersistenceBoundaryArchTest` per service, `MongoModuleNoPostgresArchTest`,
-  `PostgresSearchNoMongoArchTest`) fail main code that imports the other backend.
+  `PostgresSearchNoMongoArchTest`) fail main code that imports the other backend;
+  `PersistenceApiNeutralityArchTest` and `ThingsearchPersistenceApiNeutralityArchTest` keep the
+  persistence-APIs free of both backends; `MongoSearchNoServiceArchTest` fails MongoDB search
+  backend code that depends on the search service.

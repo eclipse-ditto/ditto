@@ -2,10 +2,10 @@
 
 MongoDB is the default; PostgreSQL is an opt-in extension. Both hang on two `DittoExtensionPoint`s:
 
-| Key under `ditto.extensions`   | Serves                                    | Default, in the image                                            | PostgreSQL, extension JAR                                                 |
-|--------------------------------|-------------------------------------------|------------------------------------------------------------------|---------------------------------------------------------------------------|
-| `persistence-backend-provider` | journal, snapshots, read journal, cleanup | `MongoPersistenceBackendProvider` (`internal/utils/persistence`) | `PostgresPersistenceBackendProvider` (`internal/utils/persistence-r2dbc`) |
-| `search-persistence-provider`  | search index, queries, background sync    | `MongoSearchPersistenceProvider` (`thingsearch/service`)         | `PostgresSearchPersistenceProvider` (`internal/utils/search-r2dbc`)       |
+| Key under `ditto.extensions`   | Serves                                    | Default, in the image                                              | PostgreSQL, extension JAR                                                 |
+|--------------------------------|-------------------------------------------|--------------------------------------------------------------------|---------------------------------------------------------------------------|
+| `persistence-backend-provider` | journal, snapshots, read journal, cleanup | `MongoPersistenceBackendProvider` (`internal/utils/persistence`)   | `PostgresPersistenceBackendProvider` (`internal/utils/persistence-r2dbc`) |
+| `search-persistence-provider`  | search index, queries, background sync    | `MongoSearchPersistenceProvider` (`thingsearch/persistence-mongo`) | `PostgresSearchPersistenceProvider` (`internal/utils/search-r2dbc`)       |
 
 The contracts are `PersistenceBackendProvider` (`internal/utils/persistence-api`: plugin IDs per entity
 type, `DittoReadJournal`, `SnapshotCodec`, operations, health, streaming, `bootstrapSchema()`,
@@ -14,8 +14,10 @@ root actors call `verifyPluginWiring`, then `bootstrapSchema`, before anything e
 only `bootstrapSchema`. `AbstractPersistenceActor` wraps the service's JSON snapshot serializer
 (`snapshot-adapter`; the Mongo-era class names stay) in the provider's codec, so no backend needs an adapter
 of its own. ArchUnit tests keep PostgreSQL out of service, `persistent-actors` and API main code and ban the
-switchable MongoDB artifacts (read journal, Pekko Mongo plugins, raw driver) there; thingsearch's
-search-index packages stay MongoDB by design (`.claude/rules/tests.md`).
+switchable MongoDB artifacts (read journal, Pekko Mongo plugins, raw driver) there. Service main code, search
+included, has no MongoDB dependency: the MongoDB search backend is `thingsearch/persistence-mongo`, which the
+search service has at `runtime` scope only, pinned by the search `PersistenceBoundaryArchTest` and
+`MongoSearchNoServiceArchTest` (`.claude/rules/tests.md`).
 
 ## PostgreSQL modules
 

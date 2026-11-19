@@ -36,7 +36,8 @@ Operators can statically configure which fields are searchable ("indexed fields"
 ### Search Persistence
 
 The backend is chosen by the `ditto.extensions.search-persistence-provider` extension point
-(`SearchPersistenceProvider`): `MongoSearchPersistenceProvider` by default, `PostgresSearchPersistenceProvider` opt-in
+(`SearchPersistenceProvider`): `MongoSearchPersistenceProvider` (`thingsearch/persistence-mongo`) by default,
+`PostgresSearchPersistenceProvider` opt-in
 (see [PostgreSQL Search Backend](#postgresql-search-backend)).
 
 **MongoDB collections**:
@@ -190,7 +191,8 @@ Three mechanisms trigger search index updates:
 3. **Forward to the search service**: `EdgeCommandForwarderActor` publishes the `ThingSearchCommand` via Pekko distributed pub/sub to
    the `SearchActor` (a search command belongs to no single entity, so it is not sharded)
 4. **Query translation**: Convert RQL to the backend's query
-   - MongoDB: `CreateBsonVisitor`, `GetFilterBsonVisitor` in `org.eclipse.ditto.thingsearch.service.persistence.read`
+   - MongoDB: `CreateBsonVisitor` (`org.eclipse.ditto.thingsearch.persistence.mongo.read.criteria.visitors`) and
+     `GetFilterBsonVisitor` (`...persistence.mongo.read.expression.visitors`) in `thingsearch/persistence-mongo`
    - PostgreSQL: `CreateSqlPredicateVisitor`, `SearchQueryAssembler` in `internal/utils/search-r2dbc`
    - **User filter** + **Authorization filter** combined
 5. **Execution**: Run the query against the search collection, or `search_flat` + `search_things`
@@ -227,7 +229,8 @@ search indexes.
 a materialised selective leg (`SelectiveLegCte`). `like`/`ilike` reach the SQL side as raw wildcard patterns through
 `PredicateVisitor.visitLikeWithWildcards` / `visitILikeWithWildcards` ([RQL.md](RQL.md)) and are served by a trigram
 index. `ThingWriteModel`, `AbstractWriteModel` and `ThingDeleteModel` exist twice — the neutral ones in
-`thingsearch/persistence-api`, the MongoDB ones of the same name in `thingsearch/service` — so check the import.
+`thingsearch/persistence-api`, the MongoDB ones of the same name in `thingsearch/persistence-mongo`
+(`org.eclipse.ditto.thingsearch.persistence.mongo.write.model`) — so check the import.
 
 **Parity is the arbiter.** `SearchBackendParityIT` (needs Docker and never skips) writes one corpus of Things and
 policies (`internal/utils/search-r2dbc/src/test/resources/parity/`) through both production write paths and runs
