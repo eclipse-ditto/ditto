@@ -19,7 +19,6 @@ import java.util.concurrent.CompletionException;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Function;
 
-import org.apache.pekko.actor.ActorRef;
 import org.apache.pekko.actor.ActorSelection;
 import org.apache.pekko.pattern.AskTimeoutException;
 import org.apache.pekko.pattern.Patterns;
@@ -74,13 +73,11 @@ final class SupervisorSmartChannelDispatching {
      * </ul>
      *
      * @param thingQueryCommand the command to handle as "smart channel selection" query command
-     * @param sender the original sender of the command required for responding the live response to
      * @param localAskTimeout the "ask" timeout to apply for local "ask" operations
      * @return a CompletionStage which will be completed with a target actor and a message to send to this target actor
      */
     CompletionStage<TargetActorWithMessage> dispatchSmartChannelThingQueryCommand(
             final ThingQueryCommand<?> thingQueryCommand,
-            final ActorRef sender,
             final Duration localAskTimeout
     ) {
         return initSmartChannelSelection(thingQueryCommand, localAskTimeout)
@@ -97,13 +94,9 @@ final class SupervisorSmartChannelDispatching {
                                         )
                         );
                     } else {
-                        // directly respond with twin response to sender
-                        return CompletableFuture.completedFuture(new TargetActorWithMessage(
-                                sender,
-                                twinQueryCommandResponse,
-                                Duration.ZERO,
-                                Function.identity()
-                        ));
+                        // respond with the twin response, which still has to be filtered by the enforcer:
+                        return CompletableFuture.completedFuture(
+                                TargetActorWithMessage.ofTargetActorResponse(twinQueryCommandResponse));
                     }
                 });
     }

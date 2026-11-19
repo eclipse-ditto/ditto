@@ -14,13 +14,17 @@ package org.eclipse.ditto.things.service.enforcement;
 
 import static org.eclipse.ditto.policies.api.Permission.WRITE;
 
+import java.text.MessageFormat;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
 import org.eclipse.ditto.base.model.entity.id.EntityId;
 import org.eclipse.ditto.base.model.entity.id.WithEntityId;
+import org.eclipse.ditto.base.model.exceptions.DittoHeaderInvalidException;
 import org.eclipse.ditto.base.model.exceptions.DittoInternalErrorException;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.base.model.signals.FeatureToggle;
 import org.eclipse.ditto.base.model.signals.Signal;
@@ -88,12 +92,17 @@ final class LiveSignalEnforcement
         if (correlationIdOpt.isPresent()) {
             final Enforcer enforcer = policyEnforcer.getEnforcer();
             if (liveSignal instanceof SendClaimMessage) {
-                // claim messages require no enforcement, publish them right away:
+                // claim messages require no enforcement, publish them right away - a condition would however be
+                // evaluated against the full thing without any permission:
+                rejectConditionHeaderOfClaimMessage(liveSignal.getDittoHeaders());
                 result = publishMessageCommand((MessageCommand<?, ?>) liveSignal, enforcer);
             } else {
                 final var streamingType = StreamingType.fromSignal(liveSignal);
                 if (streamingType.isPresent()) {
                     result = enforceLiveSignal(streamingType.get(), liveSignal, policyEnforcer);
+                    // the condition is evaluated against the full thing before publishing the live signal:
+                    ThingCommandEnforcement.enforceReadPermissionOnConditionHeader(enforcer,
+                            liveSignal.getDittoHeaders());
                 } else {
                     LOGGER.withCorrelationId(liveSignal)
                             .error("Unsupported Signal in LiveSignalEnforcement: <{}>", liveSignal);
@@ -160,6 +169,19 @@ final class LiveSignalEnforcement
             result = commandResponse;
         }
         return CompletableFuture.completedFuture(result);
+    }
+
+    private static void rejectConditionHeaderOfClaimMessage(final DittoHeaders dittoHeaders) {
+        if (dittoHeaders.getCondition().isPresent()) {
+            final String headerKey = DittoHeaderDefinition.CONDITION.getKey();
+            throw DittoHeaderInvalidException.newBuilder()
+                    .withInvalidHeaderKey(headerKey)
+                    .message(MessageFormat.format("The header ''{0}'' is not supported for claim messages.",
+                            headerKey))
+                    .description(MessageFormat.format("Remove the ''{0}'' header and try again.", headerKey))
+                    .dittoHeaders(dittoHeaders)
+                    .build();
+        }
     }
 
     private Signal<?> enforceLiveSignal(final StreamingType streamingType, final Signal<?> liveSignal,
