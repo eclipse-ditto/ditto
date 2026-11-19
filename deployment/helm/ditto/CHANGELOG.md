@@ -15,6 +15,31 @@ sections: `Added`, `Changed`, `Deprecated`, `Removed`, `Fixed`, `Security`.
 
 ## [Unreleased]
 
+## [4.9.0]
+
+Bumped Ditto `appVersion` to `3.9.9`.
+
+### Added
+- New `gateway.config.streaming.maxSessionLag` (default `0s`, disabled), passed to the gateway as
+  `GATEWAY_STREAMING_MAX_SESSION_LAG`. When set, a websocket or SSE session whose mailbox delays messages longer
+  than this is closed instead of letting its backlog grow until the gateway runs out of heap
+  ([#2630](https://github.com/eclipse-ditto/ditto/pull/2630))
+- New `policiesEnforcer.cache.expireAfterWriteJitter` for `things`, `policies` and `connectivity` (default `0.0`,
+  disabled), passed as `DITTO_POLICIES_ENFORCER_CACHE_EXPIRE_AFTER_WRITE_JITTER`. When set to e.g. `0.2`, the
+  `expireAfterWrite` of each loaded policy enforcer is randomly varied by +/-20%, so enforcers loaded at the same time
+  (e.g. after a restart) are no longer all reloaded at the same time every `expireAfterWrite`
+  ([#2650](https://github.com/eclipse-ditto/ditto/pull/2650))
+
+### Security
+- The nginx detection of `Authorization: Bearer ...` requests, which skip nginx Basic auth and are forwarded to the
+  gateway without the `x-ditto-pre-authenticated` header, is anchored to the start of the header (`~^Bearer `).
+  `values.yaml` documents that `global.jwtOnly: false` implicitly enables pre-authentication in the gateway.
+  Together with the gateway fix in Ditto 3.9.9, which only reads the pre-authenticated subject from the header and no
+  longer from a query parameter, this fixes the impersonation of arbitrary subjects by unauthenticated clients in the
+  chart's default configuration (`global.jwtOnly: false`). Part of the fix for the vulnerability
+  [CVE-2026-120753](https://nvd.nist.gov/vuln/detail/CVE-2026-120753) /
+  [GHSA-chwq-wg27-qvfr](https://github.com/eclipse-ditto/ditto/security/advisories/GHSA-chwq-wg27-qvfr)
+
 ## [4.8.0]
 
 Bumped Ditto `appVersion` to `3.9.8`. Also contains the fix planned for the never released chart version `4.7.1`.
