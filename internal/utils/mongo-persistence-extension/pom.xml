@@ -1,0 +1,191 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  ~ Copyright (c) 2026 Contributors to the Eclipse Foundation
+  ~
+  ~ See the NOTICE file(s) distributed with this work for additional
+  ~ information regarding copyright ownership.
+  ~
+  ~ This program and the accompanying materials are made available under the
+  ~ terms of the Eclipse Public License 2.0 which is available at
+  ~ http://www.eclipse.org/legal/epl-2.0
+  ~
+  ~ SPDX-License-Identifier: EPL-2.0
+  -->
+<project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://maven.apache.org/POM/4.0.0"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>org.eclipse.ditto</groupId>
+        <artifactId>ditto-internal-utils</artifactId>
+        <version>${revision}</version>
+    </parent>
+
+    <artifactId>ditto-mongo-persistence-extension</artifactId>
+    <packaging>jar</packaging>
+    <name>Eclipse Ditto :: MongoDB :: Persistence Extension</name>
+
+    <!--
+        The MongoDB persistence extension JAR, dropped into /opt/ditto/backends/mongodb/ of the things, policies,
+        connectivity and search services.
+
+        It carries ditto-internal-utils-persistence (the MongoDB event-sourcing persistence, its client, the
+        MongoPersistenceBackendBootstrap service registration and the profiles ditto-mongo.conf,
+        ditto-mongo-persistence.conf and ditto-persistence-backend.conf) plus every runtime dependency of it that the
+        service allinones do not contain: the MongoDB driver, the Scala driver, the Pekko MongoDB persistence plugin, the
+        AWS SDK used for IAM authentication and their own dependencies. The thin search extension JAR
+        (ditto-mongo-search-extension) needs this JAR next to it.
+
+        The version marker (META-INF/ditto-mongo-extension.properties) lets MongoSearchExtensionSelfCheck refuse
+        MongoDB extension JARs of different releases.
+
+        It is NOT a dependency of any service module.
+    -->
+
+    <dependencies>
+        <!-- The only compile dependency (version bom-managed). -->
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-internal-utils-persistence</artifactId>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <resources>
+            <resource>
+                <directory>src/main/resources</directory>
+                <filtering>true</filtering>
+            </resource>
+        </resources>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
+                <configuration>
+                    <!--
+                        Always rebuild the thin project JAR that shade:shade below takes as its input. Without this, an
+                        incremental `mvn install` (no `clean`) finds the artifact already in target/ "up to date" (this
+                        module's own sources rarely change) and keeps it; but that artifact is the PREVIOUS shaded JAR
+                        (shade replaces the main artifact in place). shade:shade then merges it with the freshly built
+                        persistence JAR and keeps the first copy of every overlapping class, i.e. the stale one,
+                        while every build step reports success.
+                    -->
+                    <forceCreation>true</forceCreation>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-shade-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>shade</goal>
+                        </goals>
+                        <configuration>
+                            <createDependencyReducedPom>false</createDependencyReducedPom>
+                            <artifactSet>
+                                <!--
+                                    Exactly the artifacts the service allinones lose when ditto-internal-utils-persistence
+                                    (and, for search, ditto-thingsearch-persistence-mongo) move to test scope; every other
+                                    artifact of the runtime closure is already in the allinones. Computed 2026-11-19 with
+                                    `mvn dependency:list -DincludeScope=runtime`: the runtime closure of
+                                    ditto-internal-utils-persistence (plus the module itself) minus the runtime closure
+                                    of each of things, policies, connectivity and thingsearch service with those
+                                    dependencies at test scope; the include list is the union over the four services
+                                    (things, policies and search each lose these 55; connectivity keeps the 13 netty
+                                    modules except netty-codec-http2 through other dependencies, at the same versions).
+                                    Listed per artifact on purpose: a groupId wildcard could pull in an artifact the
+                                    allinones already carry.
+                                -->
+                                <includes>
+                                    <include>org.eclipse.ditto:ditto-internal-utils-persistence</include>
+                                    <include>com.github.scullxbones:pekko-persistence-mongodb_${scala.version}</include>
+                                    <include>io.netty:netty-buffer</include>
+                                    <include>io.netty:netty-codec</include>
+                                    <include>io.netty:netty-codec-base</include>
+                                    <include>io.netty:netty-codec-compression</include>
+                                    <include>io.netty:netty-codec-http</include>
+                                    <include>io.netty:netty-codec-http2</include>
+                                    <include>io.netty:netty-codec-marshalling</include>
+                                    <include>io.netty:netty-codec-protobuf</include>
+                                    <include>io.netty:netty-common</include>
+                                    <include>io.netty:netty-handler</include>
+                                    <include>io.netty:netty-resolver</include>
+                                    <include>io.netty:netty-transport</include>
+                                    <include>io.netty:netty-transport-classes-epoll</include>
+                                    <include>io.netty:netty-transport-native-unix-common</include>
+                                    <include>io.projectreactor:reactor-core</include>
+                                    <include>org.apache.httpcomponents.client5:httpclient5</include>
+                                    <include>org.apache.httpcomponents.core5:httpcore5</include>
+                                    <include>org.apache.httpcomponents.core5:httpcore5-h2</include>
+                                    <include>org.mongodb.scala:mongo-scala-bson_${scala.version}</include>
+                                    <include>org.mongodb.scala:mongo-scala-driver_${scala.version}</include>
+                                    <include>org.mongodb:bson</include>
+                                    <include>org.mongodb:bson-record-codec</include>
+                                    <include>org.mongodb:mongodb-driver-core</include>
+                                    <include>org.mongodb:mongodb-driver-reactivestreams</include>
+                                    <include>org.scala-lang:scala-reflect</include>
+                                    <include>software.amazon.awssdk:annotations</include>
+                                    <include>software.amazon.awssdk:apache5-client</include>
+                                    <include>software.amazon.awssdk:auth</include>
+                                    <include>software.amazon.awssdk:aws-core</include>
+                                    <include>software.amazon.awssdk:aws-query-protocol</include>
+                                    <include>software.amazon.awssdk:checksums</include>
+                                    <include>software.amazon.awssdk:checksums-spi</include>
+                                    <include>software.amazon.awssdk:endpoints-spi</include>
+                                    <include>software.amazon.awssdk:http-auth</include>
+                                    <include>software.amazon.awssdk:http-auth-aws</include>
+                                    <include>software.amazon.awssdk:http-auth-aws-eventstream</include>
+                                    <include>software.amazon.awssdk:http-auth-spi</include>
+                                    <include>software.amazon.awssdk:http-client-spi</include>
+                                    <include>software.amazon.awssdk:identity-spi</include>
+                                    <include>software.amazon.awssdk:json-utils</include>
+                                    <include>software.amazon.awssdk:metrics-spi</include>
+                                    <include>software.amazon.awssdk:netty-nio-client</include>
+                                    <include>software.amazon.awssdk:profiles</include>
+                                    <include>software.amazon.awssdk:protocol-core</include>
+                                    <include>software.amazon.awssdk:regions</include>
+                                    <include>software.amazon.awssdk:retries</include>
+                                    <include>software.amazon.awssdk:retries-spi</include>
+                                    <include>software.amazon.awssdk:sdk-core</include>
+                                    <include>software.amazon.awssdk:sts</include>
+                                    <include>software.amazon.awssdk:third-party-jackson-core</include>
+                                    <include>software.amazon.awssdk:utils</include>
+                                    <include>software.amazon.awssdk:utils-lite</include>
+                                    <include>software.amazon.eventstream:eventstream</include>
+                                </includes>
+                            </artifactSet>
+                            <filters>
+                                <filter>
+                                    <artifact>*:*</artifact>
+                                    <excludes>
+                                        <exclude>LICENSE</exclude>
+                                        <exclude>LICENSE.txt</exclude>
+                                        <exclude>NOTICE</exclude>
+                                        <exclude>THIRD-PARTY.txt</exclude>
+                                        <exclude>README.md</exclude>
+                                        <exclude>rootdoc.txt</exclude>
+                                        <exclude>META-INF/NOTICE</exclude>
+                                        <exclude>META-INF/*.SF</exclude>
+                                        <exclude>META-INF/*.DSA</exclude>
+                                        <exclude>META-INF/*.RSA</exclude>
+                                    </excludes>
+                                </filter>
+                            </filters>
+                            <transformers>
+                                <transformer
+                                        implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/>
+                                <transformer
+                                        implementation="org.apache.maven.plugins.shade.resource.AppendingTransformer">
+                                    <resource>reference.conf</resource>
+                                </transformer>
+                            </transformers>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+
+</project>

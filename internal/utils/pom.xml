@@ -44,9 +44,12 @@
         <module>persistence-r2dbc</module>
         <module>postgres-persistence-extension</module>
         <module>persistence</module>
+        <module>mongo-persistence-extension</module>
         <module>search-r2dbc</module>
         <module>postgres-search-extension</module>
         <module>postgres-extension-it</module>
+        <module>mongo-search-extension</module>
+        <module>mongo-extension-it</module>
         <module>pubsub</module>
         <module>pubsub-policies</module>
         <module>pubsub-things</module>

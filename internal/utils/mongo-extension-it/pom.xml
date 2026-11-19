@@ -1,0 +1,181 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  ~ Copyright (c) 2026 Contributors to the Eclipse Foundation
+  ~
+  ~ See the NOTICE file(s) distributed with this work for additional
+  ~ information regarding copyright ownership.
+  ~
+  ~ This program and the accompanying materials are made available under the
+  ~ terms of the Eclipse Public License 2.0 which is available at
+  ~ http://www.eclipse.org/legal/epl-2.0
+  ~
+  ~ SPDX-License-Identifier: EPL-2.0
+  -->
+<project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://maven.apache.org/POM/4.0.0"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>org.eclipse.ditto</groupId>
+        <artifactId>ditto-internal-utils</artifactId>
+        <version>${revision}</version>
+    </parent>
+
+    <artifactId>ditto-mongo-extension-it</artifactId>
+    <name>Eclipse Ditto :: MongoDB :: Extension Classloading IT</name>
+
+    <!--
+        Classloading integration test for the two MongoDB extension JARs. It takes the REAL shaded JARs
+        (ditto-mongo-persistence-extension, ditto-mongo-search-extension) and loads them in child class loaders on top
+        of a parent class path that stands in for a service allinone without MongoDB, then checks:
+          (a) persistence + search JAR: the search provider loads and its self-check passes, the MongoDB bootstrap is
+              registered under one name, and the provider constructor refuses extension JARs of mixed releases;
+          (b) the search JAR alone fails with an error naming the missing persistence JAR;
+          (c) a journal round trip through the persistence JAR against a MongoDB started by Testcontainers.
+        Case (c) needs Docker and fails without it.
+
+        The extension JARs are NOT class path dependencies (their classes would land on the parent and defeat the
+        isolation): maven-dependency-plugin copies them into target/extensions. The "pom"-type dependencies below only
+        order this module after the two extension modules in a parallel build.
+
+        The parent class path is ditto-things-service without its MongoDB modules (the exclusions below), i.e. the
+        content of the things allinone, which the driver extension and the metrics builder of the persistence JAR
+        need (Kamon, metrics, config). ditto-internal-utils-test is deliberately absent: it carries org.mongodb:bson.
+    -->
+
+    <properties>
+        <ditto.mongo.extensions.dir>${project.build.directory}/extensions</ditto.mongo.extensions.dir>
+        <!-- Mirror failsafe's skip semantics for the JAR staging below: when no IT runs there is nothing to stage.
+             CLI -D values win over these defaults, so -Dmaven.test.skip / -DskipTests / -DskipITs each skip the copy. -->
+        <maven.test.skip>false</maven.test.skip>
+        <skipTests>${maven.test.skip}</skipTests>
+        <skipITs>${skipTests}</skipITs>
+    </properties>
+
+    <dependencies>
+        <!-- ORDERING ONLY, not class path entries: type "pom" is never put on a class path and the wildcard exclusion
+             keeps the extensions' transitives off it too. Without these edges a parallel (-T) build may run the copy
+             below before the extension modules are built. Versions are explicit because the bom manages these
+             artifacts as type "jar". -->
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-mongo-persistence-extension</artifactId>
+            <version>${project.version}</version>
+            <type>pom</type>
+            <exclusions>
+                <exclusion>
+                    <groupId>*</groupId>
+                    <artifactId>*</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-mongo-search-extension</artifactId>
+            <version>${project.version}</version>
+            <type>pom</type>
+            <exclusions>
+                <exclusion>
+                    <groupId>*</groupId>
+                    <artifactId>*</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+
+        <!-- The "service allinone-like" PARENT class path of the child extension class loaders. -->
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-things-service</artifactId>
+            <scope>test</scope>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.eclipse.ditto</groupId>
+                    <artifactId>ditto-internal-utils-persistence</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.eclipse.ditto</groupId>
+                    <artifactId>ditto-thingsearch-persistence-mongo</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-thingsearch-persistence-api</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>testcontainers</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.assertj</groupId>
+            <artifactId>assertj-core</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>ch.qos.logback</groupId>
+            <artifactId>logback-classic</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <!-- Copy the REAL shaded extension JARs (main artifacts) into target/extensions before the ITs run. -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-dependency-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>copy-mongo-extension-jars</id>
+                        <phase>pre-integration-test</phase>
+                        <goals>
+                            <goal>copy</goal>
+                        </goals>
+                        <configuration>
+                            <!-- nothing to stage when the ITs are skipped (image builds run -DskipTests -DskipITs) -->
+                            <skip>${skipITs}</skip>
+                            <outputDirectory>${ditto.mongo.extensions.dir}</outputDirectory>
+                            <stripVersion>true</stripVersion>
+                            <overWriteReleases>true</overWriteReleases>
+                            <overWriteSnapshots>true</overWriteSnapshots>
+                            <artifactItems>
+                                <artifactItem>
+                                    <groupId>org.eclipse.ditto</groupId>
+                                    <artifactId>ditto-mongo-persistence-extension</artifactId>
+                                    <version>${project.version}</version>
+                                    <type>jar</type>
+                                    <destFileName>ditto-mongo-persistence-extension.jar</destFileName>
+                                </artifactItem>
+                                <artifactItem>
+                                    <groupId>org.eclipse.ditto</groupId>
+                                    <artifactId>ditto-mongo-search-extension</artifactId>
+                                    <version>${project.version}</version>
+                                    <type>jar</type>
+                                    <destFileName>ditto-mongo-search-extension.jar</destFileName>
+                                </artifactItem>
+                            </artifactItems>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <!-- Pass the extensions dir to the failsafe ITs. -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-failsafe-plugin</artifactId>
+                <configuration>
+                    <systemPropertyVariables>
+                        <ditto.mongo.extensions.dir>${ditto.mongo.extensions.dir}</ditto.mongo.extensions.dir>
+                    </systemPropertyVariables>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+
+</project>

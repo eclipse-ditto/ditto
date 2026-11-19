@@ -79,10 +79,13 @@ public final class MongoSearchPersistenceProvider implements SearchPersistencePr
      * @param actorSystem the actor system the extension is loaded into.
      * @param extensionConfig the {@code extension-config} subtree of the extension declaration (unused by the Mongo
      * provider, which reads its configuration from the actor-system config, matching today's behaviour).
+     * @throws IllegalStateException if {@link MongoSearchExtensionSelfCheck#verify()} finds the MongoDB persistence
+     * extension JAR missing or the MongoDB extension JARs from different Ditto releases.
      */
     public MongoSearchPersistenceProvider(final ActorSystem actorSystem, final Config extensionConfig) {
         this.actorSystem = Objects.requireNonNull(actorSystem, "actorSystem");
         Objects.requireNonNull(extensionConfig, "extensionConfig");
+        MongoSearchExtensionSelfCheck.verify();
     }
 
     @Override

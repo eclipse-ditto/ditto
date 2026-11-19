@@ -348,6 +348,12 @@
                 <artifactId>postgresql</artifactId>
                 <version>${testcontainers.version}</version>
             </dependency>
+            <!-- Testcontainers core: the MongoDB container of the MongoDB extension classloading IT (test scope). -->
+            <dependency>
+                <groupId>org.testcontainers</groupId>
+                <artifactId>testcontainers</artifactId>
+                <version>${testcontainers.version}</version>
+            </dependency>
             <!-- Test scope only: the plain PostgreSQL JDBC driver (search-r2dbc's PathIndexMaintenanceIT). -->
             <dependency>
                 <groupId>org.postgresql</groupId>
@@ -811,6 +817,19 @@
             <dependency>
                 <groupId>org.eclipse.ditto</groupId>
                 <artifactId>ditto-postgres-search-extension</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <!-- MongoDB drop-in extension JARs: the persistence JAR (driver and plugin included) and the thin search JAR.
+                 These are deployment artifacts (dropped into /opt/ditto/backends/mongodb/), not dependencies of any
+                 service. -->
+            <dependency>
+                <groupId>org.eclipse.ditto</groupId>
+                <artifactId>ditto-mongo-persistence-extension</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.eclipse.ditto</groupId>
+                <artifactId>ditto-mongo-search-extension</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>

@@ -59,7 +59,7 @@
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-internal-utils-persistence</artifactId>
-            <scope>runtime</scope>
+            <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
@@ -275,6 +275,45 @@
                                         not be a dependency of a service module — it would leak r2dbc into the
                                         service allinone. PostgreSQL ships as a separate drop-in extension jar.
                                     </message>
+                                </bannedDependencies>
+                            </rules>
+                            <fail>true</fail>
+                        </configuration>
+                    </execution>
+                    <!--
+                        MongoDB must not reach a service allinone: it ships as the extension JARs
+                        ditto-mongo-persistence-extension and ditto-mongo-search-extension in
+                        /opt/ditto/backends/mongodb/. This guard fails the build if the MongoDB driver (org.mongodb,
+                        org.mongodb.scala), the Pekko MongoDB persistence plugin (com.github.scullxbones) or Ditto's
+                        MongoDB modules become a compile or runtime dependency of this service, directly or
+                        transitively (the shade plugin resolves runtime scope). TEST scope is exempt: it never ships,
+                        and the service's tests run against MongoDB. PersistenceBoundaryArchTest keeps MongoDB types out
+                        of this module's MAIN code regardless of scope.
+                    -->
+                    <execution>
+                        <id>enforce-no-mongo-in-service</id>
+                        <goals>
+                            <goal>enforce</goal>
+                        </goals>
+                        <configuration>
+                            <rules>
+                                <bannedDependencies>
+                                    <searchTransitive>true</searchTransitive>
+                                    <!-- pattern groupId:artifactId:version:type:scope -->
+                                    <excludes>
+                                        <exclude>org.mongodb:*:*:*:compile</exclude>
+                                        <exclude>org.mongodb:*:*:*:runtime</exclude>
+                                        <!-- the Scala driver: "org.mongodb:*" does not match this groupId -->
+                                        <exclude>org.mongodb.scala:*:*:*:compile</exclude>
+                                        <exclude>org.mongodb.scala:*:*:*:runtime</exclude>
+                                        <exclude>com.github.scullxbones:*:*:*:compile</exclude>
+                                        <exclude>com.github.scullxbones:*:*:*:runtime</exclude>
+                                        <exclude>org.eclipse.ditto:ditto-internal-utils-persistence:*:*:compile</exclude>
+                                        <exclude>org.eclipse.ditto:ditto-internal-utils-persistence:*:*:runtime</exclude>
+                                        <exclude>org.eclipse.ditto:ditto-thingsearch-persistence-mongo:*:*:compile</exclude>
+                                        <exclude>org.eclipse.ditto:ditto-thingsearch-persistence-mongo:*:*:runtime</exclude>
+                                    </excludes>
+                                    <message>MongoDB must not be a compile or runtime dependency of a service module: it ships as the extension JARs ditto-mongo-persistence-extension and ditto-mongo-search-extension in /opt/ditto/backends/mongodb/. Test scope is allowed.</message>
                                 </bannedDependencies>
                             </rules>
                             <fail>true</fail>

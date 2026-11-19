@@ -1,0 +1,126 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  ~ Copyright (c) 2026 Contributors to the Eclipse Foundation
+  ~
+  ~ See the NOTICE file(s) distributed with this work for additional
+  ~ information regarding copyright ownership.
+  ~
+  ~ This program and the accompanying materials are made available under the
+  ~ terms of the Eclipse Public License 2.0 which is available at
+  ~ http://www.eclipse.org/legal/epl-2.0
+  ~
+  ~ SPDX-License-Identifier: EPL-2.0
+  -->
+<project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://maven.apache.org/POM/4.0.0"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>org.eclipse.ditto</groupId>
+        <artifactId>ditto-internal-utils</artifactId>
+        <version>${revision}</version>
+    </parent>
+
+    <artifactId>ditto-mongo-search-extension</artifactId>
+    <packaging>jar</packaging>
+    <name>Eclipse Ditto :: MongoDB :: Search Extension</name>
+
+    <!--
+        The MongoDB search extension JAR, dropped into /opt/ditto/backends/mongodb/ of the search service.
+
+        It carries only ditto-thingsearch-persistence-mongo (MongoSearchPersistenceProvider and the MongoDB search
+        persistence, with ditto-mongo-search.conf and ditto-search-backend.conf). The MongoDB driver and Ditto's MongoDB
+        persistence classes come from the persistence extension JAR (ditto-mongo-persistence-extension), which MUST sit
+        next to it: MongoSearchExtensionSelfCheck, called from the provider's constructor, refuses to start without it
+        and refuses MongoDB extension JARs of different releases (version marker
+        META-INF/ditto-mongo-extension.properties).
+
+        It is NOT a dependency of any service module.
+    -->
+
+    <dependencies>
+        <!-- The only compile dependency (version bom-managed). -->
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-thingsearch-persistence-mongo</artifactId>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <resources>
+            <resource>
+                <directory>src/main/resources</directory>
+                <filtering>true</filtering>
+            </resource>
+        </resources>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
+                <configuration>
+                    <!--
+                        Always rebuild the thin project JAR that shade:shade below takes as its input. Without this, an
+                        incremental `mvn install` (no `clean`) finds the artifact already in target/ "up to date" (this
+                        module's own sources rarely change) and keeps it; but that artifact is the PREVIOUS shaded JAR
+                        (shade replaces the main artifact in place). shade:shade then merges it with the freshly built
+                        search JAR and keeps the first copy of every overlapping class, i.e. the stale one,
+                        while every build step reports success.
+                    -->
+                    <forceCreation>true</forceCreation>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-shade-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>shade</goal>
+                        </goals>
+                        <configuration>
+                            <createDependencyReducedPom>false</createDependencyReducedPom>
+                            <artifactSet>
+                                <!--
+                                    Only the MongoDB search module itself. Its runtime dependencies are either in the
+                                    search service allinone or in the persistence extension JAR, which must sit next to
+                                    this JAR (the only other artifact of its closure, jsr305, holds annotations that are
+                                    not needed at runtime).
+                                -->
+                                <includes>
+                                    <include>org.eclipse.ditto:ditto-thingsearch-persistence-mongo</include>
+                                </includes>
+                            </artifactSet>
+                            <filters>
+                                <filter>
+                                    <artifact>*:*</artifact>
+                                    <excludes>
+                                        <exclude>LICENSE</exclude>
+                                        <exclude>LICENSE.txt</exclude>
+                                        <exclude>NOTICE</exclude>
+                                        <exclude>THIRD-PARTY.txt</exclude>
+                                        <exclude>README.md</exclude>
+                                        <exclude>rootdoc.txt</exclude>
+                                        <exclude>META-INF/NOTICE</exclude>
+                                        <exclude>META-INF/*.SF</exclude>
+                                        <exclude>META-INF/*.DSA</exclude>
+                                        <exclude>META-INF/*.RSA</exclude>
+                                    </excludes>
+                                </filter>
+                            </filters>
+                            <transformers>
+                                <transformer
+                                        implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/>
+                                <transformer
+                                        implementation="org.apache.maven.plugins.shade.resource.AppendingTransformer">
+                                    <resource>reference.conf</resource>
+                                </transformer>
+                            </transformers>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+
+</project>
