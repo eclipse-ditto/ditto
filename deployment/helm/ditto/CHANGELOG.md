@@ -46,6 +46,11 @@ Bumped Ditto `appVersion` to `3.9.9`.
   chart's default configuration (`global.jwtOnly: false`). Part of the fix for the vulnerability
   [CVE-2026-120753](https://nvd.nist.gov/vuln/detail/CVE-2026-120753) /
   [GHSA-chwq-wg27-qvfr](https://github.com/eclipse-ditto/ditto/security/advisories/GHSA-chwq-wg27-qvfr)
+- `-XX:-UseBASE64Intrinsics` is added to the default `global.jvmOptions`, mitigating the JDK vulnerability
+  [CVE-2026-114938](https://nvd.nist.gov/vuln/detail/CVE-2026-114938) ("Java4Shell", heap overflow in the Base64
+  decoder intrinsic on x86-64 CPUs with AVX-512 VBMI) of the JDK `25.0.5` shipped in the Ditto `3.9.9` Docker images.
+  The option only makes Base64 encoding and decoding slower. Installations overriding `global.jvmOptions` must add it
+  themselves. It will be removed again once the Docker images are based on a fixed JDK (`25.0.5.1` or later)
 
 ## [4.8.0]
 
