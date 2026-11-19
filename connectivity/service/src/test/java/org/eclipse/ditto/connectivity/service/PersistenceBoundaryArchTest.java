@@ -17,7 +17,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import org.eclipse.ditto.internal.utils.persistence.mongo.MongoClientWrapper;
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import com.tngtech.archunit.base.DescribedPredicate;
@@ -41,8 +40,7 @@ import com.tngtech.archunit.core.importer.ImportOption;
  *     <li>any class named {@code MongoReadJournal} (obtained via {@code provider.getReadJournal()}).</li>
  * </ul>
  * A further rule, {@code serviceMainCodeDoesNotDependOnMongoModule}, bans the whole Mongo module
- * {@code ...internal.utils.persistence.mongo..} with no whitelist; it is ignored until service code no longer needs
- * the Mongo config types and event adapters.
+ * {@code ...internal.utils.persistence.mongo..} with no whitelist.
  * <p>
  * There is no whitelist. The connection encryption migration ({@code EncryptionMigrationActor}) does not read and
  * rewrite the MongoDB journal and snapshot collections with the raw driver and BSON itself: it reaches the persisted
@@ -61,8 +59,8 @@ public final class PersistenceBoundaryArchTest {
 
     /**
      * The SWITCHABLE Mongo artifacts the pluggable-persistence provider owns. Service code
-     * must not reference these directly. Deliberately does NOT match {@code AbstractMongoEventAdapter} or the
-     * {@code ...persistence.mongo.config..} types; {@code serviceMainCodeDoesNotDependOnMongoModule} bans those.
+     * must not reference these directly. Deliberately does NOT match the Mongo module's types (adapters,
+     * {@code ...persistence.mongo.config..}); {@code serviceMainCodeDoesNotDependOnMongoModule} bans those.
      */
     private static final DescribedPredicate<JavaClass> IS_SWITCHABLE_MONGO =
             new DescribedPredicate<>("be a switchable Mongo artifact (com.mongodb.., org.bson.., "
@@ -165,10 +163,9 @@ public final class PersistenceBoundaryArchTest {
 
     /**
      * No connectivity-service MAIN class may depend on the Mongo module at all - no whitelist, not even for the Mongo
-     * config types and event adapters. Ignored until service code no longer needs them.
+     * config types and event adapters.
      */
     @Test
-    @Ignore("enabled by Task 5")
     public void serviceMainCodeDoesNotDependOnMongoModule() {
         noClasses()
                 .that().resideInAPackage("org.eclipse.ditto.connectivity.service..")

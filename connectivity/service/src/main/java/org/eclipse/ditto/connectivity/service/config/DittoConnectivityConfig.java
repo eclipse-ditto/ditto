@@ -33,8 +33,6 @@ import org.eclipse.ditto.internal.utils.health.config.HealthCheckConfig;
 import org.eclipse.ditto.internal.utils.metrics.config.MetricsConfig;
 import org.eclipse.ditto.internal.utils.persistence.api.operations.DefaultPersistenceOperationsConfig;
 import org.eclipse.ditto.internal.utils.persistence.api.operations.PersistenceOperationsConfig;
-import org.eclipse.ditto.internal.utils.persistence.mongo.config.DefaultMongoDbConfig;
-import org.eclipse.ditto.internal.utils.persistence.mongo.config.MongoDbConfig;
 import org.eclipse.ditto.internal.utils.persistentactors.config.DefaultPingConfig;
 import org.eclipse.ditto.internal.utils.persistentactors.config.PingConfig;
 import org.eclipse.ditto.internal.utils.protocol.config.DefaultProtocolConfig;
@@ -51,7 +49,6 @@ public final class DittoConnectivityConfig implements ConnectivityConfig {
 
     private final DittoServiceConfig serviceSpecificConfig;
     private final PersistenceOperationsConfig persistenceOperationsConfig;
-    private final MongoDbConfig mongoDbConfig;
     private final HealthCheckConfig healthCheckConfig;
     private final ConnectionConfig connectionConfig;
     private final PingConfig pingConfig;
@@ -66,7 +63,6 @@ public final class DittoConnectivityConfig implements ConnectivityConfig {
     private DittoConnectivityConfig(final ScopedConfig dittoScopedConfig) {
         serviceSpecificConfig = DittoServiceConfig.of(dittoScopedConfig, CONFIG_PATH);
         persistenceOperationsConfig = DefaultPersistenceOperationsConfig.of(dittoScopedConfig);
-        mongoDbConfig = DefaultMongoDbConfig.of(dittoScopedConfig);
         healthCheckConfig = DefaultHealthCheckConfig.of(dittoScopedConfig);
         protocolConfig = DefaultProtocolConfig.of(dittoScopedConfig);
         connectionConfig = DefaultConnectionConfig.of(serviceSpecificConfig);
@@ -153,11 +149,6 @@ public final class DittoConnectivityConfig implements ConnectivityConfig {
     }
 
     @Override
-    public MongoDbConfig getMongoDbConfig() {
-        return mongoDbConfig;
-    }
-
-    @Override
     public ProtocolConfig getProtocolConfig() {
         return protocolConfig;
     }
@@ -194,7 +185,6 @@ public final class DittoConnectivityConfig implements ConnectivityConfig {
         final DittoConnectivityConfig that = (DittoConnectivityConfig) o;
         return Objects.equals(serviceSpecificConfig, that.serviceSpecificConfig) &&
                 Objects.equals(persistenceOperationsConfig, that.persistenceOperationsConfig) &&
-                Objects.equals(mongoDbConfig, that.mongoDbConfig) &&
                 Objects.equals(healthCheckConfig, that.healthCheckConfig) &&
                 Objects.equals(connectionConfig, that.connectionConfig) &&
                 Objects.equals(pingConfig, that.pingConfig) &&
@@ -209,9 +199,9 @@ public final class DittoConnectivityConfig implements ConnectivityConfig {
 
     @Override
     public int hashCode() {
-        return Objects.hash(serviceSpecificConfig, persistenceOperationsConfig, mongoDbConfig, healthCheckConfig,
-                connectionConfig, pingConfig, connectionIdsRetrievalConfig, clientConfig, protocolConfig,
-                monitoringConfig, mappingConfig, acknowledgementConfig, tunnelConfig);
+        return Objects.hash(serviceSpecificConfig, persistenceOperationsConfig, healthCheckConfig, connectionConfig,
+                pingConfig, connectionIdsRetrievalConfig, clientConfig, protocolConfig, monitoringConfig, mappingConfig,
+                acknowledgementConfig, tunnelConfig);
     }
 
     @Override
@@ -219,7 +209,6 @@ public final class DittoConnectivityConfig implements ConnectivityConfig {
         return getClass().getSimpleName() + " [" +
                 "serviceSpecificConfig=" + serviceSpecificConfig +
                 ", persistenceOperationsConfig=" + persistenceOperationsConfig +
-                ", mongoDbConfig=" + mongoDbConfig +
                 ", healthCheckConfig=" + healthCheckConfig +
                 ", connectionConfig=" + connectionConfig +
                 ", pingConfig=" + pingConfig +

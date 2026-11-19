@@ -21,7 +21,6 @@ import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.internal.utils.config.KnownConfigValue;
 import org.eclipse.ditto.internal.utils.health.config.WithHealthCheckConfig;
 import org.eclipse.ditto.internal.utils.persistence.api.operations.WithPersistenceOperationsConfig;
-import org.eclipse.ditto.internal.utils.persistence.mongo.config.WithMongoDbConfig;
 import org.eclipse.ditto.internal.utils.persistentactors.config.PingConfig;
 import org.eclipse.ditto.internal.utils.protocol.config.WithProtocolConfig;
 
@@ -32,7 +31,7 @@ import com.typesafe.config.Config;
  */
 @Immutable
 public interface ConnectivityConfig extends ServiceSpecificConfig, WithHealthCheckConfig,
-        WithPersistenceOperationsConfig, WithMongoDbConfig, WithProtocolConfig {
+        WithPersistenceOperationsConfig, WithProtocolConfig {
 
     /**
      * Returns the config of connections.

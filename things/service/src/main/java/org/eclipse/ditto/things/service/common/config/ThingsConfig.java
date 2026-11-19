@@ -18,15 +18,13 @@ import org.eclipse.ditto.base.service.config.ServiceSpecificConfig;
 import org.eclipse.ditto.internal.utils.config.KnownConfigValue;
 import org.eclipse.ditto.internal.utils.health.config.WithHealthCheckConfig;
 import org.eclipse.ditto.internal.utils.persistence.api.operations.WithPersistenceOperationsConfig;
-import org.eclipse.ditto.internal.utils.persistence.mongo.config.WithMongoDbConfig;
 import org.eclipse.ditto.wot.api.config.WotConfig;
 
 /**
  * Provides the configuration settings of the Things service.
  */
 @Immutable
-public interface ThingsConfig extends ServiceSpecificConfig, WithHealthCheckConfig, WithPersistenceOperationsConfig,
-        WithMongoDbConfig {
+public interface ThingsConfig extends ServiceSpecificConfig, WithHealthCheckConfig, WithPersistenceOperationsConfig {
 
     /**
      * Indicates whether minimal information for all incoming messages should be logged.

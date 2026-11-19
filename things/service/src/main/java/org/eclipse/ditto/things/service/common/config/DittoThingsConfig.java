@@ -28,8 +28,6 @@ import org.eclipse.ditto.internal.utils.health.config.HealthCheckConfig;
 import org.eclipse.ditto.internal.utils.metrics.config.MetricsConfig;
 import org.eclipse.ditto.internal.utils.persistence.api.operations.DefaultPersistenceOperationsConfig;
 import org.eclipse.ditto.internal.utils.persistence.api.operations.PersistenceOperationsConfig;
-import org.eclipse.ditto.internal.utils.persistence.mongo.config.DefaultMongoDbConfig;
-import org.eclipse.ditto.internal.utils.persistence.mongo.config.MongoDbConfig;
 import org.eclipse.ditto.internal.utils.tracing.config.TracingConfig;
 import org.eclipse.ditto.wot.api.config.DefaultWotConfig;
 import org.eclipse.ditto.wot.api.config.WotConfig;
@@ -45,7 +43,6 @@ public final class DittoThingsConfig implements ThingsConfig {
     private final DittoServiceConfig serviceSpecificConfig;
     private final boolean logIncomingMessages;
     private final PersistenceOperationsConfig persistenceOperationsConfig;
-    private final MongoDbConfig mongoDbConfig;
     private final HealthCheckConfig healthCheckConfig;
     private final ThingConfig thingConfig;
     private final WotConfig wotConfig;
@@ -54,7 +51,6 @@ public final class DittoThingsConfig implements ThingsConfig {
         serviceSpecificConfig = DittoServiceConfig.of(dittoScopedConfig, CONFIG_PATH);
         logIncomingMessages = serviceSpecificConfig.getBoolean(ThingsConfigValue.LOG_INCOMING_MESSAGES.getConfigPath());
         persistenceOperationsConfig = DefaultPersistenceOperationsConfig.of(dittoScopedConfig);
-        mongoDbConfig = DefaultMongoDbConfig.of(dittoScopedConfig);
         healthCheckConfig = DefaultHealthCheckConfig.of(dittoScopedConfig);
         thingConfig = DefaultThingConfig.of(serviceSpecificConfig);
         wotConfig = DefaultWotConfig.of(serviceSpecificConfig);
@@ -108,11 +104,6 @@ public final class DittoThingsConfig implements ThingsConfig {
     }
 
     @Override
-    public MongoDbConfig getMongoDbConfig() {
-        return mongoDbConfig;
-    }
-
-    @Override
     public HealthCheckConfig getHealthCheckConfig() {
         return healthCheckConfig;
     }
@@ -144,7 +135,6 @@ public final class DittoThingsConfig implements ThingsConfig {
         return logIncomingMessages == that.logIncomingMessages &&
                 Objects.equals(serviceSpecificConfig, that.serviceSpecificConfig) &&
                 Objects.equals(persistenceOperationsConfig, that.persistenceOperationsConfig) &&
-                Objects.equals(mongoDbConfig, that.mongoDbConfig) &&
                 Objects.equals(healthCheckConfig, that.healthCheckConfig) &&
                 Objects.equals(thingConfig, that.thingConfig) &&
                 Objects.equals(wotConfig, that.wotConfig);
@@ -152,8 +142,8 @@ public final class DittoThingsConfig implements ThingsConfig {
 
     @Override
     public int hashCode() {
-        return Objects.hash(serviceSpecificConfig, logIncomingMessages, persistenceOperationsConfig, mongoDbConfig,
-                healthCheckConfig, thingConfig, wotConfig);
+        return Objects.hash(serviceSpecificConfig, logIncomingMessages, persistenceOperationsConfig, healthCheckConfig,
+                thingConfig, wotConfig);
     }
 
     @Override
@@ -162,7 +152,6 @@ public final class DittoThingsConfig implements ThingsConfig {
                 "serviceSpecificConfig=" + serviceSpecificConfig +
                 ", logIncomingMessages=" + logIncomingMessages +
                 ", persistenceOperationsConfig=" + persistenceOperationsConfig +
-                ", mongoDbConfig=" + mongoDbConfig +
                 ", healthCheckConfig=" + healthCheckConfig +
                 ", thingConfig=" + thingConfig +
                 ", wotConfig=" + wotConfig +
