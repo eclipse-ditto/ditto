@@ -210,7 +210,14 @@ The Helm chart was updated to version `3.8.15`, bumping the Ditto `appVersion` t
 As part of the [security fix for CVE-2026-120753](#security-fix-for-cve-2026-120753--subject-impersonation-via-the-x-ditto-pre-authenticated-query-parameter),
 the nginx `Bearer` detection is anchored to the start of the `Authorization` header, and `values.yaml` documents that
 `global.jwtOnly: false` implicitly enables pre-authentication in the gateway. Installations with the default
-`global.jwtOnly: false` should update to this chart version. There are no other chart changes.
+`global.jwtOnly: false` should update to this chart version.
+
+The chart also adds `-XX:-UseBASE64Intrinsics` to the default `global.jvmOptions`. It mitigates the JDK
+vulnerability [CVE-2026-114938](https://nvd.nist.gov/vuln/detail/CVE-2026-114938) ("Java4Shell"), a heap overflow in
+the Base64 decoder intrinsic of the JVM on x86-64 CPUs with AVX-512 VBMI, which can be reachable by unauthenticated
+requests, e.g. via the Base64 decoding of JWTs in the gateway. The Docker images of this release are based on the
+JDK `25.0.5+8`, as no Docker base image with a fixed JDK was available at the time of the release. The option only makes
+Base64 encoding and decoding slower and has no functional effect.
 
 
 ## Migration notes
@@ -230,3 +237,8 @@ which were previously accepted:
   `condition` and `live-channel-condition` headers on WoT Thing Description requests and a `condition` on claim
   messages are rejected with `400` (`header.invalid`). Conditions of live messages and live events, and
   `live-channel-condition`s combined with a `condition`, now require `READ` on the referenced fields.
+* **JVM option `-XX:-UseBASE64Intrinsics`**
+  ([CVE-2026-114938](https://nvd.nist.gov/vuln/detail/CVE-2026-114938)): the Helm chart sets it by default in
+  `global.jvmOptions`. Installations overriding `global.jvmOptions`, and installations not using the Helm chart,
+  should add `-XX:-UseBASE64Intrinsics` to the `JAVA_TOOL_OPTIONS` of all Ditto services, until they run on a fixed
+  JDK (`25.0.5.1` or later).

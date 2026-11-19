@@ -108,6 +108,9 @@ global:
   #  ref: https://www.eclipse.dev/ditto/installation-operating.html#openid-connect
   jwtOnly: false
   # jvmOptions defines the JVM options applied to all Ditto services running in the JVM, it is put in JAVA_TOOL_OPTIONS
+  # -XX:-UseBASE64Intrinsics mitigates CVE-2026-114938 ("Java4Shell", heap overflow in the Base64 decoder intrinsic
+  # on x86-64 CPUs with AVX-512 VBMI) until the Docker base image ships a fixed JDK (25.0.5.1 / 21.0.13.1 or later).
+  # It only makes Base64 encoding/decoding slower. When overriding jvmOptions, keep it until the JDK is fixed.
   jvmOptions: >
     -XX:+ExitOnOutOfMemoryError
     -XX:+HeapDumpOnOutOfMemoryError
@@ -120,6 +123,7 @@ global:
     -XX:+ParallelRefProcEnabled
     -XX:+DisableExplicitGC
     -Djava.net.preferIPv4Stack=true
+    -XX:-UseBASE64Intrinsics
   pekkoOptions: >
     -Dpekko.management.cluster.bootstrap.contact-point-discovery.port-name=management
     -Dpekko.http.client.parsing.max-chunk-size=2m
