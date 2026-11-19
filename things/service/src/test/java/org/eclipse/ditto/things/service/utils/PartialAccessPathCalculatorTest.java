@@ -17,6 +17,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.util.List;
 import java.util.Map;
 
+import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
@@ -49,24 +50,13 @@ public final class PartialAccessPathCalculatorTest {
     private static final String SUBJECT_PARTIAL_FEATURES = "test:partial-features";
 
     @Test
-    public void returnsEmptyMapWhenThingIsNull() {
-        final Policy policy = createPolicyWithFullAccess();
-        final PolicyEnforcer enforcer = PolicyEnforcer.of(policy);
-
-        final Map<String, List<JsonPointer>> result =
-                PartialAccessPathCalculator.calculatePartialAccessPaths(null, enforcer);
-
-        assertThat(result).isEmpty();
-    }
-
-    @Test
     public void returnsEmptyMapWhenNoPartialSubjectsExist() {
         final Thing thing = createThingWithAttributesAndFeatures();
         final Policy policy = createPolicyWithFullAccess();
         final PolicyEnforcer enforcer = PolicyEnforcer.of(policy);
 
         final Map<String, List<JsonPointer>> result =
-                PartialAccessPathCalculator.calculatePartialAccessPaths(thing, enforcer);
+                PartialAccessPathCalculator.calculatePartialAccessPaths(enforcer, thing.toJson(), true);
 
         assertThat(result).isEmpty();
     }
@@ -78,7 +68,7 @@ public final class PartialAccessPathCalculatorTest {
         final PolicyEnforcer enforcer = PolicyEnforcer.of(policy);
 
         final Map<String, List<JsonPointer>> result =
-                PartialAccessPathCalculator.calculatePartialAccessPaths(thing, enforcer);
+                PartialAccessPathCalculator.calculatePartialAccessPaths(enforcer, thing.toJson(), true);
 
         assertThat(result).hasSize(2);
         assertThat(result).containsKey(SUBJECT_PARTIAL_ATTRIBUTES);
@@ -91,6 +81,20 @@ public final class PartialAccessPathCalculatorTest {
                 .containsExactlyInAnyOrder(
                         JsonPointer.of("/features/temperature/properties/value"),
                         JsonPointer.of("/features/humidity/properties/value"));
+    }
+
+    @Test
+    public void omitsPartialSubjectWithoutAccessiblePathInTheThing() {
+        final JsonObject thingWithoutFeatures = JsonObject.of("{\"attributes\":{\"public\":1,\"secret\":2}}");
+
+        final Map<String, List<JsonPointer>> result = PartialAccessPathCalculator.calculatePartialAccessPaths(
+                PolicyEnforcer.of(createPolicyWithPartialAccess()), thingWithoutFeatures, true);
+
+        assertThat(result.get(SUBJECT_PARTIAL_ATTRIBUTES)).containsExactly(JsonPointer.of("/attributes/public"));
+        assertThat(result).doesNotContainKey(SUBJECT_PARTIAL_FEATURES);
+        assertThat(PartialAccessPathCalculator.getSubjectsWithRestrictedAccess(
+                PolicyEnforcer.of(createPolicyWithPartialAccess())))
+                .contains(AuthorizationSubject.newInstance(SUBJECT_PARTIAL_FEATURES));
     }
 
     @Test
@@ -109,7 +113,7 @@ public final class PartialAccessPathCalculatorTest {
         final PolicyEnforcer enforcer = PolicyEnforcer.of(policy, TrieBasedPolicyEnforcer.newInstance(policy));
 
         final Map<String, List<JsonPointer>> result =
-                PartialAccessPathCalculator.calculatePartialAccessPaths(thing, enforcer);
+                PartialAccessPathCalculator.calculatePartialAccessPaths(enforcer, thing.toJson(), true);
 
         assertThat(result).containsEntry(subject, List.of(JsonPointer.of("/features")));
     }
@@ -121,7 +125,7 @@ public final class PartialAccessPathCalculatorTest {
         final PolicyEnforcer enforcer = PolicyEnforcer.of(policy);
 
         final Map<String, List<JsonPointer>> result =
-                PartialAccessPathCalculator.calculatePartialAccessPaths(thing, enforcer);
+                PartialAccessPathCalculator.calculatePartialAccessPaths(enforcer, thing.toJson(), true);
 
         assertThat(result).doesNotContainKey(SUBJECT_FULL_ACCESS);
         assertThat(result).containsKey(SUBJECT_PARTIAL_ATTRIBUTES);
@@ -157,7 +161,7 @@ public final class PartialAccessPathCalculatorTest {
         final PolicyEnforcer enforcer = PolicyEnforcer.of(policy);
 
         final Map<String, List<JsonPointer>> result =
-                PartialAccessPathCalculator.calculatePartialAccessPaths(thing, enforcer);
+                PartialAccessPathCalculator.calculatePartialAccessPaths(enforcer, thing.toJson(), true);
 
         assertThat(result).containsKey(partialSubject);
         assertThat(result.get(partialSubject))
@@ -202,7 +206,7 @@ public final class PartialAccessPathCalculatorTest {
         final PolicyEnforcer enforcer = PolicyEnforcer.of(policy);
 
         final Map<String, List<JsonPointer>> result =
-                PartialAccessPathCalculator.calculatePartialAccessPaths(thing, enforcer);
+                PartialAccessPathCalculator.calculatePartialAccessPaths(enforcer, thing.toJson(), true);
 
         assertThat(result).containsKey(subject);
         assertThat(result.get(subject))
@@ -232,7 +236,7 @@ public final class PartialAccessPathCalculatorTest {
         final PolicyEnforcer enforcer = PolicyEnforcer.of(policy);
 
         final Map<String, List<JsonPointer>> result =
-                PartialAccessPathCalculator.calculatePartialAccessPaths(thing, enforcer);
+                PartialAccessPathCalculator.calculatePartialAccessPaths(enforcer, thing.toJson(), true);
 
         assertThat(result).containsKey(partialSubject);
         assertThat(result.get(partialSubject))

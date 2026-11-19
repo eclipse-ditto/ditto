@@ -294,6 +294,7 @@ public final class ThingPersistenceActor
         final CompletionStage<ThingEvent<?>> stage = thingEventEnricher.enrichWithPredefinedExtraFields(
                 thingConfig.getEventConfig().getPredefinedExtraFieldsConfigs(),
                 entityId,
+                previousEntity,
                 entity,
                 Optional.ofNullable(entity).flatMap(Thing::getPolicyId)
                         .orElse(Optional.ofNullable(previousEntity)
@@ -359,6 +360,7 @@ public final class ThingPersistenceActor
                 stage = thingEventEnricher.enrichWithPredefinedExtraFields(
                         thingConfig.getEventConfig().getPredefinedExtraFieldsConfigs(),
                         entityId,
+                        null,
                         entity,
                         Optional.ofNullable(entity).flatMap(Thing::getPolicyId).orElse(null),
                         messageCommand
@@ -367,6 +369,7 @@ public final class ThingPersistenceActor
                 stage = thingEventEnricher.enrichWithPredefinedExtraFields(
                         thingConfig.getEventConfig().getPredefinedExtraFieldsConfigs(),
                         entityId,
+                        null,
                         entity,
                         Optional.ofNullable(entity).flatMap(Thing::getPolicyId).orElse(null),
                         thingEvent

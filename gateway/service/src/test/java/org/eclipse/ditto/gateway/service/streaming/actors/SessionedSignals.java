@@ -45,11 +45,29 @@ public final class SessionedSignals {
     public static SessionedJsonifiable of(final Signal<?> signal, final DittoHeaders sessionHeaders,
             @Nullable final String filter, @Nullable final ThingFieldSelector extraFields) {
 
+        return of(signal, sessionHeaders, filter, extraFields, ActorRef.noSender());
+    }
+
+    /**
+     * Like {@link #of(Signal, DittoHeaders, String, ThingFieldSelector)}, with the streaming session actor which
+     * receives e.g. the weak acknowledgements issued for the signal.
+     *
+     * @param signal the signal to publish.
+     * @param sessionHeaders the headers of the streaming session.
+     * @param filter the RQL filter of the streaming session or {@code null}.
+     * @param extraFields the extra fields of the streaming session or {@code null}.
+     * @param streamingSessionActor the streaming session actor.
+     * @return the sessioned signal.
+     */
+    public static SessionedJsonifiable of(final Signal<?> signal, final DittoHeaders sessionHeaders,
+            @Nullable final String filter, @Nullable final ThingFieldSelector extraFields,
+            final ActorRef streamingSessionActor) {
+
         final StreamingSession session = StreamingSession.of(List.of(),
                 null == filter ? null :
                         StreamingSession.getFilterCriteriaFactory().filterCriteria(filter, sessionHeaders),
                 extraFields,
-                ActorRef.noSender(),
+                streamingSessionActor,
                 Mockito.mock(ThreadSafeDittoLoggingAdapter.class, Mockito.RETURNS_SELF));
         return SessionedJsonifiable.signal(signal, sessionHeaders, session);
     }

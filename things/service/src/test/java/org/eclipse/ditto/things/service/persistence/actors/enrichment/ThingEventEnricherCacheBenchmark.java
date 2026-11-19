@@ -106,14 +106,14 @@ public class ThingEventEnricherCacheBenchmark {
     @Benchmark
     public void cacheHit(final Blackhole bh) {
         bh.consume(enricherCacheEnabled
-                .enrichWithPredefinedExtraFields(List.of(), THING_ID, thing, POLICY_ID, event)
+                .enrichWithPredefinedExtraFields(List.of(), THING_ID, null, thing, POLICY_ID, event)
                 .toCompletableFuture().join());
     }
 
     @Benchmark
     public void recompute(final Blackhole bh) {
         bh.consume(enricherCacheDisabled
-                .enrichWithPredefinedExtraFields(List.of(), THING_ID, thing, POLICY_ID, event)
+                .enrichWithPredefinedExtraFields(List.of(), THING_ID, null, thing, POLICY_ID, event)
                 .toCompletableFuture().join());
     }
 

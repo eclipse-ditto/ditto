@@ -14,7 +14,6 @@ package org.eclipse.ditto.things.service.persistence.actors.enrichment;
 
 import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
@@ -35,11 +34,13 @@ import org.eclipse.ditto.internal.utils.pekko.logging.ThreadSafeDittoLogger;
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonCollectors;
 import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.messages.model.signals.commands.MessageCommand;
 import org.eclipse.ditto.placeholders.HeadersPlaceholder;
 import org.eclipse.ditto.placeholders.PlaceholderFactory;
 import org.eclipse.ditto.placeholders.TimePlaceholder;
@@ -52,16 +53,20 @@ import org.eclipse.ditto.rql.query.filter.QueryFilterCriteriaFactory;
 import org.eclipse.ditto.rql.query.things.ThingPredicateVisitor;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingId;
+import org.eclipse.ditto.things.model.signals.events.ThingDefinitionMigrated;
 import org.eclipse.ditto.things.model.signals.events.ThingEvent;
+import org.eclipse.ditto.things.model.signals.events.ThingMerged;
 import org.eclipse.ditto.things.service.common.config.PreDefinedExtraFieldsConfig;
+import org.eclipse.ditto.things.service.utils.AccessRestrictions;
+import org.eclipse.ditto.things.service.utils.AccessRestrictionsMemo;
 import org.eclipse.ditto.things.service.utils.PartialAccessPathCalculator;
 import org.eclipse.ditto.things.service.utils.ReadGrant;
 import org.eclipse.ditto.things.service.utils.ReadGrantCollector;
 
 /**
  * Encapsulates functionality in order to enrich ThingEvents with pre-defined {@code extraFields} via DittoHeaders
- * (fields defined per namespace in the Ditto things configuration) and with partial access paths for subjects
- * with restricted READ permissions.
+ * (fields defined per namespace in the Ditto things configuration), with partial access paths for subjects
+ * with restricted READ permissions and with the paths whose READ permission is revoked per subject.
  */
 public final class ThingEventEnricher {
 
@@ -73,13 +78,8 @@ public final class ThingEventEnricher {
     private final PolicyEnforcerProvider policyEnforcerProvider;
     private final boolean partialAccessEventsEnabled;
     private final boolean partialAccessPathsCacheEnabled;
-
-    // Memoizes the last computed partial-access-paths result for this (per-thing) enricher. The result
-    // is a pure function of (policy revision, Thing structure), so it is reused across value-only Thing
-    // updates. Held as a single immutable snapshot behind a volatile reference: enrichment may complete
-    // on a policy-enforcer-provider thread rather than the actor thread, so a cache hit must observe a
-    // consistent (policyId, revision, structureHash, result) tuple. Races merely cause a recompute.
-    @Nullable private volatile PartialAccessPathsCacheEntry partialAccessPathsCache;
+    // one entry each for events and messages, so that they do not evict each other
+    private final AccessRestrictionsMemo accessRestrictionsMemo = new AccessRestrictionsMemo(2);
 
     /**
      * Constructs a new enricher for ThingEvents based on the provided policy enforcer.
@@ -100,104 +100,200 @@ public final class ThingEventEnricher {
 
     /**
      * Enriches the passed in {@code withDittoHeaders} with pre-defined extraFields based on the provided {@code thing}
-     * and the global configuration (based on namespace and optional RQL condition).
+     * and the global configuration (based on namespace and optional RQL condition) and with the READ restrictions of
+     * the subjects of the policy.
      *
      * @param preDefinedExtraFieldsConfigs the list of config entries for pre-defined extraFields enrichment
      * @param thingId the Thing ID to enrich for
+     * @param previousThing the Thing entity before the event, which contains what the event deleted
      * @param thing the Thing entity to use for getting extra fields from
      * @param policyId the Policy ID to use for looking up permissions
      * @param withDittoHeaders the object to enrich with pre-defined extraFields (e.g. a Signal)
      * @param <T> the type of the signal to enrich
-     * @return an enriched version of the passed in {@code withDittoHeaders} with pre-defined extraFields
+     * @return an enriched version of the passed in {@code withDittoHeaders}, failed if a Thing event or message cannot
+     * be enriched with the READ restrictions
      */
     public <T extends DittoHeadersSettable<? extends T>> CompletionStage<T> enrichWithPredefinedExtraFields(
             final List<PreDefinedExtraFieldsConfig> preDefinedExtraFieldsConfigs,
             final ThingId thingId,
+            @Nullable final Thing previousThing,
             @Nullable final Thing thing,
             @Nullable final PolicyId policyId,
             final T withDittoHeaders
     ) {
-        // Cache thing.toJson() once to avoid redundant serialization across all enrichment steps
+        if (null == thing) {
+            return CompletableFuture.completedStage(withDittoHeaders);
+        }
         final JsonObject thingJson;
+        final JsonFieldSelector predefinedExtraFields;
         try {
-            thingJson = thing != null ? thing.toJson() : null;
+            thingJson = thing.toJson();
+            predefinedExtraFields =
+                    getPredefinedExtraFields(preDefinedExtraFieldsConfigs, thingId, thing, withDittoHeaders);
         } catch (final RuntimeException e) {
             return CompletableFuture.failedFuture(e);
         }
-
-        final CompletionStage<T> partialAccessPathsStage =
-                enrichWithPartialAccessPathsIfNecessary(withDittoHeaders, thing, policyId, thingJson);
-
-        if (null != thing && !preDefinedExtraFieldsConfigs.isEmpty()) {
-            final List<PreDefinedExtraFieldsConfig> matchingPreDefinedFieldsConfigs =
-                    preDefinedExtraFieldsConfigs.stream()
-                            .filter(conf -> conf.getNamespace().isEmpty() ||
-                                    conf.getNamespace()
-                                            .stream()
-                                            .anyMatch(pattern ->
-                                                    pattern.matcher(thingId.getNamespace()).matches()
-                                            )
-                            )
-                            .filter(applyPredefinedExtraFieldsCondition(thing, withDittoHeaders))
-                            .toList();
-            final JsonFieldSelector combinedPredefinedExtraFields = matchingPreDefinedFieldsConfigs.stream()
-                    .map(PreDefinedExtraFieldsConfig::getExtraFields)
-                    .reduce(JsonFactory.newFieldSelector(List.of()), (a, b) -> {
-                        final Set<JsonPointer> combinedPointerSet = new LinkedHashSet<>(a.getPointers());
-                        combinedPointerSet.addAll(b.getPointers());
-                        return JsonFactory.newFieldSelector(combinedPointerSet);
-                    });
-
-            if (combinedPredefinedExtraFields.isEmpty()) {
-                return partialAccessPathsStage;
-            }
-
-            return partialAccessPathsStage.thenCompose(enrichedWithPartialAccessPaths -> {
-                    final DittoHeaders dittoHeaders = enrichedWithPartialAccessPaths.getDittoHeaders();
-                    return buildPredefinedExtraFieldsHeaderReadGrantObject(
-                            policyId, combinedPredefinedExtraFields, thingJson, dittoHeaders)
-                            .thenApply(readGrant -> {
-                                final String extraFieldsKey = DittoHeaderDefinition.PRE_DEFINED_EXTRA_FIELDS.getKey();
-                                final String readGrantKey = DittoHeaderDefinition.PRE_DEFINED_EXTRA_FIELDS_READ_GRANT_OBJECT.getKey();
-                                final String extraFieldsObjectKey = DittoHeaderDefinition.PRE_DEFINED_EXTRA_FIELDS_OBJECT.getKey();
-
-                                final DittoHeadersBuilder<?, ?> headersBuilder = dittoHeaders.toBuilder()
-                                        .putJsonHeader(extraFieldsKey,
-                                                buildPredefinedExtraFieldsHeaderList(combinedPredefinedExtraFields))
-                                        .putJsonHeader(readGrantKey, readGrant.toJson())
-                                        .putJsonHeader(extraFieldsObjectKey,
-                                                buildPredefinedExtraFieldsHeaderObject(thingJson,
-                                                        combinedPredefinedExtraFields));
-
-                                return enrichedWithPartialAccessPaths.setDittoHeaders(headersBuilder.build());
-                            });
-            });
-        } else {
-            return partialAccessPathsStage;
+        @Nullable final ThingEvent<?> thingEvent = withDittoHeaders instanceof ThingEvent<?> event ? event : null;
+        final boolean withAccessRestrictions = null != thingEvent || withDittoHeaders instanceof MessageCommand<?, ?>;
+        if (!withAccessRestrictions && predefinedExtraFields.isEmpty()) {
+            return CompletableFuture.completedStage(withDittoHeaders);
         }
+
+        // one lookup for all headers, so that they are calculated from the same policy
+        return policyEnforcerProvider.getPolicyEnforcer(policyId).thenApply(policyEnforcerOpt -> {
+            @Nullable final PolicyEnforcer policyEnforcer = policyEnforcerOpt
+                    .map(enforcer -> enforcer.forNamespace(thingId.getNamespace()))
+                    .orElse(null);
+            T result = withDittoHeaders;
+            if (withAccessRestrictions) {
+                if (null == policyEnforcer) {
+                    throw new IllegalStateException("No policy enforcer found for policyId: " + policyId);
+                }
+                result = getAccessRestrictions(thingEvent, policyEnforcer, thingJson, previousThing).applyTo(result);
+            }
+            if (!predefinedExtraFields.isEmpty()) {
+                result = addPredefinedExtraFields(result, predefinedExtraFields, thingJson, policyEnforcer, policyId);
+            }
+            return result;
+        });
     }
 
-    private <T extends DittoHeadersSettable<? extends T>> CompletionStage<T> enrichWithPartialAccessPathsIfNecessary(
-            final T withDittoHeaders,
-            @Nullable final Thing thing,
-            @Nullable final PolicyId policyId,
-            @Nullable final JsonObject thingJson) {
+    private JsonFieldSelector getPredefinedExtraFields(
+            final List<PreDefinedExtraFieldsConfig> preDefinedExtraFieldsConfigs,
+            final ThingId thingId,
+            final Thing thing,
+            final WithDittoHeaders withDittoHeaders) {
 
-        if (!partialAccessEventsEnabled) {
-            return CompletableFuture.completedStage(withDittoHeaders);
-        }
-
-        if (thing == null || !(withDittoHeaders instanceof ThingEvent<?> thingEvent)) {
-            return CompletableFuture.completedStage(withDittoHeaders);
-        }
-
-        return enrichWithPartialAccessPaths(thingEvent, thing, policyId, thingJson)
-                .thenApply(partialAccessPathsJson -> {
-                    if (hasNoPartialSubjects(partialAccessPathsJson)) {
-                        return withDittoHeaders;
-                    }
-                    return addPartialAccessPathsHeader(withDittoHeaders, partialAccessPathsJson);
+        return preDefinedExtraFieldsConfigs.stream()
+                .filter(conf -> conf.getNamespace().isEmpty() ||
+                        conf.getNamespace()
+                                .stream()
+                                .anyMatch(pattern -> pattern.matcher(thingId.getNamespace()).matches())
+                )
+                .filter(applyPredefinedExtraFieldsCondition(thing, withDittoHeaders))
+                .map(PreDefinedExtraFieldsConfig::getExtraFields)
+                .reduce(JsonFactory.newFieldSelector(List.of()), (a, b) -> {
+                    final Set<JsonPointer> combinedPointerSet = new LinkedHashSet<>(a.getPointers());
+                    combinedPointerSet.addAll(b.getPointers());
+                    return JsonFactory.newFieldSelector(combinedPointerSet);
                 });
+    }
+
+    private <T extends DittoHeadersSettable<? extends T>> T addPredefinedExtraFields(
+            final T withDittoHeaders,
+            final JsonFieldSelector predefinedExtraFields,
+            final JsonObject thingJson,
+            @Nullable final PolicyEnforcer policyEnforcer,
+            @Nullable final PolicyId policyId) {
+
+        final DittoHeaders dittoHeaders = withDittoHeaders.getDittoHeaders();
+        final ReadGrant readGrant;
+        if (null == policyEnforcer) {
+            LOGGER.withCorrelationId(dittoHeaders)
+                    .warn("No policy enforcer found for policyId: {}, returning empty read grant object", policyId);
+            readGrant = ReadGrant.empty();
+        } else {
+            readGrant = ReadGrantCollector.collect(predefinedExtraFields, thingJson, policyEnforcer);
+        }
+        final DittoHeadersBuilder<?, ?> headersBuilder = dittoHeaders.toBuilder()
+                .putJsonHeader(DittoHeaderDefinition.PRE_DEFINED_EXTRA_FIELDS.getKey(),
+                        buildPredefinedExtraFieldsHeaderList(predefinedExtraFields))
+                .putJsonHeader(DittoHeaderDefinition.PRE_DEFINED_EXTRA_FIELDS_READ_GRANT_OBJECT.getKey(),
+                        readGrant.toJson())
+                .putJsonHeader(DittoHeaderDefinition.PRE_DEFINED_EXTRA_FIELDS_OBJECT.getKey(),
+                        buildPredefinedExtraFieldsHeaderObject(thingJson, predefinedExtraFields));
+        return withDittoHeaders.setDittoHeaders(headersBuilder.build());
+    }
+
+    private AccessRestrictions getAccessRestrictions(@Nullable final ThingEvent<?> thingEvent,
+            final PolicyEnforcer policyEnforcer,
+            final JsonObject thingJson,
+            @Nullable final Thing previousThing) {
+
+        final boolean withPartialAccessPaths = partialAccessEventsEnabled && null != thingEvent;
+        if (!AccessRestrictions.mayBeRestricted(policyEnforcer, withPartialAccessPaths)) {
+            return AccessRestrictions.NONE;
+        }
+        // the paths must also cover what the event deleted, which the thing no longer contains
+        final JsonObject structureJson = null != thingEvent
+                ? withEventPayload(thingEvent, thingJson, previousThing)
+                : thingJson;
+        if (!partialAccessPathsCacheEnabled) {
+            return AccessRestrictions.calculate(policyEnforcer, structureJson, withPartialAccessPaths, true);
+        }
+        return accessRestrictionsMemo.get(policyEnforcer, PartialAccessPathCalculator.structureHash(structureJson),
+                withPartialAccessPaths,
+                () -> AccessRestrictions.calculate(policyEnforcer, structureJson, withPartialAccessPaths, true));
+    }
+
+    private static JsonObject withEventPayload(final ThingEvent<?> thingEvent, final JsonObject thingJson,
+            @Nullable final Thing previousThing) {
+
+        final JsonPointer resourcePath = thingEvent.getResourcePath();
+        if (thingEvent instanceof ThingMerged || thingEvent instanceof ThingDefinitionMigrated) {
+            return thingEvent.getEntity()
+                    .map(value -> resourcePath.isEmpty()
+                            ? (value.isObject() && !value.isNull() ? value.asObject() : null)
+                            : JsonObject.empty().setValue(resourcePath, value))
+                    .map(eventJson -> overlay(thingJson, eventJson,
+                            containsNull(eventJson) ? previousJson(previousThing, resourcePath) : null))
+                    .orElse(thingJson);
+        }
+        if (resourcePath.isEmpty() || thingJson.contains(resourcePath)) {
+            return thingJson;
+        }
+        @Nullable final JsonObject previousJson = previousJson(previousThing, resourcePath);
+        final JsonValue deleted = null != previousJson ? previousJson.getValue(resourcePath).orElse(null) : null;
+        return thingJson.setValue(resourcePath, null != deleted ? deleted : JsonValue.nullLiteral());
+    }
+
+    // only the part of the previous Thing the event can have deleted is needed
+    @Nullable
+    private static JsonObject previousJson(@Nullable final Thing previousThing, final JsonPointer resourcePath) {
+        if (null == previousThing) {
+            return null;
+        }
+        return resourcePath.isEmpty()
+                ? previousThing.toJson()
+                : previousThing.toJson(JsonFactory.newFieldSelector(resourcePath));
+    }
+
+    private static boolean containsNull(final JsonObject json) {
+        for (final JsonField field : json) {
+            final JsonValue value = field.getValue();
+            if (value.isNull() || isObject(value) && containsNull(value.asObject())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    // unlike a JSON merge patch, keeps null values, as they are fields of the event, but replaces a null value
+    // deleting an object by the deleted object, whose fields the event deleted
+    private static JsonObject overlay(final JsonObject base, final JsonObject overlay,
+            @Nullable final JsonObject previous) {
+
+        final JsonObjectBuilder builder = base.toBuilder();
+        for (final JsonField field : overlay) {
+            final JsonValue overlayValue = field.getValue();
+            @Nullable final JsonValue baseValue = base.getValue(field.getKey()).orElse(null);
+            @Nullable final JsonValue previousValue =
+                    null != previous ? previous.getValue(field.getKey()).orElse(null) : null;
+            if (isObject(baseValue) && isObject(overlayValue)) {
+                builder.set(field.getKey(), overlay(baseValue.asObject(), overlayValue.asObject(),
+                        isObject(previousValue) ? previousValue.asObject() : null));
+            } else if (overlayValue.isNull() && null == baseValue && isObject(previousValue) &&
+                    !previousValue.asObject().isEmpty()) {
+                builder.set(field.getKey(), previousValue);
+            } else {
+                builder.set(field.getKey(), overlayValue);
+            }
+        }
+        return builder.build();
+    }
+
+    private static boolean isObject(@Nullable final JsonValue value) {
+        return null != value && value.isObject() && !value.isNull();
     }
 
     /**
@@ -255,191 +351,6 @@ public final class ThingEventEnricher {
     }
 
     /**
-     * Gets the policy enforcer stage.
-     *
-     * @param policyId the policy ID to get the enforcer for
-     * @return CompletionStage with Optional PolicyEnforcer
-     */
-    private CompletionStage<Optional<PolicyEnforcer>> getPolicyEnforcerSafely(@Nullable final PolicyId policyId) {
-        return policyEnforcerProvider.getPolicyEnforcer(policyId);
-    }
-
-    /**
-     * Builds the read grant object using the new helper classes.
-     * Returns the ReadGrant with string subject IDs (not indexed integers), because
-     * DittoCachingSignalEnrichmentFacade.filterAskedForFieldSelectorToGrantedFields() matches
-     * authorization subject IDs directly against the array values in this header.
-     */
-    private CompletionStage<ReadGrant> buildPredefinedExtraFieldsHeaderReadGrantObject(
-            @Nullable final PolicyId policyId,
-            final JsonFieldSelector preDefinedExtraFields,
-            final JsonObject thingJson,
-            final DittoHeaders dittoHeaders
-    ) {
-        return getPolicyEnforcerSafely(policyId).thenApply(policyEnforcerOpt -> {
-            if (policyEnforcerOpt.isEmpty()) {
-                LOGGER.withCorrelationId(dittoHeaders)
-                        .warn("No policy enforcer found for policyId: {}, returning empty read grant object", policyId);
-                return ReadGrant.empty();
-            }
-
-            final PolicyEnforcer policyEnforcer = policyEnforcerOpt.get();
-
-            return ReadGrantCollector.collect(
-                    preDefinedExtraFields,
-                    thingJson,
-                    policyEnforcer
-            );
-        });
-    }
-
-    /**
-     * Enriches a ThingEvent with partial access paths header.
-     *
-     * @param thingEvent the ThingEvent to enrich
-     * @param thing the current Thing state
-     * @param policyId the Policy ID
-     * @return CompletionStage with the partial access paths JSON object
-     */
-    private CompletionStage<JsonObject> enrichWithPartialAccessPaths(
-            final ThingEvent<?> thingEvent,
-            final Thing thing,
-            @Nullable final PolicyId policyId,
-            @Nullable final JsonObject thingJson
-    ) {
-        final DittoHeaders dittoHeaders = thingEvent.getDittoHeaders();
-        LOGGER.withCorrelationId(dittoHeaders)
-                .debug("Enriching event '{}' (thingId: {}) with partial access paths, policyId: {}",
-                        thingEvent.getType(), thingEvent.getEntityId(), policyId);
-        final JsonObject effectiveThingJson = thingJson != null ? thingJson : thing.toJson();
-        return getPolicyEnforcerSafely(policyId).thenApply(policyEnforcerOpt -> {
-                    if (policyEnforcerOpt.isEmpty()) {
-                        throw new IllegalStateException("No policy enforcer found for policyId: " + policyId);
-                    }
-                    final PolicyEnforcer policyEnforcer = policyEnforcerOpt.get();
-
-                    // Cheap fast path (memoized classification, no Thing walk): with no restricted subjects
-                    // there is no partial-access header to emit. Bail out before hashing the Thing structure so
-                    // full-access things — the common case — cost the same as before this cache was added.
-                    if (partialAccessPathsCacheEnabled
-                            && !PartialAccessPathCalculator.hasSubjectsWithRestrictedAccess(policyEnforcer)) {
-                        return createEmptyPartialAccessPathsJson();
-                    }
-
-                    // The result depends only on (effective policy grants, Thing structure). Key the memo on
-                    // the PolicyEnforcer *instance* (not its policy revision): CachingPolicyEnforcerProvider
-                    // replaces the instance wholesale whenever the effective grants change from ANY source —
-                    // the policy itself, an imported policy, or a namespace-root policy (cascade invalidation
-                    // in PolicyEnforcerCache). The importing policy's own revision does NOT move when an
-                    // imported / ns-root policy changes, so keying on revision would serve a stale allowlist
-                    // and leak a revoked field to a restricted subject. Identity comparison avoids that.
-                    final boolean cacheable = partialAccessPathsCacheEnabled;
-                    final long structureHash =
-                            cacheable ? PartialAccessPathCalculator.structureHash(effectiveThingJson) : 0L;
-                    if (cacheable) {
-                        final PartialAccessPathsCacheEntry cached = partialAccessPathsCache;
-                        if (cached != null && cached.matches(policyEnforcer, structureHash)) {
-                            LOGGER.withCorrelationId(dittoHeaders)
-                                    .debug("Reusing cached partial access paths for event '{}' (thingId: {})",
-                                            thingEvent.getType(), thingEvent.getEntityId());
-                            return cached.result;
-                        }
-                    }
-
-                    final Map<String, List<JsonPointer>> partialAccessPaths =
-                            PartialAccessPathCalculator.calculatePartialAccessPaths(
-                                    thing, policyEnforcer, effectiveThingJson);
-                    // Return consistent empty structure (will be filtered out in caller)
-                    final JsonObject result = partialAccessPaths.isEmpty()
-                            ? createEmptyPartialAccessPathsJson()
-                            : PartialAccessPathCalculator.toIndexedJsonObject(partialAccessPaths);
-                    LOGGER.withCorrelationId(dittoHeaders)
-                            .debug("Calculated partial access paths for event '{}' (thingId: {}): {} subjects with partial access",
-                                    thingEvent.getType(), thingEvent.getEntityId(), partialAccessPaths.size());
-                    if (cacheable) {
-                        partialAccessPathsCache =
-                                new PartialAccessPathsCacheEntry(policyEnforcer, structureHash, result);
-                    }
-                    return result;
-                });
-    }
-
-    /**
-     * Immutable snapshot of a computed partial-access-paths result together with the key it is valid for.
-     * Stored behind a single volatile reference so readers always see a consistent tuple. The key is the
-     * {@link PolicyEnforcer} <em>instance</em> (compared by identity): it is replaced whenever the effective
-     * grants change (including via imported / namespace-root policies), so identity captures every grant change.
-     */
-    private static final class PartialAccessPathsCacheEntry {
-
-        private final PolicyEnforcer policyEnforcer;
-        private final long structureHash;
-        private final JsonObject result;
-
-        private PartialAccessPathsCacheEntry(final PolicyEnforcer policyEnforcer, final long structureHash,
-                final JsonObject result) {
-            this.policyEnforcer = policyEnforcer;
-            this.structureHash = structureHash;
-            this.result = result;
-        }
-
-        private boolean matches(final PolicyEnforcer otherPolicyEnforcer, final long otherStructureHash) {
-            // Reference equality on purpose: a new enforcer instance means the effective grants may have
-            // changed (own policy, import, or ns-root), so the cached result must not be reused.
-            return policyEnforcer == otherPolicyEnforcer && structureHash == otherStructureHash;
-        }
-    }
-
-    /**
-     * Creates an empty partial access paths JSON object with consistent structure.
-     *
-     * @return empty JSON object with subjects array and paths object
-     */
-    private static JsonObject createEmptyPartialAccessPathsJson() {
-        return JsonFactory.newObjectBuilder()
-                .set(PartialAccessPathCalculator.SUBJECTS_FIELD_DEFINITION, JsonFactory.newArray())
-                .set(PartialAccessPathCalculator.PATHS_FIELD_DEFINITION, JsonFactory.newObject())
-                .build();
-    }
-
-    /**
-     * Checks if the partial access paths JSON has no subjects (empty or missing subjects array).
-     *
-     * @param partialAccessPathsJson the JSON object to check
-     * @return true if there are no subjects, false otherwise
-     */
-    private static boolean hasNoPartialSubjects(final JsonObject partialAccessPathsJson) {
-        return partialAccessPathsJson.getValue(PartialAccessPathCalculator.SUBJECTS_FIELD_DEFINITION)
-                .map(JsonValue::asArray)
-                .map(JsonArray::isEmpty)
-                .orElse(true);
-    }
-
-    /**
-     * Adds the partial access paths header to the given object with Ditto headers.
-     *
-     * @param withDittoHeaders the object to add the header to
-     * @param partialAccessPathsJson the JSON object containing partial access paths
-     * @param <T> the type of the object
-     * @return the object with the header added
-     */
-    private <T extends DittoHeadersSettable<? extends T>> T addPartialAccessPathsHeader(
-            final T withDittoHeaders,
-            final JsonObject partialAccessPathsJson
-    ) {
-        final DittoHeaders currentHeaders = withDittoHeaders.getDittoHeaders();
-        final String partialAccessPathsKey = DittoHeaderDefinition.PARTIAL_ACCESS_PATHS.getKey();
-        if (currentHeaders.containsKey(partialAccessPathsKey)) {
-            LOGGER.withCorrelationId(currentHeaders)
-                    .warn("Overwriting existing {} header", partialAccessPathsKey);
-        }
-        final DittoHeaders updatedHeaders = currentHeaders.toBuilder()
-                .putJsonHeader(partialAccessPathsKey, partialAccessPathsJson)
-                .build();
-        return withDittoHeaders.setDittoHeaders(updatedHeaders);
-    }
-
-    /**
      * Builds JSON object for predefined extra fields from the pre-computed thing JSON.
      */
     private static JsonObject buildPredefinedExtraFieldsHeaderObject(
@@ -452,4 +363,5 @@ public final class ThingEventEnricher {
         );
         return builder.build();
     }
+
 }

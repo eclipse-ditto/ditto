@@ -22,21 +22,13 @@ import javax.annotation.Nullable;
 
 import org.eclipse.ditto.base.model.auth.AuthorizationContext;
 import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
-import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.json.JsonFactory;
-import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.json.JsonParseException;
 import org.eclipse.ditto.json.JsonPointer;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * Utility class for resolving accessible paths for a subscriber based on partial access paths header.
  * Contains common logic used by both Adaptable and JsonObject filtering.
  */
-public final class PartialAccessPathResolver {
-
-    private static final Logger LOGGER = LoggerFactory.getLogger(PartialAccessPathResolver.class);
+final class PartialAccessPathResolver {
 
     private PartialAccessPathResolver() {
         // No instantiation
@@ -99,41 +91,6 @@ public final class PartialAccessPathResolver {
     }
 
     /**
-     * Parses the partial access paths from the header.
-     *
-     * @param partialAccessPathsHeader the header value containing partial access paths JSON
-     * @return IndexedPartialAccessPaths model, or {@link IndexedPartialAccessPaths#EMPTY} if header is null or empty
-     */
-    public static IndexedPartialAccessPaths parsePartialAccessPaths(
-            @Nullable final String partialAccessPathsHeader) {
-
-        if (partialAccessPathsHeader == null || partialAccessPathsHeader.isEmpty()) {
-            return IndexedPartialAccessPaths.EMPTY;
-        }
-
-        try {
-            final JsonObject partialAccessPathsJson = JsonFactory.readFrom(partialAccessPathsHeader).asObject();
-            return JsonPartialAccessFilter.parseIndexedPartialAccessPaths(partialAccessPathsJson);
-        } catch (final JsonParseException e) {
-            LOGGER.warn("Failed to parse partial access paths header as JSON: {}", e.getMessage(), e);
-            return IndexedPartialAccessPaths.EMPTY;
-        }
-    }
-
-    /**
-     * Parses the partial access paths from the header and returns them as a map.
-     * This is a convenience method for backwards compatibility.
-     *
-     * @param partialAccessPathsHeader the header value containing partial access paths JSON
-     * @return map of subject IDs to their accessible paths, or empty map if header is null/empty
-     */
-    public static Map<String, List<JsonPointer>> parsePartialAccessPathsAsMap(
-            @Nullable final String partialAccessPathsHeader) {
-        final IndexedPartialAccessPaths indexed = parsePartialAccessPaths(partialAccessPathsHeader);
-        return JsonPartialAccessFilter.expandIndexed(indexed);
-    }
-
-    /**
      * Resolves accessible paths for a subscriber based on partial access paths header and authorization context.
      * This is the core logic shared by both Adaptable and JsonObject filtering.
      *
@@ -142,7 +99,7 @@ public final class PartialAccessPathResolver {
      * @param readGrantedSubjects the set of subjects with read granted permissions from headers
      * @return result containing accessible paths and filtering decision
      */
-    public static AccessiblePathsResult resolveAccessiblePaths(
+    static AccessiblePathsResult resolveAccessiblePaths(
             final Map<String, List<JsonPointer>> partialAccessPaths,
             @Nullable final AuthorizationContext subscriberAuthContext,
             final Set<AuthorizationSubject> readGrantedSubjects) {
@@ -200,40 +157,27 @@ public final class PartialAccessPathResolver {
     }
 
     /**
-     * Convenience method that combines parsing and resolution.
+     * Resolves the thing-absolute paths a subscriber must not receive because READ on them is revoked for at least
+     * one subject of its authorization context. Grants of the other subjects do not lift such a revoke.
      *
-     * @param partialAccessPathsHeader the header value containing partial access paths JSON
-     * @param subscriberAuthContext the authorization context of the subscriber (may be null)
-     * @param readGrantedSubjects the set of subjects with read granted permissions from headers
-     * @return result containing accessible paths and filtering decision
+     * @param revokedAccessPaths the parsed revoked access paths (subject ID -> paths whose READ is revoked).
+     * @param subscriberAuthContext the authorization context of the subscriber (may be null).
+     * @return the union of the revoked paths of all subjects of the subscriber, empty if there are none.
      */
-    public static AccessiblePathsResult resolveAccessiblePathsFromHeader(
-            @Nullable final String partialAccessPathsHeader,
-            @Nullable final AuthorizationContext subscriberAuthContext,
-            final Set<AuthorizationSubject> readGrantedSubjects) {
+    static Set<JsonPointer> resolveRevokedPaths(final Map<String, List<JsonPointer>> revokedAccessPaths,
+            @Nullable final AuthorizationContext subscriberAuthContext) {
 
-        final Map<String, List<JsonPointer>> partialAccessPaths =
-                parsePartialAccessPathsAsMap(partialAccessPathsHeader);
-        return resolveAccessiblePaths(partialAccessPaths, subscriberAuthContext, readGrantedSubjects);
-    }
-
-    /**
-     * Convenience method that extracts readGrantedSubjects from DittoHeaders.
-     *
-     * @param partialAccessPathsHeader the header value containing partial access paths JSON
-     * @param subscriberAuthContext the authorization context of the subscriber (may be null)
-     * @param dittoHeaders the DittoHeaders containing readGrantedSubjects
-     * @return result containing accessible paths and filtering decision
-     */
-    public static AccessiblePathsResult resolveAccessiblePathsFromHeader(
-            @Nullable final String partialAccessPathsHeader,
-            @Nullable final AuthorizationContext subscriberAuthContext,
-            final DittoHeaders dittoHeaders) {
-
-        return resolveAccessiblePathsFromHeader(
-                partialAccessPathsHeader,
-                subscriberAuthContext,
-                dittoHeaders.getReadGrantedSubjects());
+        if (revokedAccessPaths.isEmpty() || subscriberAuthContext == null) {
+            return Set.of();
+        }
+        final Set<JsonPointer> revokedPaths = new HashSet<>();
+        for (final AuthorizationSubject subject : subscriberAuthContext.getAuthorizationSubjects()) {
+            final List<JsonPointer> subjectPaths = revokedAccessPaths.get(subject.getId());
+            if (subjectPaths != null) {
+                revokedPaths.addAll(subjectPaths);
+            }
+        }
+        return revokedPaths;
     }
 
 }

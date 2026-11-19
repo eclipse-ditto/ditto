@@ -20,6 +20,7 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.model.json.Jsonifiable;
 import org.eclipse.ditto.internal.models.signalenrichment.SignalEnrichmentFacade;
 import org.eclipse.ditto.internal.utils.tracing.span.StartedSpan;
@@ -57,7 +58,8 @@ final class SessionedResponseErrorOrAck implements SessionedJsonifiable {
     }
 
     @Override
-    public CompletionStage<JsonObject> retrieveExtraFields(@Nullable final SignalEnrichmentFacade facade) {
+    public CompletionStage<JsonObject> retrieveExtraFields(@Nullable final SignalEnrichmentFacade facade,
+            final Signal<?> readableSignal) {
         return CompletableFuture.completedFuture(JsonObject.empty());
     }
 

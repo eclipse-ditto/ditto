@@ -43,6 +43,7 @@ import org.eclipse.ditto.internal.utils.pubsub.StreamingType;
 import org.eclipse.ditto.internal.utils.tracing.DittoTracingInitResource;
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonFieldSelector;
+import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.things.model.Attributes;
 import org.eclipse.ditto.things.model.Feature;
@@ -54,12 +55,21 @@ import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.base.model.auth.AuthorizationContext;
 import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
+import org.eclipse.ditto.internal.utils.protocol.PartialAccessSignalFilter;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThing;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThingResponse;
 import org.eclipse.ditto.things.model.signals.events.ThingModified;
 import org.eclipse.ditto.things.model.signals.events.ThingModifiedEvent;
 import org.eclipse.ditto.thingsearch.api.commands.sudo.StreamThings;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
+import org.eclipse.ditto.internal.models.signalenrichment.DittoCachingSignalEnrichmentFacade;
+import org.eclipse.ditto.internal.models.signalenrichment.SignalEnrichmentFacade;
+import org.eclipse.ditto.internal.utils.cache.config.DefaultCacheConfig;
+import org.eclipse.ditto.things.model.signals.events.AttributeModified;
+import org.eclipse.ditto.things.model.signals.events.AttributesModified;
+import org.eclipse.ditto.things.model.signals.events.ThingMerged;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -67,7 +77,6 @@ import org.junit.ClassRule;
 import org.junit.Test;
 import org.slf4j.LoggerFactory;
 
-import java.lang.reflect.Method;
 import java.util.List;
 
 import com.typesafe.config.ConfigFactory;
@@ -387,7 +396,7 @@ public final class ThingsSseRouteBuilderTest extends EndpointTestBase {
     }
 
     @Test
-    public void filterJsonByPartialAccessPathsFiltersCorrectlyForPartialReader() throws Exception {
+    public void partialReaderSeesOnlyGrantedFieldsAndThingId() {
         final Thing thing = Thing.newBuilder()
                 .setId(ThingId.of("test:thing"))
                 .setAttributes(Attributes.newBuilder().set("foo", "bar").build())
@@ -414,11 +423,11 @@ public final class ThingsSseRouteBuilderTest extends EndpointTestBase {
         final AuthorizationContext subscriberAuthContext = AuthorizationContext.newInstance(
                 DittoAuthorizationContextType.UNSPECIFIED, partialReader);
 
-        final JsonObject filtered = filterJsonByPartialAccessPaths(thing, event, subscriberAuthContext);
+        final JsonObject filtered = readableThingJson(thing, event, subscriberAuthContext);
 
         // thingId is an entity-identity field that must always be visible to any subscriber
         // holding at least partial read access. _namespace/_revision/_modified/_created are
-        // verified separately in filterJsonByPartialAccessPathsPreservesAuditFieldsForPartialReader
+        // verified separately in partialReaderSeesSelectedAuditFields
         // (they only appear in the SSE payload when the user explicitly selects them via
         // ?fields=... since they are HIDDEN fields by default).
         assertThat(filtered.getValue("thingId")).contains(JsonValue.of("test:thing"));
@@ -434,7 +443,7 @@ public final class ThingsSseRouteBuilderTest extends EndpointTestBase {
     }
 
     @Test
-    public void filterJsonByPartialAccessPathsPreservesAuditFieldsForPartialReader() throws Exception {
+    public void partialReaderSeesSelectedAuditFields() {
         final java.time.Instant created = java.time.Instant.parse("2026-01-01T00:00:00Z");
         final java.time.Instant modified = java.time.Instant.parse("2026-06-01T12:00:00Z");
         final Thing thing = Thing.newBuilder()
@@ -462,7 +471,7 @@ public final class ThingsSseRouteBuilderTest extends EndpointTestBase {
         // caller has explicitly opted into hidden identity/audit fields via ?fields=_revision,...
         final JsonObject thingJson = thing.toJson(org.eclipse.ditto.base.model.json.JsonSchemaVersion.LATEST,
                 org.eclipse.ditto.base.model.json.FieldType.regularOrSpecial());
-        final JsonObject filtered = filterJsonByPartialAccessPaths(thingJson, event, subscriberAuthContext);
+        final JsonObject filtered = readableThingJson(thingJson, event, subscriberAuthContext);
 
         // Identity + audit fields must pass through even though the policy only grants /attributes:
         assertThat(filtered.getValue("thingId")).contains(JsonValue.of("test:thing"));
@@ -477,7 +486,7 @@ public final class ThingsSseRouteBuilderTest extends EndpointTestBase {
     }
 
     @Test
-    public void filterJsonByPartialAccessPathsReturnsFullPayloadForUnrestrictedReader() throws Exception {
+    public void unrestrictedReaderSeesWholeThing() {
         final Thing thing = Thing.newBuilder().setId(ThingId.of("test:thing")).build();
         final AuthorizationSubject fullReader = AuthorizationSubject.newInstance("test:full-reader");
         final AuthorizationSubject partialReader = AuthorizationSubject.newInstance("test:partial-reader");
@@ -493,13 +502,13 @@ public final class ThingsSseRouteBuilderTest extends EndpointTestBase {
         final AuthorizationContext subscriberAuthContext = AuthorizationContext.newInstance(
                 DittoAuthorizationContextType.UNSPECIFIED, fullReader);
 
-        final JsonObject filtered = filterJsonByPartialAccessPaths(thing, event, subscriberAuthContext);
+        final JsonObject filtered = readableThingJson(thing, event, subscriberAuthContext);
 
         assertThat(filtered).isEqualTo(thing.toJson());
     }
 
     @Test
-    public void filterJsonByPartialAccessPathsReturnsFullPayloadWhenSubscriberHasBothPartialAndFullSubjects() throws Exception {
+    public void subscriberWithPartialAndFullSubjectSeesWholeThing() {
         final Thing thing = Thing.newBuilder()
                 .setId(ThingId.of("test:thing"))
                 .setAttributes(Attributes.newBuilder().set("foo", "bar").build())
@@ -527,13 +536,13 @@ public final class ThingsSseRouteBuilderTest extends EndpointTestBase {
         final AuthorizationContext subscriberAuthContext = AuthorizationContext.newInstance(
                 DittoAuthorizationContextType.UNSPECIFIED, partialReader, fullReader);
 
-        final JsonObject filtered = filterJsonByPartialAccessPaths(thing, event, subscriberAuthContext);
+        final JsonObject filtered = readableThingJson(thing, event, subscriberAuthContext);
 
         assertThat(filtered).isEqualTo(thing.toJson());
     }
 
     @Test
-    public void filterJsonByPartialAccessPathsReturnsEmptyForNoAccessReader() throws Exception {
+    public void subscriberWithoutReadAccessSeesNothing() {
         final Thing thing = Thing.newBuilder().setId(ThingId.of("test:thing")).build();
         final AuthorizationSubject partialReader = AuthorizationSubject.newInstance("test:partial-reader");
         final AuthorizationSubject noAccessReader = AuthorizationSubject.newInstance("test:no-access");
@@ -549,13 +558,13 @@ public final class ThingsSseRouteBuilderTest extends EndpointTestBase {
         final AuthorizationContext subscriberAuthContext = AuthorizationContext.newInstance(
                 DittoAuthorizationContextType.UNSPECIFIED, noAccessReader);
 
-        final JsonObject filtered = filterJsonByPartialAccessPaths(thing, event, subscriberAuthContext);
+        final JsonObject filtered = readableThingJson(thing, event, subscriberAuthContext);
 
         assertThat(filtered).isEmpty();
     }
 
     @Test
-    public void filterJsonByPartialAccessPathsReturnsOriginalWhenNoHeader() throws Exception {
+    public void eventWithoutAccessPathsHeaderIsNotFiltered() {
         final Thing thing = Thing.newBuilder().setId(ThingId.of("test:thing")).build();
         final AuthorizationSubject reader = AuthorizationSubject.newInstance("test:reader");
 
@@ -568,33 +577,23 @@ public final class ThingsSseRouteBuilderTest extends EndpointTestBase {
         final AuthorizationContext subscriberAuthContext = AuthorizationContext.newInstance(
                 DittoAuthorizationContextType.UNSPECIFIED, reader);
 
-        final JsonObject filtered = filterJsonByPartialAccessPaths(thing, event, subscriberAuthContext);
+        final JsonObject filtered = readableThingJson(thing, event, subscriberAuthContext);
 
         assertThat(filtered).isEqualTo(thing.toJson());
     }
 
-    /**
-     * Helper method to test the private filterJsonByPartialAccessPaths method using reflection.
-     */
-    private JsonObject filterJsonByPartialAccessPaths(final Thing thing,
+    private static JsonObject readableThingJson(final Thing thing,
             final ThingModifiedEvent<?> event,
-            final AuthorizationContext subscriberAuthContext) throws Exception {
-        return filterJsonByPartialAccessPaths(thing.toJson(), event, subscriberAuthContext);
+            final AuthorizationContext subscriberAuthContext) {
+        return readableThingJson(thing.toJson(), event, subscriberAuthContext);
     }
 
-    private JsonObject filterJsonByPartialAccessPaths(final JsonObject thingJson,
+    private static JsonObject readableThingJson(final JsonObject thingJson,
             final ThingModifiedEvent<?> event,
-            final AuthorizationContext subscriberAuthContext) throws Exception {
-        final ThingsSseRouteBuilder routeBuilder = ThingsSseRouteBuilder.getInstance(
-                actorSystem, streamingActor.ref(), streamingConfig, proxyActor.ref(), HeaderTranslator.empty());
-        final Method filterMethod = ThingsSseRouteBuilder.class.getDeclaredMethod(
-                "filterJsonByPartialAccessPaths",
-                JsonObject.class,
-                org.eclipse.ditto.things.model.signals.events.ThingEvent.class,
-                AuthorizationContext.class);
-        filterMethod.setAccessible(true);
-
-        return (JsonObject) filterMethod.invoke(routeBuilder, thingJson, event, subscriberAuthContext);
+            final AuthorizationContext subscriberAuthContext) {
+        return PartialAccessSignalFilter.viewFor(event, subscriberAuthContext)
+                .map(view -> view.filterThingJson(thingJson))
+                .orElseGet(JsonObject::empty);
     }
 
     @Test
@@ -663,6 +662,152 @@ public final class ThingsSseRouteBuilderTest extends EndpointTestBase {
                 .containsEntry(SseSessionStatistics.MDC_FILTERED_OUT, "1")
                 .containsEntry(SseSessionStatistics.MDC_ENRICHMENT_FAILED, "1")
                 .containsEntry(SseSessionStatistics.MDC_DELIVERED, "2");
+    }
+
+    @Test
+    public void filterOfPartialReaderDoesNotSeeUnreadableFieldsMergedIntoTheEnrichmentCache() {
+        final ThingId thingId = ThingId.of("org.eclipse.ditto:my-thing-1");
+        final AuthorizationSubject carol = AuthorizationSubject.newInstance("nginx:carol");
+        final DittoHeaders partialForCarol = DittoHeaders.newBuilder()
+                .putHeader(DittoHeaderDefinition.PARTIAL_ACCESS_PATHS.getKey(),
+                        "{\"subjects\":[\"nginx:carol\"],\"paths\":{\"attributes/pub\":[0]}}")
+                .readGrantedSubjects(List.of(carol))
+                .build();
+        final DittoHeaders carolSessionHeaders = dittoHeaders.toBuilder()
+                .authorizationContext(AuthorizationContext.newInstance(DittoAuthorizationContextType.UNSPECIFIED,
+                        carol))
+                .build();
+        final ThingFieldSelector extraFields =
+                ThingFieldSelector.fromJsonFieldSelector(JsonFieldSelector.newInstance("attributes"));
+        final AtomicInteger roundTrips = new AtomicInteger();
+        final SignalEnrichmentFacade roundTripFacade = (id, selector, headers, signal) -> {
+            roundTrips.incrementAndGet();
+            return CompletableFuture.completedFuture(
+                    JsonObject.of("{\"_revision\":3,\"attributes\":{\"pub\":\"p0\"}}"));
+        };
+        final SignalEnrichmentFacade facade = DittoCachingSignalEnrichmentFacade.newInstance(roundTripFacade,
+                DefaultCacheConfig.of(ConfigFactory.parseString("cache { maximum-size = 10\n" +
+                        "expire-after-create = 2m }"), "cache"),
+                Runnable::run, "test");
+        final var sseRouteBuilder = ThingsSseRouteBuilder.getInstance(actorSystem, streamingActor.ref(),
+                streamingConfig, proxyActor.ref(), HeaderTranslator.empty());
+        sseRouteBuilder.withProxyActor(proxyActor.ref());
+        sseRouteBuilder.withSignalEnrichmentProvider(request -> CompletableFuture.completedFuture(facade));
+        final Route sseRoute = extractRequestContext(ctx -> sseRouteBuilder.build(ctx,
+                () -> CompletableFuture.completedFuture(dittoHeaders)));
+        final TestRoute route = testRoute(handleExceptions(() -> sseRoute));
+
+        final AttributeModified rev3 = AttributeModified.of(thingId, JsonPointer.of("pub"), JsonValue.of("p0"), 3L,
+                null, partialForCarol, null);
+        final AttributesModified rev4 = AttributesModified.of(thingId,
+                Attributes.newBuilder().set("pub", "p2").set("secret", "s2").build(), 4L, null, partialForCarol,
+                null);
+
+        final AtomicReference<String> entity = new AtomicReference<>();
+        new TestKit(actorSystem) {{
+            final TestRouteResult routeResult = route.run(HttpRequest.GET(THINGS_ROUTE + "?ids=" + thingId +
+                    "&extraFields=attributes").addHeader(acceptHeader));
+            final CompletableFuture<Void> routeTestAssertions = CompletableFuture.runAsync(() -> {
+                routeResult.assertStatusCode(StatusCodes.OK);
+                entity.set(routeResult.entityString());
+            }, ASYNC_TEST_EXECUTOR);
+
+            final Connect receivedConnect = streamingActor.expectMsgClass(Connect.class);
+            streamingActor.reply(streamingActor.ref());
+            streamingActor.expectMsgClass(StartStreaming.class);
+            final SourceQueueWithComplete<SessionedJsonifiable> publisherQueue =
+                    receivedConnect.getEventAndResponsePublisher();
+
+            offerSessioned(publisherQueue, SessionedSignals.of(rev3, carolSessionHeaders, null, extraFields));
+            offerSessioned(publisherQueue, SessionedSignals.of(rev4, carolSessionHeaders,
+                    "eq(attributes/secret,\"s2\")", extraFields));
+            offerSessioned(publisherQueue, SessionedSignals.of(rev4, carolSessionHeaders,
+                    "eq(attributes/pub,\"p2\")", extraFields));
+            publisherQueue.complete();
+            routeTestAssertions.join();
+        }};
+
+        assertThat(roundTrips).hasValue(1);
+        assertThat(entity.get()).doesNotContain("secret").doesNotContain("s2");
+        assertThat(entity.get().split("data:", -1)).hasSize(3);
+        assertThat(entity.get()).contains("\"pub\":\"p2\"");
+    }
+
+    @Test
+    public void unreadableEventsAreDroppedAndCountedAsFilteredOut() {
+        final ThingId thingId = ThingId.of("org.eclipse.ditto:my-thing-1");
+        final AuthorizationSubject alice = AuthorizationSubject.newInstance("nginx:alice");
+        final DittoHeaders revokedForGroupX = DittoHeaders.newBuilder()
+                .putHeader(DittoHeaderDefinition.REVOKED_ACCESS_PATHS.getKey(),
+                        "{\"subjects\":[\"nginx:group-x\"],\"paths\":{\"attributes/secret\":[0]}}")
+                .readGrantedSubjects(List.of(alice))
+                .build();
+        final DittoHeaders sessionHeaders = dittoHeaders.toBuilder()
+                .authorizationContext(AuthorizationContext.newInstance(DittoAuthorizationContextType.UNSPECIFIED,
+                        alice, AuthorizationSubject.newInstance("nginx:group-x")))
+                .build();
+        final ThingMerged secretDeleted = ThingMerged.of(thingId, JsonPointer.empty(),
+                JsonObject.of("{\"attributes\":{\"secret\":null}}"), 2L, null, revokedForGroupX, null);
+        final AttributeModified secretModified = AttributeModified.of(thingId, JsonPointer.of("secret"),
+                JsonValue.of("s"), 3L, null, revokedForGroupX, null);
+        final AttributeModified pubModified = AttributeModified.of(thingId, JsonPointer.of("pub"),
+                JsonValue.of("p"), 4L, null, revokedForGroupX, null);
+
+        final List<Map<String, String>> summaryMdcs = new CopyOnWriteArrayList<>();
+        final Logger statisticsLogger = (Logger) LoggerFactory.getLogger(SseSessionStatistics.class);
+        final Level previousLevel = statisticsLogger.getLevel();
+        final AppenderBase<ILoggingEvent> appender = new AppenderBase<>() {
+            @Override
+            protected void append(final ILoggingEvent event) {
+                summaryMdcs.add(Map.copyOf(event.getMDCPropertyMap()));
+            }
+        };
+        appender.start();
+        statisticsLogger.addAppender(appender);
+        statisticsLogger.setLevel(Level.INFO);
+        final AtomicReference<String> entity = new AtomicReference<>();
+        try {
+            new TestKit(actorSystem) {{
+                final TestRouteResult routeResult =
+                        underTest.run(HttpRequest.GET(THINGS_ROUTE + "?ids=" + thingId).addHeader(acceptHeader));
+                final CompletableFuture<Void> routeTestAssertions = CompletableFuture.runAsync(() -> {
+                    routeResult.assertStatusCode(StatusCodes.OK);
+                    entity.set(routeResult.entityString());
+                }, ASYNC_TEST_EXECUTOR);
+
+                final Connect receivedConnect = streamingActor.expectMsgClass(Connect.class);
+                streamingActor.reply(streamingActor.ref());
+                streamingActor.expectMsgClass(StartStreaming.class);
+                final SourceQueueWithComplete<SessionedJsonifiable> publisherQueue =
+                        receivedConnect.getEventAndResponsePublisher();
+
+                offerSessioned(publisherQueue, SessionedSignals.of(secretDeleted, sessionHeaders, null, null));
+                offerSessioned(publisherQueue, SessionedSignals.of(secretModified, sessionHeaders, null, null));
+                offerSessioned(publisherQueue, SessionedSignals.of(pubModified, sessionHeaders, null, null));
+                publisherQueue.complete();
+                routeTestAssertions.join();
+
+                awaitAssert(Duration.ofSeconds(5), () -> {
+                    assertThat(summaryMdcs).hasSize(1);
+                    return null;
+                });
+            }};
+        } finally {
+            statisticsLogger.detachAppender(appender);
+            statisticsLogger.setLevel(previousLevel);
+        }
+
+        assertThat(entity.get().split("data:", -1)).hasSize(2);
+        assertThat(entity.get()).doesNotContain("secret");
+        assertThat(summaryMdcs.get(0))
+                .containsEntry(SseSessionStatistics.MDC_TARGETED, "3")
+                .containsEntry(SseSessionStatistics.MDC_FILTERED_OUT, "2")
+                .containsEntry(SseSessionStatistics.MDC_DELIVERED, "1");
+    }
+
+    private static void offerSessioned(final SourceQueueWithComplete<SessionedJsonifiable> publisherQueue,
+            final SessionedJsonifiable sessionedJsonifiable) {
+        publisherQueue.offer(sessionedJsonifiable).toCompletableFuture().join();
     }
 
     private void offer(final SourceQueueWithComplete<SessionedJsonifiable> publisherQueue,

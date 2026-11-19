@@ -15,7 +15,9 @@ package org.eclipse.ditto.policies.enforcement;
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -47,6 +49,7 @@ import org.eclipse.ditto.policies.model.PoliciesResourceType;
 import org.eclipse.ditto.policies.model.Permissions;
 import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.policies.model.PolicyEntry;
+import org.eclipse.ditto.policies.model.Resource;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.policies.model.PolicyImporter;
 import org.eclipse.ditto.policies.model.ResourceKey;
@@ -91,6 +94,10 @@ public final class PolicyEnforcer {
     // Single-slot memo for the root-only variant, whose value does not depend on the resource key. Volatile
     // rather than a Cache because it is a single reference read on the hot path.
     @Nullable private volatile JsonArray rootOnlyReadGrantedSubjectsHeaderValue;
+    // Single-slot memo like the one above: a pure function of the policy entries applicable to thingNamespace.
+    @Nullable private volatile Map<AuthorizationSubject, Set<JsonPointer>> readRevokedThingResourcePathsBySubject;
+    // set on forNamespace children, whose policy still contains the entries of all namespaces
+    @Nullable private final String thingNamespace;
     // The read-classification bound (<= 0 means unbounded), kept so forNamespace children can inherit it:
     // the things-service hot path calls classifyReadSubjects on the namespace-filtered child, so its cache
     // must be bounded too (unlike the child's namespace cache, which stays empty).
@@ -111,7 +118,7 @@ public final class PolicyEnforcer {
      * instances need a bound.
      */
     private PolicyEnforcer(@Nullable final Policy policy, final Enforcer enforcer) {
-        this(policy, enforcer, Caffeine.newBuilder().build(), 0L, null);
+        this(policy, enforcer, Caffeine.newBuilder().build(), 0L, null, null);
     }
 
     /**
@@ -125,14 +132,16 @@ public final class PolicyEnforcer {
             @Nullable final Integer authorizationMemoMaxSize) {
         this(policy, enforcer,
                 Caffeine.newBuilder().maximumSize(namespaceEnforcerCacheMaxSize).build(),
-                readClassificationCacheMaxSize, authorizationMemoMaxSize);
+                readClassificationCacheMaxSize, authorizationMemoMaxSize, null);
     }
 
     private PolicyEnforcer(@Nullable final Policy policy, final Enforcer enforcer,
             final Cache<String, PolicyEnforcer> namespaceEnforcerCache,
             final long readClassificationCacheMaxSize,
-            @Nullable final Integer authorizationMemoMaxSize) {
+            @Nullable final Integer authorizationMemoMaxSize,
+            @Nullable final String thingNamespace) {
         this.policy = policy;
+        this.thingNamespace = thingNamespace;
         this.enforcer = enforcer;
         this.namespaceEnforcerCache = namespaceEnforcerCache;
         this.readClassificationCacheMaxSize = readClassificationCacheMaxSize;
@@ -592,6 +601,50 @@ public final class PolicyEnforcer {
         return result;
     }
 
+    /**
+     * Returns per subject the paths of the thing resources on which a policy entry of the subject applicable to the
+     * namespace of this enforcer (see {@link #forNamespace(String)}) revokes READ, computed at most once for the
+     * lifetime of this instance. Whether a revoke takes effect for the subject still depends on its grants below the
+     * revoked path.
+     *
+     * @return the READ-revoked thing resource paths per subject; empty if READ is revoked for nobody.
+     * @since 3.9.9
+     */
+    public Map<AuthorizationSubject, Set<JsonPointer>> getReadRevokedThingResourcePathsBySubject() {
+        Map<AuthorizationSubject, Set<JsonPointer>> result = readRevokedThingResourcePathsBySubject;
+        if (null == result) {
+            final Map<AuthorizationSubject, Set<JsonPointer>> pathsBySubject = new LinkedHashMap<>();
+            if (null != policy) {
+                for (final PolicyEntry entry : policy.getEntriesSet()) {
+                    if (null == thingNamespace || entry.appliesToNamespace(thingNamespace)) {
+                        collectReadRevokedThingResourcePaths(entry, pathsBySubject);
+                    }
+                }
+            }
+            pathsBySubject.replaceAll((subject, paths) -> Collections.unmodifiableSet(paths));
+            result = Collections.unmodifiableMap(pathsBySubject);
+            readRevokedThingResourcePathsBySubject = result;
+        }
+        return result;
+    }
+
+    private static void collectReadRevokedThingResourcePaths(final PolicyEntry entry,
+            final Map<AuthorizationSubject, Set<JsonPointer>> pathsBySubject) {
+
+        final List<JsonPointer> revokedPaths = new ArrayList<>();
+        for (final Resource resource : entry.getResources()) {
+            if (PoliciesResourceType.THING.equals(resource.getResourceKey().getResourceType()) &&
+                    resource.getEffectedPermissions().getRevokedPermissions().contains(Permission.READ)) {
+                revokedPaths.add(resource.getResourceKey().getResourcePath());
+            }
+        }
+        if (!revokedPaths.isEmpty()) {
+            entry.getSubjects().forEach(subject -> pathsBySubject
+                    .computeIfAbsent(AuthorizationSubject.newInstance(subject.getId()), s -> new LinkedHashSet<>())
+                    .addAll(revokedPaths));
+        }
+    }
+
     private JsonArray renderReadGrantedSubjectsIncludingPartial(final ResourceKey resourceKey) {
         final SubjectClassification rootClassification = getRootResourceReadClassification();
         final TreeSet<String> subjectIds = new TreeSet<>();
@@ -669,7 +722,7 @@ public final class PolicyEnforcer {
         // The child's own namespace cache stays empty (forNamespace is never called on the child), so leave
         // that unbounded.
         return new PolicyEnforcer(policy, filteredEnforcer, Caffeine.newBuilder().build(),
-                readClassificationCacheMaxSize, authorizationMemoMaxSize);
+                readClassificationCacheMaxSize, authorizationMemoMaxSize, thingNamespace);
     }
 
 }
