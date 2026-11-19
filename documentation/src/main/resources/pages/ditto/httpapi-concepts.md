@@ -349,6 +349,11 @@ This removes all keys matching `2022-.*` from `properties`, then adds the new va
 
 You need `WRITE` permission on **all** resources affected by the merge patch. If permission is missing for any affected resource, the entire patch is rejected.
 
+Deleting is writing:
+* A field with a `null` value requires unrestricted `WRITE` permission on that field, including everything below it.
+* A regex-based removal (`{%raw%}{{ ~<regex>~ }}{%endraw%}`) requires unrestricted `WRITE` permission on the JSON object containing it, as it can remove any of its keys.
+* A field with an empty object value (`{}`) replaces an existing non-object value or creates the field, so it also requires unrestricted `WRITE` permission on that field.
+
 ### Merge update example
 
 Given an existing Thing with this JSON:
