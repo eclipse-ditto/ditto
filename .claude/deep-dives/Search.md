@@ -37,7 +37,7 @@ Operators can statically configure which fields are searchable ("indexed fields"
 
 The backend is chosen by the `ditto.extensions.search-persistence-provider` extension point
 (`SearchPersistenceProvider`): `MongoSearchPersistenceProvider` (`thingsearch/persistence-mongo`) by default,
-`PostgresSearchPersistenceProvider` opt-in
+`PostgresSearchPersistenceProvider` when `DITTO_PERSISTENCE_BACKEND=postgresql` puts its JARs on the classpath
 (see [PostgreSQL Search Backend](#postgresql-search-backend)).
 
 **MongoDB collections**:

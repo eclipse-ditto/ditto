@@ -16,6 +16,10 @@ sections: `Added`, `Changed`, `Deprecated`, `Removed`, `Fixed`, `Security`.
 ## [Unreleased]
 
 ### Added
+- New `global.persistenceBackend` (default `mongodb`, alternative `postgresql`). It is rendered as the
+  `DITTO_PERSISTENCE_BACKEND` env var, the first entry of the container `env`, into the policies, things,
+  connectivity and things-search deployments, and selects the image folder `/opt/ditto/backends/<value>/`. The
+  gateway is not changed. A `<service>.extraEnv` entry with the same name overrides it for that service.
 - New `global.featureFlags.hideInaccessibleEntityExistenceEnabled` (default `true`), passed to the things and
   policies services. When enabled, requesters without any permission on a thing or policy get the same "not found"
   error for every rejected request, regardless of whether the entity exists. Set it to `false` to restore the
@@ -44,6 +48,17 @@ sections: `Added`, `Changed`, `Deprecated`, `Removed`, `Fixed`, `Security`.
   `BACKOFF_DELAY`, `retryAttempts` 3, `fixedDelay` 2s, `backOffDelay` 500ms–4s with `randomFactor` 0.5), passed to
   the things service as `ENFORCEMENT_CREATED_POLICY_ROLLBACK_*`. It configures the bounded retries of the deletion of
   a policy that the things service created for a thing whose creation then failed.
+
+### Changed
+- The PostgreSQL backend needs no staging: the images carry both backends in `/opt/ditto/backends/`.
+- A deployment that stages the PostgreSQL JARs into `/opt/ditto/extensions/` (an `extraInitContainers` entry plus a
+  `ditto-extensions` volume) must remove that init container and volume and set
+  `global.persistenceBackend: postgresql`. A deployment that keeps the staging with the default value refuses to
+  boot, because the services find two backends on the classpath (the `mongodb` folder and the staged JARs).
+- The commented `values.yaml` examples of the four services were rewritten: the extension-JAR staging example
+  (init container, `ditto-extensions` volume and mount) is removed.
+- The default search-provider, event-adapter and metrics-builder class names changed. Only deployments that pinned
+  them, for example through `systemProps` or extension confs, are affected.
 
 ## [4.10.0]
 

@@ -25,8 +25,9 @@ In order to start Ditto, you'll need:
      * 8.0
    * Alternatively, [Amazon DocumentDB (with MongoDB compatibility)](https://aws.amazon.com/documentdb/) may also be used,
      however with some limitations, see the [section about DocumentDB below](#managed-amazon-documentdb-with-mongodb-compatibility)
-   * Alternatively, the persistence services and the search service can run on PostgreSQL instead (opt-in, MongoDB
-     stays the default), see [Running Ditto on PostgreSQL](installation-postgresql.html)
+   * Alternatively, the persistence services and the search service can run on PostgreSQL instead (MongoDB stays the
+     default): set `DITTO_PERSISTENCE_BACKEND=postgresql` on them, see
+     [Running Ditto on PostgreSQL](installation-postgresql.html)
 * the built Docker images of Ditto
     * either by building them as described in [Building Ditto](installation-building.html),
     * or by using the pre-built [Ditto images on Docker Hub](https://hub.docker.com/u/eclipse/).
@@ -48,6 +49,13 @@ Now you have running:
    * including some static HTTP + API documentation
 
 The running port on which Ditto can be accessed is described in the Readme of the respective deployment section.
+
+Running a service outside the Docker images: the service allinone JARs carry no persistence backend. Policies, things,
+connectivity and things-search therefore need the backend JARs on the classpath next to the allinone JAR, the same JARs
+the images ship in `/opt/ditto/backends/<backend>/` (see
+[Persistence backends](installation-extending.html#persistence-backends)), for example
+`java -cp "ditto-things-service-<version>-allinone.jar:backends/mongodb/*" org.eclipse.ditto.things.service.starter.ThingsService`.
+Without them the service refuses to start. The gateway needs no backend.
 
 If you want to change the MongoDB config or Ditto config please have a look here: 
 [Operating Ditto](installation-operating.html)

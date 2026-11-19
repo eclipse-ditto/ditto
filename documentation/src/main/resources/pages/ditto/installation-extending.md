@@ -110,10 +110,12 @@ Then mount the file into the container at `/opt/ditto/gateway-extension.conf`.
 
 ### Adding JARs to the classpath
 
-Ditto Docker images automatically add all JARs from these directories to the classpath:
+Ditto Docker images automatically add all JARs from these directories to the classpath, in this order:
 
-* `/opt/ditto`
-* `/opt/ditto/extensions`
+* `/opt/ditto` (the service itself)
+* `/opt/ditto/backends/${DITTO_PERSISTENCE_BACKEND}` (exactly one persistence backend folder, see
+  [Persistence backends](#persistence-backends))
+* `/opt/ditto/extensions` (your extension JARs)
 
 Build your extension as a JAR (including extension classes and config files) and place it in the `extensions` directory.
 
@@ -150,14 +152,46 @@ connectivity:
     - ./gateway-extension.jar:/opt/ditto/extensions/gateway-extension.jar
 ```
 
-### PostgreSQL backends
+### Persistence backends
 
-The PostgreSQL persistence backend (policies, things, connectivity) and the PostgreSQL search backend (things-search)
-are the largest extensions built from Ditto's own sources: layered drop-in JARs plus one `include` in the service's
-`<service>-extension.conf`. How to install and activate them is described in
-[Running Ditto on PostgreSQL](installation-postgresql.html); how to operate them (schema lifecycle, self-heal,
+The persistence backends are extensions too. Every Ditto image ships both of them, MongoDB and PostgreSQL, in its own
+folder under `/opt/ditto/backends/`:
+
+| Service                          | `/opt/ditto/backends/mongodb/`                                          | `/opt/ditto/backends/postgresql/`                                            |
+|----------------------------------|-------------------------------------------------------------------------|------------------------------------------------------------------------------|
+| policies, things, connectivity   | `ditto-mongo-persistence-extension`                                     | `ditto-postgres-client-extension`, `ditto-postgres-persistence-extension`    |
+| things-search                    | `ditto-mongo-persistence-extension`, `ditto-mongo-search-extension`     | `ditto-postgres-client-extension`, `ditto-postgres-search-extension`         |
+| gateway                          | none                                                                    | none                                                                         |
+
+The environment variable `DITTO_PERSISTENCE_BACKEND` (default `mongodb`) names the folder that is put on the
+classpath. In the Helm chart it is the value `global.persistenceBackend`. The backend wires itself through a
+fixed-name profile in its JARs, including the journals and snapshot stores the service starts, so no
+`<service>-extension.conf` change is needed to switch.
+
+Policies, things, connectivity and things-search need **exactly one** backend on the classpath. With none, or with
+several (for example the default `mongodb` folder plus PostgreSQL JARs mounted into `/opt/ditto/extensions/`), they
+refuse to start before any
+actor starts, and the message names `DITTO_PERSISTENCE_BACKEND` and the fix. A mixed layout, such as things-search on
+MongoDB and the persistence services on PostgreSQL, sets the variable per service.
+
+How to configure and run the PostgreSQL backend is described in
+[Running Ditto on PostgreSQL](installation-postgresql.html); how to operate it (schema lifecycle, self-heal,
 connection budget, TLS, PgBouncer, monitoring, vacuum, differences from MongoDB) in
 [Operating PostgreSQL](operating-postgresql.html).
+
+#### Upgrading a PostgreSQL deployment that staged JARs
+
+Deployments that copied or mounted the PostgreSQL extension JARs into `/opt/ditto/extensions/` (for example with an
+init container and a shared volume) must change three things when they move to an image with
+`/opt/ditto/backends/`:
+
+1. Remove the init container and the volume, or the mount into `/opt/ditto/extensions/`.
+2. Set `DITTO_PERSISTENCE_BACKEND=postgresql` on each PostgreSQL service (Helm: `global.persistenceBackend: postgresql`).
+3. Drop the activation overlay in `<service>-extension.conf`. Its `include` is now harmless but no longer needed, and
+   its auto-start narrowing lines are superseded by the backend profile.
+
+A deployment that keeps the staging and leaves the variable unset gets the default `mongodb` folder plus the staged
+PostgreSQL JARs: the services refuse to boot because they find two backends, and the message names the fix.
 
 ## Further reading
 

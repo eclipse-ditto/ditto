@@ -24,8 +24,8 @@ published artifacts, so changes must be additive: no altered signatures or JSON 
 **A new HOCON config key must land in four places**, or it ships unsettable in production:
 default + `${?ENV_VAR}` override in the service `.conf`,
 `deployment/helm/ditto/values.yaml`, and the Helm template (plain env var, or
-`*-extension.conf.tpl` for structured values). `ditto.postgresql.*` keys are the exception:
-they live in the extension profiles only (`.claude/rules/config-and-helm.md`).
+`*-extension.conf.tpl` for structured values). Backend keys (`ditto.postgresql.*`, `ditto.mongodb.*`)
+are the exception: they live in the backend profiles only (`.claude/rules/config-and-helm.md`).
 
 **Any change under `deployment/helm/ditto/` needs a `version` bump in `Chart.yaml`** and an
 entry in the chart's `CHANGELOG.md` — CI Helm lint fails without the bump.
@@ -83,7 +83,8 @@ what the task needs — paths relative to `.claude/`:
   `deep-dives/Placeholder.md`
 - Search, RQL → `deep-dives/Search.md`, `deep-dives/RQL.md`
 - MongoDB or PostgreSQL persistence and search backends → `context/persistence-backends.md`,
-  then `concepts/postgresql-persistence-design.md` and the PostgreSQL section of `deep-dives/Search.md`
+  then `concepts/mongodb-persistence-extension-design.md`, `concepts/postgresql-persistence-design.md`
+  and the PostgreSQL section of `deep-dives/Search.md`
 - Acks, live messages, WoT → `deep-dives/Acknowledgements.md`,
   `deep-dives/LiveMessaging.md`, `deep-dives/Ditto-W3C-WoT.md`
 - Config reaching a deployment → `context/deployment.md`

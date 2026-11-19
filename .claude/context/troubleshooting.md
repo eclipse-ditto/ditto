@@ -35,4 +35,4 @@ Recurring Ditto-specific failures and their usual cause.
 | Serialization error for a message sent between pods  | New message type not registered for serialization — `deep-dives/Serialization.md` |
 | 403 / "not found" where access is expected           | Policy entries/imports; see `deep-dives/Authentication-Authorization.md`          |
 | Services up but no API response (Docker Compose)     | Cluster still forming (30–60 s); Docker below 2 CPUs / 4 GB RAM                   |
-| PostgreSQL backend fails at start or runs on MongoDB | `context/troubleshooting-postgresql.md`                                           |
+| PostgreSQL backend fails at start                    | `context/troubleshooting-postgresql.md`                                           |

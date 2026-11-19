@@ -10,18 +10,18 @@
 #
 # SPDX-License-Identifier: EPL-2.0
 # Launch the COMPOUND (Policies + Things + Connectivity + Gateway + Things-Search) on the local PostgreSQL
-# backend from the CLI. Policies + Things + Connectivity persist to Postgres; Things-Search runs the OPT-IN
-# PostgreSQL search backend (search-postgres.conf overlay; the search-r2dbc module jar + its runtime deps are
-# prepended before the allinone — the CLI equivalent of mounting the base + search extension JARs); Gateway is
-# stateless routing (no persistence) and just needs the dev config with pre-authentication enabled so HTTP
-# PUT/GET work without a token.
+# backend from the CLI. Policies + Things + Connectivity persist to Postgres; Things-Search runs the PostgreSQL
+# search backend. Each of the four gets the PostgreSQL backend JARs the Docker images ship in
+# /opt/ditto/backends/postgresql/, staged by stage-backends.sh (the single service -> JAR mapping) from this
+# worktree's build. They are put BEFORE the allinone on the classpath; the images put them after /opt/ditto/*.
+# Gateway is stateless routing (no persistence) and just needs the dev config with pre-authentication enabled so
+# HTTP PUT/GET work without a token.
 #
 # Each service logs to /tmp/<svc>-pg.log. Postgres + a one-time build are prerequisites (see README).
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "$REPO_ROOT"
-MVN="${MVN:-mvn}"
 OVERLAY_DIR="${REPO_ROOT}/deployment/postgres-local"
 
 # Fail fast if Postgres is not reachable — every downstream failure (crash-looping root actors, gateway
@@ -31,41 +31,17 @@ if ! (exec 3<>"/dev/tcp/localhost/5432") 2>/dev/null; then
   echo "  docker compose -f deployment/postgres-local/docker-compose.postgres.yml up -d" >&2
   exit 1
 fi
-exec 3>&- 2>/dev/null || true
 
-# DEPS CLASSPATHS: generated WITHOUT org.eclipse.ditto artifacts (-DexcludeGroupIds — NOTE: the scope/group
-# filter properties of dependency:build-classpath carry NO `mdep.` prefix, unlike mdep.outputFile; a
-# `-Dmdep.includeScope` spelling is silently ignored and lets test-scope jars in). Ditto classes must
-# come from THIS worktree's target/ jars (module jar + allinone), never from ~/.m2 — the local repo's
-# 0-SNAPSHOT artifacts are shared across ALL worktrees, so a sibling-branch `mvn install` silently replaces
-# them with jars built from other code (a stale .m2 thingsearch-service jar that shadows the
-# allinone boots the search service on the MONGO backend despite the Postgres overlay). The deps list
-# carries ONLY third-party jars (r2dbc stack, reactor-core 3.5.x, netty, scram, ...).
-# Caches are keyed by worktree path for the same reason (sibling worktrees share /tmp).
-POSTGRES_CLIENT_JAR="internal/utils/postgres-client/target/ditto-internal-utils-postgres-client-0-SNAPSHOT.jar"
+# BACKEND JARS: stage-backends.sh copies the five shaded extension JARs of THIS worktree's build (see README
+# Step 2) into <dest>/{mongodb,postgresql}/, the layout of /opt/ditto/backends/ in the images. A missing JAR makes
+# it exit 1 (naming the Maven command) before anything is staged; `set -e` then stops this script before any JVM
+# starts. All four services are staged before the first launch. The cache is keyed by worktree path, because
+# sibling worktrees share the temp dir.
 WT_KEY="$(echo "$REPO_ROOT" | cksum | cut -d' ' -f1)"
-
-R2DBC_JAR="internal/utils/persistence-r2dbc/target/ditto-internal-utils-persistence-r2dbc-0-SNAPSHOT.jar"
-CP_CACHE="/tmp/ditto-r2dbc-cp-${WT_KEY}.txt"
-if [[ ! -s "$CP_CACHE" ]]; then
-  "$MVN" -q -pl :ditto-internal-utils-persistence-r2dbc dependency:build-classpath \
-    -Dmdep.outputFile="$CP_CACHE" -DincludeScope=runtime \
-    -DexcludeGroupIds=org.eclipse.ditto >/dev/null
-fi
-R2DBC_DEPS="$(cat "$CP_CACHE")"
-
-# Things-Search: the search backend lives in search-r2dbc (NOT persistence-r2dbc — the search service must not
-# carry the event-sourcing journal plugins); its third-party runtime deps are the r2dbc driver stack +
-# reactor-core 3.5.x; the ditto-side deps (postgres-client, persistence-api, rql-parser) come from the
-# worktree module jars / the allinone.
-SEARCH_R2DBC_JAR="internal/utils/search-r2dbc/target/ditto-internal-utils-search-r2dbc-0-SNAPSHOT.jar"
-SEARCH_CP_CACHE="/tmp/ditto-search-r2dbc-cp-${WT_KEY}.txt"
-if [[ ! -s "$SEARCH_CP_CACHE" ]]; then
-  "$MVN" -q -pl :ditto-internal-utils-search-r2dbc dependency:build-classpath \
-    -Dmdep.outputFile="$SEARCH_CP_CACHE" -DincludeScope=runtime \
-    -DexcludeGroupIds=org.eclipse.ditto >/dev/null
-fi
-SEARCH_R2DBC_DEPS="$(cat "$SEARCH_CP_CACHE")"
+BACKENDS_CACHE="${TMPDIR:-/tmp}/ditto-backends-${WT_KEY}"
+for svc in policies things connectivity thingsearch; do
+  ./stage-backends.sh "$svc" 0-SNAPSHOT "${BACKENDS_CACHE}/${svc}" >/dev/null
+done
 
 common_pg_env() {
   export POSTGRES_SSL_MODE=disable
@@ -76,12 +52,10 @@ common_pg_env() {
   export POSTGRES_DDL_PASSWORD="${POSTGRES_DDL_PASSWORD:-ditto}"
 }
 
-start_pg_service() { # name allinone-jar main-class overlay-file extra-env-assignments...
-  local name="$1" jar="$2" main="$3" overlay="$4"; shift 4
-  # Worktree module jars first, then third-party deps (newer reactor-core etc. must win over the uber-jar's
-  # bundled old copy), then the allinone. postgres-client is explicit: it is banned from the allinone and,
-  # being a ditto artifact, deliberately excluded from the generated deps list.
-  local cp="${R2DBC_JAR}:${POSTGRES_CLIENT_JAR}:${R2DBC_DEPS}:${jar}"
+start_pg_service() { # name stage-service allinone-jar main-class overlay-file extra-env-assignments...
+  local name="$1" svc="$2" jar="$3" main="$4" overlay="$5"; shift 5
+  # The staged PostgreSQL backend JARs first, then the allinone (which carries no persistence backend).
+  local cp="${BACKENDS_CACHE}/${svc}/postgresql/*:${jar}"
   ( common_pg_env
     export HOSTING_ENVIRONMENT=filebased
     export HOSTING_ENVIRONMENT_FILE_LOCATION="$overlay"
@@ -110,7 +84,7 @@ start_dev_service() { # name allinone-jar main-class extra-env...
 echo "Starting Policies (Postgres) ..."
 # No snapshot-adapter override: AbstractPersistenceActor composes the per-service snapshot-adapter (serializer) with
 # the Postgres provider's JSONB snapshot codec automatically once the Postgres persistence profile is included.
-start_pg_service policies \
+start_pg_service policies policies \
   "policies/service/target/ditto-policies-service-0-SNAPSHOT-allinone.jar" \
   org.eclipse.ditto.policies.service.starter.PoliciesService \
   "${OVERLAY_DIR}/policies-postgres.conf"
@@ -118,15 +92,15 @@ start_pg_service policies \
 echo "Starting Things (Postgres) ..."
 # No snapshot-adapter override: the Postgres provider's JSONB snapshot codec is selected automatically.
 # things-postgres.conf joins the Policies-founded cluster at 2552 (no seed-nodes override).
-start_pg_service things \
+start_pg_service things things \
   "things/service/target/ditto-things-service-0-SNAPSHOT-allinone.jar" \
   org.eclipse.ditto.things.service.starter.ThingsService \
   "${OVERLAY_DIR}/things-postgres.conf"
 
 echo "Starting Connectivity (Postgres) ..."
 # connectivity-postgres.conf layers connectivity-dev only; it joins the Policies-founded cluster at 2552 like the
-# other overlays, and the prepended PostgreSQL JARs select the backend.
-start_pg_service connectivity \
+# other overlays, and the staged PostgreSQL JARs select the backend.
+start_pg_service connectivity connectivity \
   "connectivity/service/target/ditto-connectivity-service-0-SNAPSHOT-allinone.jar" \
   org.eclipse.ditto.connectivity.service.ConnectivityService \
   "${OVERLAY_DIR}/connectivity-postgres.conf"
@@ -139,17 +113,11 @@ HOSTING_ENVIRONMENT="" start_dev_service gateway \
 
 echo "Starting Things-Search (Postgres) ..."
 # search-postgres.conf = search-dev only; search.conf's ditto-search-backend include finds the PostgreSQL search
-# profile in the prepended search-r2dbc jar. The search-r2dbc jar + deps are prepended INSTEAD of persistence-r2dbc
-# — deliberately: the search service needs no event-sourcing journal plugins, only the search backend +
-# postgres-client + r2dbc stack.
-( common_pg_env
-  export HOSTING_ENVIRONMENT=filebased
-  export HOSTING_ENVIRONMENT_FILE_LOCATION="${OVERLAY_DIR}/search-postgres.conf"
-  exec java --add-opens java.base/java.lang=ALL-UNNAMED --add-opens java.base/java.util=ALL-UNNAMED \
-    -Xms512m -Xmx512m -cp "${SEARCH_R2DBC_JAR}:${POSTGRES_CLIENT_JAR}:${SEARCH_R2DBC_DEPS}:thingsearch/service/target/ditto-thingsearch-service-0-SNAPSHOT-allinone.jar" \
-    org.eclipse.ditto.thingsearch.service.starter.SearchService
-) > /tmp/search-pg.log 2>&1 &
-echo "  search pid $! -> /tmp/search-pg.log"
+# profile in the staged PostgreSQL search JAR (with the PostgreSQL base JAR; no event-sourcing journal plugins).
+start_pg_service search thingsearch \
+  "thingsearch/service/target/ditto-thingsearch-service-0-SNAPSHOT-allinone.jar" \
+  org.eclipse.ditto.thingsearch.service.starter.SearchService \
+  "${OVERLAY_DIR}/search-postgres.conf"
 
 echo "All started. Gateway REST on http://localhost:8080  (use header 'x-ditto-pre-authenticated: nginx:ditto')."
 echo "Search API: http://localhost:8080/api/2/search/things?filter=...   Search health: http://localhost:8130/status/health"

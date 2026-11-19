@@ -42,6 +42,11 @@ fullnameOverride: ""
 ## ----------------------------------------------------------------------------
 ## global configuration shared by all components
 global:
+  # persistenceBackend selects the persistence backend of policies, things, connectivity and things-search:
+  #  "mongodb" or "postgresql". It is the folder name under /opt/ditto/backends/ in the image, which carries both.
+  #  Rendered as the DITTO_PERSISTENCE_BACKEND env var; the gateway ignores it. To run a single service on another
+  #  backend, add DITTO_PERSISTENCE_BACKEND to that service's extraEnv (the later entry wins).
+  persistenceBackend: mongodb
   # cluster holds the configuration for the Ditto/Pekko cluster
   cluster:
     # requiredContactPoints defines the total amount of replicas in the Ditto cluster
@@ -635,18 +640,15 @@ policies:
   #  - name: policies-extension
   #    configMap:
   #      name: policies-extension.jar
-  #  # PostgreSQL backend (opt-in): shared volume for the extension JAR staged by the initContainer below.
-  #  - name: ditto-extensions
-  #    emptyDir: {}
   extraVolumeMounts:
   #  - name: policies-extension
   #    mountPath: /opt/ditto/policies-extension.jar
   #    subPath: policies-extension.jar
-  #  # PostgreSQL backend (opt-in): mount the extensions dir so the staged JAR is on the classpath.
-  #  - name: ditto-extensions
-  #    mountPath: /opt/ditto/extensions
+  # PostgreSQL backend: set global.persistenceBackend: postgresql. The policies pod needs no init container and no
+  # ditto-extensions volume: the image ships the JARs in /opt/ditto/backends/postgresql/. A deployment that still
+  # stages the PostgreSQL JARs into /opt/ditto/extensions/ and keeps the default "mongodb" is refused at boot (two
+  # backends on the classpath).
   # extraInitContainers adds arbitrary init containers to the policies pod (injected after the built-in ones).
-  # See things.extraInitContainers for a full PostgreSQL extension-JAR staging example.
   extraInitContainers:
   # resources configures the resources available/to use for the policies service
   resources:
@@ -1003,38 +1005,15 @@ things:
   #  - name: things-extension
   #    configMap:
   #      name: things-extension.jar
-  #  # PostgreSQL backend (opt-in): shared volume for the extension JAR staged by the initContainer below.
-  #  - name: ditto-extensions
-  #    emptyDir: {}
   extraVolumeMounts:
   #  - name: things-extension
   #    mountPath: /opt/ditto/things-extension.jar
   #    subPath: things-extension.jar
-  #  # PostgreSQL backend (opt-in): mount the extensions dir so the staged JAR is on the classpath.
-  #  - name: ditto-extensions
-  #    mountPath: /opt/ditto/extensions
+  # PostgreSQL backend: set global.persistenceBackend: postgresql. The things pod needs no init container and no
+  # ditto-extensions volume: the image ships the JARs in /opt/ditto/backends/postgresql/. A deployment that still
+  # stages the PostgreSQL JARs into /opt/ditto/extensions/ and keeps the default "mongodb" is refused at boot (two
+  # backends on the classpath).
   # extraInitContainers adds arbitrary init containers to the things pod (injected after the built-in ones).
-  # Example: stage the PostgreSQL persistence extension JARs into /opt/ditto/extensions/ (opt-in; default off).
-  # The Postgres backend ships as TWO layered JARs: the shared base ditto-postgres-client-extension
-  # (r2dbc driver/pool, reactor, netty, scram) plus the thin ditto-postgres-persistence-extension (event-sourcing
-  # classes only). Stage BOTH — from the SAME Ditto release — into the shared emptyDir volume declared above so the
-  # Ditto process finds them on the /opt/ditto/extensions classpath. (A search service on Postgres stages
-  # ditto-postgres-client-extension + ditto-postgres-search-extension instead.)
-  #
-  # extraInitContainers:
-  #   - name: stage-postgres-extension
-  #     image: curlimages/curl:8.6.0
-  #     command:
-  #       - sh
-  #       - -c
-  #       - |
-  #         curl -fL -o /extensions/ditto-postgres-client-extension.jar \
-  #           "https://your-artifact-host/path/to/ditto-postgres-client-extension-<version>.jar"
-  #         curl -fL -o /extensions/ditto-postgres-persistence-extension.jar \
-  #           "https://your-artifact-host/path/to/ditto-postgres-persistence-extension-<version>.jar"
-  #     volumeMounts:
-  #       - name: ditto-extensions
-  #         mountPath: /extensions
   extraInitContainers:
   # resources configures the resources available/to use for the things service
   resources:
@@ -1604,39 +1583,15 @@ thingsSearch:
   #  - name: search-extension
   #    configMap:
   #      name: search-extension.jar
-  #  # PostgreSQL search backend (opt-in): shared volume for the extension JARs staged by the initContainer below.
-  #  - name: ditto-extensions
-  #    emptyDir: {}
   extraVolumeMounts:
   #  - name: search-extension
   #    mountPath: /opt/ditto/search-extension.jar
   #    subPath: search-extension.jar
-  #  # PostgreSQL search backend (opt-in): mount the extensions dir so the staged JARs are on the classpath.
-  #  - name: ditto-extensions
-  #    mountPath: /opt/ditto/extensions
+  # PostgreSQL backend: set global.persistenceBackend: postgresql. The things-search pod needs no init container and no
+  # ditto-extensions volume: the image ships the JARs in /opt/ditto/backends/postgresql/. A deployment that still
+  # stages the PostgreSQL JARs into /opt/ditto/extensions/ and keeps the default "mongodb" is refused at boot (two
+  # backends on the classpath).
   # extraInitContainers adds arbitrary init containers to the things-search pod (injected after the built-in ones).
-  # Example: stage the PostgreSQL SEARCH extension JARs into /opt/ditto/extensions/ (opt-in; default off).
-  # Running things-search on Postgres ships as TWO layered JARs: the SAME shared base
-  # ditto-postgres-client-extension the persistence services use (r2dbc driver/pool, reactor, netty, scram) plus the
-  # thin ditto-postgres-search-extension (search read/write/aggregation classes only). Stage BOTH — from the SAME Ditto
-  # release — into the shared emptyDir volume declared above so the Ditto process finds them on the
-  # /opt/ditto/extensions classpath. A search service left on MongoDB stages nothing. (The persistence services stage
-  # ditto-postgres-client-extension + ditto-postgres-persistence-extension instead — see things.extraInitContainers.)
-  #
-  # extraInitContainers:
-  #   - name: stage-postgres-search-extension
-  #     image: curlimages/curl:8.6.0
-  #     command:
-  #       - sh
-  #       - -c
-  #       - |
-  #         curl -fL -o /extensions/ditto-postgres-client-extension.jar \
-  #           "https://your-artifact-host/path/to/ditto-postgres-client-extension-<version>.jar"
-  #         curl -fL -o /extensions/ditto-postgres-search-extension.jar \
-  #           "https://your-artifact-host/path/to/ditto-postgres-search-extension-<version>.jar"
-  #     volumeMounts:
-  #       - name: ditto-extensions
-  #         mountPath: /extensions
   extraInitContainers:
   # resources configures the resources available/to use for the things search service
   resources:
@@ -2006,18 +1961,15 @@ connectivity:
   #  - name: connectivity-extension
   #    configMap:
   #      name: connectivity-extension.jar
-  #  # PostgreSQL backend (opt-in): shared volume for the extension JAR staged by the initContainer below.
-  #  - name: ditto-extensions
-  #    emptyDir: {}
   extraVolumeMounts:
   #  - name: connectivity-extension
   #    mountPath: /opt/ditto/connectivity-extension.jar
   #    subPath: connectivity-extension.jar
-  #  # PostgreSQL backend (opt-in): mount the extensions dir so the staged JAR is on the classpath.
-  #  - name: ditto-extensions
-  #    mountPath: /opt/ditto/extensions
+  # PostgreSQL backend: set global.persistenceBackend: postgresql. The connectivity pod needs no init container and no
+  # ditto-extensions volume: the image ships the JARs in /opt/ditto/backends/postgresql/. A deployment that still
+  # stages the PostgreSQL JARs into /opt/ditto/extensions/ and keeps the default "mongodb" is refused at boot (two
+  # backends on the classpath).
   # extraInitContainers adds arbitrary init containers to the connectivity pod (injected after the built-in ones).
-  # See things.extraInitContainers for a full PostgreSQL extension-JAR staging example.
   extraInitContainers:
   # resources configures the resources available/to use for the connectivity service
   resources:

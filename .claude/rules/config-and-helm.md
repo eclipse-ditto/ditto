@@ -13,8 +13,8 @@ A config key that only exists in a `.conf` file can't be set in a Helm deploymen
 touches all of these:
 
 1. **Service `.conf`** (`{service}/service/src/main/resources/{service}.conf`, or a shared
-   `internal/utils/config/src/main/resources/ditto-*.conf`) — default first, then the
-   optional override:
+   `internal/utils/config/src/main/resources/ditto-*.conf`; a backend key goes into its backend
+   profile instead, see below) — default first, then the optional override:
 
    ```hocon
    max-size = 20000
@@ -39,17 +39,20 @@ touches all of these:
 
 Feature toggles follow the same path with their values under `global.featureFlags`.
 
-## PostgreSQL keys (`ditto.postgresql.*`)
+## Backend keys — `ditto.postgresql.*` and `ditto.mongodb.*` — live in the backend profiles only
 
-These live in the extension profiles, not in the service `.conf`s and not in the chart:
-`ditto-postgres-client.conf` (`postgres-client`: URI, credentials, pool, SSL, schema, bootstrap),
-`ditto-postgres-persistence.conf` (`persistence-r2dbc`: provider, plugin blocks) and
-`ditto-postgres-search.conf` (`search-r2dbc`: provider, reaper, path indexes). A new key gets its
-default and `${?POSTGRES_…}` override there plus a `*Config` in the same module; operators set it
-through `extraEnv`. The chart carries only `postgres.tls.*` and `extraInitContainers` — no
-PostgreSQL connection values, by design. One key is set in the service `.conf`s instead: the
-`read-journal.entity` of the persistence backend provider's `extension-config`
-(`${?POSTGRES_READ_JOURNAL_ENTITY}`), which names the table set of the service's shared read journal.
+Not in the service `.conf`s and not in the chart: `ditto-postgres-client.conf` (`postgres-client`:
+URI, credentials, pool, SSL, schema, bootstrap), `ditto-postgres-persistence.conf`
+(`persistence-r2dbc`: provider, plugin blocks), `ditto-postgres-search.conf` (`search-r2dbc`:
+provider, reaper, path indexes), `ditto-mongo.conf` and `ditto-mongo-persistence.conf`
+(`internal/utils/persistence`) and `ditto-mongo-search.conf` (`thingsearch/persistence-mongo`). A new
+key gets its default and `${?…}` override there plus a `*Config` in the same module; operators set it
+through `extraEnv`. Three exceptions stay in the service confs: the per-service
+`ditto.mongodb { database = … }` blocks, `search.conf`'s `readPreference` / `readConcern`, read
+through optional substitutions over literal defaults, and the `read-journal.entity` of the persistence
+backend provider's `extension-config` (`${?POSTGRES_READ_JOURNAL_ENTITY}`), which names the table set of
+the service's shared read journal. The chart carries `global.persistenceBackend`, `postgres.tls.*` and
+the generic `extraInitContainers` — no backend connection values, by design.
 
 ## Every chart change
 

@@ -10,6 +10,7 @@ status below current.
 
 | Document                                                                               | Topic                                              | Status                                       |
 |----------------------------------------------------------------------------------------|----------------------------------------------------|----------------------------------------------|
+| [mongodb-persistence-extension-design.md](mongodb-persistence-extension-design.md)     | MongoDB as an extension; backend selection         | Implemented, PR pending                      |
 | [namespace-scoped-policy-entries-design.md](namespace-scoped-policy-entries-design.md) | optional `namespaces` on policy entries (#2325)    | Implemented (3.9.0)                          |
 | [policy-import-additions-design.md](policy-import-additions-design.md)                 | `entriesAdditions` on policy imports (#2221)       | Superseded by entry-level references (#2424) |
 | [postgresql-persistence-design.md](postgresql-persistence-design.md)                   | PostgreSQL persistence and search backends (#2629) | Implemented, PR pending (4.0.0)              |

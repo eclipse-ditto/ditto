@@ -92,6 +92,8 @@ spec:
           image: {{ printf "%s:%s" .Values.thingsSearch.image.repository ( default .Chart.AppVersion ( default .Values.dittoTag .Values.thingsSearch.image.tag ) ) }}
           imagePullPolicy: {{ .Values.thingsSearch.image.pullPolicy }}
           env:
+            - name: DITTO_PERSISTENCE_BACKEND
+              value: "{{ .Values.global.persistenceBackend }}"
             {{- if not .Values.global.logging.customConfigFile.enabled }}
             - name: DITTO_LOGGING_DISABLE_SYSOUT_LOG
               value: "{{ not .Values.global.logging.sysout.enabled }}"

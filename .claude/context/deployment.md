@@ -12,9 +12,9 @@ Lowest to highest precedence:
    `internal/utils/config/src/main/resources/ditto-*.conf` (defaults)
 2. Environment variables, wherever the `.conf` declares `key = ${?ENV_VAR}`
 3. Extension config files, e.g. `/opt/ditto/{service}-extension.conf` rendered by Helm
-4. The file at `HOSTING_ENVIRONMENT_FILE_LOCATION` when `HOSTING_ENVIRONMENT=filebased` — the
-   overlay Helm deployments use to switch a PostgreSQL backend on (Compose uses the extension conf
-   of step 3; `context/persistence-backends.md`)
+4. The file at `HOSTING_ENVIRONMENT_FILE_LOCATION` when `HOSTING_ENVIRONMENT=filebased` (the
+   `deployment/postgres-local/` dev overlays use it; the backend itself is chosen by
+   `DITTO_PERSISTENCE_BACKEND`, `context/persistence-backends.md`)
 5. Java system properties (`-Dditto.…`), e.g. via `JAVA_TOOL_OPTIONS` or Helm `systemProps`
 
 A key without a `${?ENV_VAR}` line can still be set via a system property, but not via the
@@ -31,11 +31,18 @@ A running service shows its effective config:
 - `service-config/{service}-extension.conf.tpl` — structured config (lists, maps).
 - `Chart.yaml` `version` is the chart's own semver, `appVersion` the Ditto version; every
   change bumps `version` and gets a `CHANGELOG.md` entry.
-- PostgreSQL: the chart activates no backend. `postgres.tls.*` (off by default) mounts CA and
-  client certificate into policies, things, connectivity and things-search;
-  `{service}.extraInitContainers` stage the extension JARs into `/opt/ditto/extensions`; the
-  overlay and `POSTGRES_*` variables go through `extraVolumes` / `extraEnv`.
+- Backend: `global.persistenceBackend` (default `mongodb`) is rendered as `DITTO_PERSISTENCE_BACKEND`
+  into policies, things, connectivity and things-search (first `env` entry, so `extraEnv` can override
+  it per service). No extension init containers. `POSTGRES_*` go through `extraEnv`;
+  `postgres.tls.*` (off by default) mounts CA and client certificate.
 - Published as an OCI chart: `oci://registry-1.docker.io/eclipse/ditto`.
+
+## Images
+
+- Every image carries `/opt/ditto/backends/{mongodb,postgresql}/`; the CMD classpath is
+  `/opt/ditto/*:/opt/ditto/backends/${DITTO_PERSISTENCE_BACKEND}/*:/opt/ditto/extensions/*`.
+- `stage-backends.sh` holds the only service → backend JAR mapping (`build-images.sh` and the
+  Docker workflows call it).
 
 ## Docker Compose (`deployment/docker/`) — local development
 

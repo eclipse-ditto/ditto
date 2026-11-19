@@ -2,8 +2,8 @@
 
 Five services form one Pekko cluster. They talk only via Pekko messages (cluster sharding,
 Ditto's own pub/sub, direct actor messaging) — never HTTP. Each persisting service has its own
-database for journal and snapshots: MongoDB by default, PostgreSQL as an opt-in extension
-(`context/persistence-backends.md`). Deep dives in `.claude/deep-dives/` cover the flows end to
+database for journal and snapshots: MongoDB by default or PostgreSQL, both extensions, one selected
+per service by `DITTO_PERSISTENCE_BACKEND` (`context/persistence-backends.md`). Deep dives in `.claude/deep-dives/` cover the flows end to
 end; ADRs in `documentation/src/main/resources/architecture/` record the why.
 
 ## Services

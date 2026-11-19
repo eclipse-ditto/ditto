@@ -8,25 +8,26 @@ permalink: installation-postgresql.html
 By default, Ditto stores Things, Policies and Connectivity data in MongoDB, and the things-search service keeps its
 search index in MongoDB as well. Both can run on PostgreSQL instead: the **PostgreSQL persistence backend** for the
 policies, things and connectivity services, and the **PostgreSQL search backend** for the things-search service. The
-two are independent of each other; each is strictly opt-in, and MongoDB remains the default.
+two are independent of each other; each service selects its backend, and MongoDB remains the default.
 
-{% include callout.html content="**TL;DR**: Mount two extension JARs (the shared base `ditto-postgres-client-extension` plus the thin `ditto-postgres-persistence-extension` or `ditto-postgres-search-extension`) into `/opt/ditto/extensions/`, add one `include required(classpath(...))` line plus the auto-start narrowing to the service's activation config, and set the `POSTGRES_*` environment variables. The schema is created at the first start." type="primary" %}
+{% include callout.html content="**TL;DR**: Set `DITTO_PERSISTENCE_BACKEND=postgresql` on the service (Helm: `global.persistenceBackend: postgresql`) and set the `POSTGRES_*` environment variables. The extension JARs ship in the Ditto images. The schema is created at the first start." type="primary" %}
 
-This page covers the installation: the JARs, the activation config, provisioning, the environment variables and the
+This page covers the installation: the JARs, selecting the backend, provisioning, the environment variables and the
 Docker Compose and Helm setups. Everything that matters once the services run (schema lifecycle and upgrades,
 self-heal, the connection budget, TLS, PgBouncer, monitoring, vacuum and the differences from MongoDB) is on
 [Operating PostgreSQL](operating-postgresql.html).
 
 ## Overview
 
-| Backend                        | Services                       | Thin extension JAR                     | Activation include                                          |
-|--------------------------------|--------------------------------|----------------------------------------|-------------------------------------------------------------|
-| PostgreSQL persistence backend | policies, things, connectivity | `ditto-postgres-persistence-extension` | `include required(classpath("ditto-postgres-persistence"))` |
-| PostgreSQL search backend      | things-search                  | `ditto-postgres-search-extension`      | `include required(classpath("ditto-postgres-search"))`      |
+| Backend                        | Services                       | Thin extension JAR                     | Folder in the image               |
+|--------------------------------|--------------------------------|----------------------------------------|-----------------------------------|
+| PostgreSQL persistence backend | policies, things, connectivity | `ditto-postgres-persistence-extension` | `/opt/ditto/backends/postgresql/` |
+| PostgreSQL search backend      | things-search                  | `ditto-postgres-search-extension`      | `/opt/ditto/backends/postgresql/` |
 
 Both backends also need the shared base JAR `ditto-postgres-client-extension` and the same `POSTGRES_*` environment
 variables. Any combination works: all three persistence services on PostgreSQL with search on MongoDB, search alone on
-PostgreSQL, or everything on PostgreSQL. A service left on MongoDB mounts nothing and changes nothing.
+PostgreSQL, or everything on PostgreSQL. `DITTO_PERSISTENCE_BACKEND` selects the backend per service; a service left
+on MongoDB keeps the default and changes nothing.
 
 **PostgreSQL version:** PostgreSQL 16 or newer (tested: 16, 17, 18). Older versions log a warning at startup, but the
 service still starts; technically, persistence needs PostgreSQL ≥ 10 and search PostgreSQL ≥ 13 (from 13 on, `pg_trgm`
@@ -41,174 +42,111 @@ qualify. See [Provisioning the database](#provisioning-the-database).
 
 ## The extension JARs
 
-The extension JARs are **not** included in the default Ditto images. The PostgreSQL backends ship as **layered drop-in
-JARs** built from three Maven modules — a shared **base** JAR carrying the third-party runtime the service images lack
+The Ditto images ship the extension JARs in `/opt/ditto/backends/postgresql/`. The PostgreSQL backends are
+**layered JARs** built from three Maven modules — a shared **base** JAR carrying the third-party runtime the service images lack
 (R2DBC driver/pool, reactor, reactor-netty, scram) and **thin** backend JARs carrying only Ditto implementation classes:
 
-| Module / JAR                                  | Contents                                                                                                                                                       | Mounted by                                        |
+| Module / JAR                                  | Contents                                                                                                                                                       | Used by                                           |
 |-----------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------|---------------------------------------------------|
 | `ditto-postgres-client-extension` (base)      | shared `postgres-client` infra + the third-party runtime the images lack (r2dbc-postgresql, r2dbc-pool, reactor, reactor-netty, the netty DNS resolver, scram) | every service on PostgreSQL                       |
 | `ditto-postgres-persistence-extension` (thin) | only the event-sourcing persistence classes                                                                                                                    | policies / things / connectivity                  |
 | `ditto-postgres-search-extension` (thin)      | only the thing-search classes                                                                                                                                  | things-search (only if search runs on PostgreSQL) |
 
-A service therefore mounts **two** JARs: the base plus the matching thin JAR. A search service left on MongoDB mounts
-nothing.
-
-The JARs go into `/opt/ditto/extensions/` of the service container. The Ditto images put `/opt/ditto/*` and
-`/opt/ditto/extensions/*` on the classpath (see [Adding JARs to the classpath](installation-extending.html#adding-jars-to-the-classpath)).
-The release images contain no `extensions` directory and run as the unprivileged `ditto` user, so provide the JARs as
-a volume mount (Docker Compose) or stage them with an init container (Helm), as shown below, rather than copying them
-into a running container.
+A service on PostgreSQL therefore gets **two** JARs: the base plus the matching thin JAR. The images put
+`/opt/ditto/*`, `/opt/ditto/backends/${DITTO_PERSISTENCE_BACKEND}/*` and `/opt/ditto/extensions/*` on the classpath
+(see [Adding JARs to the classpath](installation-extending.html#adding-jars-to-the-classpath)), so with
+`DITTO_PERSISTENCE_BACKEND=postgresql` the images' own `postgresql` folder provides them and nothing is mounted. Do
+**not** also put the JARs into `/opt/ditto/extensions/`: next to the default `mongodb` folder the service finds two
+backends on its classpath and refuses to start, and next to the `postgresql` folder they are a second copy of the same
+classes (see [Persistence backends](installation-extending.html#persistence-backends)).
 
 ### Where the JARs come from
 
-The three JARs are Maven modules of the Ditto build, under `internal/utils/` in the Ditto repository, with the
-artifact coordinates `org.eclipse.ditto:ditto-postgres-client-extension`,
-`org.eclipse.ditto:ditto-postgres-persistence-extension` and `org.eclipse.ditto:ditto-postgres-search-extension`. Each
-is a shaded JAR; the thin ones ride on top of the base. To build them from the sources (from the Ditto repository
+The images take the JARs from the same build as the service. For a custom image, the three JARs are Maven modules of
+the Ditto build, under `internal/utils/` in the Ditto repository, with the artifact coordinates
+`org.eclipse.ditto:ditto-postgres-client-extension`, `org.eclipse.ditto:ditto-postgres-persistence-extension` and
+`org.eclipse.ditto:ditto-postgres-search-extension` (also on Maven Central with each release). Each is a shaded JAR;
+the thin ones ride on top of the base. `stage-backends.sh <service> <version> <dest>` in the repository root copies
+the built JARs of one service into `<dest>/mongodb/` and `<dest>/postgresql/`, the layout of `/opt/ditto/backends/`;
+it is what `build-images.sh` and the release build use. To build the JARs from the sources (from the Ditto repository
 root):
 
 ```bash
-# the base JAR plus both thin JARs; -Drevision sets the version marker (see the same-version rule below)
-mvn -pl :ditto-postgres-client-extension,:ditto-postgres-persistence-extension,:ditto-postgres-search-extension \
-    -am -DskipTests -DskipITs package -Drevision=<ditto version>
+# all five backend extension JARs; -Drevision sets the version marker (see the same-version rule below)
+mvn -pl "$(./stage-backends.sh --maven-modules)" -am -DskipTests -DskipITs clean install -Drevision=<ditto version>
 
-ls internal/utils/postgres-client-extension/target/ditto-postgres-client-extension-<ditto version>.jar \
-   internal/utils/postgres-persistence-extension/target/ditto-postgres-persistence-extension-<ditto version>.jar \
-   internal/utils/postgres-search-extension/target/ditto-postgres-search-extension-<ditto version>.jar
-```
-
-For images built from the sources with `build-images.sh` (snapshot Dockerfiles), `BAKE_POSTGRES_EXTENSIONS=true`
-copies the JARs of the same build into the things, policies, connectivity and things-search images under
-`/opt/ditto/extensions/`, so nothing has to be mounted:
-
-```bash
-mvn install -DskipTests -DskipITs
-BAKE_POSTGRES_EXTENSIONS=true ./build-images.sh
+./stage-backends.sh things <ditto version> target/backends-things
+#   -> target/backends-things/postgresql/ditto-postgres-client-extension-<ditto version>.jar
+#      target/backends-things/postgresql/ditto-postgres-persistence-extension-<ditto version>.jar
 ```
 
 ### The same-version rule
 
-All mounted PostgreSQL extension JARs **must come from the same Ditto release as the service image**. Every extension
+This rule matters for custom-built images: all PostgreSQL extension JARs **must come from the same Ditto release as
+the service**. Every extension
 JAR carries a version marker (`META-INF/ditto-postgres-extension.properties`, the Maven `revision` it was built with),
-and the provider compares the markers of all mounted extension JARs at start: JARs from different versions fail the
+and the provider compares the markers of all extension JARs on the classpath at start: JARs from different versions fail the
 start with an `IllegalStateException` naming each component and version (`The mounted Postgres extension jars are from
 DIFFERENT Ditto releases: …`). The check compares the extension JARs with each other only, not with the image, and it
 passes quietly when fewer than two markers are found. The release images are built from the tagged sources with
 `-Drevision=<release tag>`, so build the extension JARs from the same tag with the same `-Drevision`, or take them from
 the same release; a build without `-Drevision` produces `0-SNAPSHOT` JARs, which pass the check against each other
-whatever image they are mounted into. Build them from a clean tree (`mvn clean install -DskipTests -DskipITs`, or
-`clean` before the `package` command above): the extension poms force the thin JAR to be rebuilt, and `build-images.sh`
-refuses to bake a shaded extension JAR whose classes differ from its module JAR, so an incremental build can no longer
-ship the previous build's classes unnoticed.
+whatever image they are put into. Build them from a clean tree (`mvn clean install -DskipTests -DskipITs`, as above):
+the extension poms force the thin JAR to be rebuilt, and `build-images.sh` refuses a shaded extension JAR whose
+classes differ from its module JAR, so an incremental build can no longer ship the previous build's classes unnoticed.
 
 ### A thin JAR without its base
 
-A thin JAR mounted without the base JAR fails the start of the service with
+A thin JAR on the classpath without the base JAR fails the start of the service with
 
 ```
 java.lang.NoClassDefFoundError: org/eclipse/ditto/internal/utils/persistence/postgres/client/config/PostgresConfig
 ```
 
 (or another class of the `…persistence.postgres.client` package): the provider class links against types of the base
-JAR before any check of its own can run. The fix is to mount `ditto-postgres-client-extension` from the same release
-next to the thin JAR. The reverse (the base JAR alone) is harmless: without a thin JAR the activation include below
-fails at config load with `ConfigException$IO: … resource not found on classpath: ditto-postgres-persistence.conf`
-(`ditto-postgres-search.conf` for search).
+JAR before any check of its own can run. The fix is to put `ditto-postgres-client-extension` from the same release
+next to the thin JAR. The reverse (the base JAR alone) provides no backend, so the service refuses to start with the
+"No persistence backend" message (see [Selecting the backend](#selecting-the-backend)).
 
-## The activation config
+## Selecting the backend
 
-One include activates a backend. Each thin JAR ships a profile — `ditto-postgres-persistence.conf` for the persistence
-backend, `ditto-postgres-search.conf` for the search backend — that swaps the provider extension (`ditto.extensions.persistence-backend-provider`
-or `ditto.extensions.search-persistence-provider`) to the PostgreSQL implementation, defines the Pekko plugin blocks
-(persistence only) and pulls in the shared `ditto.postgresql.*` client, pool and SSL defaults from the base JAR
-(`ditto-postgres-client.conf`). Nothing else has to be changed in the service configuration: the provider key is set
-inside the profile, and the snapshot encoding switches automatically when the PostgreSQL backend is active, so no
-snapshot-adapter override is needed.
+`DITTO_PERSISTENCE_BACKEND=postgresql` is all a service needs to run on PostgreSQL. Each backend JAR ships a fixed-name
+profile that the service configuration always includes: `ditto-persistence-backend.conf` (persistence services) and
+`ditto-search-backend.conf` (things-search). In the PostgreSQL JARs they pull in `ditto-postgres-persistence.conf`
+or `ditto-postgres-search.conf`, which swap the provider extension (`ditto.extensions.persistence-backend-provider`
+or `ditto.extensions.search-persistence-provider`) to the PostgreSQL implementation, define the Pekko plugin blocks
+(persistence only) and pull in the shared `ditto.postgresql.*` client, pool and SSL defaults from the base JAR
+(`ditto-postgres-client.conf`). The snapshot encoding follows the provider, so no snapshot-adapter override is needed.
+No `include`, no `required(...)` and no auto-start narrowing has to be written by the operator.
 
-Three rules apply to the include:
+The persistence profile also lists each entity's plugins under `ditto.persistence-backend.auto-start.<entity>`
+(`things`, `policies`, `connections`, each with `journals` and `snapshots`). Each service configuration assigns its own
+entity's lists to Pekko's `auto-start-*` lists, so a service starts only the plugins whose dispatchers it defines. The
+things service's WoT plugins (`ditto-postgres-wot-*`) start lazily and are not in the lists. The search service has no
+event-sourcing journal.
 
-* **Top level.** The include statement goes **outside any `ditto {}` block**, because `ditto-postgres-persistence.conf`
-  ships top-level Pekko plugin blocks (`ditto-postgres-things-journal { }`, …) that Pekko must see at the config root.
-  The search profile has no such blocks, but is included at the top level too.
-* **`required(classpath(...))`.** A plain `include classpath(...)` of a resource that is missing is silently ignored:
-  a service whose image lacks the thin JAR would then start with the MongoDB provider (search) or with auto-start
-  lists naming plugins that do not exist (persistence). `include required(classpath("…"))` makes such a service fail
-  at config load instead, with `ConfigException$IO: … resource not found on classpath: ditto-postgres-persistence.conf`.
-* **Narrow the auto-start lists (persistence services only).** The persistence profile lists the plugins of all four
-  entities (things, policies, connections, wot) in Pekko's `auto-start-*` lists. Each Ditto service defines only its own
-  entity's persistence dispatchers, and Pekko resolves every auto-started plugin's dispatcher eagerly at
-  Persistence-extension init, so an un-narrowed list crashes the first persistent actor on a missing dispatcher for the
-  other entities. Every persistence service therefore sets the two lists to its own plugins (table below). The things
-  service keeps only the `things` pair: its WoT plugins (`ditto-postgres-wot-*`) start lazily on the same dispatchers
-  and must not be auto-started. The search service has no event-sourcing journal and nothing to narrow.
+A service that finds no backend, or several, on its classpath refuses to start before any actor starts. The message
+names `DITTO_PERSISTENCE_BACKEND` and the fix, for example `No persistence backend is on the classpath.
+DITTO_PERSISTENCE_BACKEND is unset. …` or `Several persistence backends are on the classpath: [mongodb, postgresql]. …`.
 
 ### Per-service names
 
-| Service       | Thin JAR                               | Activation config (Compose)              | Journal plugin to auto-start         | Snapshot store to auto-start           | Read-journal entity (`read-journal.entity`) |
-|---------------|----------------------------------------|------------------------------------------|--------------------------------------|----------------------------------------|---------------------------------------------|
-| policies      | `ditto-postgres-persistence-extension` | `/opt/ditto/policies-extension.conf`     | `ditto-postgres-policies-journal`    | `ditto-postgres-policies-snapshots`    | `policies`                                  |
-| things        | `ditto-postgres-persistence-extension` | `/opt/ditto/things-extension.conf`       | `ditto-postgres-things-journal`      | `ditto-postgres-things-snapshots`      | `things`                                    |
-| connectivity  | `ditto-postgres-persistence-extension` | `/opt/ditto/connectivity-extension.conf` | `ditto-postgres-connections-journal` | `ditto-postgres-connections-snapshots` | `connections`                               |
-| things-search | `ditto-postgres-search-extension`      | `/opt/ditto/search-extension.conf`       | — (no narrowing)                     | —                                      | —                                           |
+| Service       | Thin JAR                               | Journal plugin                       | Snapshot store                         | Read-journal entity (`read-journal.entity`) |
+|---------------|----------------------------------------|--------------------------------------|----------------------------------------|---------------------------------------------|
+| policies      | `ditto-postgres-persistence-extension` | `ditto-postgres-policies-journal`    | `ditto-postgres-policies-snapshots`    | `policies`                                  |
+| things        | `ditto-postgres-persistence-extension` | `ditto-postgres-things-journal`      | `ditto-postgres-things-snapshots`      | `things`                                    |
+| connectivity  | `ditto-postgres-persistence-extension` | `ditto-postgres-connections-journal` | `ditto-postgres-connections-snapshots` | `connections`                               |
+| things-search | `ditto-postgres-search-extension`      | —                                    | —                                      | —                                           |
 
 The read-journal entity binds the service's shared read journal and is set by each service's own configuration
 (`things.conf`, `policies.conf`, `connectivity.conf`); `POSTGRES_READ_JOURNAL_ENTITY` overrides it, which a standard
 deployment never needs. The things service reads the history of WoT validation configs through a separate read
 journal over the `wot` tables, so its value stays `things`.
 
-### The four activation configs
-
-The same content serves as the per-service extension config in Docker Compose (mounted at
-`/opt/ditto/<service>-extension.conf`, which every service config includes last) and as the file-based overlay with
-Helm (see [Kubernetes with Helm](#kubernetes-with-helm)). It contains **no** `include` of the service's own
-configuration (`things`, `things-dev`, …): the service configuration is always loaded, and a `*-dev` profile would
-bring local-development cluster settings into the deployment.
-
-```hocon
-# things-extension.conf
-# TOP-LEVEL include, NOT inside ditto {}: the profile ships top-level Pekko plugin blocks.
-include required(classpath("ditto-postgres-persistence"))
-
-# Narrow the auto-start lists to this service's own plugins (REQUIRED for every persistence service).
-pekko.persistence.journal.auto-start-journals               = [ "ditto-postgres-things-journal" ]
-pekko.persistence.snapshot-store.auto-start-snapshot-stores = [ "ditto-postgres-things-snapshots" ]
-```
-
-```hocon
-# policies-extension.conf
-include required(classpath("ditto-postgres-persistence"))
-
-pekko.persistence.journal.auto-start-journals               = [ "ditto-postgres-policies-journal" ]
-pekko.persistence.snapshot-store.auto-start-snapshot-stores = [ "ditto-postgres-policies-snapshots" ]
-```
-
-```hocon
-# connectivity-extension.conf
-include required(classpath("ditto-postgres-persistence"))
-
-pekko.persistence.journal.auto-start-journals               = [ "ditto-postgres-connections-journal" ]
-pekko.persistence.snapshot-store.auto-start-snapshot-stores = [ "ditto-postgres-connections-snapshots" ]
-```
-
-```hocon
-# search-extension.conf
-# Swaps ditto.extensions.search-persistence-provider to the PostgreSQL provider and pulls in the shared
-# ditto.postgresql.* client/pool/SSL defaults. search.conf's own ditto.mongodb defaults legitimately remain
-# present (the profile only swaps the one extension key). Nothing to narrow: search runs no event-sourcing journal.
-include required(classpath("ditto-postgres-search"))
-```
-
-The persistence profile sets the provider as follows; you do not need to repeat it unless you want to override it:
-
-```hocon
-ditto.extensions.persistence-backend-provider {
-  extension-class = org.eclipse.ditto.internal.utils.persistence.postgres.PostgresPersistenceBackendProvider
-}
-```
-
 Any other setting of these pages, for example `ditto.postgresql.pool.max-size` or the per-path search indexes, can be
-added to the same file instead of being set through an environment variable.
+set in the service's `<service>-extension.conf` (see
+[Adjusting service configuration](installation-extending.html#adjusting-service-configuration)) instead of through an
+environment variable.
 
 ## Provisioning the database
 
@@ -265,7 +203,7 @@ added to the same file instead of being set through an environment variable.
 
 All `POSTGRES_*` variables are read by the shared client configuration (`ditto.postgresql.*`, shipped in the base JAR)
 and apply to every service on PostgreSQL alike; the `POSTGRES_SEARCH_*` variables apply to the things-search service only.
-Each has a HOCON key that can be set in the activation config instead.
+Each has a HOCON key that can be set in `<service>-extension.conf` instead.
 
 | Variable                                                                                                              | HOCON key (`ditto.postgresql.…`)                                                                                    | Default                                           | Purpose                                                                                                                                                                                                                                                                      |
 |-----------------------------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------|---------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
@@ -297,22 +235,17 @@ Each has a HOCON key that can be set in the activation config instead.
 The circuit breakers of the PostgreSQL journal and snapshot-store plugins use the MongoDB plugins' environment
 variables (`BREAKER_MAXTRIES`, `BREAKER_TIMEOUT`, `BREAKER_RESET`, `SNAPSHOT_BREAKER_MAXTRIES`,
 `SNAPSHOT_BREAKER_TIMEOUT`, `SNAPSHOT_BREAKER_RESET`), see
-[Circuit breakers and overload](operating-postgresql.html#circuit-breakers-and-overload). With Helm, two more
-variables select the file-based activation, see below: `HOSTING_ENVIRONMENT=filebased` and
-`HOSTING_ENVIRONMENT_FILE_LOCATION=<path of the overlay inside the container>`.
+[Circuit breakers and overload](operating-postgresql.html#circuit-breakers-and-overload).
 
 ## Docker Compose
 
-With Docker Compose the activation config is mounted as the service's extension config at
-`/opt/ditto/<service>-extension.conf` (every service configuration includes that file last, see
-[Adjusting service configuration](installation-extending.html#adjusting-service-configuration)); no hosting-environment
-change is needed. The example below is an override file for the standard stack in `deployment/docker/`
+With Docker Compose a service switches to PostgreSQL with `DITTO_PERSISTENCE_BACKEND=postgresql` and the `POSTGRES_*`
+variables; nothing is mounted. The example below is an override file for the standard stack in `deployment/docker/`
 (`docker compose -f docker-compose.yml -f docker-compose.postgres.yml up -d`). It adds a PostgreSQL 16 service with the
 same database, role and password as the local example in
 [`deployment/postgres-local/`](https://github.com/eclipse-ditto/ditto/tree/master/deployment/postgres-local) (database
 `ditto`, user `ditto`, password `ditto`; that single role owns the database, so it doubles as the DDL role), and switches
-the things service. The four activation configs and the JARs lie next to `docker-compose.yml` in `deployment/docker/` (Compose resolves
-relative paths against the directory of the first `-f` file).
+the things service.
 
 ```yaml
 # docker-compose.postgres.yml — layered on deployment/docker/docker-compose.yml
@@ -341,29 +274,24 @@ services:
       policies:
         condition: service_started
     environment:
+      - DITTO_PERSISTENCE_BACKEND=postgresql   # the image's /opt/ditto/backends/postgresql/ folder
       - POSTGRES_URI=r2dbc:postgresql://postgres:5432/ditto
       - POSTGRES_USER=ditto
       - POSTGRES_PASSWORD=ditto
       - POSTGRES_DDL_USER=ditto
       - POSTGRES_DDL_PASSWORD=ditto
       - POSTGRES_SSL_MODE=disable   # local plaintext PostgreSQL; in production verify-full with POSTGRES_SSL_ROOT_CERT
-    volumes:
-      # 1. Drop-in extension JARs (NOT in the default image; base + persistence thin JAR, same release as the image)
-      - ./ditto-postgres-client-extension.jar:/opt/ditto/extensions/ditto-postgres-client-extension.jar:ro
-      - ./ditto-postgres-persistence-extension.jar:/opt/ditto/extensions/ditto-postgres-persistence-extension.jar:ro
-      # 2. Activation config = the service's extension config
-      - ./things-extension.conf:/opt/ditto/things-extension.conf:ro
 
 volumes:
   ditto-pg-data:
 ```
 
 Repeat the `things` block for `policies` (depends on `postgres` only) and `connectivity` (depends on `postgres` and
-`policies`), with the respective `<service>-extension.conf` from [The four activation configs](#the-four-activation-configs)
-and the same two JARs. The `MONGO_DB_*` variables the stock stack sets stay harmless: the PostgreSQL provider ignores
+`policies`). The `MONGO_DB_*` variables the stock stack sets stay harmless: the PostgreSQL provider ignores
 them. The stock stack's `restart: always` restarts a service whose schema check failed (it stops with exit code 1).
 
-Things-search on PostgreSQL mounts the base plus the **search** thin JAR and the `search-extension.conf`:
+Things-search on PostgreSQL sets the same variables; its `postgresql` folder holds the base plus the **search** thin
+JAR:
 
 ```yaml
   things-search:
@@ -376,17 +304,13 @@ Things-search on PostgreSQL mounts the base plus the **search** thin JAR and the
       things:
         condition: service_started
     environment:
+      - DITTO_PERSISTENCE_BACKEND=postgresql
       - POSTGRES_URI=r2dbc:postgresql://postgres:5432/ditto
       - POSTGRES_USER=ditto
       - POSTGRES_PASSWORD=ditto
       - POSTGRES_DDL_USER=ditto
       - POSTGRES_DDL_PASSWORD=ditto
       - POSTGRES_SSL_MODE=disable
-    volumes:
-      # base + search thin JAR (both from the same Ditto release as the image)
-      - ./ditto-postgres-client-extension.jar:/opt/ditto/extensions/ditto-postgres-client-extension.jar:ro
-      - ./ditto-postgres-search-extension.jar:/opt/ditto/extensions/ditto-postgres-search-extension.jar:ro
-      - ./search-extension.conf:/opt/ditto/search-extension.conf:ro
 ```
 
 If the search service stays on MongoDB, leave its definition untouched; the `mongodb` service of the stock stack is then
@@ -402,39 +326,40 @@ docker compose -f docker-compose.yml -f docker-compose.postgres.yml exec postgre
 ```
 
 For running the services from the IDE or the command line without containers, `deployment/postgres-local/` provides
-the PostgreSQL compose file, the overlay configs and a launcher script (see its `README.md`).
+the PostgreSQL compose file, the dev configs and a launcher script (see its `README.md`).
 
 ## Kubernetes with Helm
 
-The [Helm chart](https://github.com/eclipse-ditto/ditto/tree/master/deployment/helm/ditto) owns
-`/opt/ditto/<service>-extension.conf` (it renders the file from a ConfigMap of its own), so the activation config is
-injected as a **file-based overlay** instead: with `HOSTING_ENVIRONMENT=filebased`, the service reads the file named by
-`HOSTING_ENVIRONMENT_FILE_LOCATION` as a configuration layer above its own configuration (only system properties rank
-higher). The content of the overlay is the same as the extension config above. Per service:
+With the [Helm chart](https://github.com/eclipse-ditto/ditto/tree/master/deployment/helm/ditto) (4.12.0 or newer),
+`global.persistenceBackend: postgresql` renders `DITTO_PERSISTENCE_BACKEND=postgresql` into the policies, things,
+connectivity and things-search deployments. No init container, no extra volume and no configuration overlay is needed:
+the images ship the JARs. Per service:
 
-1. **Overlay ConfigMap**, mounted via `extraVolumes` / `extraVolumeMounts`, and selected with `extraEnv`:
+1. **Backend.** Set the global value:
 
    ```yaml
-   # a ConfigMap with the activation config, created alongside the release
-   apiVersion: v1
-   kind: ConfigMap
-   metadata:
-     name: ditto-things-postgres
-   data:
-     things-postgres.conf: |
-       include required(classpath("ditto-postgres-persistence"))
-       pekko.persistence.journal.auto-start-journals               = [ "ditto-postgres-things-journal" ]
-       pekko.persistence.snapshot-store.auto-start-snapshot-stores = [ "ditto-postgres-things-snapshots" ]
+   # values.yaml
+   global:
+     persistenceBackend: postgresql
    ```
+
+   A mixed layout overrides the variable per service through `<service>.extraEnv`. The chart renders the global entry
+   first and `extraEnv` after it, and for a duplicate name Kubernetes uses the later entry (the API server warns about
+   the duplicate). For example, to keep things-search on MongoDB:
+
+   ```yaml
+   thingsSearch:
+     extraEnv:
+       - name: DITTO_PERSISTENCE_BACKEND
+         value: "mongodb"
+   ```
+
+2. **Connection.** The `POSTGRES_*` variables via `extraEnv`:
 
    ```yaml
    # values.yaml
    things:
      extraEnv:
-       - name: HOSTING_ENVIRONMENT
-         value: "filebased"
-       - name: HOSTING_ENVIRONMENT_FILE_LOCATION
-         value: "/opt/ditto/things-postgres.conf"
        - name: POSTGRES_URI
          value: "r2dbc:postgresql://postgres.database.svc:5432/ditto"
        - name: POSTGRES_USER
@@ -451,41 +376,10 @@ higher). The content of the overlay is the same as the extension config above. P
            secretKeyRef: { name: ditto-postgres, key: ddl-password }
        - name: POSTGRES_SSL_ROOT_CERT
          value: "/etc/ditto/pg-tls/ca.crt"      # with postgres.tls.enabled (below); default mode verify-full
-     extraVolumes:
-       - name: things-postgres-overlay
-         configMap:
-           name: ditto-things-postgres
-       - name: ditto-extensions
-         emptyDir: {}
-     extraVolumeMounts:
-       - name: things-postgres-overlay
-         mountPath: /opt/ditto/things-postgres.conf
-         subPath: things-postgres.conf
-       - name: ditto-extensions
-         mountPath: /opt/ditto/extensions
-     extraInitContainers:
-       - name: stage-postgres-extension
-         image: curlimages/curl:8.6.0
-         command:
-           - sh
-           - -c
-           - |
-             curl -fL -o /extensions/ditto-postgres-client-extension.jar \
-               "https://your-artifact-host/path/to/ditto-postgres-client-extension-<version>.jar"
-             curl -fL -o /extensions/ditto-postgres-persistence-extension.jar \
-               "https://your-artifact-host/path/to/ditto-postgres-persistence-extension-<version>.jar"
-         volumeMounts:
-           - name: ditto-extensions
-             mountPath: /extensions
    ```
 
-   The chart itself never sets `HOSTING_ENVIRONMENT`; without the overlay the services run in the production
-   environment, whose environment layer is empty, so the overlay replaces nothing of the chart's configuration.
-
-2. **Extension JARs** are staged into the shared `ditto-extensions` volume by the init container above (the
-   `extraVolumes` / `extraVolumeMounts` / `extraInitContainers` examples in `values.yaml` show the same), from an
-   artifact host of yours or from an image that carries them. The policies and connectivity deployments take the same
-   two JARs; a search deployment takes `ditto-postgres-client-extension` plus `ditto-postgres-search-extension`.
+   The policies, connectivity and things-search deployments take the same variables in `policies.extraEnv`,
+   `connectivity.extraEnv` and `thingsSearch.extraEnv`.
 
 3. **TLS.** `postgres.tls.enabled: true` with `postgres.tls.caCert` (a PEM, or a multi-CA bundle for a staged CA
    rotation; the chart renders it into the Secret `<fullname>-postgres-tls`) or `postgres.tls.existingSecret` (keys
@@ -502,21 +396,19 @@ higher). The content of the overlay is the same as the extension config above. P
    chart's probes (liveness from 60 s, 6 failures 10 s apart) a pod is restarted about 110 s after its container
    started, and the wait for PostgreSQL only begins once the service has joined the cluster.
 
-Things-search on Helm works like the other services: the overlay ConfigMap (`search-postgres.conf` with the single
-`include required(classpath("ditto-postgres-search"))`), `thingsSearch.extraEnv` with `HOSTING_ENVIRONMENT=filebased`,
-`HOSTING_ENVIRONMENT_FILE_LOCATION=/opt/ditto/search-postgres.conf` and the `POSTGRES_*` variables,
-`thingsSearch.extraVolumes` / `extraVolumeMounts` for the overlay and the `ditto-extensions` volume, and
-`thingsSearch.extraInitContainers` staging `ditto-postgres-client-extension` plus `ditto-postgres-search-extension`
-(`values.yaml` carries the example; chart 4.11.0 or newer). `postgres.tls.enabled` mounts the CA into the
-things-search pod as well.
+Things-search on Helm works like the other services: `global.persistenceBackend` (or `thingsSearch.extraEnv`) selects
+the backend, and `thingsSearch.extraEnv` carries the `POSTGRES_*` variables. `postgres.tls.enabled` mounts the CA into
+the things-search pod as well.
 
-Chart-native `postgres.*` values that render the activation themselves are not part of this version.
+A deployment that staged the JARs into `/opt/ditto/extensions/` with an earlier chart must remove that staging, see
+[Upgrading a PostgreSQL deployment that staged JARs](installation-extending.html#upgrading-a-postgresql-deployment-that-staged-jars).
 
 ## Further reading
 
 * [Operating PostgreSQL](operating-postgresql.html) — schema lifecycle and upgrades, self-heal, connection budget, TLS,
   PgBouncer, persistence ping, search tunables and indexes, differences from MongoDB, vacuum and disk space
-* [Extending Ditto](installation-extending.html) — how extension JARs and `<service>-extension.conf` files work
+* [Extending Ditto](installation-extending.html) — how extension JARs, the backend folders and `<service>-extension.conf`
+  files work
 * [Operating - Configuration](operating-configuration.html)
 * [`deployment/postgres/README.md`](https://github.com/eclipse-ditto/ditto/blob/master/deployment/postgres/README.md) —
   the operator runbook (provisioning, TLS, CA rotation, connection budget, PgBouncer, schema upgrades)

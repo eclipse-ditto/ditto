@@ -22,6 +22,14 @@ Each PostgreSQL-backed service checks its schema at start, in one transaction. W
 
 A PostgreSQL-backed service (policies, things, connectivity, and things-search on PostgreSQL) that cannot reach PostgreSQL when it starts retries its schema check with backoff (1 s doubling to 10 s, ±20 % jitter, one WARN per attempt) for up to `ditto.postgresql.bootstrap.retry.max-duration` (`POSTGRES_BOOTSTRAP_RETRY_MAX_DURATION`, default `60s`; `0s` waits without limit). It retries only when the connection is refused, times out or is reset, the host name does not resolve yet, or the server answers that it is starting up or shutting down (SQLSTATE `57P03`, `57P01`, `57P02`) or has no free connection slot (`53300`). Everything else fails the start at once: schema drift, an incompatible schema version or an unsuitable search database, TLS and certificate errors, wrong credentials or a missing role (`28000`, `28P01`), an unknown database (`3D000`), PgBouncer's own errors (`08P01`), a DDL lock timeout (`55P03`), and an attempt that connects but does not finish within `ditto.postgresql.bootstrap.attempt-timeout` (`POSTGRES_BOOTSTRAP_ATTEMPT_TIMEOUT`, default `60s`): usually another session holds the schema advisory lock, and the error names the `pg_locks` query that shows it; behind PgBouncer a PostgreSQL that is down looks the same. When the start finally fails, the service stops (coordinated shutdown, exit code 1), so that Docker Compose (`restart`) or Kubernetes restarts it instead of leaving it running without its root actor; `ditto.postgresql.bootstrap.exit-on-failure = false` (`POSTGRES_BOOTSTRAP_EXIT_ON_FAILURE`) keeps the JVM running. A shutdown (SIGTERM) during the wait ends it at once. `ditto.postgresql.bootstrap.retry.enabled = false` (`POSTGRES_BOOTSTRAP_RETRY_ENABLED`) makes a single attempt. On Kubernetes, keep `max-duration` below the liveness budget: with the Helm chart's probes (liveness from 60 s, 6 failures 10 s apart) a pod is restarted about 110 s after its container started, and the wait only begins once the service has joined the cluster. The wait covers the start only; an outage while the service runs is handled as before.
 
+### Backend check at start
+
+Before anything else, before the actor system and before the plugin wiring check below, policies, things,
+connectivity and things-search check that exactly one persistence backend is on their classpath. This applies to both
+backends. With none, or with several (for example the default `mongodb` folder plus PostgreSQL JARs staged into
+`/opt/ditto/extensions/`), the service refuses to start with a message that names
+`DITTO_PERSISTENCE_BACKEND` and the fix, see [Persistence backends](installation-extending.html#persistence-backends).
+
 ### Plugin wiring check at start
 
 Before the schema check, a PostgreSQL-backed persistence service (policies, things, connectivity) verifies that every journal and snapshot-store plugin its configuration auto-starts is a PostgreSQL plugin (the provider's own plugin IDs and the effective `pekko.persistence.*.auto-start-*` lists). An overlay that still wires the MongoDB plugins is logged as `Persistence backend mismatch ...`, naming the plugin, its class and the expected classes, and the service stops under the same `exit-on-failure` rule as a failed schema check (exit code 1), so that it is restarted until the configuration is fixed. On success one `INFO` line names the verified plugin IDs. The MongoDB backend runs no such check.
@@ -709,7 +717,7 @@ Both keep the table's storage parameters. Do not run either during a Ditto upgra
 
 ## Further reading
 
-* [Running Ditto on PostgreSQL](installation-postgresql.html) — JARs, activation config, provisioning, environment variables, Docker Compose and Helm
+* [Running Ditto on PostgreSQL](installation-postgresql.html) — JARs, selecting the backend, provisioning, environment variables, Docker Compose and Helm
 * [Operating - Configuration](operating-configuration.html)
 * [Operating Ditto](installation-operating.html) — background cleanup, DevOps commands, connection-secret encryption
 * [`deployment/postgres/README.md`](https://github.com/eclipse-ditto/ditto/blob/master/deployment/postgres/README.md) — the operator runbook

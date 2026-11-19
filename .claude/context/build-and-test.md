@@ -9,10 +9,11 @@ mvn clean install -DskipTests -DskipITs                     # everything, no tes
 mvn compile -pl gateway/service -am -DskipTests             # one module plus what it depends on
 mvn clean install -DskipTests -DskipITs -Djapicmp.skip=true # only for a deliberate public API break
 ./build-images.sh                                           # local Docker images (-p host:port for a proxy)
-BAKE_POSTGRES_EXTENSIONS=true ./build-images.sh             # + the PostgreSQL extension JARs (snapshot images)
 ```
 
-Baking refuses shaded extension JARs left stale by an incremental build: `clean install` first.
+Images need the five backend extension JARs built first (`./stage-backends.sh --maven-modules` lists
+the modules). `build-images.sh` refuses stale shaded backend JARs: `clean install` first;
+`CHECK_ONLY=1` runs only that check.
 
 ## Test
 
@@ -49,8 +50,9 @@ docker compose up -d     # API on http://localhost:8080, devops user devops:foob
 docker compose logs -f gateway
 ```
 
-Services need 30–60 s to form the cluster. On PostgreSQL: `deployment/postgres-local/README.md`
-(Compose file for the database, `run-compound-postgres.sh`, `.run/*-Postgres.run.xml` run configurations).
+Services need 30–60 s to form the cluster. From the IDE: the `.run/*.run.xml` configurations run on
+MongoDB through `ide-mongo-launcher`. On PostgreSQL: `deployment/postgres-local/README.md` (Compose file
+for the database, `run-compound-postgres.sh`, `.run/*-Postgres.run.xml` via `ide-postgres-launcher`).
 
 ## UI
 

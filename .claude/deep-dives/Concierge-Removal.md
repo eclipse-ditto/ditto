@@ -362,7 +362,8 @@ ditto {
 **Service startup**:
 - Via `java package.class`
 - Example: `java org.eclipse.ditto.thingsearch.service.starter.SearchService`
-- Classpath set via environment variable: `CLASSPATH=/opt/ditto/*`
+- Classpath set by the image CMD: `/opt/ditto/*`, `/opt/ditto/backends/${DITTO_PERSISTENCE_BACKEND}/*`,
+  `/opt/ditto/extensions/*`
 
 ## Monitoring
 

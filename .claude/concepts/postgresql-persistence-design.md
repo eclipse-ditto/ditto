@@ -5,13 +5,15 @@
 **Status**: Implemented on branch `feat/postgres-persistance-search`; pull request
 [#2651](https://github.com/eclipse-ditto/ditto/pull/2651); §9 lists the open items
 **Last Updated**: 2026-11-25
+**Related**: [`mongodb-persistence-extension-design.md`](mongodb-persistence-extension-design.md) — MongoDB as an
+extension too, and how a service selects its backend
 
 ---
 
 ## TL;DR
 
 Ditto can store things, policies and connections — and, independently, its search index — in PostgreSQL instead
-of MongoDB. It is opt-in per service through two drop-in JARs and a few lines of HOCON; MongoDB stays the default and
+of MongoDB. A service selects it with `DITTO_PERSISTENCE_BACKEND=postgresql` (the images ship the JARs); MongoDB stays the default and
 nothing changes for API users or existing deployments, apart from the bug fixes of `master` that the change carries
 (§9).
 
@@ -153,13 +155,15 @@ file, so reaching it takes a hand-split configuration.
 - **Layered drop-in JARs.** `ditto-postgres-client-extension` (base, ≈3.8 MB: the `postgres-client` module itself,
   r2dbc-spi/-pool/-proxy, r2dbc-postgresql, reactor-core/-pool/-netty-core, SCRAM, netty resolver-dns/codec-dns and
   the optional native transports) plus `ditto-postgres-persistence-extension` (≈124 KB) or
-  `ditto-postgres-search-extension` (≈274 KB); sizes from a local `0-SNAPSHOT` build. The images already put
-  `/opt/ditto/extensions/*` on the classpath. The Maven build of each service module creates an empty `target/extensions/`
+  `ditto-postgres-search-extension` (≈274 KB); sizes from a local `0-SNAPSHOT` build. Every image ships them in
+  `/opt/ditto/backends/postgresql/` (next to `/opt/ditto/backends/mongodb/`, staged by `stage-backends.sh`), and
+  `DITTO_PERSISTENCE_BACKEND` puts one folder on the classpath. `/opt/ditto/extensions/*` stays on the classpath for
+  JARs mounted at runtime: the Maven build of each service module creates an empty `target/extensions/`
   (`maven-antrun-plugin` execution `create-extensions-dir` in `prepare-package`), which the snapshot Dockerfiles copy
-  to `/opt/ditto/extensions/`; `build-images.sh` re-creates it and, with `BAKE_POSTGRES_EXTENSIONS=true`, fills it. The three extension poms set `maven-jar-plugin` `forceCreation`:
+  to `/opt/ditto/extensions/`; `build-images.sh` re-creates it empty. The three extension poms set `maven-jar-plugin` `forceCreation`:
   without it an incremental `mvn install` keeps the previous shaded JAR as the "up-to-date" project artifact and
   `shade:shade` merges it over the fresh module JAR, shipping the previous build's classes with BUILD SUCCESS;
-  `build-images.sh` refuses such a JAR before baking (every class of the module JAR compared by length
+  `build-images.sh` refuses such a JAR before every image build (every class of the module JAR compared by length
   and CRC-32 with the shaded JAR's copy; `CHECK_ONLY=1` runs only that check).
   A Maven enforcer execution `enforce-no-r2dbc-in-service`, declared in each of the four persistence/search service
   poms, keeps R2DBC out of those modules: compile and runtime scope would leak r2dbc into the service allinone (the
@@ -167,43 +171,40 @@ file, so reaching it takes a hand-split configuration.
   types. `connectivity/service` alone exempts test scope, which never ships and carries the PostgreSQL integration
   test of the encryption migration (§7). `bom/pom.xml` adds `enforce-no-pekko-r2dbc-plugin`, which bans
   `org.apache.pekko:pekko-persistence-r2dbc*` project-wide.
-- **One include activates a backend.** Each thin JAR ships a profile — `ditto-postgres-persistence.conf`,
+- **A fixed-name profile activates the backend.** Each thin JAR ships a profile — `ditto-postgres-persistence.conf`,
   `ditto-postgres-search.conf`, both pulling in `ditto-postgres-client.conf` from the base — that swaps the
   provider extension class and defines the Pekko plugin blocks (`ditto-postgres-<entity>-journal` / `-snapshots`,
   entities `things`, `policies`, `connections`, `wot`, plus the two `connection-remember` blocks of §3.3) and the
-  `ditto.postgresql.*` client defaults. The
-  persistence include must be a top-level `include required(classpath("…"))` (the plugin blocks are top-level;
-  `required` makes a missing thin JAR fail at config load instead of silently starting on MongoDB — the dev-only
-  `*-pg-dev.conf` and `deployment/postgres-local/*.conf` use the plain form), needs the
-  narrowing below and a `read-journal.entity` value (the stock service confs set it). Connectivity's remember-entities
-  store keeps its `eventsourced` mode, on the profile's `connection-remember` plugin blocks (§3.3). The search include
-  needs none of this.
-- **Auto-start narrowing is mandatory.** The profile lists all four entities in Pekko's `auto-start-*`; each
-  service must narrow the lists to the plugins whose dispatchers it defines (the things JVM keeps the `things`
-  pair; its WoT plugins start lazily on the same dispatchers), because Pekko resolves every auto-started plugin's
-  dispatcher eagerly and the other entities' dispatchers do not exist in that service. Nothing checks the narrowing
-  at boot: a service that forgets it fails with a Pekko `ConfigurationException` when its first persistent actor
-  starts, after the service has reported itself up.
+  `ditto.postgresql.*` client defaults. The service confs always include the fixed-name wrappers
+  `ditto-persistence-backend.conf` / `ditto-search-backend.conf`, which every backend JAR ships (in the PostgreSQL
+  JARs: one `include required(classpath("ditto-postgres-persistence"))` or `…-search` line), so an operator writes
+  no `include` at all. A `read-journal.entity` value is needed (the stock service confs set it). Connectivity's
+  remember-entities store keeps its `eventsourced` mode, on the profile's `connection-remember` plugin blocks (§3.3).
+  A service with no backend, or several, on its classpath refuses to start before the actor system exists
+  (`DittoService.doStart()`; see the MongoDB design record).
+- **Auto-start lists come from the profile.** The persistence profile names each entity's plugins under
+  `ditto.persistence-backend.auto-start.<entity>` (`journals`, `snapshots`); each service conf assigns its own
+  entity's lists to Pekko's `auto-start-*`, so a service auto-starts only the plugins whose dispatchers it defines
+  (the things JVM keeps the `things` pair; its WoT plugins start lazily on the same dispatchers). Pekko resolves
+  every auto-started plugin's dispatcher eagerly, which is why the lists are per entity. Operators no longer
+  narrow. A custom profile that skips these keys and lists other entities' plugins in Pekko's `auto-start-*`
+  directly fails with a Pekko `ConfigurationException` when the first persistent actor starts.
 - **Snapshot encoding follows the backend.** The services' snapshot serializers (selected by
   `ditto.extensions.snapshot-adapter`; three of the four keep their Mongo-era names `ThingMongoSnapshotAdapter`,
   `PolicyMongoSnapshotAdapter`, `ConnectionMongoSnapshotAdapter`) are backend-neutral JSON serializers; the
   provider's `SnapshotCodec` decides between the BSON and the JSONB envelope, so no per-service override is needed.
-- **Dev profiles** `<service>-pg-dev.conf` (four, shipped inert in the allinone JARs) and six `.run/*-Postgres.run.xml`
-  run configurations (one per service plus the compound; the gateway one carries no PostgreSQL config) exist for
-  local runs only.
-- **Helm.** The chart (4.11.0) activates no backend by itself, and `/opt/ditto/<service>-extension.conf` is
-  chart-owned there (rendered from the chart's own template), so the activation config is injected as a file-based
-  overlay: an operator ConfigMap holding the production include and the narrowing, mounted through `extraVolumes` /
-  `extraVolumeMounts` and selected with `extraEnv` `HOSTING_ENVIRONMENT=filebased` plus
-  `HOSTING_ENVIRONMENT_FILE_LOCATION` — a configuration layer above the service's own; the chart itself never sets
-  `HOSTING_ENVIRONMENT`. Each of the four PostgreSQL-capable deployments (`policies`, `things`, `connectivity`,
-  `thingsSearch`) offers `extraInitContainers` (rendered after the built-in init containers) to stage the extension
-  JARs into a volume mounted at `/opt/ditto/extensions`, and `extraEnv` for the `POSTGRES_*` variables;
-  `postgres.tls` (off by default) renders the CA, and for mTLS the client certificate, into a managed
-  `<fullname>-postgres-tls` Secret (or takes `existingSecret`) and mounts it read-only at `postgres.tls.mountPath`
-  into the same four deployments. A MongoDB deployment renders the same manifests as before, except for the seven
-  `ENFORCEMENT_CREATED_POLICY_ROLLBACK_*` environment variables of the things Deployment (§5). Chart-native
-  `postgres.*` connection values are a later step.
+- **Helm.** The chart (4.12.0) has `global.persistenceBackend` (default `mongodb`), rendered as
+  `DITTO_PERSISTENCE_BACKEND` into the four PostgreSQL-capable deployments (`policies`, `things`, `connectivity`,
+  `thingsSearch`) as the first `env` entry, so a service's `extraEnv` can override it for a mixed layout. There is
+  no JAR staging and no activation overlay; `extraEnv` carries the `POSTGRES_*` variables and `extraInitContainers`
+  stays a generic hook. `postgres.tls` (off by default) renders the CA, and for mTLS the client certificate, into a
+  managed `<fullname>-postgres-tls` Secret (or takes `existingSecret`) and mounts it read-only at
+  `postgres.tls.mountPath` into the same four deployments. A MongoDB deployment renders the same manifests as before
+  plus the one variable and the seven `ENFORCEMENT_CREATED_POLICY_ROLLBACK_*` environment variables of the things
+  Deployment (§5). Chart-native `postgres.*` connection values are a later step.
+- **Local runs.** `ide-postgres-launcher` (IDE classpath module for the six `.run/*-Postgres.run.xml` run
+  configurations; the gateway one carries no PostgreSQL config) and `deployment/postgres-local` (dev overlays, the
+  CLI launcher that stages the image's `postgresql` folder with `stage-backends.sh`, Compose for the database).
 
 ### 2.4 Alternatives considered
 
@@ -623,8 +624,8 @@ resolve them.
 | `rql/query`                                                                                            | `Like*PredicateImpl` now pass the raw wildcard pattern to new `PredicateVisitor` defaults `visitLikeWithWildcards` / `visitILikeWithWildcards`; the defaults keep the regex-translated behaviour for existing visitors                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        | Additive; Java 8 module, compiles under `--release 8`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
 | `things/model` `WotValidationConfig`                                                                   | Public `JsonFields` constants (`CREATED`, `REVISION`, `MODIFIED`, `DELETED`, `METADATA`) for the neutral snapshot serializer; tagged `@since 4.0.0`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           | Additive; Java 8 module                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
 | Service `*.conf`                                                                                       | `snapshot-adapter` keeps its key and MongoDB default and now selects only the backend-neutral serializer; `persistence-backend-provider.extension-config.read-journal.entity` per service; `search.conf` gains `search-persistence-provider` (Mongo default); the Mongo persistence provider default and its `plugin-ids` live in the `reference.conf` of `internal/utils/persistence`                                                                                                                                                                                                                                                                                                                                                                                        | No MongoDB setting changes                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
-| `bom/pom.xml`, the five service poms, root `pom.xml`, `build-images.sh`, `dockerfile-snapshot*`        | R2DBC/reactor versions and `enforce-no-pekko-r2dbc-plugin` (bom); `enforce-no-r2dbc-in-service` in `things`/`policies`/`connectivity`/`thingsearch` `service/pom.xml`; root pom adds the `ide-postgres-launcher` module and manages `maven-antrun-plugin` with the `create-extensions-dir` execution that the five service poms activate; `BAKE_POSTGRES_EXTENSIONS=true` bakes the JARs into the snapshot images (both snapshot dockerfiles) after refusing any shaded extension JAR whose classes differ from its module JAR (length + CRC-32 of every class; `CHECK_ONLY=1` runs only that check); `dockerfile-release` ignores the staged JARs by design                                                                                                                  | —                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
-| `deployment/helm`                                                                                      | `postgres.tls.enabled` CA/cert mounts and `extraInitContainers` hooks in the things/policies/connectivity/things-search deployments (§2.3); `Chart.yaml` 4.11.0 with `CHANGELOG.md` entries under `[Unreleased]` that cover every chart change                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                | Off by default: a MongoDB deployment renders the same manifests as before, except for the seven `ENFORCEMENT_CREATED_POLICY_ROLLBACK_*` env vars of the things deployment, whose defaults equal the conf defaults. No `POSTGRES_*` variable is wired by design (activation stays the file-based overlay; chart-native values are a later step); such a variable reaches a Helm deployment only via raw `extraEnv` or the overlay                                                                                                                                                                                                               |
+| `bom/pom.xml`, the five service poms, root `pom.xml`, `build-images.sh`, `dockerfile-snapshot*`        | R2DBC/reactor versions and `enforce-no-pekko-r2dbc-plugin` (bom); `enforce-no-r2dbc-in-service` in `things`/`policies`/`connectivity`/`thingsearch` `service/pom.xml`; root pom adds the `ide-postgres-launcher` module and manages `maven-antrun-plugin` with the `create-extensions-dir` execution that the five service poms activate; `build-images.sh` stages both backends with `stage-backends.sh` into `/opt/ditto/backends/` of every image after refusing any shaded extension JAR whose classes differ from its module JAR (length + CRC-32 of every class; `CHECK_ONLY=1` runs only that check)                                                                                                                                                                   | —                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
+| `deployment/helm`                                                                                      | `postgres.tls.enabled` CA/cert mounts in the things/policies/connectivity/things-search deployments (§2.3); chart 4.12.0 adds `global.persistenceBackend` (default `mongodb`), rendered as `DITTO_PERSISTENCE_BACKEND` into those four deployments; no init-container staging; `CHANGELOG.md` entries under `[Unreleased]` cover every chart change                                                                                                                                                                                                                                                                                                                                                                                                                           | Default `mongodb` renders the same manifests as before plus the one env var and the seven `ENFORCEMENT_CREATED_POLICY_ROLLBACK_*` env vars of the things deployment, whose defaults equal the conf defaults. Backend selection is the image's folder choice, not a config overlay; `POSTGRES_*` connection values still reach a Helm deployment only via `extraEnv`                                                                                                                                                                                                                                                                            |
 | `.github/workflows/maven.yml`                                                                          | Job `postgres-its`: Testcontainers ITs of the four PostgreSQL modules (the classloading IT among them) and connectivity's `EncryptionMigrationPostgresIT` on PostgreSQL 16, 17, 18; fails if any IT was skipped                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               | —                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
 
 Unrelated changes carried by the branch — kept in the change set, listed as such in its description, never
@@ -753,8 +754,8 @@ disappears (its history lives in the commits).
 
 Known limitations that stay (documented): the snapshot stream reads whole snapshots (§3.4); search has no runtime
 self-heal (§3.2); `ilike` folding, sort-cost and the sort-order differences of §4.7; U+0000 rejected by the journal
-(§3.3); the plugin-wiring check does not detect the reverse overlay and nothing checks the auto-start narrowing at
-boot (§2.1, §2.3); no persistence data migration tooling in this repository (§1). One recorded `empty()` divergence
+(§3.3); the plugin-wiring check does not detect the reverse overlay and nothing checks a custom profile's auto-start
+lists at boot (§2.1, §2.3); no persistence data migration tooling in this repository (§1). One recorded `empty()` divergence
 stays: `empty-overmatch-array-of-array` (`parity/divergence-allowlist.json`: PostgreSQL matches an attribute or
 property whose value is an array of arrays, MongoDB does not) — closing it means changing what the flattener stores
 (a stub distinguishable from an empty array) and the rank-5 folding of the sort and cursor code, with a re-index of
@@ -766,7 +767,7 @@ existing indexes (§4.6), for a shape RQL cannot query into on either backend.
 
 | Topic                                     | Location                                                                                                                                                                                                                                                                                                                                                                                                                        |
 |-------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| User-facing setup and operations          | `documentation/.../installation-postgresql.md` (JARs, activation config, provisioning, env vars, Compose, Helm), `documentation/.../operating-postgresql.md` (schema lifecycle, self-heal, pool, PgBouncer, TLS, ping, encryption, search tunables and indexes, cutover, differences, vacuum); `installation-extending.md` keeps a `### PostgreSQL backends` pointer; `installation-operating.md`, `operating-configuration.md` |
+| User-facing setup and operations          | `documentation/.../installation-postgresql.md` (JARs, backend selection, provisioning, env vars, Compose, Helm), `documentation/.../operating-postgresql.md` (schema lifecycle, self-heal, pool, PgBouncer, TLS, ping, encryption, search tunables and indexes, cutover, differences, vacuum); `installation-extending.md` has a `### Persistence backends` pointer; `installation-operating.md`, `operating-configuration.md`  |
 | Operator runbook, provisioning, PgBouncer | `deployment/postgres/README.md`, `deployment/postgres/provisioning/01-roles-and-grants.sql`                                                                                                                                                                                                                                                                                                                                     |
 | Local development                         | `deployment/postgres-local/README.md`, `.run/*-Postgres.run.xml`, the `ide-postgres-launcher` Maven module (pom-only classpath aggregator for the run configs)                                                                                                                                                                                                                                                                  |
 | Persistence schema                        | `…/persistence/postgres/schema/PostgresSchema.java` (Javadoc explains every table decision)                                                                                                                                                                                                                                                                                                                                     |

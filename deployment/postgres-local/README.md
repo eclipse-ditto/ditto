@@ -10,17 +10,19 @@ All files here are additive; no committed service config is modified.
 
 ## What's here
 
-| File                          | Purpose                                                                                                                                  |
-|-------------------------------|------------------------------------------------------------------------------------------------------------------------------------------|
-| `docker-compose.postgres.yml` | A standalone Postgres 16 (db `ditto`, user/pw `ditto`). Does NOT touch `deployment/docker/docker-compose.yml`.                           |
-| `things-postgres.conf`        | Overlay that activates Postgres for the Things service (joins the Policies-founded cluster at 2552).                                     |
-| `policies-postgres.conf`      | Overlay that activates Postgres for the Policies service (cluster founder).                                                              |
-| `search-postgres.conf`        | Overlay that activates the OPT-IN PostgreSQL search backend for the Things-Search service (joins the cluster at 2552; artery port 2557). |
-| `run-compound-postgres.sh`    | CLI launcher for Policies + Things + Connectivity + Gateway + Things-Search, all wired to Postgres / pre-auth / CORS.                    |
+| File                          | Purpose                                                                                                                   |
+|-------------------------------|---------------------------------------------------------------------------------------------------------------------------|
+| `docker-compose.postgres.yml` | A standalone Postgres 16 (db `ditto`, user/pw `ditto`). Does NOT touch `deployment/docker/docker-compose.yml`.            |
+| `things-postgres.conf`        | Dev overlay for the Things service on Postgres (joins the Policies-founded cluster at 2552).                              |
+| `policies-postgres.conf`      | Dev overlay for the Policies service on Postgres (cluster founder).                                                       |
+| `search-postgres.conf`        | Dev overlay for the Things-Search service on the PostgreSQL search backend (joins the cluster at 2552; artery port 2557). |
+| `connectivity-postgres.conf`  | Dev overlay for the Connectivity service on Postgres (joins the cluster at 2552).                                         |
+| `run-compound-postgres.sh`    | CLI launcher for Policies + Things + Connectivity + Gateway + Things-Search, all wired to Postgres / pre-auth / CORS.     |
 
 IntelliJ run configurations live in `.run/` at the repo root: `PoliciesService (Postgres)`, `ThingsService (Postgres)`,
 `ConnectivityService (Postgres)`, `SearchService (Postgres)`, `GatewayService (Postgres)` and the compound
-`Ditto (Postgres)`, which launches all five together.
+`Ditto (Postgres)`, which launches all five together. Their "Use classpath of module" is `ditto-ide-postgres-launcher`;
+the plain run configs (`ThingsService`, `Ditto`, …) use `ditto-ide-mongo-launcher` and run on MongoDB.
 
 ---
 
@@ -44,19 +46,18 @@ Postgres wiring. The overlays encode four non-obvious fixes:
 2. **Top-level includes, not inside `ditto { }`.** `ditto-postgres-persistence.conf` ships its own `ditto { }`
    wrapper PLUS top-level Pekko plugin blocks (`ditto-postgres-things-journal { }`, ...). Nesting the include
    inside `ditto { }` would misplace those plugin blocks.
-3. **The persistence-r2dbc jar + r2dbc driver must be on the runtime classpath, FIRST.** The service allinone
-   jar does NOT bundle the persistence-r2dbc module (provider/journal classes + profile resources + driver),
-   and it bundles an OLD `reactor-core` (3.4.x) lacking `Mono.singleOptional()` that the r2dbc driver calls.
-   The CLI scripts prepend the r2dbc module jar and its runtime deps (reactor-core 3.5.x, r2dbc-postgresql,
-   r2dbc-pool) BEFORE the allinone jar. In IntelliJ this is supplied by a dedicated local-dev module,
-   `ide-postgres-launcher` (artifact `ditto-ide-postgres-launcher`): it compile-depends on the services **and**
-   `ditto-internal-utils-persistence-r2dbc`, and the `(Postgres)` run configs set their "Use classpath of module"
-   to it (keeping the service's own main class). This is needed because the service modules deliberately don't
-   depend on r2dbc (the `enforce-no-r2dbc-in-service` rule keeps it out of their allinones) and an IntelliJ
-   Application run uses only a module's *production* classpath — so a test-scope dep on the service would never
-   reach the run classpath. The launcher is never shaded or published, so r2dbc stays out of every service image.
-   Run *Reload All Maven Projects* after pulling for IntelliJ to pick up the new module. (In IntelliJ the module
-   graph also resolves the project's `reactor-core` 3.5.20, so the allinone's old 3.4.x copy is not involved.)
+3. **The PostgreSQL backend JARs must be on the runtime classpath.** The service allinone JARs carry no
+   persistence backend at all, so a service without backend JARs refuses to start. The CLI script stages the five
+   shaded extension JARs of this build per service with `stage-backends.sh` (the `postgresql/` folder of the image
+   layout) and puts that folder before the allinone JAR. In IntelliJ the backend is supplied by a dedicated
+   local-dev module, `ide-postgres-launcher` (artifact `ditto-ide-postgres-launcher`): it compile-depends on the
+   services **and** `ditto-internal-utils-persistence-r2dbc` / `ditto-internal-utils-search-r2dbc`, and the
+   `(Postgres)` run configs set their "Use classpath of module" to it (keeping the service's own main class). This
+   is needed because the service modules deliberately don't depend on r2dbc (the `enforce-no-r2dbc-in-service`
+   rule keeps it out of their allinones) and an IntelliJ Application run uses only a module's *production*
+   classpath — so a test-scope dep on the service would never reach the run classpath. The launcher is never shaded
+   or published, so r2dbc stays out of every service image. Run *Reload All Maven Projects* after pulling for
+   IntelliJ to pick up the module. `ide-mongo-launcher` does the same for MongoDB.
 4. **No auto-start narrowing.** The PostgreSQL profile declares per-entity auto-start keys, and each service conf
    maps its own entity's keys onto Pekko's auto-start lists, so no overlay narrows anything.
 
@@ -69,37 +70,39 @@ MongoDB default and selects only the backend-neutral serializer, and the persist
 active backend's snapshot codec (Mongo BSON / Postgres JSONB) resolved from the persistence-backend-provider.
 Including the Postgres persistence profile therefore switches the snapshot envelope to JSONB automatically.
 
-### Extension JAR placement (two JARs per persistence service)
+### Extension JAR placement (two JARs per PostgreSQL service)
 
-The Postgres backend is packaged as **layered drop-in JARs**, none of them bundled in the service allinone
-JARs: the shared third-party runtime (r2dbc driver/pool, reactor, netty, scram) lives in a **base** JAR that the thin
-backend JARs ride on top of, so a persistence service mounts **two** JARs:
+The Postgres backend is packaged as **layered JARs**, none of them bundled in the service allinone JARs: a **base**
+JAR with the shared third-party runtime (r2dbc driver/pool, reactor, scram) and thin backend JARs that ride on top of
+it. The Docker images ship them, together with the MongoDB backend, in `/opt/ditto/backends/{mongodb,postgresql}/`;
+`stage-backends.sh` holds the service → JAR mapping.
 
-| JAR                                           | Contents                                                                                                         | Mounted by                                     |
-|-----------------------------------------------|------------------------------------------------------------------------------------------------------------------|------------------------------------------------|
-| `ditto-postgres-client-extension` (base)      | postgres-client infra + ALL third-party (r2dbc-postgresql, r2dbc-pool, reactor, netty incl. resolver-dns, scram) | every Postgres service                         |
-| `ditto-postgres-persistence-extension` (thin) | only the event-sourcing persistence-r2dbc classes                                                                | things / policies / connectivity               |
-| `ditto-postgres-search-extension` (thin)      | only the search-r2dbc classes                                                                                    | thing-search (only if search runs on Postgres) |
+| JAR                                           | Contents                                                                                                                    | Used by                                        |
+|-----------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------|------------------------------------------------|
+| `ditto-postgres-client-extension` (base)      | postgres-client infra + the third-party runtime (r2dbc-postgresql, r2dbc-pool, reactor, reactor-netty, resolver-dns, scram) | every Postgres service                         |
+| `ditto-postgres-persistence-extension` (thin) | only the event-sourcing persistence-r2dbc classes                                                                           | things / policies / connectivity               |
+| `ditto-postgres-search-extension` (thin)      | only the search-r2dbc classes                                                                                               | thing-search (only if search runs on Postgres) |
 
 Deployment matrix:
 
-* **things / policies / connectivity:** mount **base + persistence** (2 JARs).
-* **thing-search on Postgres:** mount **base + search** (2 JARs). A search service left on MongoDB mounts **nothing**.
-* All mounted Postgres extension JARs **must come from the same Ditto release** — the boot self-check
-  (`PostgresExtensionVersions`, a version marker in each JAR) fails fast on a mismatch, and a thin JAR mounted without
+* **things / policies / connectivity:** **base + persistence** (2 JARs).
+* **thing-search on Postgres:** **base + search** (2 JARs).
+* All Postgres extension JARs **must come from the same Ditto release** — the boot self-check
+  (`PostgresExtensionVersions`, a version marker in each JAR) fails fast on a mismatch, and a thin JAR without
   its base fails at boot with `NoClassDefFoundError … PostgresConfig` (see `installation-postgresql.md`, "A thin JAR
   without its base").
 
 Where they run:
 
-* **Production / Kubernetes:** drop the two JARs for the service (base + the matching thin JAR) into
-  `/opt/ditto/extensions/` of each service container. The Helm operator guide has an example of staging these via an
-  `initContainer`.
-* **Local CLI dev (this directory):** the launch scripts assemble the classpath manually from the raw
-  `ditto-internal-utils-persistence-r2dbc` module JAR and its runtime deps (which transitively include the
-  postgres-client base + r2dbc stack), prepended before the allinone JAR — equivalent to the `/opt/ditto/extensions/`
-  drop-in of the base + persistence JARs. No manual JAR copying is needed when using the scripts or the IntelliJ run
-  configs.
+* **Docker / Kubernetes:** set `DITTO_PERSISTENCE_BACKEND=postgresql` on each Postgres service (Helm:
+  `global.persistenceBackend: postgresql`); the image's `/opt/ditto/backends/postgresql/` folder goes on the
+  classpath. Nothing is mounted into `/opt/ditto/extensions/`: next to the default `mongodb` folder that would put two
+  backends on the classpath, and the service refuses to start.
+* **Local CLI dev (this directory):** `run-compound-postgres.sh` calls `./stage-backends.sh <service> 0-SNAPSHOT
+  <cache>/<service>` for policies, things, connectivity and thingsearch and puts `<cache>/<service>/postgresql/*`
+  before the allinone JAR (the images put it after `/opt/ditto/*`). A missing JAR stops the script before any JVM
+  starts, with a message naming the Maven command. No manual JAR copying is needed when using the script or the
+  IntelliJ run configs.
 
 ---
 
@@ -113,9 +116,11 @@ docker compose -f deployment/postgres-local/docker-compose.postgres.yml up -d
 
 ## Step 2 — Build (once)
 
+The launcher needs the service allinone JARs and the five shaded backend extension JARs of the same build:
+
 ```bash
-mvn -pl :ditto-things-service,:ditto-policies-service,:ditto-gateway-service,:ditto-connectivity-service,:ditto-thingsearch-service,:ditto-internal-utils-persistence-r2dbc,:ditto-internal-utils-search-r2dbc \
-     -am -DskipTests -Dcheckstyle.skip -Dlicense.skip=true -Dpmd.skip=true install
+mvn -T4 install -DskipTests -DskipITs \
+    -pl "$(./stage-backends.sh --maven-modules)",things/service,policies/service,connectivity/service,thingsearch/service,gateway/service -am
 ```
 
 ## Step 3 — Run Policies + Things + Gateway: full HTTP write→recover demo
@@ -164,12 +169,11 @@ curl -s -H "$AUTH" http://localhost:8080/api/2/things/org.eclipse.ditto:demo-thi
 
 ## Step 4 — Things-Search on PostgreSQL (full stack)
 
-`run-compound-postgres.sh` also starts the Things-Search service on the **opt-in PostgreSQL search backend**
+`run-compound-postgres.sh` also starts the Things-Search service on the **PostgreSQL search backend**
 (`search-postgres.conf` = `search-dev` only; `search.conf`'s `ditto-search-backend` include picks the
-PostgreSQL search profile from the prepended `search-r2dbc` jar). The
-classpath prepends the `search-r2dbc` module jar + its runtime deps (postgres-client, r2dbc driver stack)
-before the thingsearch allinone — the CLI equivalent of mounting the `ditto-postgres-client-extension` +
-`ditto-postgres-search-extension` JAR pair in `/opt/ditto/extensions/`.
+PostgreSQL search profile from the staged `ditto-postgres-search-extension` JAR). Its staged `postgresql/` folder
+holds `ditto-postgres-client-extension` + `ditto-postgres-search-extension`, the same pair the image ships in
+`/opt/ditto/backends/postgresql/` of the things-search image.
 
 On first boot the search schema (`search_things`, `search_flat`, `search_sync`, component row
 `ditto-postgres-search` in `schema_version`) is bootstrapped by the search service's own schema
