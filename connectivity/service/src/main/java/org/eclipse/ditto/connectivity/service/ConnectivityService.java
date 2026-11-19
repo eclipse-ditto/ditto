@@ -64,4 +64,12 @@ public final class ConnectivityService extends DittoService<ConnectivityConfig> 
         return ConnectivityRootActor.props(connectivityConfig, pubSubMediator);
     }
 
+    /**
+     * This service needs exactly one persistence backend on its classpath.
+     */
+    @Override
+    protected boolean requiresPersistenceBackend() {
+        return true;
+    }
+
 }

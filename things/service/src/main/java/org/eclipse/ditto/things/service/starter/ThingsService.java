@@ -64,4 +64,12 @@ public final class ThingsService extends DittoService<ThingsConfig> {
         return ThingsRootActor.props(thingsConfig, pubSubMediator, ThingPersistenceActor::props);
     }
 
+    /**
+     * This service needs exactly one persistence backend on its classpath.
+     */
+    @Override
+    protected boolean requiresPersistenceBackend() {
+        return true;
+    }
+
 }

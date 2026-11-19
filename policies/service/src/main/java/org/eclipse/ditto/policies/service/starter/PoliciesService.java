@@ -58,4 +58,12 @@ public final class PoliciesService extends DittoService<PoliciesConfig> {
         return PoliciesRootActor.props(policiesConfig, pubSubMediator);
     }
 
+    /**
+     * This service needs exactly one persistence backend on its classpath.
+     */
+    @Override
+    protected boolean requiresPersistenceBackend() {
+        return true;
+    }
+
 }

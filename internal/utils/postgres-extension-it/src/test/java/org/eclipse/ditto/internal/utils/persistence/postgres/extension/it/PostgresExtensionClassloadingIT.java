@@ -20,7 +20,11 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.net.URL;
 import java.net.URLClassLoader;
+import java.util.List;
+import java.util.ServiceLoader;
+import java.util.stream.Collectors;
 
+import org.eclipse.ditto.internal.utils.persistence.api.PersistenceBackendBootstrap;
 import org.eclipse.ditto.internal.utils.persistence.api.PersistenceBackendProvider;
 import org.eclipse.ditto.thingsearch.persistence.api.SearchPersistenceProvider;
 import org.junit.BeforeClass;
@@ -147,6 +151,39 @@ public final class PostgresExtensionClassloadingIT {
                     .hasMessageContaining("ditto-postgres-client-extension")
                     .hasMessageContaining("ditto-postgres-search-extension");
         }
+    }
+
+    @Test
+    public void basePlusPersistenceRegistersExactlyOnePostgresqlBootstrap() throws Exception {
+        try (final URLClassLoader loader = extensionLoader(baseJar(), persistenceJar())) {
+            assertSinglePostgresqlBootstrap(loader);
+        }
+    }
+
+    @Test
+    public void basePlusSearchRegistersExactlyOnePostgresqlBootstrap() throws Exception {
+        try (final URLClassLoader loader = extensionLoader(baseJar(), searchJar())) {
+            assertSinglePostgresqlBootstrap(loader);
+        }
+    }
+
+    @Test
+    public void parentClasspathRegistersNoBootstrap() {
+        // Control: the bootstraps counted above come from the extension jars only, not from the parent classpath.
+        assertThat(loadBootstraps(PostgresExtensionClassloadingIT.class.getClassLoader())).isEmpty();
+    }
+
+    private static void assertSinglePostgresqlBootstrap(final URLClassLoader loader) {
+        final List<PersistenceBackendBootstrap> bootstraps = loadBootstraps(loader);
+        assertThat(bootstraps).extracting(PersistenceBackendBootstrap::backendName).containsExactly("postgresql");
+        // The bootstrap comes from the base jar, i.e. was defined by the child loader, not by the parent.
+        assertThat(bootstraps.get(0).getClass().getClassLoader()).isSameAs(loader);
+    }
+
+    private static List<PersistenceBackendBootstrap> loadBootstraps(final ClassLoader loader) {
+        return ServiceLoader.load(PersistenceBackendBootstrap.class, loader).stream()
+                .map(ServiceLoader.Provider::get)
+                .collect(Collectors.toList());
     }
 
     private static void invokeVerify(final URLClassLoader loader, final String selfCheckClass) throws Exception {

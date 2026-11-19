@@ -18,6 +18,9 @@ import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 import java.lang.management.ManagementFactory;
 import java.text.MessageFormat;
 import java.time.Duration;
+import java.util.List;
+import java.util.SortedSet;
+import java.util.TreeSet;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
@@ -73,6 +76,7 @@ import kamon.prometheus.PrometheusReporter;
  * </p>
  * <ol>
  * <li>{@link #determineRawConfig()},</li>
+ * <li>the persistence backend check (see {@link #requiresPersistenceBackend()}),</li>
  * <li>{@link #createActorSystem(com.typesafe.config.Config)},</li>
  * <li>{@link #startStatusSupplierActor(org.apache.pekko.actor.ActorSystem)},</li>
  * <li>{@link #startServiceRootActors(org.apache.pekko.actor.ActorSystem, org.eclipse.ditto.base.service.config.ServiceSpecificConfig)}.
@@ -97,6 +101,8 @@ public abstract class DittoService<C extends ServiceSpecificConfig> {
      * The config path expression which points to the supposed nested config with the Ditto settings.
      */
     public static final String DITTO_CONFIG_PATH = ScopedConfig.DITTO_SCOPE;
+
+    private static final String PERSISTENCE_BACKEND_ENV_VAR = "DITTO_PERSISTENCE_BACKEND";
 
     protected final Config rawConfig;
     protected final C serviceSpecificConfig;
@@ -204,14 +210,67 @@ public abstract class DittoService<C extends ServiceSpecificConfig> {
      */
     private ActorSystem doStart() {
         logRuntimeParameters();
-        final var actorSystemConfig = appendDittoInfo(
-                applyBootstraps(rawConfig, PersistenceBackendBootstrap.loadAll(getClass().getClassLoader())));
+        final List<PersistenceBackendBootstrap> bootstraps =
+                PersistenceBackendBootstrap.loadAll(getClass().getClassLoader());
+        final String backend = verifyExactlyOneBackend(bootstraps, requiresPersistenceBackend(),
+                System.getenv(PERSISTENCE_BACKEND_ENV_VAR));
+        if (null != backend) {
+            logger.info("Persistence backend: {}", backend);
+        }
+        final var actorSystemConfig = appendDittoInfo(applyBootstraps(rawConfig, bootstraps));
         injectSystemPropertiesLimits(serviceSpecificConfig);
         startKamon();
         final var actorSystem = createActorSystem(actorSystemConfig);
         initializeActorSystem(actorSystem);
         startKamonPrometheusHttpEndpoint(actorSystem);
         return actorSystem;
+    }
+
+    /**
+     * Whether this service needs exactly one persistence backend on its classpath. Default {@code false}.
+     *
+     * @return {@code true} if the service refuses to start without a persistence backend.
+     */
+    protected boolean requiresPersistenceBackend() {
+        return false;
+    }
+
+    /**
+     * Checks that the given bootstraps name exactly one distinct persistence backend.
+     *
+     * @param bootstraps the persistence backend bootstraps found on the classpath.
+     * @param required whether the service needs a persistence backend.
+     * @param selectorValue the value of {@code DITTO_PERSISTENCE_BACKEND}, or {@code null} if it is not set.
+     * @return the name of the single backend, or {@code null} if there is none and none is required.
+     * @throws NullPointerException if {@code bootstraps} is {@code null}.
+     * @throws DittoConfigError if several distinct backends are found, or none although one is required.
+     */
+    @Nullable
+    static String verifyExactlyOneBackend(final List<PersistenceBackendBootstrap> bootstraps,
+            final boolean required,
+            @Nullable final String selectorValue) {
+
+        checkNotNull(bootstraps, "bootstraps");
+        final SortedSet<String> names = new TreeSet<>();
+        for (final PersistenceBackendBootstrap bootstrap : bootstraps) {
+            names.add(bootstrap.backendName());
+        }
+        final String selector = null != selectorValue && !selectorValue.isEmpty() ? selectorValue : "unset";
+        if (names.size() > 1) {
+            throw new DittoConfigError("Several persistence backends are on the classpath: " + names +
+                    ". Exactly one is allowed. " + PERSISTENCE_BACKEND_ENV_VAR + " is " + selector +
+                    ". Set it to the one you want and remove the other backend's JARs from /opt/ditto/extensions/.");
+        }
+        if (names.isEmpty()) {
+            if (required) {
+                throw new DittoConfigError("No persistence backend is on the classpath. " +
+                        PERSISTENCE_BACKEND_ENV_VAR + " is " + selector +
+                        ". Set it to a folder under /opt/ditto/backends/ (default: mongodb) and make sure that" +
+                        " folder holds the backend JARs.");
+            }
+            return null;
+        }
+        return names.first();
     }
 
     /**

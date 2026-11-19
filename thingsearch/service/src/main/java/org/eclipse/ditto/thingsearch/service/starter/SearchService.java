@@ -59,4 +59,12 @@ public class SearchService extends DittoService<SearchConfig> {
         return SearchRootActor.props(searchConfig, pubSubMediator);
     }
 
+    /**
+     * This service needs exactly one persistence backend on its classpath.
+     */
+    @Override
+    protected boolean requiresPersistenceBackend() {
+        return true;
+    }
+
 }

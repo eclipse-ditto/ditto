@@ -50,6 +50,11 @@
             <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-internal-utils-health</artifactId>
         </dependency>
+        <!-- the PersistenceBackendBootstrap SPI; the allinone carries it, so the client-extension does not shade it -->
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-internal-utils-persistence-api</artifactId>
+        </dependency>
 
         <!-- Pekko: the client extension owns the single per-actor-system pool + CoordinatedShutdown tasks;
              DittoPostgresClient bridges the reactive-streams Publisher to Pekko via Source.fromPublisher. -->
