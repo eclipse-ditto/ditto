@@ -21,7 +21,7 @@ import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.internal.utils.pekko.streaming.TimestampPersistence;
 import org.eclipse.ditto.thingsearch.service.common.config.DittoSearchConfig;
 import org.eclipse.ditto.thingsearch.service.common.config.SearchConfig;
-import org.eclipse.ditto.thingsearch.service.persistence.read.MongoThingsSearchPersistence;
+import org.eclipse.ditto.thingsearch.persistence.mongo.read.MongoThingsSearchPersistence;
 import org.eclipse.ditto.thingsearch.service.starter.SearchService;
 import org.eclipse.ditto.thingsearch.service.updater.actors.SearchUpdaterRootActor;
 import org.mockito.Mockito;

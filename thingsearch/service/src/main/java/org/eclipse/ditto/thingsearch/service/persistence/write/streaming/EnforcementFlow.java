@@ -66,6 +66,7 @@ import org.eclipse.ditto.thingsearch.persistence.api.model.AbstractWriteModel;
 import org.eclipse.ditto.thingsearch.persistence.api.model.Metadata;
 import org.eclipse.ditto.thingsearch.persistence.api.model.ThingDeleteModel;
 import org.eclipse.ditto.thingsearch.persistence.api.model.ThingWriteModel;
+import org.eclipse.ditto.thingsearch.persistence.api.write.ConsistencyLag;
 import org.eclipse.ditto.thingsearch.persistence.api.write.UpdaterData;
 import org.eclipse.ditto.thingsearch.service.updater.actors.SearchUpdateObserver;
 import org.eclipse.ditto.thingsearch.service.updater.actors.ThingUpdater;

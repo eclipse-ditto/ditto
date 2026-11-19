@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  ~ Copyright (c) 2017 Contributors to the Eclipse Foundation
+  ~
+  ~ See the NOTICE file(s) distributed with this work for additional
+  ~ information regarding copyright ownership.
+  ~
+  ~ This program and the accompanying materials are made available under the
+  ~ terms of the Eclipse Public License 2.0 which is available at
+  ~ http://www.eclipse.org/legal/epl-2.0
+  ~
+  ~ SPDX-License-Identifier: EPL-2.0
+  -->
+<configuration>
+
+    <statusListener class="ch.qos.logback.core.status.OnConsoleStatusListener"/>
+
+    <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%date{ISO8601} %-5level [%X{correlation-id}] %logger{20} %X{pekkoSource} - %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <appender name="STDERR" class="ch.qos.logback.core.ConsoleAppender">
+        <target>System.err</target>
+        <encoder>
+            <pattern>%date{ISO8601} %-5level [%X{correlation-id}] %logger{20} %X{pekkoSource} - %msg%n</pattern>
+        </encoder>
+        <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
+            <level>ERROR</level>
+        </filter>
+    </appender>
+
+    <!-- Log level for the application -->
+    <logger name="org.eclipse.ditto" level="${LOG_LEVEL_APPLICATION:-INFO}"/>
+    <logger name="org.mongodb.driver" level="WARN"/>
+    <logger name="org.apache.pekko.stream.Materializer" level="ERROR"/>
+    <logger name="org.eclipse.ditto.internal.utils" level="WARN"/>
+    <logger name="org.eclipse.ditto.thingsearch.service.starter.actors.OperatorAggregateMetricsProviderActor" level="DEBUG"/>
+
+    <root level="${LOG_LEVEL_TEST:-WARN}">
+        <appender-ref ref="STDOUT"/>
+        <appender-ref ref="STDERR"/>
+    </root>
+</configuration>

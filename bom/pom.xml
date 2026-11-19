@@ -911,6 +911,11 @@
             </dependency>
             <dependency>
                 <groupId>org.eclipse.ditto</groupId>
+                <artifactId>ditto-thingsearch-persistence-mongo</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.eclipse.ditto</groupId>
                 <artifactId>ditto-internal-models-signal</artifactId>
                 <version>${project.version}</version>
             </dependency>
@@ -1230,6 +1235,13 @@
             <dependency>
                 <groupId>org.eclipse.ditto</groupId>
                 <artifactId>ditto-internal-utils-persistence</artifactId>
+                <type>test-jar</type>
+                <version>${project.version}</version>
+                <scope>test</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.eclipse.ditto</groupId>
+                <artifactId>ditto-thingsearch-persistence-mongo</artifactId>
                 <type>test-jar</type>
                 <version>${project.version}</version>
                 <scope>test</scope>

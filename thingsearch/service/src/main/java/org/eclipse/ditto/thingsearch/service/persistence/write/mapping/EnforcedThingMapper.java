@@ -19,7 +19,6 @@ import java.util.Set;
 
 import javax.annotation.Nullable;
 
-import org.bson.BsonDocument;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.policies.api.PolicyTag;
 import org.eclipse.ditto.policies.model.Policy;
@@ -37,9 +36,9 @@ import org.eclipse.ditto.thingsearch.persistence.api.model.ThingWriteModel;
  * {@link #toWriteModel} produces a backend-neutral
  * {@link org.eclipse.ditto.thingsearch.persistence.api.model.SearchIndexDocument} via
  * {@link SearchIndexDocumentFactory} and returns it in a {@link ThingWriteModel} without encoding it: the neutral
- * document is the shared source of truth for all persistence backends. Only the package-private
- * {@code toBsonDocument} methods encode it into the Mongo {@link BsonDocument} via
- * {@link SearchIndexDocumentMongoEncoder}.
+ * document is the shared source of truth for all persistence backends. Only the MongoDB backend's
+ * {@code EnforcedThingBsonMapper} encodes it into the Mongo {@code BsonDocument} via
+ * {@code SearchIndexDocumentMongoEncoder}.
  */
 public final class EnforcedThingMapper {
 
@@ -97,17 +96,6 @@ public final class EnforcedThingMapper {
                 );
 
         return ThingWriteModel.of(metadata,
-                SearchIndexDocumentFactory.create(thing, policy, metadata, maxArraySize));
-    }
-
-    static BsonDocument toBsonDocument(final JsonObject thing, final Policy policy, final Metadata metadata) {
-        return toBsonDocument(thing, policy, metadata, -1);
-    }
-
-    static BsonDocument toBsonDocument(final JsonObject thing, final Policy policy, final Metadata metadata,
-            final int maxArraySize) {
-
-        return SearchIndexDocumentMongoEncoder.encode(
                 SearchIndexDocumentFactory.create(thing, policy, metadata, maxArraySize));
     }
 

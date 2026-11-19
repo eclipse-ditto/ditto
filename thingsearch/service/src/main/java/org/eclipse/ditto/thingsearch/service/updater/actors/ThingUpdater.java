@@ -75,7 +75,7 @@ import org.eclipse.ditto.thingsearch.persistence.api.model.ThingDeleteModel;
 import org.eclipse.ditto.thingsearch.persistence.api.write.SearchWriteResult;
 import org.eclipse.ditto.thingsearch.persistence.api.write.UpdaterResult;
 import org.eclipse.ditto.thingsearch.service.persistence.write.streaming.BulkWriteResultAckFlow;
-import org.eclipse.ditto.thingsearch.service.persistence.write.streaming.ConsistencyLag;
+import org.eclipse.ditto.thingsearch.persistence.api.write.ConsistencyLag;
 
 /**
  * This Actor initiates persistence updates related to 1 thing.

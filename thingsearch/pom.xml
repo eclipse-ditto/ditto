@@ -19,6 +19,7 @@
         <module>model</module>
         <module>api</module>
         <module>persistence-api</module>
+        <module>persistence-mongo</module>
         <module>service</module>
     </modules>
     <parent>

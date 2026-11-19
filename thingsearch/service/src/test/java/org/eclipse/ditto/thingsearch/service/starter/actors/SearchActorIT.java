@@ -36,7 +36,6 @@ import org.eclipse.ditto.base.model.entity.metadata.MetadataModelFactory;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
-import org.eclipse.ditto.internal.utils.config.ScopedConfig;
 import org.eclipse.ditto.internal.utils.persistence.mongo.DittoMongoClient;
 import org.eclipse.ditto.internal.utils.persistence.mongo.MongoClientWrapper;
 import org.eclipse.ditto.internal.utils.test.docker.mongo.MongoDbResource;
@@ -65,12 +64,11 @@ import org.eclipse.ditto.thingsearch.model.signals.commands.query.QueryThingsRes
 import org.eclipse.ditto.thingsearch.persistence.api.config.DefaultSearchPersistenceConfig;
 import org.eclipse.ditto.thingsearch.service.common.config.DittoSearchConfig;
 import org.eclipse.ditto.thingsearch.service.common.config.SlowQueryLogConfig;
-import org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants;
-import org.eclipse.ditto.thingsearch.service.persistence.mongo.MongoSearchConfig;
+import org.eclipse.ditto.thingsearch.persistence.mongo.PersistenceConstants;
+import org.eclipse.ditto.thingsearch.persistence.mongo.config.MongoSearchConfig;
 import org.eclipse.ditto.thingsearch.service.persistence.query.QueryParser;
-import org.eclipse.ditto.thingsearch.service.persistence.read.MongoThingsSearchPersistence;
-import org.eclipse.ditto.thingsearch.service.persistence.write.streaming.SearchUpdateMapper;
-import org.eclipse.ditto.thingsearch.service.persistence.write.streaming.TestSearchUpdaterStream;
+import org.eclipse.ditto.thingsearch.persistence.mongo.read.MongoThingsSearchPersistence;
+import org.eclipse.ditto.thingsearch.persistence.mongo.write.streaming.TestSearchUpdaterStream;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -124,7 +122,7 @@ public final class SearchActorIT {
     public void before() {
         actorSystem = ActorSystem.create(getClass().getSimpleName(), actorsTestConfig);
         readPersistence = provideReadPersistence();
-        writePersistence = provideWritePersistence(actorSystem);
+        writePersistence = provideWritePersistence();
         thingsCollection = mongoClient.getDefaultDatabase().getCollection(PersistenceConstants.THINGS_COLLECTION_NAME);
     }
 
@@ -138,10 +136,8 @@ public final class SearchActorIT {
         return result;
     }
 
-    private static TestSearchUpdaterStream provideWritePersistence(final ActorSystem system) {
-        final var dittoExtensionsConfig = ScopedConfig.dittoExtension(system.settings().config());
-        return TestSearchUpdaterStream.of(mongoClient.getDefaultDatabase(),
-                SearchUpdateMapper.get(system, dittoExtensionsConfig));
+    private static TestSearchUpdaterStream provideWritePersistence() {
+        return TestSearchUpdaterStream.of(mongoClient.getDefaultDatabase());
     }
 
     private static DittoMongoClient provideClientWrapper() {

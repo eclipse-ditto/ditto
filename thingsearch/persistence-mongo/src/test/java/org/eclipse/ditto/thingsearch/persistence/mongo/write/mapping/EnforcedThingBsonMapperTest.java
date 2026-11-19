@@ -1,0 +1,435 @@
+/*
+ * Copyright (c) 2019 Contributors to the Eclipse Foundation
+ *
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
+ *
+ * SPDX-License-Identifier: EPL-2.0
+ */
+package org.eclipse.ditto.thingsearch.persistence.mongo.write.mapping;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.eclipse.ditto.policies.model.PoliciesResourceType.THING;
+
+import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
+
+import org.bson.BsonDocument;
+import org.eclipse.ditto.json.JsonArray;
+import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.policies.api.Permission;
+import org.eclipse.ditto.policies.api.PolicyTag;
+import org.eclipse.ditto.policies.model.PoliciesModelFactory;
+import org.eclipse.ditto.policies.model.PolicyId;
+import org.eclipse.ditto.policies.model.SubjectType;
+import org.eclipse.ditto.things.model.Thing;
+import org.eclipse.ditto.things.model.ThingId;
+import org.eclipse.ditto.thingsearch.api.UpdateReason;
+import org.eclipse.ditto.thingsearch.persistence.api.model.Metadata;
+import org.junit.Test;
+
+public final class EnforcedThingBsonMapperTest {
+
+    @Test
+    public void testV2Thing() {
+        final JsonObject thing = JsonFactory.newObject("""
+                {
+                  "thingId": "hello:world",
+                  "_namespace": "hello",
+                  "_revision": 1024,
+                  "_modified": "2019-01-02T03:04:05.006Z",
+                  "policyId": "hello:world",
+                  "features": {
+                    "hi": {
+                      "definition": [
+                        "earth:v0:1",
+                        "mars:v0:2"
+                      ],
+                      "properties": {
+                        "there": true
+                      }
+                    }
+                  },
+                  "attributes": {
+                    "hello": "world"
+                  }
+                }""");
+
+        final var policy =
+                PoliciesModelFactory.newPolicyBuilder(PolicyId.of("policy", "id"))
+                        .forLabel("grant-root")
+                        .setSubject("g:0", SubjectType.GENERATED)
+                        .setGrantedPermissions(THING, "/", Permission.READ)
+                        .forLabel("grant-d")
+                        .setSubject("g:1", SubjectType.GENERATED)
+                        .setGrantedPermissions(THING, "/features/hi/properties/there", Permission.READ)
+                        .build();
+
+        final long policyRevision = 56L;
+
+        final JsonObject expectedJson = JsonFactory.newObject("""
+                {
+                  "_id": "hello:world",
+                  "_namespace": "hello",
+                  "gr": [ "g:0", "g:1" ],
+                  "_revision": 1024,
+                  "policyId": "hello:world",
+                  "__policyRev": 56,
+                  "__referencedPolicies": [{"type":"policy","id":"hello:world","revision":56}],
+                  "t": {
+                    "thingId": "hello:world",
+                    "_namespace": "hello",
+                    "_revision": 1024,
+                    "_modified": "2019-01-02T03:04:05.006Z",
+                    "policyId": "hello:world",
+                    "features": {
+                      "hi": {
+                        "definition": [ "earth:v0:1", "mars:v0:2" ],
+                        "properties": { "there": true }
+                      }
+                    },
+                    "attributes": { "hello": "world" }
+                  },
+                  "p": {
+                    "·g": [ "g:0" ],
+                    "features":{"hi":{"properties":{"there":{"·g": [ "g:1" ] } } } }
+                  },
+                  "f": [
+                    {
+                      "id": "hi",
+                      "definition": [ "earth:v0:1", "mars:v0:2" ],
+                      "properties": { "there": true },
+                      "p": {
+                        "·g": [ "g:0" ],
+                        "properties":{"there":{"·g": [ "g:1" ] } }
+                      }
+                    }
+                  ]
+                }
+                """);
+
+        final BsonDocument result =
+                EnforcedThingBsonMapper.toBsonDocument(thing, policy, firstUpdateMetadata(thing, policyRevision));
+
+        assertThat(JsonFactory.newObject(result.toJson())).isEqualTo(expectedJson);
+    }
+
+    @Test
+    public void testV2Thing2() {
+        final JsonObject thing = JsonFactory.newObject("""
+                {
+                  "thingId": "bosch:device",
+                  "_created": "2000-01-01T00:00:00Z",
+                  "_modified": "2000-01-01T00:00:01Z",
+                  "_revision": 111,
+                  "policyId": "bosch:device-policy",
+                  "attributes": {
+                    "location": {
+                      "latitude": 44.673856,
+                      "longitude": 8.261719
+                    }
+                  },
+                  "features": {
+                    "accelerometer": {
+                      "definition": [
+                        "bosch:accelerometer:1.2.3"
+                      ],
+                      "properties": {
+                        "x": 3.141
+                      }
+                    },
+                    "distance": {
+                      "definition": [
+                        "bosch:distance-sensor:4.1.0"
+                      ],
+                      "properties": {
+                        "d": 2.71828
+                      }
+                    }
+                  }
+                }
+                """);
+
+        final var policy =
+                PoliciesModelFactory.newPolicy("""
+                        {
+                          "policyId": "bosch:device-policy",
+                          "revision": 2,
+                          "entries": {
+                            "global": {
+                              "subjects": {
+                                "issuer:global": {"type":"default"}
+                              },
+                              "resources": {
+                                "thing:/": {"grant": ["READ"],"revoke": []}
+                              }
+                            },
+                            "features": {
+                              "subjects": {
+                                "issuer:features": {"type":"default"}
+                              },
+                              "resources": {
+                                "thing:/features": {"grant": ["READ"],"revoke": []},
+                                "thing:/features/distance/properties/d": {"grant": [],"revoke": ["READ"]}
+                              }
+                            },
+                            "accelerometer": {
+                              "subjects": {
+                                "issuer:accelerometer": {"type":"default"}
+                              },
+                              "resources": {
+                                "thing:/features/accelerometer": {"grant": ["READ"],"revoke": []}
+                              }
+                            },
+                            "attributes": {
+                              "subjects": {
+                                "issuer:attributes": {"type":"default"}
+                              },
+                              "resources": {
+                                "thing:/attributes": {"grant": ["READ"],"revoke": []}
+                              }
+                            }
+                          }
+                        }
+                        """);
+
+        final long policyRevision = 2L;
+
+        final JsonObject expectedJson = JsonFactory.newObject("""
+                {
+                  "_id": "bosch:device",
+                  "_namespace": "bosch",
+                  "gr": [ "issuer:attributes", "issuer:global", "issuer:features", "issuer:accelerometer" ],
+                  "_revision": 111,
+                  "policyId": "bosch:device-policy",
+                  "__policyRev": 2,
+                  "__referencedPolicies": [{"type":"policy","id":"bosch:device-policy","revision":2}],
+                  "t": {
+                    "thingId": "bosch:device",
+                    "_created": "2000-01-01T00:00:00Z",
+                    "_modified": "2000-01-01T00:00:01Z",
+                    "_revision": 111,
+                    "policyId": "bosch:device-policy",
+                    "attributes": {
+                      "location": {
+                        "latitude": 44.673856,
+                        "longitude": 8.261719
+                      }
+                    },
+                    "features": {
+                      "accelerometer": {
+                        "definition": [ "bosch:accelerometer:1.2.3" ],
+                        "properties": {
+                          "x": 3.141
+                        }
+                      },
+                      "distance": {
+                        "definition": [ "bosch:distance-sensor:4.1.0" ],
+                        "properties": {
+                          "d": 2.71828
+                        }
+                      }
+                    }
+                  },
+                  "p": {
+                    "·g": [ "issuer:global" ],
+                    "features": {
+                      "·g": [ "issuer:features" ],
+                      "accelerometer": {
+                        "·g": [ "issuer:accelerometer" ]
+                      },
+                      "distance" : {
+                        "properties" : {
+                          "d" : {
+                            "·r" : [ "issuer:features" ]
+                          }
+                        }
+                      }
+                    },
+                    "attributes": {
+                      "·g": [ "issuer:attributes" ]
+                    }
+                  },
+                  "f": [
+                    {
+                      "id": "accelerometer",
+                      "definition": [ "bosch:accelerometer:1.2.3" ],
+                      "properties": {
+                        "x": 3.141
+                      },
+                      "p": {
+                        "·g": [ "issuer:global" ],
+                        "features" : {
+                          "·g": [ "issuer:features" ]
+                        },
+                        "id": {
+                          "·g": [ "issuer:accelerometer" ]
+                        }
+                      }
+                    },
+                    {
+                      "id": "distance",
+                      "definition": [ "bosch:distance-sensor:4.1.0" ],
+                      "properties": {
+                        "d": 2.71828
+                      },
+                      "p": {
+                        "·g": [ "issuer:global" ],
+                        "features" : {
+                          "·g": [ "issuer:features" ]
+                        },
+                        "properties": {
+                          "d" : {
+                            "·r": [ "issuer:features" ]
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+                """);
+
+        final BsonDocument result =
+                EnforcedThingBsonMapper.toBsonDocument(thing, policy, firstUpdateMetadata(thing, policyRevision));
+
+        assertThat(JsonFactory.newObject(result.toJson())).isEqualTo(expectedJson);
+    }
+
+    @Test
+    public void testV2ThingWithPolicyPathsAbsentInThing() {
+        final JsonObject thing = JsonFactory.newObject("""
+                {
+                  "thingId": "hello:world",
+                  "_namespace": "hello",
+                  "_revision": 1024,
+                  "policyId": "hello:world",
+                  "features": {
+                    "lamp": {
+                      "properties": {
+                        "on": true
+                      }
+                    }
+                  }
+                }""");
+
+        final var policy = PoliciesModelFactory.newPolicy("""
+                {
+                  "policyId": "hello:world",
+                  "revision": 56,
+                  "entries": {
+                    "root": {
+                      "subjects": { "issuer:root": { "type": "default" } },
+                      "resources": {
+                        "thing:/": { "grant": ["READ"], "revoke": [] },
+                        "thing:/attributes": { "grant": [], "revoke": ["READ"] },
+                        "thing:/features/lamp/properties/brightness": { "grant": [], "revoke": ["READ"] },
+                        "thing:/features/absent": { "grant": [], "revoke": ["READ"] }
+                      }
+                    },
+                    "partial": {
+                      "subjects": { "issuer:partial": { "type": "default" } },
+                      "resources": {
+                        "thing:/thingId": { "grant": ["READ"], "revoke": [] },
+                        "thing:/attributes": { "grant": ["READ"], "revoke": [] },
+                        "thing:/features/lamp/properties/brightness": { "grant": ["READ"], "revoke": [] }
+                      }
+                    },
+                    "nested": {
+                      "subjects": { "issuer:nested": { "type": "default" } },
+                      "resources": {
+                        "thing:/attributes/location/city": { "grant": ["READ"], "revoke": [] }
+                      }
+                    }
+                  }
+                }
+                """);
+
+        final JsonObject expectedJson = JsonFactory.newObject("""
+                {
+                  "_id": "hello:world",
+                  "_namespace": "hello",
+                  "_revision": 1024,
+                  "policyId": "hello:world",
+                  "__policyRev": 56,
+                  "__referencedPolicies": [{"type":"policy","id":"hello:world","revision":56}],
+                  "t": {
+                    "thingId": "hello:world",
+                    "_namespace": "hello",
+                    "_revision": 1024,
+                    "policyId": "hello:world",
+                    "features": {
+                      "lamp": {
+                        "properties": { "on": true }
+                      }
+                    }
+                  },
+                  "p": {
+                    "·g": [ "issuer:root" ],
+                    "thingId": { "·g": [ "issuer:partial" ] },
+                    "attributes": {
+                      "·g": [ "issuer:partial" ],
+                      "·r": [ "issuer:root" ],
+                      "location": { "city": { "·g": [ "issuer:nested" ] } }
+                    },
+                    "features": {
+                      "lamp": {
+                        "properties": {
+                          "brightness": { "·g": [ "issuer:partial" ], "·r": [ "issuer:root" ] }
+                        }
+                      },
+                      "absent": { "·r": [ "issuer:root" ] }
+                    }
+                  },
+                  "f": [
+                    {
+                      "id": "lamp",
+                      "properties": { "on": true },
+                      "p": {
+                        "·g": [ "issuer:root" ],
+                        "properties": {
+                          "brightness": { "·g": [ "issuer:partial" ], "·r": [ "issuer:root" ] }
+                        }
+                      }
+                    }
+                  ]
+                }
+                """);
+
+        final JsonObject result = JsonFactory.newObject(
+                EnforcedThingBsonMapper.toBsonDocument(thing, policy, firstUpdateMetadata(thing, 56L)).toJson());
+
+        assertThat(result.remove("gr")).isEqualTo(expectedJson);
+        // "issuer:nested" is only granted on an absent path, so it must not become a global reader
+        assertThat(result.getValue("gr")
+                .map(JsonValue::asArray)
+                .map(EnforcedThingBsonMapperTest::toStrings))
+                .contains(Set.of("issuer:root", "issuer:partial"));
+    }
+
+    /**
+     * The metadata {@code EnforcedThingMapper.toWriteModel} computes for a first update: no old metadata and no
+     * referenced policies.
+     */
+    private static Metadata firstUpdateMetadata(final JsonObject thing, final long policyRevision) {
+        final ThingId thingId = ThingId.of(thing.getValueOrThrow(Thing.JsonFields.ID));
+        final long thingRevision = thing.getValueOrThrow(Thing.JsonFields.REVISION);
+        final PolicyTag thingPolicyTag =
+                PolicyTag.of(PolicyId.of(thing.getValueOrThrow(Thing.JsonFields.POLICY_ID)), policyRevision);
+        return Metadata.of(thingId, thingRevision, thingPolicyTag, null, Set.of(), null, List.of(), List.of(),
+                List.of(), List.of(UpdateReason.UNKNOWN));
+    }
+
+    private static Set<String> toStrings(final JsonArray array) {
+        return array.stream()
+                .map(JsonValue::asString)
+                .collect(Collectors.toSet());
+    }
+
+}

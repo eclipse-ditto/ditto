@@ -49,7 +49,7 @@ import org.eclipse.ditto.thingsearch.persistence.api.model.ThingWriteModel;
 import org.eclipse.ditto.thingsearch.persistence.api.model.TimestampedThingId;
 import org.eclipse.ditto.thingsearch.persistence.api.write.UpdaterData;
 import org.eclipse.ditto.thingsearch.persistence.api.write.UpdaterResult;
-import org.eclipse.ditto.thingsearch.service.persistence.MongoSearchPersistenceProvider;
+import org.eclipse.ditto.thingsearch.persistence.mongo.MongoSearchPersistenceProvider;
 import org.eclipse.ditto.thingsearch.service.starter.actors.ParityCursorWalker;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;

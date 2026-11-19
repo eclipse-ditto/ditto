@@ -102,6 +102,11 @@
             <artifactId>ditto-thingsearch-service</artifactId>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-thingsearch-persistence-mongo</artifactId>
+            <scope>test</scope>
+        </dependency>
         <!-- TEST-SCOPE ONLY: the Mongo docker testkit (MongoDbResource) used by the Mongo<->Postgres parity
              matrix IT (SearchBackendParityIT), which writes one corpus through BOTH backends' full production write
              paths and asserts a large RQL battery answers identically. Mirrors the thingsearch/service test dep shape

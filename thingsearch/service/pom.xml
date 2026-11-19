@@ -49,6 +49,10 @@
         </dependency>
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-thingsearch-persistence-mongo</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-rql-parser</artifactId>
         </dependency>
         <dependency>
@@ -128,6 +132,12 @@
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-internal-utils-persistence</artifactId>
+            <scope>test</scope>
+            <type>test-jar</type>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-thingsearch-persistence-mongo</artifactId>
             <scope>test</scope>
             <type>test-jar</type>
         </dependency>

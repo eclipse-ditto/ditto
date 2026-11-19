@@ -24,10 +24,10 @@ import org.eclipse.ditto.thingsearch.persistence.api.ThingsSearchPersistence;
 import org.eclipse.ditto.thingsearch.persistence.api.write.SearchUpdaterFlow;
 import org.eclipse.ditto.thingsearch.persistence.api.config.DefaultPersistenceStreamConfig;
 import org.eclipse.ditto.thingsearch.persistence.api.config.DefaultSearchPersistenceConfig;
-import org.eclipse.ditto.thingsearch.service.persistence.mongo.MongoSearchConfig;
-import org.eclipse.ditto.thingsearch.service.persistence.read.MongoThingsSearchPersistence;
-import org.eclipse.ditto.thingsearch.service.persistence.read.query.MongoQueryBuilderFactory;
-import org.eclipse.ditto.thingsearch.service.persistence.write.streaming.MongoSearchUpdaterFlow;
+import org.eclipse.ditto.thingsearch.persistence.mongo.config.MongoSearchConfig;
+import org.eclipse.ditto.thingsearch.persistence.mongo.read.MongoThingsSearchPersistence;
+import org.eclipse.ditto.thingsearch.persistence.mongo.read.query.MongoQueryBuilderFactory;
+import org.eclipse.ditto.thingsearch.persistence.mongo.write.streaming.MongoSearchUpdaterFlow;
 
 import com.mongodb.WriteConcern;
 import com.typesafe.config.Config;
