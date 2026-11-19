@@ -17,18 +17,25 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.net.ConnectException;
 import java.time.Duration;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.pekko.actor.ActorNotFound;
 import org.apache.pekko.actor.ActorRef;
 import org.apache.pekko.actor.ActorSystem;
 import org.apache.pekko.testkit.javadsl.TestKit;
+import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.internal.utils.config.ScopedConfig;
 import org.eclipse.ditto.internal.utils.health.RetrieveHealth;
 import org.eclipse.ditto.internal.utils.health.StatusInfo;
 import org.eclipse.ditto.internal.utils.persistence.postgres.client.PostgresHealthChecker;
 import org.eclipse.ditto.internal.utils.persistence.postgres.client.schema.SchemaBootstrapUnavailableException;
+import org.eclipse.ditto.internal.utils.persistence.postgres.search.query.SortRankBoundary;
 import org.eclipse.ditto.internal.utils.persistence.postgres.search.reaper.PostgresDeleteAtReaperActor;
+import org.eclipse.ditto.json.JsonArray;
+import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.thingsearch.model.signals.commands.exceptions.InvalidOptionException;
 import org.eclipse.ditto.thingsearch.persistence.api.SearchPersistenceProvider;
 import org.eclipse.ditto.thingsearch.persistence.api.ThingsSearchUpdaterPersistence;
 import org.junit.AfterClass;
@@ -96,6 +103,44 @@ public final class PostgresSearchPersistenceProviderTest {
                 new PostgresSearchPersistenceProvider(system, ConfigFactory.empty());
 
         assertThat(provider.healthCheckProps().actorClass()).isEqualTo(PostgresHealthChecker.class);
+    }
+
+    @Test
+    public void compositeSortResumeValueMapsObjectMarkerToRankBoundary() {
+        final PostgresSearchPersistenceProvider provider =
+                new PostgresSearchPersistenceProvider(system, ConfigFactory.empty());
+
+        assertThat(provider.compositeSortResumeValue(JsonObject.of("{\"typeRank\":4}")))
+                .isEqualTo(new SortRankBoundary(4));
+    }
+
+    @Test
+    public void compositeSortResumeValueRefusesAnyOtherContainerAsInvalidCursor() {
+        // only a forged cursor carries another container: the client gets the cursor's invalid-option 400, not a 500
+        final PostgresSearchPersistenceProvider provider =
+                new PostgresSearchPersistenceProvider(system, ConfigFactory.empty());
+        final List<JsonValue> forged = List.of(
+                JsonObject.empty(),
+                JsonObject.of("{\"typeRank\":5}"),
+                JsonObject.of("{\"typeRank\":\"4\"}"),
+                JsonObject.of("{\"typeRank\":4,\"x\":1}"),
+                JsonArray.of(1));
+
+        for (final JsonValue value : forged) {
+            assertThatThrownBy(() -> provider.compositeSortResumeValue(value))
+                    .as("refuses %s", value)
+                    .isInstanceOfSatisfying(InvalidOptionException.class,
+                            e -> assertThat(e.getHttpStatus()).isEqualTo(HttpStatus.BAD_REQUEST))
+                    .hasMessage("The option 'cursor' is not valid for the search request.");
+        }
+    }
+
+    @Test
+    public void sortRankBoundaryRoundTripsItsCursorValueAndIsObjectOnly() {
+        assertThat(SortRankBoundary.object().toCursorValue()).isEqualTo(JsonObject.of("{\"typeRank\":4}"));
+        assertThat(SortRankBoundary.fromCursorValue(SortRankBoundary.object().toCursorValue()))
+                .contains(SortRankBoundary.object());
+        assertThatThrownBy(() -> new SortRankBoundary(5)).isInstanceOf(IllegalArgumentException.class);
     }
 
     @Test

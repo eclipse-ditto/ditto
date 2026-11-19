@@ -30,6 +30,7 @@ import org.apache.pekko.stream.javadsl.Source;
 import org.assertj.core.api.SoftAssertions;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.internal.utils.persistence.postgres.client.testkit.PostgresDbResource;
+import org.eclipse.ditto.internal.utils.persistence.postgres.search.PostgresSearchPersistenceProvider;
 import org.eclipse.ditto.internal.utils.test.docker.mongo.MongoDbResource;
 import org.eclipse.ditto.rql.parser.RqlPredicateParser;
 import org.eclipse.ditto.rql.parser.thingsearch.RqlOptionParser;
@@ -40,6 +41,7 @@ import org.eclipse.ditto.rql.query.expression.ThingsFieldExpressionFactory;
 import org.eclipse.ditto.rql.query.filter.QueryFilterCriteriaFactory;
 import org.eclipse.ditto.thingsearch.api.query.filter.ParameterOptionVisitor;
 import org.eclipse.ditto.thingsearch.model.SortOption;
+import org.eclipse.ditto.thingsearch.persistence.api.SearchPersistenceProvider;
 import org.eclipse.ditto.thingsearch.persistence.api.model.Metadata;
 import org.eclipse.ditto.thingsearch.persistence.api.model.ResultList;
 import org.eclipse.ditto.thingsearch.persistence.api.model.ThingDeleteModel;
@@ -47,6 +49,7 @@ import org.eclipse.ditto.thingsearch.persistence.api.model.ThingWriteModel;
 import org.eclipse.ditto.thingsearch.persistence.api.model.TimestampedThingId;
 import org.eclipse.ditto.thingsearch.persistence.api.write.UpdaterData;
 import org.eclipse.ditto.thingsearch.persistence.api.write.UpdaterResult;
+import org.eclipse.ditto.thingsearch.service.persistence.MongoSearchPersistenceProvider;
 import org.eclipse.ditto.thingsearch.service.starter.actors.ParityCursorWalker;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -115,6 +118,9 @@ public final class SearchBackendParityIT {
     private static ParityFixtures fixtures;
     private static ParityBackend mongo;
     private static ParityBackend postgres;
+    // the cursor asks the walked backend's own provider for composite sort resume values (Mongo: BSON as before)
+    private static SearchPersistenceProvider mongoProvider;
+    private static SearchPersistenceProvider postgresProvider;
 
     @BeforeClass
     public static void startBackendsAndWriteCorpus() {
@@ -126,6 +132,8 @@ public final class SearchBackendParityIT {
         fef = ThingsFieldExpressionFactory.of(searchConfig.getSimpleFieldMappings());
         criteriaFactory = QueryFilterCriteriaFactory.of(fef, RqlPredicateParser.getInstance());
         system = ActorSystem.create("SearchBackendParityIT");
+        mongoProvider = new MongoSearchPersistenceProvider(system, ConfigFactory.empty());
+        postgresProvider = new PostgresSearchPersistenceProvider(system, ConfigFactory.empty());
         fixtures = ParityFixtures.load();
         mongo = MongoParityBackend.start(MONGO_RESOURCE, system, config);
         postgres = PostgresParityBackend.start(POSTGRES_RESOURCE, config);
@@ -347,7 +355,8 @@ public final class SearchBackendParityIT {
         final List<String> postgresPin = queryCase.expectedPostgres().get(authKey);
         if (mongoPin != null || postgresPin != null) {
             // allow-listed divergent walk: the container-valued boundaries carry divergent cursor sort-value
-            // encodings (Mongo: whole array/object; Postgres: null) AND the shared type-bracketed gt/lt resume
+            // encodings (Mongo: whole array/object; Postgres: null for null/array boundaries, {"typeRank":4} for
+            // objects) AND the shared type-bracketed gt/lt resume
             // predicates make each backend drop a DIFFERENT subset mid-walk — pin each backend's own observed
             // sequence. The unpaged-reference invariant deliberately does NOT apply here (the pins capture the
             // dropped things), while both walks must still TERMINATE.
@@ -380,6 +389,7 @@ public final class SearchBackendParityIT {
                 modelSort,
                 query -> runSingle(backend.searchPersistence().findAll(query, subjects, null, HEADERS),
                         description + " page on " + backend.name()),
+                backend == mongo ? mongoProvider : postgresProvider,
                 system);
     }
 

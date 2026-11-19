@@ -82,6 +82,11 @@ final class CreateSqlPredicateVisitor implements PredicateVisitor<SqlPredicate> 
             // exists() to disambiguate; on the flat table a null-rank row *is* an existing row). Column: IS NULL.
             return SqlPredicate.of(CreateSqlPredicateVisitor::nullRank, Sql::isNull);
         }
+        if (value instanceof SortRankBoundary boundary) {
+            // the cursor's object boundary: an object row exists on the path (objects tie, so the thing-id dimension
+            // decides). Root-mapped columns never hold objects.
+            return SqlPredicate.of(alias -> rank(alias, boundary.typeRank()), column -> Sql.boolLiteral(false));
+        }
         final Object resolved = resolveValue(value);
         if (resolved == null) {
             // A placeholder nobody resolves: Mongo resolves AFTER its null check, so this is Filters.eq(f, null) — a
@@ -93,26 +98,35 @@ final class CreateSqlPredicateVisitor implements PredicateVisitor<SqlPredicate> 
 
     @Override
     public SqlPredicate visitGe(@Nullable final Object value) {
+        rejectSortRankBoundary("ge", value);
         return inclusiveBound(ComparisonOperator.GE, resolveValue(value));
     }
 
     @Override
     public SqlPredicate visitGt(@Nullable final Object value) {
+        if (value instanceof SortRankBoundary) {
+            return SqlPredicate.never(); // objects tie: none is strictly after another
+        }
         return exclusiveBound(ComparisonOperator.GT, resolveValue(value));
     }
 
     @Override
     public SqlPredicate visitLe(@Nullable final Object value) {
+        rejectSortRankBoundary("le", value);
         return inclusiveBound(ComparisonOperator.LE, resolveValue(value));
     }
 
     @Override
     public SqlPredicate visitLt(@Nullable final Object value) {
+        if (value instanceof SortRankBoundary) {
+            return SqlPredicate.never(); // objects tie: none is strictly before another
+        }
         return exclusiveBound(ComparisonOperator.LT, resolveValue(value));
     }
 
     @Override
     public SqlPredicate visitNe(@Nullable final Object value) {
+        rejectSortRankBoundary("ne", value);
         // resolve FIRST: Mongo's and(ne(f, resolved), exists(f)) with a placeholder resolved to null IS ne(f, null)
         final Object resolved = resolveValue(value);
         if (resolved == null) {
@@ -138,6 +152,7 @@ final class CreateSqlPredicateVisitor implements PredicateVisitor<SqlPredicate> 
         final List<Object> resolved = new ArrayList<>(values.size());
         boolean nullMember = false;
         for (final Object v : values) {
+            rejectSortRankBoundary("in", v);
             final Object r = resolveValue(v);
             if (r == null) {
                 nullMember = true;
@@ -248,7 +263,23 @@ final class CreateSqlPredicateVisitor implements PredicateVisitor<SqlPredicate> 
 
     /** The null-rank row condition {@code <alias>.type_rank = TYPE_NULL}: the flat form of a JSON {@code null} leaf. */
     private static SqlExpression nullRank(final String alias) {
-        return Sql.eq(Sql.col(alias, "type_rank"), Sql.integer(ThingFlattener.TYPE_NULL));
+        return rank(alias, ThingFlattener.TYPE_NULL);
+    }
+
+    /** The row condition {@code <alias>.type_rank = <typeRank>}. */
+    private static SqlExpression rank(final String alias, final int typeRank) {
+        return Sql.eq(Sql.col(alias, "type_rank"), Sql.integer(typeRank));
+    }
+
+    /**
+     * Only the search cursor creates a {@link SortRankBoundary}, and only under {@code gt}, {@code lt} and {@code eq};
+     * any other operator receiving one is a programming error, never a silent {@code val_text} comparison.
+     */
+    private static void rejectSortRankBoundary(final String operator, @Nullable final Object value) {
+        if (value instanceof SortRankBoundary) {
+            throw new IllegalArgumentException(operator + " does not accept a sort rank boundary operand: only the" +
+                    " search cursor creates it, for gt, lt and eq");
+        }
     }
 
     /**

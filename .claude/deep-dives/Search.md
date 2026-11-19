@@ -235,7 +235,8 @@ where the sort is total) must match, and MongoDB's result is the truth. A diverg
 `expectNonEmptySudo` guards against cases that pass on empty results. Allow-listed divergences: `empty()` also matches an
 array of arrays; content nested inside a direct array of arrays is flattened to a single valueless stub on PostgreSQL
 (inner elements are not enumerated); object-valued sort keys tie and fall through to `thingId`; a scalar next to a nested
-array sorts differently ascending and descending; the cursor encodes null/object/array boundary values differently; a
+array sorts differently ascending and descending; the cursor encodes null/array boundary values differently, and an
+object boundary resumes by rank, then thing id; a
 `features/*/…` sort key is rejected where MongoDB silently ignores it; case-insensitive matching of U+00DF LATIN SMALL
 LETTER SHARP S (`ß`) and U+0130 LATIN CAPITAL LETTER I WITH DOT ABOVE (`İ`) differs between MongoDB's case-insensitive
 regex and PostgreSQL's `lower()`-based `ILIKE`; under sudo, `features/*` value predicates are answered per feature where

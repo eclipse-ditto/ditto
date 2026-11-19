@@ -13,6 +13,7 @@
 package org.eclipse.ditto.internal.utils.persistence.postgres.search.query;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -257,6 +258,50 @@ public final class RqlToSqlTranslationTest {
         final RenderedSql restricted = render(CreateSqlVisitor.apply(
                 cf.fieldCriteria(fef.filterByAttribute("x"), cf.gt(null)), SUBJECTS).predicate());
         assertThat(restricted.sql()).isEqualTo("(false AND st.global_read && $1::text[])");
+    }
+
+    // =========================================================== sort rank boundary (the cursor's object boundary)
+
+    @Test
+    public void sortRankBoundaryEqProbesTypeRankOnSortKeyPath() {
+        final Criteria criteria = cf.fieldCriteria(fef.sortByAttribute("sortKey"), cf.eq(SortRankBoundary.object()));
+
+        final RenderedSql r = sudo(criteria);
+        assertThat(r.sql()).isEqualTo("EXISTS (SELECT 1 FROM search_flat sf WHERE "
+                + "(sf.thing_id = st.thing_id AND sf.wpath = $1 AND sf.type_rank = $2))");
+        assertThat(r.bindValues()).containsExactly("/attributes/sortKey", 4); // TYPE_OBJECT
+
+        final RenderedSql restricted = render(CreateSqlVisitor.apply(criteria, SUBJECTS).predicate());
+        assertThat(restricted.sql()).startsWith("((EXISTS (SELECT 1 FROM search_flat sf WHERE "
+                + "(sf.thing_id = st.thing_id AND sf.wpath = $1 AND sf.type_rank = $2)) AND (NOT COALESCE(");
+        assertThat(restricted.sql())
+                .endsWith(" AND st.global_read && $" + restricted.bindValues().size() + "::text[])");
+        assertThat(restricted.bindValues()).startsWith("/attributes/sortKey", 4);
+
+        // root-mapped columns never hold objects
+        assertThat(sudo(cf.fieldCriteria(fef.sortByThingId(), cf.eq(SortRankBoundary.object()))).sql())
+                .isEqualTo("false");
+    }
+
+    @Test
+    public void sortRankBoundaryGtAndLtNeverMatch() {
+        // objects tie on the flat table: none is strictly before or after another, so resume continues by thing id
+        for (final Predicate predicate : List.of(cf.gt(SortRankBoundary.object()), cf.lt(SortRankBoundary.object()))) {
+            final RenderedSql attribute = sudo(cf.fieldCriteria(fef.sortByAttribute("sortKey"), predicate));
+            assertThat(attribute.sql()).as("%s", predicate).isEqualTo("false");
+            assertThat(attribute.bindValues()).as("%s", predicate).isEmpty();
+        }
+    }
+
+    @Test
+    public void sortRankBoundaryRejectedByGeLeNeAndIn() {
+        final SortRankBoundary b = SortRankBoundary.object();
+        for (final Predicate predicate : List.of(cf.ge(b), cf.le(b), cf.ne(b), cf.in(List.of("x", b)))) {
+            assertThatThrownBy(() -> sudo(cf.fieldCriteria(fef.sortByAttribute("sortKey"), predicate)))
+                    .as("%s", predicate)
+                    .isInstanceOf(IllegalArgumentException.class)
+                    .hasMessageContaining("sort rank boundary");
+        }
     }
 
     @Test

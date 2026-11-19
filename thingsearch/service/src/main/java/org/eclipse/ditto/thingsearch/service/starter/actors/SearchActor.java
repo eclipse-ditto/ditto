@@ -370,6 +370,7 @@ public final class SearchActor extends AbstractActorWithShutdownBehaviorAndReque
 
         final StreamThings tracedStreamThings = streamThings.setDittoHeaders(
                 spanWithTimer.startedSpan.propagateContext(streamThings.getDittoHeaders()));
+        final SearchPersistenceProvider provider = searchPersistenceProvider;
 
         final Source<SourceRef<String>, NotUsed> thingIdSourceRefSource =
                 ThingsSearchCursor.extractCursor(tracedStreamThings).flatMapConcat(cursor -> {
@@ -377,7 +378,8 @@ public final class SearchActor extends AbstractActorWithShutdownBehaviorAndReque
 
                     return createQuerySource(queryParser::parse, tracedStreamThings).map(parsedQuery -> {
                         final var query =
-                                ThingsSearchCursor.adjust(cursor, parsedQuery, queryParser.getCriteriaFactory());
+                                ThingsSearchCursor.adjust(cursor, parsedQuery, queryParser.getCriteriaFactory(),
+                                        provider);
                         stopTimer(queryParsingTimer);
                         searchTimer.startNewSegment(
                                 DATABASE_ACCESS_SEGMENT_NAME); // segment stopped by stopTimerAndHandleError
@@ -488,6 +490,7 @@ public final class SearchActor extends AbstractActorWithShutdownBehaviorAndReque
 
         final QueryThings tracedQueryThings = queryThings.setDittoHeaders(
                 spanWithTimer.startedSpan.propagateContext(queryThings.getDittoHeaders()));
+        final SearchPersistenceProvider provider = searchPersistenceProvider;
 
         final Source<QueryThingsResponse, ?> queryThingsResponseSource =
                 ThingsSearchCursor.extractCursor(tracedQueryThings, getSystem()).flatMapConcat(cursor -> {
@@ -504,7 +507,7 @@ public final class SearchActor extends AbstractActorWithShutdownBehaviorAndReque
                             .flatMapConcat(parsedQuery -> {
                                 final var query =
                                         ThingsSearchCursor.adjust(cursor, parsedQuery,
-                                                queryParser.getCriteriaFactory());
+                                                queryParser.getCriteriaFactory(), provider);
 
                                 stopTimer(queryParsingTimer);
                                 final StartedTimer databaseAccessTimer =

@@ -29,6 +29,7 @@ import org.eclipse.ditto.internal.utils.pekko.logging.ThreadSafeDittoLogger;
 import org.eclipse.ditto.internal.utils.pekko.streaming.TimestampPersistence;
 import org.eclipse.ditto.internal.utils.persistence.mongo.DittoMongoClient;
 import org.eclipse.ditto.internal.utils.persistence.mongo.streaming.MongoTimestampPersistence;
+import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.rql.query.Query;
 import org.eclipse.ditto.rql.query.QueryBuilderFactory;
 import org.eclipse.ditto.thingsearch.persistence.api.SearchPersistenceProvider;
@@ -43,6 +44,7 @@ import org.eclipse.ditto.thingsearch.service.persistence.read.MongoThingsSearchP
 import org.eclipse.ditto.thingsearch.service.persistence.read.criteria.visitors.CreateBsonVisitor;
 import org.eclipse.ditto.thingsearch.service.persistence.read.query.MongoQueryBuilderFactory;
 import org.eclipse.ditto.thingsearch.service.persistence.write.impl.MongoThingsSearchUpdaterPersistence;
+import org.eclipse.ditto.thingsearch.service.persistence.write.mapping.JsonToBson;
 import org.eclipse.ditto.thingsearch.service.persistence.write.streaming.MongoSearchUpdaterFlow;
 import org.eclipse.ditto.thingsearch.service.starter.actors.MongoClientExtension;
 
@@ -150,6 +152,12 @@ public final class MongoSearchPersistenceProvider implements SearchPersistencePr
                 ? CreateBsonVisitor.sudoApply(query.getCriteria())
                 : CreateBsonVisitor.apply(query.getCriteria(), authorizationSubjectIds);
         return bson.toBsonDocument().toJson();
+    }
+
+    @Override
+    public Object compositeSortResumeValue(final JsonValue previousValue) {
+        // MongoDB compares a composite sort key against its nested BSON form ({"$gt": {...}}), exactly as before.
+        return JsonToBson.convert(previousValue);
     }
 
     private synchronized ThingsSearchPersistence getOrBuildSearchPersistence() {

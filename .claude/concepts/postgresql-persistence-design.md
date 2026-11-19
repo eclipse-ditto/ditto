@@ -579,9 +579,10 @@ MongoDB does not, and RQL cannot address the inner arrays on either backend. The
 sorting and the sudo wildcard, each pinned per backend in `parity/divergence-allowlist.json`: object-valued sort keys
 tie and fall through to the `thingId` tiebreak (MongoDB orders them by content); an array holding a scalar next to a
 nested array sorts by the scalar ascending but as missing descending (MongoDB sorts by its min/max element, inner
-arrays included); the cursor encodes `null` for a null, object, empty-array or array-of-array boundary value where
-MongoDB encodes the whole value; a `features/*/…` sort key is rejected (MongoDB silently builds a never-matching path
-and returns the results unsorted); and under sudo, `features/*` value predicates are answered per feature where MongoDB
+arrays included); the cursor encodes `null` for a null, empty-array or array-of-array boundary value where MongoDB
+encodes the whole value, and an object boundary as `{"typeRank":4}`, which resumes by rank, then thing id; a
+`features/*/…` sort key is rejected (MongoDB silently builds a never-matching path and returns the results unsorted);
+and under sudo, `features/*` value predicates are answered per feature where MongoDB
 degrades to a dotted path that matches nothing — or, for a null-including operand, everything.
 
 ---

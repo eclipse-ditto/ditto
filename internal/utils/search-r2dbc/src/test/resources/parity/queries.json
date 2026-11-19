@@ -1443,7 +1443,7 @@
           ]
         }
       },
-      "comment": "Pins each backend's OBSERVED walk over container-valued sort keys: the divergent cursor sort-value encodings (Mongo: whole array; Postgres: null for rank-4/5 boundaries) plus type-bracketed resume predicates make each backend drop a DIFFERENT subset mid-walk. The unpaged-reference invariant is deliberately not applied to pinned walks (see SearchBackendParityIT.runCursorWalkComparison)."
+      "comment": "Pins each backend's OBSERVED walk over container-valued sort keys: the divergent cursor sort-value encodings (Mongo: whole array; Postgres: null for rank-1/5, {\"typeRank\":4} for objects) plus type-bracketed resume predicates make each backend drop a DIFFERENT subset mid-walk. The unpaged-reference invariant is deliberately not applied to pinned walks (see SearchBackendParityIT.runCursorWalkComparison)."
     },
     {
       "name": "in-attr-nullattr-value-null",

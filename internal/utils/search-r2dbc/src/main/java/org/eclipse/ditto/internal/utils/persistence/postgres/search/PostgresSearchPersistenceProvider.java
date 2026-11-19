@@ -48,14 +48,17 @@ import org.eclipse.ditto.internal.utils.persistence.postgres.search.query.Postgr
 import org.eclipse.ditto.internal.utils.persistence.postgres.search.query.PostgresSortClause;
 import org.eclipse.ditto.internal.utils.persistence.postgres.search.query.SearchQueryAssembler;
 import org.eclipse.ditto.internal.utils.persistence.postgres.search.query.SelectiveLegs;
+import org.eclipse.ditto.internal.utils.persistence.postgres.search.query.SortRankBoundary;
 import org.eclipse.ditto.internal.utils.persistence.postgres.search.query.ast.RenderedSql;
 import org.eclipse.ditto.internal.utils.persistence.postgres.search.read.PostgresThingsAggregationPersistence;
 import org.eclipse.ditto.internal.utils.persistence.postgres.search.read.PostgresThingsSearchPersistence;
 import org.eclipse.ditto.internal.utils.persistence.postgres.search.write.PostgresSearchUpdaterFlow;
 import org.eclipse.ditto.internal.utils.persistence.postgres.search.write.PostgresThingsSearchUpdaterPersistence;
 import org.eclipse.ditto.internal.utils.persistence.postgres.search.write.PostgresTimestampPersistence;
+import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.rql.query.Query;
 import org.eclipse.ditto.rql.query.QueryBuilderFactory;
+import org.eclipse.ditto.thingsearch.model.signals.commands.exceptions.InvalidOptionException;
 import org.eclipse.ditto.thingsearch.persistence.api.SearchPersistenceProvider;
 import org.eclipse.ditto.thingsearch.persistence.api.ThingsAggregationPersistence;
 import org.eclipse.ditto.thingsearch.persistence.api.ThingsSearchPersistence;
@@ -98,6 +101,9 @@ import reactor.core.Disposable;
 public final class PostgresSearchPersistenceProvider implements SearchPersistenceProvider {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(PostgresSearchPersistenceProvider.class);
+
+    /** The search cursor's own invalid-cursor message (its builder is private to the thing-search service). */
+    private static final String INVALID_CURSOR_MESSAGE = "The option 'cursor' is not valid for the search request.";
 
     /** The Mongo-only operational knobs that are silently ignored on PostgreSQL (plan §3.6); each is WARNed if set. */
     private static final String SEARCH_CONFIG_PATH = "ditto.search";
@@ -368,6 +374,27 @@ public final class PostgresSearchPersistenceProvider implements SearchPersistenc
         final RenderedSql rendered = SearchQueryAssembler.renderForDiagnostics(query.getCriteria(),
                 authorizationSubjectIds, sortClause, SelectiveLegs.of(multiValuedIndex.getAsBoolean()));
         return rendered.sql() + System.lineSeparator() + "-- binds: " + rendered.bindValues();
+    }
+
+    /**
+     * Maps the object-boundary marker {@code {"typeRank":4}}, which {@link PostgresSortClause#toSortValues} emits for a
+     * page ending on an object sort value, to its {@link SortRankBoundary} operand: objects tie on PostgreSQL, so the
+     * cursor resumes by rank, then by thing id. Null, empty-array and array-of-array boundaries are encoded as JSON
+     * {@code null} and never reach this method.
+     * <p>
+     * Only a forged cursor carries another container. It is refused as the client's invalid cursor (HTTP 400), the
+     * same error the search cursor raises for any other malformed cursor.
+     * </p>
+     *
+     * @throws InvalidOptionException if {@code previousValue} is not the object-boundary marker.
+     */
+    @Override
+    public Object compositeSortResumeValue(final JsonValue previousValue) {
+        return SortRankBoundary.fromCursorValue(previousValue)
+                .orElseThrow(() -> InvalidOptionException.newBuilder()
+                        .message(INVALID_CURSOR_MESSAGE)
+                        .description("The cursor carries an unsupported sort boundary <" + previousValue + ">.")
+                        .build());
     }
 
     private PostgresConfig postgresConfig() {

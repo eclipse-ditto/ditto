@@ -4,7 +4,7 @@
     {
       "id": "cursor-sort-value-whole-array-object-null",
       "source": "task-d3-report item 1",
-      "description": "PostgresSortClause#toSortValues encodes null for a rank-1 (null), rank-4 (object) or rank-5 (empty-array/array-of-array) boundary element; Mongo's GetSortBsonVisitor#sortValuesAsArray encodes the whole container/value. Cursor sort-value ENCODING diverges; each backend's own walk must still terminate and produce its pinned sequence."
+      "description": "PostgresSortClause#toSortValues encodes null for a rank-1 (null) or rank-5 (empty-array/array-of-array) boundary element, and {\"typeRank\":4} for a rank-4 (object) boundary, which resumes by rank, then thing id; Mongo's GetSortBsonVisitor#sortValuesAsArray encodes the whole container/value. Cursor sort-value ENCODING diverges; each backend's own walk must still terminate and produce its pinned sequence."
     },
     {
       "id": "object-sort-ties-by-thing-id",

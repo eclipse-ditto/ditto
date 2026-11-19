@@ -20,11 +20,14 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
+import javax.annotation.Nullable;
+
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.internal.utils.persistence.postgres.client.DittoPostgresClient;
 import org.eclipse.ditto.internal.utils.persistence.postgres.client.config.DefaultPostgresConfig;
 import org.eclipse.ditto.internal.utils.persistence.postgres.client.schema.PostgresSchemaManager;
 import org.eclipse.ditto.internal.utils.persistence.postgres.client.testkit.PostgresDbResource;
+import org.eclipse.ditto.internal.utils.persistence.postgres.search.PostgresSearchPersistenceProvider;
 import org.eclipse.ditto.internal.utils.persistence.postgres.search.PostgresSearchSchema;
 import org.eclipse.ditto.internal.utils.persistence.postgres.search.query.PostgresQuery;
 import org.eclipse.ditto.internal.utils.persistence.postgres.search.read.PostgresThingsSearchPersistence;
@@ -94,6 +97,7 @@ public final class PostgresCursorResumeIT {
     private static DittoPostgresClient client;
     private static ConnectionFactory connectionFactory;
     private static ActorSystem system;
+    private static PostgresSearchPersistenceProvider provider;
 
     private final ThingsFieldExpressionFactory fef = ThingsFieldExpressionFactory.of(
             java.util.Map.of("thingId", "_id", "namespace", "_namespace"));
@@ -118,6 +122,7 @@ public final class PostgresCursorResumeIT {
         client = DittoPostgresClient.newInstance(DefaultPostgresConfig.of(config.getConfig("ditto")));
         connectionFactory = client.getConnectionPool();
         system = ActorSystem.create("PostgresCursorResumeIT");
+        provider = new PostgresSearchPersistenceProvider(system, ConfigFactory.empty());
     }
 
     @AfterClass
@@ -160,46 +165,98 @@ public final class PostgresCursorResumeIT {
         writeRank("t-missing", null);                    // no /attributes/rank -> excluded by exists(rank)
 
         final Criteria criteria = cf.existsCriteria(fef.existsByAttribute("rank"));
-        final List<String> unpaged = idsOf(runFindAll(baseQuery(criteria, 100)));
+        final List<String> unpaged = idsOf(runFindAll(baseQuery("rank", SortDirection.ASC, criteria, 100)));
         assertThat(unpaged).containsExactly(
                 NS + ":t-3", NS + ":t-5", NS + ":t-42a", NS + ":t-42b", NS + ":t-100",
                 NS + ":t-9b", NS + ":t-9b1");
 
         // Paged walk of size 2, driving the REAL ThingsSearchCursor each hop.
+        final List<String> paged = walk("rank", SortDirection.ASC, criteria, new ArrayList<>());
+
+        assertThat(paged).as("paged walk equals unpaged, no drops or duplicates").isEqualTo(unpaged);
+    }
+
+    @Test
+    public void objectSortBoundaryWalkMatchesUnpagedAscending() {
+        // More objects than a page holds: every page boundary inside the object group is an OBJECT sort value. All
+        // objects tie on PostgreSQL (type_rank 4), so the walk must resume by rank, then by thing id.
+        writeObjectSortKeyCorpus();
+
+        final List<String> unpaged = idsOf(runFindAll(baseQuery("sortKey", SortDirection.ASC, cf.any(), 100)));
+        assertThat(unpaged).containsExactly(NS + ":t-missing", NS + ":t-obj-a", NS + ":t-obj-b", NS + ":t-obj-c",
+                NS + ":t-obj-d");
+
+        final List<String> paged = walk("sortKey", SortDirection.ASC, cf.any(), new ArrayList<>());
+
+        assertThat(paged).as("paged walk equals unpaged, no drops or duplicates").isEqualTo(unpaged);
+    }
+
+    @Test
+    public void objectSortBoundaryWalkMatchesUnpagedDescending() {
+        // Descending: the objects come first (tied, in thing-id order), the thing without the key last.
+        writeObjectSortKeyCorpus();
+
+        final List<String> unpaged = idsOf(runFindAll(baseQuery("sortKey", SortDirection.DESC, cf.any(), 100)));
+        assertThat(unpaged).containsExactly(NS + ":t-obj-a", NS + ":t-obj-b", NS + ":t-obj-c", NS + ":t-obj-d",
+                NS + ":t-missing");
+
+        final List<String> paged = walk("sortKey", SortDirection.DESC, cf.any(), new ArrayList<>());
+
+        assertThat(paged).as("paged walk equals unpaged, no drops or duplicates").isEqualTo(unpaged);
+    }
+
+    private void writeObjectSortKeyCorpus() {
+        writeAttribute("t-missing", "sortKey", null);
+        for (final String suffix : List.of("a", "b", "c", "d")) {
+            writeAttribute("t-obj-" + suffix, "sortKey", JsonObject.newBuilder().set("k", suffix).build());
+        }
+    }
+
+    // ---- cursor walk ----
+
+    /**
+     * Walks the query sorted by {@code (<direction>attributes/<key>, +thingId)} in pages of 2, driving the REAL
+     * ThingsSearchCursor each hop, and records each hop's cursor sort values.
+     */
+    private List<String> walk(final String key, final SortDirection direction, final Criteria criteria,
+            final List<JsonArray> hopSortValues) {
+
         final List<String> paged = new ArrayList<>();
-        Query pageQuery = baseQuery(criteria, 2);
+        Query pageQuery = baseQuery(key, direction, criteria, 2);
         int guard = 0;
         while (guard++ < 100) {
             final ResultList<TimestampedThingId> page = runFindAll(pageQuery);
             page.forEach(t -> paged.add(t.thingId().toString()));
             final Optional<JsonArray> sortValues = page.lastResultSortValues();
             if (sortValues.isEmpty()) {
-                break; // no next page
+                return paged; // no next page
             }
+            hopSortValues.add(sortValues.get());
             final ThingsSearchCursor cursor =
-                    new ThingsSearchCursor(null, "corr-" + guard, modelSort(), null, sortValues.get());
+                    new ThingsSearchCursor(null, "corr-" + guard, modelSort(key, direction), null, sortValues.get());
             final ThingsSearchCursor decoded = runSingle(ThingsSearchCursor.decode(cursor.encode(), system));
             // adjust the ORIGINAL base query (the cursor encodes the absolute position).
-            pageQuery = ThingsSearchCursor.adjust(Optional.of(decoded), baseQuery(criteria, 2),
-                    CriteriaFactory.getInstance());
+            pageQuery = ThingsSearchCursor.adjust(Optional.of(decoded), baseQuery(key, direction, criteria, 2),
+                    CriteriaFactory.getInstance(), provider);
         }
-
-        assertThat(paged).as("paged walk equals unpaged, no drops or duplicates").isEqualTo(unpaged);
+        throw new AssertionError("cursor walk did not terminate within 100 pages");
     }
 
     // ---- query construction ----
 
-    private PostgresQuery baseQuery(final Criteria criteria, final int limit) {
+    private PostgresQuery baseQuery(final String key, final SortDirection direction, final Criteria criteria,
+            final int limit) {
         return new PostgresQuery(criteria, List.of(
-                new org.eclipse.ditto.rql.query.SortOption(fef.sortByAttribute("rank"), SortDirection.ASC),
+                new org.eclipse.ditto.rql.query.SortOption(fef.sortByAttribute(key), direction),
                 new org.eclipse.ditto.rql.query.SortOption(fef.sortByThingId(), SortDirection.ASC)),
                 limit, 0);
     }
 
     /** The cursor's own model sort option — 2 dimensions to match the 2-element cursor sort-value array. */
-    private static SortOption modelSort() {
+    private static SortOption modelSort(final String key, final SortDirection direction) {
+        final JsonPointer sortKey = JsonPointer.of("/attributes/" + key);
         return SortOption.of(List.of(
-                SortOptionEntry.asc(JsonPointer.of("/attributes/rank")),
+                direction == SortDirection.ASC ? SortOptionEntry.asc(sortKey) : SortOptionEntry.desc(sortKey),
                 SortOptionEntry.asc(JsonPointer.of("/thingId"))));
     }
 
@@ -215,11 +272,15 @@ public final class PostgresCursorResumeIT {
 
     // ---- document construction / write path ----
 
-    private void writeRank(final String name, final JsonValue rank) {
+    private void writeRank(final String name, @Nullable final JsonValue rank) {
+        writeAttribute(name, "rank", rank);
+    }
+
+    private void writeAttribute(final String name, final String key, @Nullable final JsonValue value) {
         final ThingId thingId = ThingId.of(NS, name);
-        final JsonObject attributes = rank == null
+        final JsonObject attributes = value == null
                 ? JsonObject.empty()
-                : JsonObject.newBuilder().set("rank", rank).build();
+                : JsonObject.newBuilder().set(key, value).build();
         final JsonObject thing = JsonObject.newBuilder()
                 .set("thingId", thingId.toString())
                 .set("_namespace", thingId.getNamespace())

@@ -23,6 +23,7 @@ import org.eclipse.ditto.base.service.config.limits.LimitsConfig;
 import org.eclipse.ditto.internal.utils.extension.DittoExtensionIds;
 import org.eclipse.ditto.internal.utils.extension.DittoExtensionPoint;
 import org.eclipse.ditto.internal.utils.pekko.streaming.TimestampPersistence;
+import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.rql.query.Query;
 import org.eclipse.ditto.rql.query.QueryBuilderFactory;
 import org.eclipse.ditto.thingsearch.persistence.api.write.SearchUpdaterFlow;
@@ -34,9 +35,9 @@ import com.typesafe.config.Config;
  * <p>
  * A provider yields the backend-specific collaborators the thing-search service wires into its actors: the
  * read/updater/aggregation persistences, the updater flow, the background-sync bookmark persistence, the
- * health-check actor {@link Props}, the query-builder factory and a diagnostics renderer for slow-query
- * logging. The provider is selected at runtime via the Ditto extension config path
- * {@code ditto.extensions.search-persistence-provider}.
+ * health-check actor {@link Props}, the query-builder factory, a diagnostics renderer for slow-query
+ * logging, and the resume value of a composite cursor sort key. The provider is selected at runtime via the Ditto
+ * extension config path {@code ditto.extensions.search-persistence-provider}.
  * <p>
  * Constructed with {@code (ActorSystem, Config)} per the {@link DittoExtensionPoint} pattern (exactly like
  * {@code PersistenceBackendProvider}); implementations read their own config block from the actor-system
@@ -108,6 +109,16 @@ public interface SearchPersistenceProvider extends DittoExtensionPoint {
      * @return the backend-specific diagnostic rendering of the query.
      */
     String renderForDiagnostics(Query query, @Nullable List<String> authorizationSubjectIds);
+
+    /**
+     * Converts an object or array sort value of a cursor into the value this backend compares against on resume.
+     * Called by the search cursor only for a non-null JSON object or array; scalars and null never reach it.
+     *
+     * @param previousValue the cursor's sort value on one dimension (a JSON object or array, never null).
+     * @return the value the backend's criteria translator accepts as a predicate operand for that dimension.
+     * @throws IllegalStateException if the backend never emits object or array cursor sort values.
+     */
+    Object compositeSortResumeValue(JsonValue previousValue);
 
     /**
      * Loads the configured {@code SearchPersistenceProvider} for the actor system.

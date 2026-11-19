@@ -82,7 +82,8 @@ import org.slf4j.LoggerFactory;
  *       fold to rank 1) and their relative order among themselves is decided entirely by the trailing thing-id
  *       tiebreak. MongoDB instead orders objects by their BSON field content, recursively — so a result set with more
  *       than one object-valued thing on the sort key can come back in a different relative order between the two
- *       backends.</li>
+ *       backends. Because they tie, the search cursor resumes a page that ends on an object by rank, then by thing id:
+ *       the boundary is encoded as {@code {"typeRank":4}} ({@link SortRankBoundary}), not as the object.</li>
  *   <li><b>Direct array-of-array sort keys are ASC/DESC-asymmetric when a scalar sibling shares the same path.</b>
  *       {@link ThingFlattener} emits a direct array-of-array element as a single valueless {@code type_rank = 5} stub
  *       (see its class javadoc, "Arrays") instead of descending into it — the §3.2 array-of-array stub rule this
@@ -235,9 +236,11 @@ public final class PostgresSortClause {
      * Projects the sort values of a single (the last-of-page) result row into the {@link JsonArray} {@code
      * ThingsSearchCursor} encodes — the Postgres counterpart of {@code GetSortBsonVisitor.sortValuesAsArray}. Each
      * element is the boundary element's type-faithful JSON: a number for rank-2, a string for rank-3, a boolean for
-     * rank-6, and {@code null} for a missing key, an explicit null (rank-1), an empty array (rank-5) OR an object
-     * (rank-4) boundary (the latter two have no scalar value on the flat table — a documented divergence from Mongo's
-     * whole-container cursor value, §3.5). Root-mapped keys yield their text column value.
+     * rank-6, the rank marker {@code {"typeRank":4}} ({@link SortRankBoundary}) for an object (rank-4) boundary, and
+     * {@code null} for a missing key, an explicit null (rank-1) or an empty-array / array-of-array (rank-5) boundary
+     * (rank 4 and rank 5 have no scalar value on the flat table — a documented divergence from Mongo's
+     * whole-container cursor value, §3.5). Objects tie with each other, so the cursor resumes an object boundary by
+     * rank, then by thing id. Root-mapped keys yield their text column value.
      *
      * @param row the result-row accessor (the D4 read persistence adapts an r2dbc {@code Row} with {@code row::get}).
      * @return the sort values, in sort-key order.
@@ -351,7 +354,9 @@ public final class PostgresSortClause {
             case ThingFlattener.TYPE_NUMBER -> numberValue(valNum);
             case ThingFlattener.TYPE_STRING -> textValue(valText);
             case ThingFlattener.TYPE_BOOLEAN -> valBool == null ? JsonFactory.nullLiteral() : JsonValue.of(valBool);
-            // TYPE_NULL(1), TYPE_OBJECT(4), TYPE_ARRAY(5): no scalar cursor value (§3.5 documented divergence).
+            // objects tie with each other: the cursor resumes an object boundary by rank, then by thing id
+            case ThingFlattener.TYPE_OBJECT -> SortRankBoundary.object().toCursorValue();
+            // TYPE_NULL(1), TYPE_ARRAY(5): no scalar cursor value (§3.5 documented divergence).
             default -> JsonFactory.nullLiteral();
         };
     }

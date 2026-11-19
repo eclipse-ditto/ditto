@@ -64,8 +64,8 @@ import org.eclipse.ditto.thingsearch.model.SortOption;
 import org.eclipse.ditto.thingsearch.model.SortOptionEntry;
 import org.eclipse.ditto.thingsearch.model.signals.commands.exceptions.InvalidOptionException;
 import org.eclipse.ditto.thingsearch.model.signals.commands.query.QueryThings;
+import org.eclipse.ditto.thingsearch.persistence.api.SearchPersistenceProvider;
 import org.eclipse.ditto.thingsearch.persistence.api.model.ResultList;
-import org.eclipse.ditto.thingsearch.service.persistence.write.mapping.JsonToBson;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -269,11 +269,12 @@ final class ThingsSearchCursor {
      *
      * @param query the query object.
      * @param cf a criteria factory.
+     * @param provider the search persistence provider deciding composite sort resume values.
      * @return a new query object starting at the location of this cursor.
      */
-    private Query adjustQuery(final Query query, final CriteriaFactory cf) {
+    private Query adjustQuery(final Query query, final CriteriaFactory cf, final SearchPersistenceProvider provider) {
         return query.withCriteria(cf.and(Arrays.asList(query.getCriteria(),
-                getNextPageFilter(query.getSortOptions(), values, cf))));
+                getNextPageFilter(query.getSortOptions(), values, cf, provider))));
     }
 
     /**
@@ -360,12 +361,15 @@ final class ThingsSearchCursor {
      * @param cursor an optional cursor.
      * @param query the query to adjust.
      * @param cf a criteria factory.
+     * @param provider the search persistence provider deciding composite sort resume values.
      * @return the adjusted {@code Query} if the cursor exists; the unadjusted {@code Query} if the cursor does not
      * exist.
      */
     @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
-    static Query adjust(final Optional<ThingsSearchCursor> cursor, final Query query, final CriteriaFactory cf) {
-        return cursor.map(c -> c.adjustQuery(query, cf)).orElse(query);
+    static Query adjust(final Optional<ThingsSearchCursor> cursor, final Query query, final CriteriaFactory cf,
+            final SearchPersistenceProvider provider) {
+        Objects.requireNonNull(provider, "provider");
+        return cursor.map(c -> c.adjustQuery(query, cf, provider)).orElse(query);
     }
 
     /**
@@ -674,17 +678,19 @@ final class ThingsSearchCursor {
      * @param sortOptions sort options of the parsed query.
      * @param previousValues values of the fields in the sort options of a cursor marking its position.
      * @param cf a criteria factory.
+     * @param provider the search persistence provider deciding composite sort resume values.
      * @return criteria to filter out results before a cursor's position.
      */
     private static Criteria getNextPageFilter(final List<org.eclipse.ditto.rql.query.SortOption> sortOptions,
             final JsonArray previousValues,
-            final CriteriaFactory cf) {
+            final CriteriaFactory cf,
+            final SearchPersistenceProvider provider) {
 
         if (sortOptions.size() != previousValues.getSize()) {
             // this should not happen.
             throw invalidCursorBuilder().build();
         }
-        return getNextPageFilterImpl(sortOptions, previousValues, cf, 0);
+        return getNextPageFilterImpl(sortOptions, previousValues, cf, 0, provider);
     }
 
     /**
@@ -694,21 +700,25 @@ final class ThingsSearchCursor {
      * @param previousValues values of the fields in the sort options of a cursor marking its position.
      * @param cf a criteria factory.
      * @param i dimension to start generating criteria for.
+     * @param provider the search persistence provider deciding composite sort resume values.
      * @return criteria starting from the ith dimension.
      */
     private static Criteria getNextPageFilterImpl(
             final List<org.eclipse.ditto.rql.query.SortOption> sortOptionEntries,
             final JsonArray previousValues,
-            final CriteriaFactory cf, final int i) {
+            final CriteriaFactory cf, final int i,
+            final SearchPersistenceProvider provider) {
 
         final org.eclipse.ditto.rql.query.SortOption sortOption = sortOptionEntries.get(i);
         final JsonValue previousValue = previousValues.get(i).orElse(JsonFactory.nullLiteral());
-        final Criteria ithDimensionCriteria = getDimensionLtCriteria(sortOption, previousValue, cf);
+        final Criteria ithDimensionCriteria = getDimensionLtCriteria(sortOption, previousValue, cf, provider);
         if (i + 1 >= sortOptionEntries.size()) {
             return ithDimensionCriteria;
         } else {
-            final Criteria nextDimension = getNextPageFilterImpl(sortOptionEntries, previousValues, cf, i + 1);
-            return getNextDimensionCriteria(ithDimensionCriteria, nextDimension, sortOption, previousValue, cf);
+            final Criteria nextDimension =
+                    getNextPageFilterImpl(sortOptionEntries, previousValues, cf, i + 1, provider);
+            return getNextDimensionCriteria(ithDimensionCriteria, nextDimension, sortOption, previousValue, cf,
+                    provider);
         }
     }
 
@@ -719,10 +729,11 @@ final class ThingsSearchCursor {
      * @param entry sort option specifying an ordering on a field.
      * @param previousValue value of the field in the sort option marking the position of a cursor.
      * @param cf a criteria factory.
+     * @param provider the search persistence provider deciding composite sort resume values.
      * @return criteria to filter for things prior to a cursor's position on the specified field.
      */
     private static Criteria getDimensionLtCriteria(final org.eclipse.ditto.rql.query.SortOption entry,
-            final JsonValue previousValue, final CriteriaFactory cf) {
+            final JsonValue previousValue, final CriteriaFactory cf, final SearchPersistenceProvider provider) {
 
         // special handling for null values needed due to comparison operators never matching null values
         if (entry.getSortDirection() == SortDirection.ASC) {
@@ -731,7 +742,7 @@ final class ThingsSearchCursor {
                 return cf.existsCriteria(entry.getSortExpression());
             } else {
                 // ASC nonnull: null values cannot be bigger and can be ignored
-                return cf.fieldCriteria(entry.getSortExpression(), cf.gt(cursorValue(previousValue)));
+                return cf.fieldCriteria(entry.getSortExpression(), cf.gt(cursorValue(previousValue, provider)));
             }
         } else {
             if (previousValue.isNull()) {
@@ -740,7 +751,7 @@ final class ThingsSearchCursor {
             } else {
                 // DESC nonnull: null is smaller than any value
                 return cf.or(Arrays.asList(
-                        cf.fieldCriteria(entry.getSortExpression(), cf.lt(cursorValue(previousValue))),
+                        cf.fieldCriteria(entry.getSortExpression(), cf.lt(cursorValue(previousValue, provider))),
                         cf.nor(cf.existsCriteria(entry.getSortExpression()))
                 ));
             }
@@ -756,12 +767,13 @@ final class ThingsSearchCursor {
      * @param sortOption parsed sort option for this dimension.
      * @param previousValue value on this dimension marking the position of the cursor.
      * @param cf a criteria factory.
+     * @param provider the search persistence provider deciding composite sort resume values.
      * @return criteria to filter for things that precede the cursor's position due to this dimension or subsequent
      * dimensions.
      */
     private static Criteria getNextDimensionCriteria(final Criteria thisDimensionLt, final Criteria nextDimension,
             final org.eclipse.ditto.rql.query.SortOption sortOption, final JsonValue previousValue,
-            final CriteriaFactory cf) {
+            final CriteriaFactory cf, final SearchPersistenceProvider provider) {
 
         final Criteria thisDimensionEq;
         if (previousValue.isNull()) {
@@ -771,7 +783,7 @@ final class ThingsSearchCursor {
             ));
         } else {
             thisDimensionEq =
-                    cf.fieldCriteria(sortOption.getSortExpression(), cf.eq(cursorValue(previousValue)));
+                    cf.fieldCriteria(sortOption.getSortExpression(), cf.eq(cursorValue(previousValue, provider)));
         }
         return cf.or(Arrays.asList(thisDimensionLt, cf.and(Arrays.asList(thisDimensionEq, nextDimension))));
     }
@@ -797,18 +809,21 @@ final class ThingsSearchCursor {
      * </p>
      * <p>
      * <b>Object / array sort values</b> (composite sort keys — see {@code GetSortBsonVisitor.sortValuesAsArray}) are
-     * still converted with {@code JsonToBson} to a {@code BsonValue}, exactly as before, so MongoDB's nested
-     * {@code {"$gt": {...}}} stays byte-identical. A non-Mongo backend never reaches this branch: on PostgreSQL a
-     * whole-object/array boundary has no scalar cursor value and is encoded as JSON {@code null} (plan §3.5), so its
-     * resume criteria take the {@code previousValue.isNull()} short-circuit above and never call this method with a
-     * container.
+     * handed to the backend via {@link SearchPersistenceProvider#compositeSortResumeValue}, which decides the operand
+     * its criteria translator compares against. MongoDB converts with {@code JsonToBson} to a {@code BsonValue},
+     * exactly as before, so its nested {@code {"$gt": {...}}} stays byte-identical. PostgreSQL emits the
+     * object-boundary marker {@code {"typeRank":4}} for a whole-object boundary (objects tie there, so it resumes by
+     * rank, then by thing id) and resolves that marker through this hook. Its null, empty-array and array-of-array
+     * boundaries are still encoded as JSON {@code null} and take the {@code previousValue.isNull()} short-circuit
+     * above, as does a missing sort key.
      * </p>
      *
      * @param previousValue a non-null cursor sort value.
-     * @return a plain Java scalar (String / Integer / Long / Double / Boolean) for a scalar value, or a
-     * {@code BsonValue} for an object/array value.
+     * @param provider the search persistence provider deciding composite sort resume values.
+     * @return a plain Java scalar (String / Integer / Long / Double / Boolean) for a scalar value, or the provider's
+     * resume value for an object/array value.
      */
-    private static Object cursorValue(final JsonValue previousValue) {
+    private static Object cursorValue(final JsonValue previousValue, final SearchPersistenceProvider provider) {
         if (previousValue.isString()) {
             return previousValue.asString();
         }
@@ -821,8 +836,8 @@ final class ThingsSearchCursor {
             }
             return previousValue.isLong() ? previousValue.asLong() : previousValue.asDouble();
         }
-        // Object / array boundary (Mongo composite sort only): keep the exact BSON form MongoDB compared before.
-        return JsonToBson.convert(previousValue);
+        // Object / array boundary: the backend decides the resume operand (MongoDB: its BSON form, as before).
+        return provider.compositeSortResumeValue(previousValue);
     }
 
     /**

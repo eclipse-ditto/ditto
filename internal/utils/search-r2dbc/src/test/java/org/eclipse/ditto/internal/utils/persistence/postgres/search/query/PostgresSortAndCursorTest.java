@@ -50,7 +50,7 @@ import ch.qos.logback.core.read.ListAppender;
  *       + {@link #lateralPicksBoundaryElementRowWiseDesc()}</li>
  *   <li><b>(c) val_bool in the ordering tuple (BSON false &lt; true)</b> → {@link #orderByTupleIncludesValBool()}</li>
  *   <li><b>(d) empty array maps to the null rank</b> → {@link #orderByCaseFoldsEmptyArrayRankIntoNullRank()} +
- *       {@link #sortValueOfEmptyArrayBoundaryIsNull()}</li>
+ *       {@link #sortValueOfObjectBoundaryIsRankMarkerOthersNull()}</li>
  * </ul>
  */
 public final class PostgresSortAndCursorTest {
@@ -266,10 +266,14 @@ public final class PostgresSortAndCursorTest {
     }
 
     @Test
-    public void sortValueOfEmptyArrayBoundaryIsNull() {
-        // (d): rank-5 (empty array / object) boundary has no scalar cursor value → null (documented §3.5 divergence).
+    public void sortValueOfObjectBoundaryIsRankMarkerOthersNull() {
+        // rank-4 (object) boundary: objects tie on the flat table, so the cursor carries the rank marker and resumes by
+        // rank, then by thing id
+        assertThat(flatSortValue(4, null, null, null)).isEqualTo("[{\"typeRank\":4}]");
+        // (d): rank-5 (empty array / array of array), rank-1 and missing have no scalar cursor value → null (§3.5)
         assertThat(flatSortValue(5, null, null, null)).isEqualTo("[null]");
-        assertThat(flatSortValue(4, null, null, null)).isEqualTo("[null]"); // object boundary likewise
+        assertThat(flatSortValue(1, null, null, null)).isEqualTo("[null]");
+        assertThat(flatSortValue(null, null, null, null)).isEqualTo("[null]");
     }
 
     @Test

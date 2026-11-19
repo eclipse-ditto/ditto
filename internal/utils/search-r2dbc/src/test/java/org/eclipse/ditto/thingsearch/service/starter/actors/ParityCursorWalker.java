@@ -26,6 +26,7 @@ import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.rql.query.Query;
 import org.eclipse.ditto.rql.query.criteria.CriteriaFactory;
 import org.eclipse.ditto.thingsearch.model.SortOption;
+import org.eclipse.ditto.thingsearch.persistence.api.SearchPersistenceProvider;
 import org.eclipse.ditto.thingsearch.persistence.api.model.ResultList;
 import org.eclipse.ditto.thingsearch.persistence.api.model.TimestampedThingId;
 
@@ -52,12 +53,15 @@ public final class ParityCursorWalker {
      * @param modelSortOption the API-model sort option matching the base query's sort dimensions (the cursor
      * validates its sort-value count against it).
      * @param pageExecutor executes one page against the backend under test.
+     * @param cursorResumeProvider the search persistence provider of the backend under test; the cursor asks it for
+     * the resume value of an object or array sort value.
      * @param system the actor system for the cursor's decode stream.
      * @return the walked pages (each page = the thing IDs it returned, in order).
      */
     public static List<List<String>> walk(final Supplier<Query> baseQuerySupplier,
             final SortOption modelSortOption,
             final Function<Query, ResultList<TimestampedThingId>> pageExecutor,
+            final SearchPersistenceProvider cursorResumeProvider,
             final ActorSystem system) {
 
         final List<List<String>> pages = new ArrayList<>();
@@ -78,7 +82,7 @@ public final class ParityCursorWalker {
                     new ThingsSearchCursor(null, "parity-" + hop, modelSortOption, null, sortValues.get());
             final ThingsSearchCursor decoded = runSingle(ThingsSearchCursor.decode(cursor.encode(), system), system);
             pageQuery = ThingsSearchCursor.adjust(Optional.of(decoded), baseQuerySupplier.get(),
-                    CriteriaFactory.getInstance());
+                    CriteriaFactory.getInstance(), cursorResumeProvider);
         }
         throw new AssertionError("cursor walk did not terminate within " + MAX_PAGES + " pages");
     }
