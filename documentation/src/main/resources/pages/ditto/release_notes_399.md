@@ -447,6 +447,13 @@ It also adds the configuration options of this release:
   disabled) to spread the reloads of the policy enforcer cache
   (PR [#2650](https://github.com/eclipse-ditto/ditto/pull/2650)).
 
+The chart also adds `-XX:-UseBASE64Intrinsics` to the default `global.jvmOptions`. It mitigates the JDK
+vulnerability [CVE-2026-114938](https://nvd.nist.gov/vuln/detail/CVE-2026-114938) ("Java4Shell"), a heap overflow in
+the Base64 decoder intrinsic of the JVM on x86-64 CPUs with AVX-512 VBMI, which can be reachable by unauthenticated
+requests, e.g. via the Base64 decoding of JWTs in the gateway. The Docker images of this release are based on the
+JDK `25.0.5+8`, as no Docker base image with a fixed JDK was available at the time of the release. The option only makes
+Base64 encoding and decoding slower and has no functional effect.
+
 The full, itemized list of chart changes lives in the chart's own
 [CHANGELOG](https://github.com/eclipse-ditto/ditto/blob/master/deployment/helm/ditto/CHANGELOG.md).
 
@@ -480,3 +487,8 @@ reject requests which were previously accepted, or deliver less data:
 * **Supervisor shutdown timeout** (PR [#2600](https://github.com/eclipse-ditto/ditto/pull/2600)): the default of
   `THING_SHUTDOWN_TIMEOUT` changes from `3s` to `12s`. Keep custom values below the coordinated shutdown phase
   `cluster-sharding-shutdown-region` (15s).
+* **JVM option `-XX:-UseBASE64Intrinsics`**
+  ([CVE-2026-114938](https://nvd.nist.gov/vuln/detail/CVE-2026-114938)): the Helm chart sets it by default in
+  `global.jvmOptions`. Installations overriding `global.jvmOptions`, and installations not using the Helm chart,
+  should add `-XX:-UseBASE64Intrinsics` to the `JAVA_TOOL_OPTIONS` of all Ditto services, until they run on a fixed
+  JDK (`25.0.5.1` or later).
