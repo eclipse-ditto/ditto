@@ -20,6 +20,7 @@ import javax.annotation.Nullable;
 
 import org.assertj.core.api.AssertionsForClassTypes;
 import org.eclipse.ditto.base.model.auth.AuthorizationContextType;
+import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
 import org.eclipse.ditto.base.model.auth.DittoAuthorizationContextType;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
@@ -70,10 +71,10 @@ public final class PreAuthenticatedAuthenticationProviderTest {
     }
 
     @Test
-    public void isApplicableWithDummyAuthQueryParam() {
+    public void isNotApplicableWithDummyAuthQueryParamOnly() {
         final boolean applicable = underTest.isApplicable(mockRequestContext(null, DUMMY_AUTH_QUERY));
 
-        assertThat(applicable).isTrue();
+        assertThat(applicable).isFalse();
     }
 
     @Test
@@ -132,23 +133,26 @@ public final class PreAuthenticatedAuthenticationProviderTest {
     }
 
     @Test
-    public void doExtractAuthenticationByQueryParam() {
+    public void doExtractAuthenticationFailsWithQueryParamOnly() {
         final RequestContext requestContext = mockRequestContext(null, DUMMY_AUTH_QUERY);
 
         final AuthenticationResult authenticationResult =
                 underTest.tryToAuthenticate(requestContext, knownDittoHeaders).join();
 
-        assertThat(authenticationResult.isSuccess()).isTrue();
+        assertThat(authenticationResult.isSuccess()).isFalse();
     }
 
     @Test
-    public void doExtractAuthenticationByQueryParamAndHeader() {
-        final RequestContext requestContext = mockRequestContext(DUMMY_AUTH_HEADER, DUMMY_AUTH_QUERY);
+    public void doExtractAuthenticationByHeaderIgnoresQueryParam() {
+        final Query attackerQuery = Query.create(new Pair<>(DUMMY_AUTH_HEADER_NAME, "nginx:attacker"));
+        final RequestContext requestContext = mockRequestContext(DUMMY_AUTH_HEADER, attackerQuery);
 
         final AuthenticationResult authenticationResult =
                 underTest.tryToAuthenticate(requestContext, knownDittoHeaders).join();
 
         assertThat(authenticationResult.isSuccess()).isTrue();
+        assertThat(authenticationResult.getAuthorizationContext().getAuthorizationSubjects())
+                .containsExactly(AuthorizationSubject.newInstance("myDummy"));
     }
 
     @Test
