@@ -394,7 +394,7 @@ public final class LiveSignalEnforcementTest extends AbstractThingEnforcementTes
                     SudoRetrieveThingResponse.of(TestSetup.newThingWithPolicyId(policyId), DittoHeaders.empty()),
                     FiniteDuration.apply(15, TimeUnit.SECONDS));
 
-            expectMsgClass(Duration.ofSeconds(5), ThingNotAccessibleException.class);
+            expectMsgClass(Duration.ofSeconds(5), MessageSendNotAllowedException.class);
             expectNoMessage();
         }};
     }

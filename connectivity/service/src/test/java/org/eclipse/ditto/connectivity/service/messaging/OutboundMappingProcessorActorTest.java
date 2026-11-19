@@ -937,12 +937,6 @@ public final class OutboundMappingProcessorActorTest {
                 outboundTwinEvent.getTargets());
     }
 
-<<<<<<< HEAD
-=======
-    /**
-     * Returns a copy of {@code outboundSignal} whose source signal carries an explicit {@code ditto-originator}
-     * header, as required by any target topic {@code fn-filter} relying on {@code header:ditto-originator}.
-     */
     private static void expectOnlyWeakAcks(final TestKit testKit) {
         // the sender receives a weak acknowledgement for each requested label of the dropped target
         final Acknowledgements acks = testKit.expectMsgClass(Acknowledgements.class);
@@ -955,20 +949,10 @@ public final class OutboundMappingProcessorActorTest {
         return ConnectivityModelFactory.newFilteredTopicBuilder(topic.getTopic())
                 .withNamespaces(List.of(namespaces))
                 .withFilter(topic.getFilter().orElse(null))
-                .withFnFilters(topic.getFnFilters())
                 .withExtraFields(topic.getExtraFields().map(ThingFieldSelector::fromJsonFieldSelector).orElse(null))
                 .build();
     }
 
-    private static OutboundSignal withOriginator(final OutboundSignal outboundSignal, final String originator) {
-        return OutboundSignalFactory.newOutboundSignal(
-                outboundSignal.getSource().setDittoHeaders(outboundSignal.getSource().getDittoHeaders().toBuilder()
-                        .putHeader("ditto-originator", originator)
-                        .build()),
-                outboundSignal.getTargets());
-    }
-
->>>>>>> 364ca39fb9 (Apply topic namespaces in the per-topic re-check after enrichment)
     private static Connection createTestConnection() {
         final ConnectionType type = ConnectionType.MQTT_5;
         final ConnectivityStatus status = ConnectivityStatus.OPEN;

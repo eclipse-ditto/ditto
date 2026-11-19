@@ -285,7 +285,7 @@ final class ImmutableFilteredTopic implements FilteredTopic {
                             "Unknown topic: " + topicName).build());
         }
 
-        private static Map<String, String> parseQueryParameters(@Nullable final String queryParamsString) {
+        private Map<String, String> parseQueryParameters(@Nullable final String queryParamsString) {
             if (null == queryParamsString || queryParamsString.isEmpty()) {
                 return Collections.emptyMap();
             }

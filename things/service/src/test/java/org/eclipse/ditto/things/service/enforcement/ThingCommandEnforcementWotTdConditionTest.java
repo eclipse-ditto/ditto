@@ -41,7 +41,7 @@ import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.policies.model.SubjectIssuer;
 import org.eclipse.ditto.things.api.Permission;
 import org.eclipse.ditto.things.model.signals.commands.ThingCommand;
-import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingNotAccessibleException;
+import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingConditionFailedException;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveFeature;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThing;
 import org.junit.After;
@@ -119,11 +119,12 @@ public final class ThingCommandEnforcementWotTdConditionTest {
     }
 
     @Test
-    public void filteringModeDoesNotRevealExistenceToSubjectWithoutAnyPermission() {
+    public void filteringModeRejectsConditionOfSubjectWithoutAnyPermission() {
         final Throwable error = authorizationError(true,
                 retrieveThingTd(NOBODY, b -> b.condition("exists(thingId)")));
 
-        assertThat(error).isInstanceOf(ThingNotAccessibleException.class);
+        // the READ permission on the condition is checked before the authorization of the command
+        assertThat(error).isInstanceOf(ThingConditionFailedException.class);
     }
 
     @Test
