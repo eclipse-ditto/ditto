@@ -23,6 +23,8 @@ import java.util.concurrent.TimeUnit;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.service.config.limits.LimitsConfig;
+import org.eclipse.ditto.internal.utils.pekko.streaming.TimestampPersistence;
 import org.eclipse.ditto.internal.utils.persistence.postgres.client.DittoPostgresClient;
 import org.eclipse.ditto.internal.utils.persistence.postgres.client.config.DefaultPostgresConfig;
 import org.eclipse.ditto.internal.utils.persistence.postgres.client.schema.PostgresSchemaManager;
@@ -30,6 +32,7 @@ import org.eclipse.ditto.internal.utils.persistence.postgres.client.testkit.Post
 import org.eclipse.ditto.internal.utils.persistence.postgres.search.PostgresSearchPersistenceProvider;
 import org.eclipse.ditto.internal.utils.persistence.postgres.search.PostgresSearchSchema;
 import org.eclipse.ditto.internal.utils.persistence.postgres.search.query.PostgresQuery;
+import org.eclipse.ditto.internal.utils.persistence.postgres.search.query.SortRankBoundary;
 import org.eclipse.ditto.internal.utils.persistence.postgres.search.read.PostgresThingsSearchPersistence;
 import org.eclipse.ditto.internal.utils.persistence.postgres.search.write.PostgresSearchUpdaterFlow;
 import org.eclipse.ditto.json.JsonArray;
@@ -39,18 +42,24 @@ import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.policies.api.PolicyTag;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.rql.query.Query;
+import org.eclipse.ditto.rql.query.QueryBuilderFactory;
 import org.eclipse.ditto.rql.query.SortDirection;
 import org.eclipse.ditto.rql.query.criteria.Criteria;
 import org.eclipse.ditto.rql.query.criteria.CriteriaFactory;
 import org.eclipse.ditto.rql.query.expression.ThingsFieldExpressionFactory;
 import org.eclipse.ditto.thingsearch.model.SortOption;
 import org.eclipse.ditto.thingsearch.model.SortOptionEntry;
+import org.eclipse.ditto.thingsearch.persistence.api.SearchPersistenceProvider;
+import org.eclipse.ditto.thingsearch.persistence.api.ThingsAggregationPersistence;
+import org.eclipse.ditto.thingsearch.persistence.api.ThingsSearchPersistence;
+import org.eclipse.ditto.thingsearch.persistence.api.ThingsSearchUpdaterPersistence;
 import org.eclipse.ditto.thingsearch.persistence.api.model.AbstractWriteModel;
 import org.eclipse.ditto.thingsearch.persistence.api.model.Metadata;
 import org.eclipse.ditto.thingsearch.persistence.api.model.ResultList;
 import org.eclipse.ditto.thingsearch.persistence.api.model.SearchIndexDocument;
 import org.eclipse.ditto.thingsearch.persistence.api.model.ThingWriteModel;
 import org.eclipse.ditto.thingsearch.persistence.api.model.TimestampedThingId;
+import org.eclipse.ditto.thingsearch.persistence.api.write.SearchUpdaterFlow;
 import org.eclipse.ditto.thingsearch.persistence.api.write.UpdaterData;
 import org.eclipse.ditto.things.model.ThingId;
 import org.junit.After;
@@ -68,6 +77,7 @@ import io.r2dbc.spi.ConnectionFactory;
 import io.r2dbc.spi.Result;
 
 import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.actor.Props;
 import org.apache.pekko.stream.javadsl.Sink;
 import org.apache.pekko.stream.javadsl.Source;
 
@@ -205,6 +215,33 @@ public final class PostgresCursorResumeIT {
         assertThat(paged).as("paged walk equals unpaged, no drops or duplicates").isEqualTo(unpaged);
     }
 
+    @Test
+    public void cursorWithObjectSortBoundaryResumesWithoutBson() {
+        // Review focus: a page that ends on an OBJECT sort value must resume on PostgreSQL without any BSON. The flat
+        // table encodes the object boundary as the rank marker {"typeRank":4} (PostgresSortClause#toSortValues); the
+        // cursor hands it to the provider, which answers with its PostgreSQL operand, never with a BSON value.
+        writeAttribute("t-missing", "sortKey", null);
+        writeAttribute("t-obj-a", "sortKey", JsonObject.newBuilder().set("k", "a").build());
+        writeAttribute("t-obj-b", "sortKey", JsonObject.newBuilder().set("k", "b").build());
+
+        final Criteria criteria = cf.any();
+        final List<String> unpaged = idsOf(runFindAll(baseQuery("sortKey", SortDirection.ASC, criteria, 100)));
+        assertThat(unpaged).containsExactly(NS + ":t-missing", NS + ":t-obj-a", NS + ":t-obj-b");
+
+        final RecordingProvider recordingProvider = new RecordingProvider(provider);
+        final List<JsonArray> hopSortValues = new ArrayList<>();
+        final List<String> paged = walk("sortKey", SortDirection.ASC, criteria, recordingProvider, hopSortValues);
+
+        // 1. the walk terminated within the guard (walk throws otherwise) and equals the unpaged result
+        assertThat(paged).as("paged walk equals unpaged, no drops or duplicates").isEqualTo(unpaged);
+        // 2. a page ended on an object-valued row, so an object boundary was actually crossed
+        final JsonObject objectBoundary = JsonObject.newBuilder().set("typeRank", 4).build();
+        assertThat(hopSortValues).contains(JsonArray.of(objectBoundary, JsonValue.of(NS + ":t-obj-a")));
+        // 3. the provider resolved that boundary to its PostgreSQL operand
+        assertThat(recordingProvider.compositeCalls).isNotEmpty().containsOnly(objectBoundary);
+        assertThat(recordingProvider.compositeResults).containsOnly(SortRankBoundary.object());
+    }
+
     private void writeObjectSortKeyCorpus() {
         writeAttribute("t-missing", "sortKey", null);
         for (final String suffix : List.of("a", "b", "c", "d")) {
@@ -220,6 +257,11 @@ public final class PostgresCursorResumeIT {
      */
     private List<String> walk(final String key, final SortDirection direction, final Criteria criteria,
             final List<JsonArray> hopSortValues) {
+        return walk(key, direction, criteria, provider, hopSortValues);
+    }
+
+    private List<String> walk(final String key, final SortDirection direction, final Criteria criteria,
+            final SearchPersistenceProvider cursorResumeProvider, final List<JsonArray> hopSortValues) {
 
         final List<String> paged = new ArrayList<>();
         Query pageQuery = baseQuery(key, direction, criteria, 2);
@@ -237,7 +279,7 @@ public final class PostgresCursorResumeIT {
             final ThingsSearchCursor decoded = runSingle(ThingsSearchCursor.decode(cursor.encode(), system));
             // adjust the ORIGINAL base query (the cursor encodes the absolute position).
             pageQuery = ThingsSearchCursor.adjust(Optional.of(decoded), baseQuery(key, direction, criteria, 2),
-                    CriteriaFactory.getInstance(), provider);
+                    CriteriaFactory.getInstance(), cursorResumeProvider);
         }
         throw new AssertionError("cursor walk did not terminate within 100 pages");
     }
@@ -330,5 +372,74 @@ public final class PostgresCursorResumeIT {
                                 .then(),
                         Connection::close)
                 .block();
+    }
+
+    /**
+     * Delegates to the real PostgreSQL provider and records every composite resume value the cursor asks for, together
+     * with the operand the provider answered.
+     */
+    private static final class RecordingProvider implements SearchPersistenceProvider {
+
+        private final SearchPersistenceProvider delegate;
+        private final List<JsonValue> compositeCalls = new ArrayList<>();
+        private final List<Object> compositeResults = new ArrayList<>();
+
+        private RecordingProvider(final SearchPersistenceProvider delegate) {
+            this.delegate = delegate;
+        }
+
+        @Override
+        public void bootstrapSchema() {
+            delegate.bootstrapSchema();
+        }
+
+        @Override
+        public ThingsSearchPersistence createSearchPersistence() {
+            return delegate.createSearchPersistence();
+        }
+
+        @Override
+        public ThingsSearchUpdaterPersistence createUpdaterPersistence() {
+            return delegate.createUpdaterPersistence();
+        }
+
+        @Override
+        public ThingsAggregationPersistence createAggregationPersistence() {
+            return delegate.createAggregationPersistence();
+        }
+
+        @Override
+        public SearchUpdaterFlow createUpdaterFlow() {
+            return delegate.createUpdaterFlow();
+        }
+
+        @Override
+        public TimestampPersistence createBackgroundSyncBookmarkPersistence() {
+            return delegate.createBackgroundSyncBookmarkPersistence();
+        }
+
+        @Override
+        public Props healthCheckProps() {
+            return delegate.healthCheckProps();
+        }
+
+        @Override
+        public QueryBuilderFactory queryBuilderFactory(final LimitsConfig limitsConfig) {
+            return delegate.queryBuilderFactory(limitsConfig);
+        }
+
+        @Override
+        public String renderForDiagnostics(final Query query, @Nullable final List<String> authorizationSubjectIds) {
+            return delegate.renderForDiagnostics(query, authorizationSubjectIds);
+        }
+
+        @Override
+        public Object compositeSortResumeValue(final JsonValue previousValue) {
+            compositeCalls.add(previousValue);
+            final Object result = delegate.compositeSortResumeValue(previousValue);
+            compositeResults.add(result);
+            return result;
+        }
+
     }
 }
