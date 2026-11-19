@@ -411,8 +411,7 @@ public final class ThingCommandEnforcementTest extends AbstractThingEnforcementT
             supervisor.tell(conditionalRetrieveThing6, getRef());
 
             // THEN: The command is authorized
-            thingPersistenceActorProbe.expectMsg(addReadSubjectHeader(conditionalRetrieveThing6,
-                    SubjectId.newInstance(GOOGLE, TestSetup.SUBJECT_ID)));
+            thingPersistenceActorProbe.expectMsg(addReadSubjectHeader(conditionalRetrieveThing6));
         }};
     }
 
@@ -956,6 +955,20 @@ public final class ThingCommandEnforcementTest extends AbstractThingEnforcementT
         final DittoHeadersBuilder<?, ?> builder = headers().toBuilder();
         headerModifier.accept(builder);
         return RetrieveThing.of(THING_ID, builder.build());
+    }
+
+    private PolicyId mockReadWritePolicy() {
+        final PolicyId policyId = PolicyId.of("policy:id");
+        final Policy policy = PoliciesModelFactory.newPolicyBuilder(policyId)
+                .setRevision(1L)
+                .forLabel("authorize-self")
+                .setSubject(GOOGLE, TestSetup.SUBJECT_ID)
+                .setGrantedPermissions(PoliciesResourceType.thingResource(JsonPointer.empty()),
+                        Permissions.newInstance(Permission.READ, Permission.WRITE))
+                .build();
+        when(policyEnforcerProvider.getPolicyEnforcer(policyId))
+                .thenReturn(CompletableFuture.completedFuture(Optional.of(PolicyEnforcer.of(policy))));
+        return policyId;
     }
 
 }

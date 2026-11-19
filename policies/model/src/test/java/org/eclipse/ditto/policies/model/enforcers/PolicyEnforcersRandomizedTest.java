@@ -50,9 +50,8 @@ import org.junit.Test;
  * revoked from any subject of the authorization context on any of its sub-resources.</li>
  * <li>{@link Enforcer#hasPartialPermissions}: each permission is effectively granted on the resource or on any of its
  * sub-resources.</li>
- * <li>{@link Enforcer#getSubjectsWithPartialPermission}, {@link Enforcer#getSubjectsWithUnrestrictedPermission} and
- * {@link Enforcer#classifySubjects}: the subjects for which the partial respectively unrestricted check succeeds on
- * their own.</li>
+ * <li>{@link Enforcer#getSubjectsWithPartialPermission} and {@link Enforcer#getSubjectsWithUnrestrictedPermission}:
+ * the subjects for which the partial respectively unrestricted check succeeds on their own.</li>
  * </ul>
  */
 public final class PolicyEnforcersRandomizedTest {
@@ -139,24 +138,15 @@ public final class PolicyEnforcersRandomizedTest {
                             getPartiallyGrantedSubjects(rules, path, permissions);
                     final Set<AuthorizationSubject> expectedUnrestrictedSubjects =
                             getUnrestrictedGrantedSubjects(rules, path, permissions);
-                    final Set<AuthorizationSubject> expectedPartialOnlySubjects =
-                            new HashSet<>(expectedPartialSubjects);
-                    expectedPartialOnlySubjects.removeAll(expectedUnrestrictedSubjects);
                     for (final Enforcer enforcer : Arrays.asList(trie, tree)) {
                         final String name = enforcer == trie ? "trie" : "tree";
-                        checkCount += 4;
+                        checkCount += 2;
                         verify("getSubjectsWithPartialPermission", name, expectedPartialSubjects,
                                 enforcer.getSubjectsWithPartialPermission(resourceKey, permissions),
                                 rules, path, permissions, mismatches);
                         verify("getSubjectsWithUnrestrictedPermission", name, expectedUnrestrictedSubjects,
                                 enforcer.getSubjectsWithUnrestrictedPermission(resourceKey, permissions),
                                 rules, path, permissions, mismatches);
-                        final SubjectClassification classification =
-                                enforcer.classifySubjects(resourceKey, permissions);
-                        verify("classifySubjects.partialOnly", name, expectedPartialOnlySubjects,
-                                classification.getPartialOnly(), rules, path, permissions, mismatches);
-                        verify("classifySubjects.unrestricted", name, expectedUnrestrictedSubjects,
-                                classification.getUnrestricted(), rules, path, permissions, mismatches);
                     }
                 }
             }

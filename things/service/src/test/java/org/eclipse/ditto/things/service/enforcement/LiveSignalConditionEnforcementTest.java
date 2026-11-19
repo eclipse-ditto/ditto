@@ -55,7 +55,7 @@ public final class LiveSignalConditionEnforcementTest {
     private static final String WRITER = "writer";
     private static final String NOBODY = "nobody";
 
-    private final LiveSignalEnforcement underTest = new LiveSignalEnforcement(false);
+    private final LiveSignalEnforcement underTest = new LiveSignalEnforcement();
 
     private final PolicyEnforcer policyEnforcer =
             PolicyEnforcer.of(PoliciesModelFactory.newPolicyBuilder(PolicyId.of("policy:id"))

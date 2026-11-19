@@ -163,21 +163,21 @@ final class MergeThingCommandEnforcementTest {
     @ParameterizedTest(name = "[{index}] {0}: merge {1} with {2}")
     @MethodSource("deletionsToReject")
     void rejectDeletionWithoutWritePermission(final String policyName, final String path, final String value) {
-        final PolicyEnforcer policyEnforcer = deletionPolicyEnforcer(policyName);
+        final TrieBasedPolicyEnforcer policyEnforcer = deletionPolicyEnforcer(policyName);
         final MergeThing mergeThing = MergeThing.of(TestSetup.THING_ID, JsonPointer.of(path),
                 JsonFactory.readFrom(value), TestArgument.headers());
         assertThatExceptionOfType(ThingNotModifiableException.class).isThrownBy(
-                () -> ThingCommandEnforcement.authorizeByPolicyOrThrow(policyEnforcer, mergeThing, true));
+                () -> ThingCommandEnforcement.authorizeByPolicyOrThrow(policyEnforcer, mergeThing));
     }
 
     @ParameterizedTest(name = "[{index}] {0}: merge {1} with {2}")
     @MethodSource("deletionsToAccept")
     void acceptDeletionWithWritePermission(final String policyName, final String path, final String value) {
-        final PolicyEnforcer policyEnforcer = deletionPolicyEnforcer(policyName);
+        final TrieBasedPolicyEnforcer policyEnforcer = deletionPolicyEnforcer(policyName);
         final MergeThing mergeThing = MergeThing.of(TestSetup.THING_ID, JsonPointer.of(path),
                 JsonFactory.readFrom(value), TestArgument.headers());
         final MergeThing authorizedMergeThing =
-                ThingCommandEnforcement.authorizeByPolicyOrThrow(policyEnforcer, mergeThing, true);
+                ThingCommandEnforcement.authorizeByPolicyOrThrow(policyEnforcer, mergeThing);
         assertThat(authorizedMergeThing.getDittoHeaders().getAuthorizationContext()).isNotNull();
     }
 
@@ -196,15 +196,14 @@ final class MergeThingCommandEnforcementTest {
      */
     private static final String ATTRIBUTES_GRANTED = "ATTRIBUTES_GRANTED";
 
-    private static PolicyEnforcer deletionPolicyEnforcer(final String policyName) {
+    private static TrieBasedPolicyEnforcer deletionPolicyEnforcer(final String policyName) {
         final TestArgument testArgument = switch (policyName) {
             case FIRMWARE_REVOKED -> TestArgument.of("/", Set.of("/attributes"), Set.of("/attributes/firmware"));
             case ONLY_OTHER_GRANTED -> TestArgument.of("/", Set.of("/attributes/other"), Set.of());
             case ATTRIBUTES_GRANTED -> TestArgument.of("/", Set.of("/attributes"), Set.of());
             default -> throw new IllegalArgumentException(policyName);
         };
-        return PolicyEnforcer.of(testArgument.getPolicy(),
-                TrieBasedPolicyEnforcer.newInstance(testArgument.getPolicy()));
+        return TrieBasedPolicyEnforcer.newInstance(testArgument.getPolicy());
     }
 
     static Stream<Arguments> deletionsToReject() {
