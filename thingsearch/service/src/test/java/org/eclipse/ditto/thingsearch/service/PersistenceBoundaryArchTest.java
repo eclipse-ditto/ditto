@@ -15,6 +15,7 @@ package org.eclipse.ditto.thingsearch.service;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
 
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import com.tngtech.archunit.base.DescribedPredicate;
@@ -113,6 +114,25 @@ public final class PersistenceBoundaryArchTest {
                 .should().dependOnClassesThat(IS_POSTGRES)
                 .as("thingsearch-service MAIN code must not depend on any Postgres type")
                 .because("the thingsearch search index is Mongo-only; it must never couple to Postgres")
+                .check(thingsearchServiceMainClasses);
+    }
+
+    /**
+     * No thingsearch-service MAIN class may depend on a MongoDB or R2DBC type, on the Mongo persistence module or on
+     * the Mongo search backend: service code reaches the search backend only through the persistence-API.
+     */
+    @Test
+    @Ignore("enabled once the Mongo search code has left this module")
+    public void serviceMainCodeDoesNotDependOnMongo() {
+        noClasses()
+                .should().dependOnClassesThat().resideInAnyPackage("com.mongodb..", "org.bson..", "org.mongodb..",
+                        "pekko.contrib.persistence.mongodb..", "org.eclipse.ditto.internal.utils.persistence.mongo..",
+                        "org.eclipse.ditto.thingsearch.persistence.mongo..", "io.r2dbc..")
+                .as("thingsearch-service MAIN code must not depend on MongoDB, R2DBC, the Mongo module "
+                        + "(org.eclipse.ditto.internal.utils.persistence.mongo..) or the Mongo search backend "
+                        + "(org.eclipse.ditto.thingsearch.persistence.mongo..)")
+                .because("service code must reach the search backend only through the persistence-API, so that "
+                        + "the backend can be switched without touching the service")
                 .check(thingsearchServiceMainClasses);
     }
 }

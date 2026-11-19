@@ -23,7 +23,6 @@ import org.apache.pekko.event.Logging;
 import org.apache.pekko.event.LoggingAdapter;
 import org.apache.pekko.stream.SystemMaterializer;
 import org.eclipse.ditto.base.service.config.limits.LimitsConfig;
-import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.pekko.logging.ThreadSafeDittoLogger;
 import org.eclipse.ditto.internal.utils.pekko.streaming.TimestampPersistence;
@@ -37,8 +36,7 @@ import org.eclipse.ditto.thingsearch.persistence.api.ThingsAggregationPersistenc
 import org.eclipse.ditto.thingsearch.persistence.api.ThingsSearchPersistence;
 import org.eclipse.ditto.thingsearch.persistence.api.ThingsSearchUpdaterPersistence;
 import org.eclipse.ditto.thingsearch.persistence.api.write.SearchUpdaterFlow;
-import org.eclipse.ditto.thingsearch.service.common.config.DittoSearchConfig;
-import org.eclipse.ditto.thingsearch.service.common.config.SearchConfig;
+import org.eclipse.ditto.thingsearch.service.persistence.mongo.MongoSearchConfig;
 import org.eclipse.ditto.thingsearch.service.persistence.read.MongoThingsAggregationPersistence;
 import org.eclipse.ditto.thingsearch.service.persistence.read.MongoThingsSearchPersistence;
 import org.eclipse.ditto.thingsearch.service.persistence.read.criteria.visitors.CreateBsonVisitor;
@@ -57,7 +55,7 @@ import org.eclipse.ditto.internal.utils.persistence.mongo.MongoHealthChecker;
  * selected via {@code ditto.extensions.search-persistence-provider}.
  * <p>
  * Constructed reflectively by {@code DittoExtensionPoint} with {@code (ActorSystem, Config)}. The constructor is
- * intentionally lightweight (it opens no MongoDB connection): the {@link SearchConfig} is rebuilt lazily from the
+ * intentionally lightweight (it opens no MongoDB connection): the {@link MongoSearchConfig} is rebuilt lazily from the
  * actor-system config and all MongoDB client acquisition happens inside the {@code create*}/{@link #bootstrapSchema()}
  * methods (via {@link MongoClientExtension}) or inside the Mongo implementations themselves. This mirrors the
  * {@code MongoPersistenceBackendProvider} precedent used by the things/policies/connectivity services.
@@ -72,7 +70,7 @@ public final class MongoSearchPersistenceProvider implements SearchPersistencePr
     private final ActorSystem actorSystem;
 
     @Nullable
-    private SearchConfig searchConfig;
+    private MongoSearchConfig mongoSearchConfig;
     @Nullable
     private ThingsSearchPersistence searchPersistence;
 
@@ -91,7 +89,7 @@ public final class MongoSearchPersistenceProvider implements SearchPersistencePr
     @Override
     public void bootstrapSchema() {
         final MongoThingsSearchPersistence persistence = (MongoThingsSearchPersistence) getOrBuildSearchPersistence();
-        final var indexInitializationConfig = searchConfig().getIndexInitializationConfig();
+        final var indexInitializationConfig = mongoSearchConfig().getIndexInitializationConfig();
         if (indexInitializationConfig.isIndexInitializationConfigEnabled()) {
             // Preserve today's semantics exactly: fire-and-forget async index initialization whose failures are
             // swallowed by MongoThingsSearchPersistence#initializeIndices (NOT joined). Mongo creates collections
@@ -111,21 +109,22 @@ public final class MongoSearchPersistenceProvider implements SearchPersistencePr
     public ThingsSearchUpdaterPersistence createUpdaterPersistence() {
         final DittoMongoClient updaterClient = MongoClientExtension.get(actorSystem).getUpdaterClient();
         return MongoThingsSearchUpdaterPersistence.of(updaterClient.getDefaultDatabase(),
-                searchConfig().getUpdaterConfig().getUpdaterPersistenceConfig());
+                mongoSearchConfig().getUpdaterPersistenceConfig());
     }
 
     @Override
     public ThingsAggregationPersistence createAggregationPersistence() {
         final DittoMongoClient searchClient = MongoClientExtension.get(actorSystem).getSearchClient();
         final LoggingAdapter log = Logging.getLogger(actorSystem, MongoThingsAggregationPersistence.class);
-        return MongoThingsAggregationPersistence.of(searchClient, searchConfig(), log);
+        return MongoThingsAggregationPersistence.of(searchClient, mongoSearchConfig(), log);
     }
 
     @Override
     public SearchUpdaterFlow createUpdaterFlow() {
         final DittoMongoClient updaterClient = MongoClientExtension.get(actorSystem).getUpdaterClient();
-        final var streamConfig = searchConfig().getUpdaterConfig().getStreamConfig();
-        return MongoSearchUpdaterFlow.of(updaterClient.getDefaultDatabase(), streamConfig.getPersistenceConfig(),
+        final MongoSearchConfig config = mongoSearchConfig();
+        return MongoSearchUpdaterFlow.of(updaterClient.getDefaultDatabase(),
+                config.getUpdaterStreamPersistenceConfig(), config.getWithAcknowledgementsWriteConcern(),
                 updaterClient.getMaxWireVersion());
     }
 
@@ -163,17 +162,18 @@ public final class MongoSearchPersistenceProvider implements SearchPersistencePr
     private synchronized ThingsSearchPersistence getOrBuildSearchPersistence() {
         if (searchPersistence == null) {
             final DittoMongoClient searchClient = MongoClientExtension.get(actorSystem).getSearchClient();
+            final MongoSearchConfig config = mongoSearchConfig();
             searchPersistence = new MongoThingsSearchPersistence(searchClient, actorSystem,
-                    searchConfig().getQueryPersistenceConfig(), searchConfig());
+                    config.getQueryPersistenceConfig(), config);
         }
         return searchPersistence;
     }
 
-    private synchronized SearchConfig searchConfig() {
-        if (searchConfig == null) {
-            searchConfig = DittoSearchConfig.of(DefaultScopedConfig.dittoScoped(actorSystem.settings().config()));
+    private synchronized MongoSearchConfig mongoSearchConfig() {
+        if (mongoSearchConfig == null) {
+            mongoSearchConfig = MongoSearchConfig.of(actorSystem.settings().config());
         }
-        return searchConfig;
+        return mongoSearchConfig;
     }
 
 }

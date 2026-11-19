@@ -33,7 +33,6 @@ import org.apache.pekko.testkit.javadsl.TestKit;
 import org.bson.Document;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.service.config.limits.DefaultLimitsConfig;
-import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.internal.utils.config.ScopedConfig;
 import org.eclipse.ditto.internal.utils.persistence.mongo.DittoMongoClient;
 import org.eclipse.ditto.internal.utils.persistence.mongo.MongoClientWrapper;
@@ -44,9 +43,9 @@ import org.eclipse.ditto.rql.query.criteria.CriteriaFactory;
 import org.eclipse.ditto.rql.query.expression.FieldExpressionUtil;
 import org.eclipse.ditto.rql.query.expression.ThingsFieldExpressionFactory;
 import org.eclipse.ditto.things.model.ThingId;
-import org.eclipse.ditto.thingsearch.service.common.config.DefaultSearchPersistenceConfig;
-import org.eclipse.ditto.thingsearch.service.common.config.DittoSearchConfig;
+import org.eclipse.ditto.thingsearch.persistence.api.config.DefaultSearchPersistenceConfig;
 import org.eclipse.ditto.thingsearch.persistence.api.model.ResultList;
+import org.eclipse.ditto.thingsearch.service.persistence.mongo.MongoSearchConfig;
 import org.eclipse.ditto.thingsearch.service.persistence.read.MongoThingsSearchPersistence;
 import org.eclipse.ditto.thingsearch.service.persistence.read.query.MongoQueryBuilderFactory;
 import org.eclipse.ditto.thingsearch.service.persistence.write.streaming.SearchUpdateMapper;
@@ -113,7 +112,7 @@ public abstract class AbstractThingSearchPersistenceITBase {
 
     private MongoThingsSearchPersistence provideReadPersistence() {
         final var config = DefaultSearchPersistenceConfig.of(ConfigFactory.empty());
-        final var searchConfig = DittoSearchConfig.of(DefaultScopedConfig.dittoScoped(actorSystem.settings().config()));
+        final var searchConfig = MongoSearchConfig.of(actorSystem.settings().config());
         final MongoThingsSearchPersistence result = new MongoThingsSearchPersistence(mongoClient, actorSystem, config,
                 searchConfig);
         // explicitly trigger CompletableFuture to make sure that indices are created before test runs

@@ -14,13 +14,12 @@ package org.eclipse.ditto.thingsearch.service.starter.actors;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.internal.utils.persistence.mongo.DittoMongoClient;
 import org.eclipse.ditto.internal.utils.persistence.mongo.MongoClientWrapper;
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.MongoDbConfig;
 import org.eclipse.ditto.internal.utils.persistence.mongo.monitoring.KamonCommandListener;
 import org.eclipse.ditto.internal.utils.persistence.mongo.monitoring.KamonConnectionPoolListener;
-import org.eclipse.ditto.thingsearch.service.common.config.DittoSearchConfig;
+import org.eclipse.ditto.thingsearch.service.persistence.mongo.MongoSearchConfig;
 
 import com.mongodb.event.CommandListener;
 import com.mongodb.event.ConnectionPoolListener;
@@ -81,9 +80,7 @@ public final class MongoClientExtension implements Extension {
 
         @Override
         public MongoClientExtension createExtension(final ExtendedActorSystem system) {
-            final var dittoConfig = DefaultScopedConfig.dittoScoped(system.settings().config());
-            final var searchConfig = DittoSearchConfig.of(dittoConfig);
-            final var mongoDbConfig = searchConfig.getMongoDbConfig();
+            final var mongoDbConfig = MongoSearchConfig.of(system.settings().config()).getMongoDbConfig();
             final var monitoringConfig = mongoDbConfig.getMonitoringConfig();
             final var searchClient = MongoClientWrapper.getBuilder(mongoDbConfig)
                     .addCommandListener(getCommandListenerOrNull(monitoringConfig, SEARCH_PREFIX))

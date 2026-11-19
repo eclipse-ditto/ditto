@@ -32,7 +32,8 @@ import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.internal.utils.config.ConfigWithFallback;
 import org.eclipse.ditto.internal.utils.config.KnownConfigValue;
-import org.eclipse.ditto.internal.utils.persistence.mongo.config.MongoDbConfig;
+import org.eclipse.ditto.thingsearch.persistence.api.config.DefaultSearchPersistenceConfig;
+import org.eclipse.ditto.thingsearch.persistence.api.config.SearchPersistenceConfig;
 
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
@@ -120,17 +121,8 @@ public final class DefaultOperatorMetricsConfig implements OperatorMetricsConfig
         }
         // read settings the block does not specify are inherited from "query.persistence" instead of falling back to
         // the SearchPersistenceConfig defaults, so a partially configured block only overrides what it names:
-        final Config blockConfig = updaterScopedConfig.getConfig(configPath)
-                .withFallback(asConfig(queryPersistenceConfig));
-        return DefaultSearchPersistenceConfig.ofScopedConfig(blockConfig);
-    }
-
-    private static Config asConfig(final SearchPersistenceConfig persistenceConfig) {
-        return ConfigFactory.parseMap(Map.of(
-                MongoDbConfig.OptionsConfig.OptionsConfigValue.READ_PREFERENCE.getConfigPath(),
-                persistenceConfig.readPreference().getName(),
-                MongoDbConfig.OptionsConfig.OptionsConfigValue.READ_CONCERN.getConfigPath(),
-                persistenceConfig.readConcern().getName()));
+        return DefaultSearchPersistenceConfig.ofBlockInheriting(updaterScopedConfig.getConfig(configPath),
+                queryPersistenceConfig);
     }
 
     private static Map<String, CustomMetricConfig> loadCustomMetricConfigurations(final ConfigWithFallback config,

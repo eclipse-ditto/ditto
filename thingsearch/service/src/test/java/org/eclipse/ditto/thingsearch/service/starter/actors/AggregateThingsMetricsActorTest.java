@@ -45,6 +45,7 @@ import org.eclipse.ditto.thingsearch.model.signals.commands.query.AggregateThing
 import org.eclipse.ditto.thingsearch.model.signals.commands.query.AggregateThingsMetricsResponse;
 import org.eclipse.ditto.thingsearch.service.common.config.CustomAggregationMetricConfig;
 import org.eclipse.ditto.thingsearch.service.common.config.DittoSearchConfig;
+import org.eclipse.ditto.thingsearch.service.persistence.mongo.MongoSearchConfig;
 import org.eclipse.ditto.thingsearch.service.persistence.read.MongoThingsAggregationPersistence;
 import org.eclipse.ditto.thingsearch.persistence.api.ThingsAggregationPersistence;
 import org.junit.AfterClass;
@@ -77,6 +78,7 @@ public class AggregateThingsMetricsActorTest {
     private static ActorSystem SYSTEM = ActorSystem.create();
     private static final LoggingAdapter LOG = SYSTEM.log();
     private static DittoMongoClient mongoClient;
+    private static final String TEST_CONFIG = "aggregation-metric-test.conf";
     private static DittoSearchConfig searchConfig;
     private static ThingsAggregationPersistence persistence;
 
@@ -84,7 +86,8 @@ public class AggregateThingsMetricsActorTest {
     public static void initTestData() {
         final ServerAddress serverAddress = RUNNING_MONGOD_PROCESS.current().getServerAddress();
         mongoClient = provideClientWrapper(serverAddress, "testSearchDB");
-        persistence = MongoThingsAggregationPersistence.of(mongoClient, searchConfig, LOG);
+        persistence = MongoThingsAggregationPersistence.of(mongoClient,
+                MongoSearchConfig.of(ConfigFactory.load(TEST_CONFIG)), LOG);
         LOG.info("Mongo started at: {}", serverAddress);
         List<Map<String, String>> paramList = List.of(
                 Map.of(
@@ -118,7 +121,7 @@ public class AggregateThingsMetricsActorTest {
 
     @Parameterized.Parameters(name = "{0}")
     public static Collection<Object[]> data() {
-        final Config config = ConfigFactory.load("aggregation-metric-test.conf");
+        final Config config = ConfigFactory.load(TEST_CONFIG);
         final DefaultScopedConfig scopedConfig = DefaultScopedConfig.dittoScoped(config);
         searchConfig = DittoSearchConfig.of(scopedConfig);
         return searchConfig.getOperatorMetricsConfig().getCustomAggregationMetricConfigs().entrySet().stream()

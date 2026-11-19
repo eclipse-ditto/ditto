@@ -40,6 +40,7 @@ import org.eclipse.ditto.internal.utils.metrics.instruments.timer.StartedTimer;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.things.model.ThingId;
+import org.eclipse.ditto.thingsearch.persistence.api.config.PersistenceStreamConfig;
 import org.eclipse.ditto.thingsearch.persistence.api.model.Metadata;
 import org.eclipse.ditto.thingsearch.persistence.api.model.SearchIndexDocument;
 import org.eclipse.ditto.thingsearch.persistence.api.model.ThingDeleteModel;
@@ -47,7 +48,6 @@ import org.eclipse.ditto.thingsearch.persistence.api.model.ThingWriteModel;
 import org.eclipse.ditto.thingsearch.persistence.api.write.SearchWriteResult;
 import org.eclipse.ditto.thingsearch.persistence.api.write.UpdaterData;
 import org.eclipse.ditto.thingsearch.persistence.api.write.UpdaterResult;
-import org.eclipse.ditto.thingsearch.service.common.config.PersistenceStreamConfig;
 import org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants;
 import org.eclipse.ditto.thingsearch.service.persistence.write.mapping.SearchIndexDocumentMongoEncoder;
 import org.eclipse.ditto.thingsearch.service.persistence.write.model.WriteResultAndErrors;
@@ -87,8 +87,7 @@ public final class MongoSearchUpdaterFlowTest {
         when(database.getCollection(eq(PersistenceConstants.THINGS_COLLECTION_NAME), eq(BsonDocument.class)))
                 .thenReturn(collection);
         final PersistenceStreamConfig persistenceConfig = mock(PersistenceStreamConfig.class);
-        when(persistenceConfig.getWithAcknowledgementsWriteConcern()).thenReturn(WriteConcern.ACKNOWLEDGED);
-        underTest = MongoSearchUpdaterFlow.of(database, persistenceConfig, 21);
+        underTest = MongoSearchUpdaterFlow.of(database, persistenceConfig, WriteConcern.ACKNOWLEDGED, 21);
     }
 
     @After

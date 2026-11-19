@@ -62,10 +62,11 @@ import org.eclipse.ditto.things.model.ThingsModelFactory;
 import org.eclipse.ditto.thingsearch.api.commands.sudo.StreamThings;
 import org.eclipse.ditto.thingsearch.model.signals.commands.query.QueryThings;
 import org.eclipse.ditto.thingsearch.model.signals.commands.query.QueryThingsResponse;
-import org.eclipse.ditto.thingsearch.service.common.config.DefaultSearchPersistenceConfig;
+import org.eclipse.ditto.thingsearch.persistence.api.config.DefaultSearchPersistenceConfig;
 import org.eclipse.ditto.thingsearch.service.common.config.DittoSearchConfig;
 import org.eclipse.ditto.thingsearch.service.common.config.SlowQueryLogConfig;
 import org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants;
+import org.eclipse.ditto.thingsearch.service.persistence.mongo.MongoSearchConfig;
 import org.eclipse.ditto.thingsearch.service.persistence.query.QueryParser;
 import org.eclipse.ditto.thingsearch.service.persistence.read.MongoThingsSearchPersistence;
 import org.eclipse.ditto.thingsearch.service.persistence.write.streaming.SearchUpdateMapper;
@@ -129,7 +130,7 @@ public final class SearchActorIT {
 
     private MongoThingsSearchPersistence provideReadPersistence() {
         final var config = DefaultSearchPersistenceConfig.of(ConfigFactory.empty());
-        final var searchConfig = DittoSearchConfig.of(DefaultScopedConfig.dittoScoped(actorSystem.settings().config()));
+        final var searchConfig = MongoSearchConfig.of(actorSystem.settings().config());
         final MongoThingsSearchPersistence result = new MongoThingsSearchPersistence(mongoClient, actorSystem, config,
                 searchConfig);
         // explicitly trigger CompletableFuture to make sure that indices are created before test runs

@@ -65,14 +65,14 @@ import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.thingsearch.api.QueryTimeExceededException;
 import org.eclipse.ditto.thingsearch.api.SearchNamespaceReportResult;
 import org.eclipse.ditto.thingsearch.api.SearchNamespaceResultEntry;
-import org.eclipse.ditto.thingsearch.service.common.config.SearchConfig;
-import org.eclipse.ditto.thingsearch.service.common.config.SearchPersistenceConfig;
+import org.eclipse.ditto.thingsearch.persistence.api.config.SearchPersistenceConfig;
 import org.eclipse.ditto.thingsearch.persistence.api.ThingsSearchPersistence;
 import org.eclipse.ditto.thingsearch.persistence.api.model.ResultList;
 import org.eclipse.ditto.thingsearch.persistence.api.model.ResultListImpl;
 import org.eclipse.ditto.thingsearch.persistence.api.model.TimestampedThingId;
 import org.eclipse.ditto.thingsearch.service.persistence.Indices;
 import org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants;
+import org.eclipse.ditto.thingsearch.service.persistence.mongo.MongoSearchConfig;
 import org.eclipse.ditto.thingsearch.service.persistence.read.criteria.visitors.CreateBsonVisitor;
 import org.eclipse.ditto.thingsearch.service.persistence.read.expression.visitors.GetSortBsonVisitor;
 import org.eclipse.ditto.thingsearch.service.persistence.read.query.MongoQuery;
@@ -122,7 +122,7 @@ public final class MongoThingsSearchPersistence implements ThingsSearchPersisten
     public MongoThingsSearchPersistence(final DittoMongoClient mongoClient,
             final ActorSystem actorSystem,
             final SearchPersistenceConfig persistenceConfig,
-            final SearchConfig searchConfig
+            final MongoSearchConfig searchConfig
     ) {
         final MongoDatabase database = mongoClient.getDefaultDatabase();
         final var readConcern = persistenceConfig.readConcern();

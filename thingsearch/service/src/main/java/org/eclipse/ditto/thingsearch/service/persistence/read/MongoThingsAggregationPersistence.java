@@ -43,9 +43,9 @@ import org.eclipse.ditto.rql.query.expression.ThingsFieldExpressionFactory;
 import org.eclipse.ditto.rql.query.filter.QueryFilterCriteriaFactory;
 import org.eclipse.ditto.thingsearch.model.signals.commands.query.AggregateThingsMetrics;
 import org.eclipse.ditto.thingsearch.persistence.api.ThingsAggregationPersistence;
-import org.eclipse.ditto.thingsearch.service.common.config.SearchConfig;
-import org.eclipse.ditto.thingsearch.service.common.config.SearchPersistenceConfig;
+import org.eclipse.ditto.thingsearch.persistence.api.config.SearchPersistenceConfig;
 import org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants;
+import org.eclipse.ditto.thingsearch.service.persistence.mongo.MongoSearchConfig;
 import org.eclipse.ditto.thingsearch.service.persistence.read.criteria.visitors.CreateBsonVisitor;
 
 import com.mongodb.client.model.Accumulators;
@@ -92,11 +92,11 @@ public final class MongoThingsAggregationPersistence implements ThingsAggregatio
     }
 
     public static ThingsAggregationPersistence of(final DittoMongoClient mongoClient,
-            final SearchConfig searchConfig, final LoggingAdapter log) {
+            final MongoSearchConfig searchConfig, final LoggingAdapter log) {
         // use the dedicated operator-metrics aggregation persistence config (read preference / read concern) if
         // configured, otherwise fall back to the general query persistence config:
         final Optional<SearchPersistenceConfig> dedicatedPersistenceConfig =
-                searchConfig.getOperatorMetricsConfig().getCustomAggregationMetricsPersistenceConfig();
+                searchConfig.getCustomAggregationMetricsPersistenceConfig();
         final SearchPersistenceConfig persistenceConfig =
                 dedicatedPersistenceConfig.orElseGet(searchConfig::getQueryPersistenceConfig);
         log.info("Aggregation metrics query readConcern=<{}> readPreference=<{}> (configured via <{}>)",

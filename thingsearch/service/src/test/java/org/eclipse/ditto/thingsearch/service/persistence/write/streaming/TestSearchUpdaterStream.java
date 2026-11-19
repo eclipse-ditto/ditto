@@ -30,9 +30,10 @@ import org.eclipse.ditto.thingsearch.persistence.api.model.Metadata;
 import org.eclipse.ditto.thingsearch.persistence.api.model.ThingDeleteModel;
 import org.eclipse.ditto.thingsearch.persistence.api.write.UpdaterData;
 import org.eclipse.ditto.thingsearch.persistence.api.write.UpdaterResult;
-import org.eclipse.ditto.thingsearch.service.common.config.DefaultPersistenceStreamConfig;
+import org.eclipse.ditto.thingsearch.persistence.api.config.DefaultPersistenceStreamConfig;
 import org.eclipse.ditto.thingsearch.service.persistence.write.mapping.EnforcedThingMapper;
 
+import com.mongodb.WriteConcern;
 import com.mongodb.reactivestreams.client.MongoDatabase;
 import com.typesafe.config.ConfigFactory;
 
@@ -57,7 +58,7 @@ public final class TestSearchUpdaterStream {
             final SearchUpdateMapper searchUpdateMapper) {
 
         final var mongoSearchUpdaterFlow = MongoSearchUpdaterFlow.of(database,
-                DefaultPersistenceStreamConfig.of(ConfigFactory.empty()),
+                DefaultPersistenceStreamConfig.of(ConfigFactory.empty()), WriteConcern.JOURNALED,
                 13
         );
         return new TestSearchUpdaterStream(mongoSearchUpdaterFlow);

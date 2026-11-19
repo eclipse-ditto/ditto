@@ -17,6 +17,7 @@ import java.time.Duration;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.internal.utils.config.KnownConfigValue;
+import org.eclipse.ditto.thingsearch.persistence.api.config.SearchPersistenceConfig;
 
 /**
  * Provides the configuration settings for the search updating functionality.

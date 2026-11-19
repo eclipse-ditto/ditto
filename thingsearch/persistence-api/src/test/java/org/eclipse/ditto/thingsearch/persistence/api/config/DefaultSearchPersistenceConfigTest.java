@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.thingsearch.service.common.config;
+package org.eclipse.ditto.thingsearch.persistence.api.config;
 
 import org.assertj.core.api.JUnitSoftAssertions;
 import org.eclipse.ditto.base.service.config.ThrottlingConfig;
@@ -98,6 +98,55 @@ public final class DefaultSearchPersistenceConfigTest {
         softly.assertThat(underTest.readConcern())
                 .as("read concern falls back to its default")
                 .isEqualTo(ReadConcern.DEFAULT);
+    }
+
+    @Test
+    public void ofBlockInheritingTakesMissingReadConcernFromInherited() {
+        final SearchPersistenceConfig underTest = DefaultSearchPersistenceConfig.ofBlockInheriting(
+                ConfigFactory.parseString("readPreference = secondary"),
+                inherited(ReadPreference.NEAREST, ReadConcern.LINEARIZABLE));
+
+        softly.assertThat(underTest.readPreference()).as("named by the block").isEqualTo(ReadPreference.SECONDARY);
+        softly.assertThat(underTest.readConcern()).as("inherited").isEqualTo(ReadConcern.LINEARIZABLE);
+    }
+
+    @Test
+    public void ofBlockInheritingTakesMissingReadPreferenceFromInherited() {
+        final SearchPersistenceConfig underTest = DefaultSearchPersistenceConfig.ofBlockInheriting(
+                ConfigFactory.parseString("readConcern = majority"),
+                inherited(ReadPreference.NEAREST, ReadConcern.LINEARIZABLE));
+
+        softly.assertThat(underTest.readPreference()).as("inherited").isEqualTo(ReadPreference.NEAREST);
+        softly.assertThat(underTest.readConcern()).as("named by the block").isEqualTo(ReadConcern.MAJORITY);
+    }
+
+    @Test
+    public void ofBlockInheritingBlockValuesWin() {
+        final SearchPersistenceConfig underTest = DefaultSearchPersistenceConfig.ofBlockInheriting(
+                ConfigFactory.parseString("readPreference = secondaryPreferred\nreadConcern = available"),
+                inherited(ReadPreference.NEAREST, ReadConcern.LINEARIZABLE));
+
+        softly.assertThat(underTest.readPreference()).isEqualTo(ReadPreference.SECONDARY_PREFERRED);
+        softly.assertThat(underTest.readConcern()).isEqualTo(ReadConcern.AVAILABLE);
+    }
+
+    @Test
+    public void ofBlockInheritingEmptyBlockEqualsInheritedReadSettings() {
+        final SearchPersistenceConfig underTest = DefaultSearchPersistenceConfig.ofBlockInheriting(
+                ConfigFactory.empty(), inherited(ReadPreference.NEAREST, ReadConcern.LINEARIZABLE));
+
+        softly.assertThat(underTest.readPreference()).isEqualTo(ReadPreference.NEAREST);
+        softly.assertThat(underTest.readConcern()).isEqualTo(ReadConcern.LINEARIZABLE);
+        softly.assertThat(underTest.getPolicyModificationCausedSearchIndexUpdateThrottling())
+                .as("throttling is not inherited")
+                .isEqualTo(ThrottlingConfig.of(ConfigFactory.empty()));
+    }
+
+    private static SearchPersistenceConfig inherited(final ReadPreference readPreference,
+            final ReadConcern readConcern) {
+        return DefaultSearchPersistenceConfig.ofScopedConfig(ConfigFactory.parseString(
+                "readPreference = " + readPreference.getName() + "\nreadConcern = " + readConcern.getName() +
+                        "\nthrottling.limit = 7"));
     }
 
 }

@@ -10,48 +10,43 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.thingsearch.service.common.config;
+package org.eclipse.ditto.thingsearch.persistence.api.config;
+
+import java.time.Duration;
 
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.base.service.config.supervision.ExponentialBackOffConfig;
 import org.eclipse.ditto.internal.utils.config.KnownConfigValue;
 
 /**
- * Provides configuration settings of stream stages.
+ * Provides configuration settings of the persistence stream.
  */
 @Immutable
-public interface StreamStageConfig {
+public interface PersistenceStreamConfig extends StreamStageConfig {
 
     /**
-     * Returns the amount of maximum parallel operations to perform.
+     * Returns the delay between DB acknowledgement and sending "search-persisted" acknowledgement.
      *
-     * @return the amount.
+     * @return the delay.
      */
-    int getParallelism();
-
-    /**
-     * Returns the config for the back-offs in case of failure.
-     *
-     * @return the config.
-     */
-    ExponentialBackOffConfig getExponentialBackOffConfig();
+    Duration getAckDelay();
 
     /**
      * An enumeration of known config path expressions and their associated default values for
-     * {@code StreamStageConfig}.
+     * {@code PersistenceStreamConfig}.
+     * This enumeration is a logical extension of {@link StreamStageConfig.StreamStageConfigValue}.
      */
-    enum StreamStageConfigValue implements KnownConfigValue {
+    enum PersistenceStreamConfigValue implements KnownConfigValue {
 
         /**
-         * Must be a power of two.
+         * Internal delay between acknowledgement from database and the sending of "search-persisted" acknowledgements.
          */
-        PARALLELISM("parallelism", 16);
+        ACK_DELAY("ack-delay", Duration.ZERO);
 
         private final String configPath;
         private final Object defaultValue;
 
-        StreamStageConfigValue(final String configPath, final Object defaultValue) {
+        PersistenceStreamConfigValue(final String configPath, final Object defaultValue) {
             this.configPath = configPath;
             this.defaultValue = defaultValue;
         }

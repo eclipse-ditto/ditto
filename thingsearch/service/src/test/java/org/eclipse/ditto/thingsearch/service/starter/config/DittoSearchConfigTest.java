@@ -17,6 +17,7 @@ import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.internal.utils.persistence.api.config.ReadConcern;
 import org.eclipse.ditto.internal.utils.persistence.api.config.ReadPreference;
+import org.eclipse.ditto.thingsearch.persistence.api.config.DefaultSearchPersistenceConfig;
 import org.eclipse.ditto.thingsearch.service.common.config.DittoSearchConfig;
 import org.junit.Test;
 
@@ -44,6 +45,15 @@ public final class DittoSearchConfigTest {
         final var queryPersistenceConfig = underTest.getQueryPersistenceConfig();
         assertThat(queryPersistenceConfig.readConcern()).isEqualTo(ReadConcern.LINEARIZABLE);
         assertThat(queryPersistenceConfig.readPreference()).isEqualTo(ReadPreference.NEAREST);
+    }
+
+    @Test
+    public void buildsWithoutMongoDbBlock() {
+        final var underTest =
+                DittoSearchConfig.of(DefaultScopedConfig.dittoScoped(ConfigFactory.parseString("ditto.search {}")));
+
+        assertThat(underTest.getQueryPersistenceConfig())
+                .isEqualTo(DefaultSearchPersistenceConfig.of(ConfigFactory.empty()));
     }
 
 }

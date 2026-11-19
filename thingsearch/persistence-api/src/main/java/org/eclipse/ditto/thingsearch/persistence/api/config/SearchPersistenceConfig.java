@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.thingsearch.service.common.config;
+package org.eclipse.ditto.thingsearch.persistence.api.config;
 
 import javax.annotation.concurrent.Immutable;
 
@@ -53,12 +53,12 @@ public interface SearchPersistenceConfig {
     enum ConfigValue implements KnownConfigValue {
 
         /**
-         * Determines the read preference used for MongoDB connections. See {@link ReadPreference} for available options.
+         * Determines the read preference used for queries. See {@link ReadPreference} for available options.
          */
         READ_PREFERENCE("readPreference", "primaryPreferred"),
 
         /**
-         * Determines the read concern used for MongoDB connections. See {@link ReadConcern} for available options.
+         * Determines the read concern used for queries. See {@link ReadConcern} for available options.
          */
         READ_CONCERN("readConcern", "default");
 

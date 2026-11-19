@@ -40,7 +40,7 @@ import org.eclipse.ditto.policies.api.PolicyTag;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.thingsearch.api.PolicyReferenceTag;
-import org.eclipse.ditto.thingsearch.service.common.config.SearchPersistenceConfig;
+import org.eclipse.ditto.thingsearch.persistence.api.config.SearchPersistenceConfig;
 import org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants;
 import org.eclipse.ditto.thingsearch.persistence.api.ThingsSearchUpdaterPersistence;
 import org.eclipse.ditto.thingsearch.service.persistence.write.model.AbstractWriteModel;

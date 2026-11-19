@@ -18,6 +18,8 @@ import java.util.Objects;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.internal.utils.config.ConfigWithFallback;
+import org.eclipse.ditto.thingsearch.persistence.api.config.DefaultSearchPersistenceConfig;
+import org.eclipse.ditto.thingsearch.persistence.api.config.SearchPersistenceConfig;
 
 import com.typesafe.config.Config;
 

@@ -14,8 +14,13 @@ package org.eclipse.ditto.thingsearch.service.common.config;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import java.util.Map;
+
 import org.assertj.core.api.JUnitSoftAssertions;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
+import org.eclipse.ditto.thingsearch.persistence.api.config.CustomSearchIndexConfig;
+import org.eclipse.ditto.thingsearch.persistence.api.config.CustomSearchIndexFieldConfig;
+import org.eclipse.ditto.thingsearch.persistence.api.config.DefaultCustomSearchIndexConfig;
 import org.junit.Rule;
 import org.junit.Test;
 
@@ -37,7 +42,6 @@ public final class DefaultCustomSearchIndexConfigTest {
 
         softly.assertThat(underTest.getCustomIndexes()).isNotNull();
         softly.assertThat(underTest.getCustomIndexes()).isEmpty();
-        softly.assertThat(underTest.getCustomIndexesAsIndices()).isEmpty();
     }
 
     @Test
@@ -81,22 +85,37 @@ public final class DefaultCustomSearchIndexConfigTest {
     }
 
     @Test
-    public void customIndexesAreConvertedToIndices() {
-        final Config searchConfig = ConfigFactory.load("custom-search-index-test");
-        final DittoSearchConfig underTest = DittoSearchConfig.of(DefaultScopedConfig.dittoScoped(searchConfig));
+    public void allOfKeepsOrderAndRejectsEmptyFields() {
+        final var ordered = ConfigFactory.parseString("""
+                zeta { fields = [ { name = "a" } ] }
+                alpha { fields = [ { name = "b", direction = "DESC" } ] }
+                mid { fields = [ { name = "c" } ] }
+                """).root();
 
-        final var indices = underTest.getCustomIndexesAsIndices();
-        softly.assertThat(indices).hasSize(3);
+        final Map<String, CustomSearchIndexConfig> underTest = DefaultCustomSearchIndexConfig.allOf(ordered);
 
-        // Verify the first index
-        final var firstMongo = indices.stream()
-                .filter(idx -> idx.getName().equals("my_custom_idx"))
-                .findFirst()
-                .orElseThrow();
-        softly.assertThat(firstMongo.getKeys().containsKey("t.attributes.region")).isTrue();
-        softly.assertThat(firstMongo.getKeys().containsKey("t.attributes.timestamp")).isTrue();
-        softly.assertThat(firstMongo.getKeys().getInt32("t.attributes.region").getValue()).isEqualTo(1); // ASC
-        softly.assertThat(firstMongo.getKeys().getInt32("t.attributes.timestamp").getValue()).isEqualTo(-1); // DESC
+        // the entry order of the ConfigObject (typesafe config's entrySet() does not keep the source order) is kept:
+        softly.assertThat(underTest.keySet())
+                .containsExactlyElementsOf(ordered.entrySet().stream().map(Map.Entry::getKey).toList());
+        softly.assertThat(underTest.get("alpha").getName()).isEqualTo("alpha");
+        softly.assertThat(underTest.get("alpha").getFields().get(0).getDirection())
+                .isEqualTo(CustomSearchIndexFieldConfig.Direction.DESC);
+        softly.assertThatThrownBy(() -> underTest.put("other", underTest.get("mid")))
+                .as("unmodifiable")
+                .isInstanceOf(UnsupportedOperationException.class);
+
+        final var withEmpty = ConfigFactory.parseString("""
+                control { fields = [ { name = "a" } ] }
+                broken { fields = [] }
+                """).root();
+        softly.assertThatThrownBy(() -> DefaultCustomSearchIndexConfig.allOf(withEmpty))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("'broken' must have at least one field");
+        softly.assertThat(DefaultCustomSearchIndexConfig.allOf(ConfigFactory.parseString("""
+                control { fields = [ { name = "a" } ] }
+                """).root()))
+                .as("control entry parses")
+                .containsOnlyKeys("control");
     }
 
     @Test

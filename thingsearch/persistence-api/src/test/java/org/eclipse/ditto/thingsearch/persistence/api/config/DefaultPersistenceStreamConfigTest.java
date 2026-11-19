@@ -10,9 +10,9 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.thingsearch.service.common.config;
+package org.eclipse.ditto.thingsearch.persistence.api.config;
 
-import static org.eclipse.ditto.thingsearch.service.common.config.PersistenceStreamConfig.PersistenceStreamConfigValue;
+import static org.eclipse.ditto.thingsearch.persistence.api.config.PersistenceStreamConfig.PersistenceStreamConfigValue;
 
 import java.time.Duration;
 
@@ -22,7 +22,6 @@ import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
 
-import com.mongodb.WriteConcern;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 
@@ -65,11 +64,6 @@ public final class DefaultPersistenceStreamConfigTest {
         softly.assertThat(underTest.getExponentialBackOffConfig())
                 .as("exponential-backoff")
                 .isEqualTo(DefaultExponentialBackOffConfig.of(ConfigFactory.empty()));
-
-        softly.assertThat(underTest.getWithAcknowledgementsWriteConcern())
-                .as(PersistenceStreamConfigValue.WITH_ACKS_WRITE_CONCERN.getConfigPath())
-                .isEqualTo(WriteConcern.valueOf(
-                        (String) PersistenceStreamConfigValue.WITH_ACKS_WRITE_CONCERN.getDefaultValue()));
     }
 
     @Test
@@ -88,10 +82,6 @@ public final class DefaultPersistenceStreamConfigTest {
                 .as("exponential-backoff")
                 .isEqualTo(DefaultExponentialBackOffConfig.of(
                         config.getConfig(DefaultPersistenceStreamConfig.CONFIG_PATH)));
-
-        softly.assertThat(underTest.getWithAcknowledgementsWriteConcern())
-                .as(PersistenceStreamConfigValue.WITH_ACKS_WRITE_CONCERN.getConfigPath())
-                .isEqualTo(WriteConcern.MAJORITY);
     }
 
 }

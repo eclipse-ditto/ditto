@@ -16,6 +16,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import org.eclipse.ditto.internal.utils.persistence.api.config.ReadConcern;
 import org.eclipse.ditto.internal.utils.persistence.api.config.ReadPreference;
+import org.eclipse.ditto.thingsearch.persistence.api.config.DefaultSearchPersistenceConfig;
+import org.eclipse.ditto.thingsearch.persistence.api.config.SearchPersistenceConfig;
 import org.junit.Test;
 
 import com.typesafe.config.Config;

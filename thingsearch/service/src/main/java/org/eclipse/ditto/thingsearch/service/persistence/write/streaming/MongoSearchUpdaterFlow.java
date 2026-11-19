@@ -12,6 +12,8 @@
  */
 package org.eclipse.ditto.thingsearch.service.persistence.write.streaming;
 
+import static java.util.Objects.requireNonNull;
+
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
@@ -32,7 +34,7 @@ import org.eclipse.ditto.thingsearch.persistence.api.write.SearchWriteError;
 import org.eclipse.ditto.thingsearch.persistence.api.write.SearchWriteResult;
 import org.eclipse.ditto.thingsearch.persistence.api.write.UpdaterData;
 import org.eclipse.ditto.thingsearch.persistence.api.write.UpdaterResult;
-import org.eclipse.ditto.thingsearch.service.common.config.PersistenceStreamConfig;
+import org.eclipse.ditto.thingsearch.persistence.api.config.PersistenceStreamConfig;
 import org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants;
 import org.eclipse.ditto.thingsearch.service.persistence.write.mapping.SearchIndexDocumentMongoEncoder;
 import org.eclipse.ditto.thingsearch.service.persistence.write.model.WriteResultAndErrors;
@@ -40,6 +42,7 @@ import org.eclipse.ditto.thingsearch.service.updater.actors.MongoWriteModel;
 
 import com.mongodb.ErrorCategory;
 import com.mongodb.MongoBulkWriteException;
+import com.mongodb.WriteConcern;
 import com.mongodb.bulk.BulkWriteError;
 import com.mongodb.bulk.BulkWriteResult;
 import com.mongodb.client.model.BulkWriteOptions;
@@ -76,10 +79,9 @@ public final class MongoSearchUpdaterFlow implements SearchUpdaterFlow {
     private final int maxWireVersion;
 
     private MongoSearchUpdaterFlow(final MongoCollection<BsonDocument> collection,
-            final PersistenceStreamConfig persistenceConfig,
+            final WriteConcern writeConcern,
             final int maxWireVersion) {
 
-        final var writeConcern = persistenceConfig.getWithAcknowledgementsWriteConcern();
         LOGGER.info("Update writeConcern=<{}>", writeConcern);
         this.collection = collection.withWriteConcern(writeConcern);
         this.maxWireVersion = maxWireVersion;
@@ -90,16 +92,19 @@ public final class MongoSearchUpdaterFlow implements SearchUpdaterFlow {
      *
      * @param database the MongoDB database.
      * @param persistenceConfig the persistence configuration for the search updater stream.
+     * @param withAcksWriteConcern the write concern to use for search index updates requiring acknowledgements.
      * @param maxWireVersion the Mongo max wire version, used to select the incremental-update representation.
      * @return the MongoSearchUpdaterFlow object.
      */
     public static MongoSearchUpdaterFlow of(final MongoDatabase database,
             final PersistenceStreamConfig persistenceConfig,
+            final WriteConcern withAcksWriteConcern,
             final int maxWireVersion) {
 
+        requireNonNull(persistenceConfig, "persistenceConfig");
         return new MongoSearchUpdaterFlow(
                 database.getCollection(PersistenceConstants.THINGS_COLLECTION_NAME, BsonDocument.class),
-                persistenceConfig,
+                requireNonNull(withAcksWriteConcern, "withAcksWriteConcern"),
                 maxWireVersion
         );
     }

@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.thingsearch.service.common.config;
+package org.eclipse.ditto.thingsearch.persistence.api.config;
 
 import javax.annotation.concurrent.Immutable;
 

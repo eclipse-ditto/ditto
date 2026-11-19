@@ -10,9 +10,12 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.thingsearch.service.common.config;
+package org.eclipse.ditto.thingsearch.persistence.api.config;
+
+import static java.util.Objects.requireNonNull;
 
 import java.text.MessageFormat;
+import java.util.Map;
 import java.util.Objects;
 
 import javax.annotation.concurrent.Immutable;
@@ -22,9 +25,9 @@ import org.eclipse.ditto.internal.utils.config.ConfigWithFallback;
 import org.eclipse.ditto.internal.utils.config.DittoConfigError;
 import org.eclipse.ditto.internal.utils.persistence.api.config.ReadConcern;
 import org.eclipse.ditto.internal.utils.persistence.api.config.ReadPreference;
-import org.eclipse.ditto.internal.utils.persistence.mongo.config.MongoDbConfig;
 
 import com.typesafe.config.Config;
+import com.typesafe.config.ConfigFactory;
 
 /**
  * This class is the default implementation of {@link SearchPersistenceConfig}.
@@ -41,7 +44,7 @@ public final class DefaultSearchPersistenceConfig implements SearchPersistenceCo
 
     private DefaultSearchPersistenceConfig(final ConfigWithFallback config) {
         final var readPreferenceString =
-                config.getString(MongoDbConfig.OptionsConfig.OptionsConfigValue.READ_PREFERENCE.getConfigPath());
+                config.getString(ConfigValue.READ_PREFERENCE.getConfigPath());
         readPreference = ReadPreference.ofReadPreference(readPreferenceString)
                 .orElseThrow(() -> {
                     final String msg =
@@ -50,7 +53,7 @@ public final class DefaultSearchPersistenceConfig implements SearchPersistenceCo
                     return new DittoConfigError(msg);
                 });
         final var readConcernString =
-                config.getString(MongoDbConfig.OptionsConfig.OptionsConfigValue.READ_CONCERN.getConfigPath());
+                config.getString(ConfigValue.READ_CONCERN.getConfigPath());
         readConcern = ReadConcern.ofReadConcern(readConcernString)
                 .orElseThrow(() -> {
                     final String msg =
@@ -87,6 +90,29 @@ public final class DefaultSearchPersistenceConfig implements SearchPersistenceCo
     public static DefaultSearchPersistenceConfig ofScopedConfig(final Config scopedConfig) {
         return new DefaultSearchPersistenceConfig(
                 ConfigWithFallback.newInstance(scopedConfig, ConfigValue.values()));
+    }
+
+    /**
+     * Returns an instance of DefaultSearchPersistenceConfig based on the specified already scoped persistence block,
+     * taking the read preference and read concern which the block does not specify from {@code inherited} instead of
+     * from the {@code ConfigValue} defaults. All other settings (e.g. the throttling) are not inherited and fall back
+     * to their defaults.
+     *
+     * @param block the Config directly providing the persistence settings of the block.
+     * @param inherited the persistence config whose read settings are inherited by the block.
+     * @return the instance.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @throws DittoConfigError if the resulting config is invalid.
+     */
+    public static DefaultSearchPersistenceConfig ofBlockInheriting(final Config block,
+            final SearchPersistenceConfig inherited) {
+
+        requireNonNull(block, "block");
+        requireNonNull(inherited, "inherited");
+        final Config inheritedReadSettings = ConfigFactory.parseMap(Map.of(
+                ConfigValue.READ_PREFERENCE.getConfigPath(), inherited.readPreference().getName(),
+                ConfigValue.READ_CONCERN.getConfigPath(), inherited.readConcern().getName()));
+        return ofScopedConfig(block.withFallback(inheritedReadSettings));
     }
 
 

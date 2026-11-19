@@ -18,6 +18,8 @@ import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.internal.utils.cacheloaders.config.AskWithRetryConfig;
 import org.eclipse.ditto.internal.utils.config.KnownConfigValue;
+import org.eclipse.ditto.thingsearch.persistence.api.config.PersistenceStreamConfig;
+import org.eclipse.ditto.thingsearch.persistence.api.config.StreamStageConfig;
 
 /**
  * Provides streaming configuration settings of the Search service.

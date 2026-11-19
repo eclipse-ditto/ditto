@@ -34,13 +34,13 @@ import org.eclipse.ditto.policies.model.Subject;
 import org.eclipse.ditto.policies.model.SubjectType;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingId;
+import org.eclipse.ditto.thingsearch.persistence.api.config.DefaultPersistenceStreamConfig;
 import org.eclipse.ditto.thingsearch.persistence.api.model.AbstractWriteModel;
 import org.eclipse.ditto.thingsearch.persistence.api.model.ThingDeleteModel;
 import org.eclipse.ditto.thingsearch.persistence.api.model.ThingWriteModel;
 import org.eclipse.ditto.thingsearch.persistence.api.write.SearchWriteResultStatus;
 import org.eclipse.ditto.thingsearch.persistence.api.write.UpdaterData;
 import org.eclipse.ditto.thingsearch.persistence.api.write.UpdaterResult;
-import org.eclipse.ditto.thingsearch.service.common.config.DefaultPersistenceStreamConfig;
 import org.eclipse.ditto.thingsearch.service.persistence.AbstractThingSearchPersistenceITBase;
 import org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants;
 import org.eclipse.ditto.thingsearch.service.persistence.write.mapping.EnforcedThingMapper;
@@ -49,6 +49,7 @@ import org.eclipse.ditto.thingsearch.service.persistence.write.streaming.MongoSe
 import org.junit.Before;
 import org.junit.Test;
 
+import com.mongodb.WriteConcern;
 import com.mongodb.client.model.Filters;
 import com.mongodb.reactivestreams.client.MongoCollection;
 import com.typesafe.config.ConfigFactory;
@@ -79,7 +80,7 @@ public final class MongoThingsSearchPersistenceRecoveryIT extends AbstractThingS
         bsonCollection = mongoClient.getDefaultDatabase()
                 .getCollection(PersistenceConstants.THINGS_COLLECTION_NAME, BsonDocument.class);
         flow = MongoSearchUpdaterFlow.of(mongoClient.getDefaultDatabase(),
-                DefaultPersistenceStreamConfig.of(ConfigFactory.empty()), 13);
+                DefaultPersistenceStreamConfig.of(ConfigFactory.empty()), WriteConcern.JOURNALED, 13);
     }
 
     @Test

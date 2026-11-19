@@ -16,19 +16,20 @@ import java.time.Duration;
 
 import org.apache.pekko.actor.ActorSystem;
 import org.eclipse.ditto.base.service.config.limits.DefaultLimitsConfig;
-import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.internal.utils.persistence.mongo.DittoMongoClient;
 import org.eclipse.ditto.internal.utils.persistence.mongo.MongoClientWrapper;
 import org.eclipse.ditto.internal.utils.test.docker.mongo.MongoDbResource;
 import org.eclipse.ditto.rql.query.QueryBuilderFactory;
 import org.eclipse.ditto.thingsearch.persistence.api.ThingsSearchPersistence;
 import org.eclipse.ditto.thingsearch.persistence.api.write.SearchUpdaterFlow;
-import org.eclipse.ditto.thingsearch.service.common.config.DefaultPersistenceStreamConfig;
-import org.eclipse.ditto.thingsearch.service.common.config.DittoSearchConfig;
+import org.eclipse.ditto.thingsearch.persistence.api.config.DefaultPersistenceStreamConfig;
+import org.eclipse.ditto.thingsearch.persistence.api.config.DefaultSearchPersistenceConfig;
+import org.eclipse.ditto.thingsearch.service.persistence.mongo.MongoSearchConfig;
 import org.eclipse.ditto.thingsearch.service.persistence.read.MongoThingsSearchPersistence;
 import org.eclipse.ditto.thingsearch.service.persistence.read.query.MongoQueryBuilderFactory;
 import org.eclipse.ditto.thingsearch.service.persistence.write.streaming.MongoSearchUpdaterFlow;
 
+import com.mongodb.WriteConcern;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 
@@ -73,16 +74,14 @@ final class MongoParityBackend implements ParityBackend {
                 .connectionPoolMaxWaitTime(Duration.ofSeconds(30))
                 .build();
 
-        final var persistenceConfig =
-                org.eclipse.ditto.thingsearch.service.common.config.DefaultSearchPersistenceConfig.of(
-                        ConfigFactory.empty());
-        final var searchConfig = DittoSearchConfig.of(DefaultScopedConfig.dittoScoped(config));
+        final var persistenceConfig = DefaultSearchPersistenceConfig.of(ConfigFactory.empty());
+        final var searchConfig = MongoSearchConfig.of(config);
         final var persistence = new MongoThingsSearchPersistence(client, system, persistenceConfig, searchConfig);
         // create the production indices (incl. the wildcard index) before any data is written, as the service does
         persistence.initializeIndices(searchConfig.getIndexInitializationConfig()).toCompletableFuture().join();
 
         final var flow = MongoSearchUpdaterFlow.of(client.getDefaultDatabase(),
-                DefaultPersistenceStreamConfig.of(ConfigFactory.empty()), MAX_WIRE_VERSION);
+                DefaultPersistenceStreamConfig.of(ConfigFactory.empty()), WriteConcern.JOURNALED, MAX_WIRE_VERSION);
         final var qbf = new MongoQueryBuilderFactory(DefaultLimitsConfig.of(config.getConfig("ditto")));
         return new MongoParityBackend(client, persistence, flow, qbf);
     }
