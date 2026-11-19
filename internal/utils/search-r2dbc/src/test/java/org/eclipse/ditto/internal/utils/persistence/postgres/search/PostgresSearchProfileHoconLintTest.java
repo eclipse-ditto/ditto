@@ -40,8 +40,8 @@ import com.typesafe.config.ConfigUtil;
  * </p>
  * <h3>Config loading — real files, not copies</h3>
  * {@code postgres-search-lint-test.conf} (this module's test resources) is the only test-owned file, and it contains
- * nothing but three {@code include classpath(...)} directives (later wins), the opt-in profile last as in the
- * service's {@code search-pg-dev.conf}:
+ * nothing but three {@code include classpath(...)} directives, in the SAME order (later wins) as a search service
+ * whose fixed-name {@code ditto-search-backend} include resolves to the PostgreSQL search profile:
  * <ol>
  *     <li>{@code include classpath("ditto-service-base")} — the REAL common service-base layer that
  *     {@code RawConfigSupplier} puts under every service configuration; it defaults the {@code ditto.mongodb} values

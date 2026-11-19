@@ -124,12 +124,12 @@ start_pg_service things \
   "${OVERLAY_DIR}/things-postgres.conf"
 
 echo "Starting Connectivity (Postgres) ..."
-# connectivity-pg-dev.conf is the committed dev profile shipped in the connectivity service sources; it joins
-# the Policies-founded cluster at 2552 like the other overlays.
+# connectivity-postgres.conf layers connectivity-dev only; it joins the Policies-founded cluster at 2552 like the
+# other overlays, and the prepended PostgreSQL JARs select the backend.
 start_pg_service connectivity \
   "connectivity/service/target/ditto-connectivity-service-0-SNAPSHOT-allinone.jar" \
   org.eclipse.ditto.connectivity.service.ConnectivityService \
-  "${REPO_ROOT}/connectivity/service/src/main/resources/connectivity-pg-dev.conf"
+  "${OVERLAY_DIR}/connectivity-postgres.conf"
 
 echo "Starting Gateway (dev, pre-auth, CORS for the local UI) ..."
 HOSTING_ENVIRONMENT="" start_dev_service gateway \
@@ -138,9 +138,10 @@ HOSTING_ENVIRONMENT="" start_dev_service gateway \
   "ENABLE_PRE_AUTHENTICATION=true" "DEVOPS_SECURED=false" "ENABLE_CORS=true"
 
 echo "Starting Things-Search (Postgres) ..."
-# search-postgres.conf = search-dev + the opt-in ditto-postgres-search include (provider swap + shared client
-# config). The search-r2dbc jar + deps are prepended INSTEAD of persistence-r2dbc — deliberately: the search
-# service needs no event-sourcing journal plugins, only the search backend + postgres-client + r2dbc stack.
+# search-postgres.conf = search-dev only; search.conf's ditto-search-backend include finds the PostgreSQL search
+# profile in the prepended search-r2dbc jar. The search-r2dbc jar + deps are prepended INSTEAD of persistence-r2dbc
+# — deliberately: the search service needs no event-sourcing journal plugins, only the search backend +
+# postgres-client + r2dbc stack.
 ( common_pg_env
   export HOSTING_ENVIRONMENT=filebased
   export HOSTING_ENVIRONMENT_FILE_LOCATION="${OVERLAY_DIR}/search-postgres.conf"

@@ -19,9 +19,6 @@
       <env name="POLICY_EVENT_HISTORICAL_HEADERS_TO_PERSIST.0" value="ditto-originator" />
       <env name="POLICY_EVENT_HISTORICAL_HEADERS_TO_PERSIST.1" value="correlation-id" />
       <env name="DITTO_TRACING_SAMPLER" value="always" />
-      <!-- Inject the Postgres dev profile (Policies self-seeds as cluster founder at 2552). -->
-      <env name="HOSTING_ENVIRONMENT" value="filebased" />
-      <env name="HOSTING_ENVIRONMENT_FILE_LOCATION" value="$PROJECT_DIR$/policies/service/src/main/resources/policies-pg-dev.conf" />
       <env name="POSTGRES_SSL_MODE" value="disable" />
       <env name="POSTGRES_URI" value="r2dbc:postgresql://localhost:5432/ditto" />
       <env name="POSTGRES_USER" value="ditto" />

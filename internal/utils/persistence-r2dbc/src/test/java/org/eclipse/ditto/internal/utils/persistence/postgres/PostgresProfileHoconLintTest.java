@@ -42,10 +42,11 @@ import com.typesafe.config.ConfigResolveOptions;
 import com.typesafe.config.ConfigUtil;
 
 /**
- * HOCON lint over the effective Postgres pg-dev profiles.
+ * HOCON lint over the effective Postgres dev layer of each service.
  *
- * <p>Loads each service's pg-dev config ({@code things-pg-dev.conf}, {@code policies-pg-dev.conf},
- * {@code connectivity-pg-dev.conf}) and asserts that the Postgres profile is truly "Mongo-free":
+ * <p>Composes each service's dev layer the way a PostgreSQL dev run sees it: {@code ditto-postgres-persistence.conf}
+ * over the service's {@code <svc>-dev.conf} ({@code things-dev.conf}, {@code policies-dev.conf},
+ * {@code connectivity-dev.conf}), and asserts that the Postgres profile is truly "Mongo-free":
  *
  * <ol>
  *   <li><b>Positive anchor</b>: the config DOES contain the Postgres provider class, and the composed
@@ -62,31 +63,31 @@ import com.typesafe.config.ConfigUtil;
  * </ol>
  *
  * <h3>Config loading — real files, not copies</h3>
- * Each pg-dev conf is loaded from the REAL {@code <svc>/service/src/main/resources/<svc>-pg-dev.conf}
+ * Each dev conf is loaded from the REAL {@code <svc>/service/src/main/resources/<svc>-dev.conf}
  * source file, never from a test-resource copy. A URLClassLoader is constructed for each service,
  * rooted at the real {@code <svc>/service/src/main/resources/} directory (with the test class loader
- * as parent). {@code ConfigFactory.load(classLoader, "<svc>-pg-dev")} then:
+ * as parent). Through that class loader:
  * <ul>
- *   <li>Finds {@code <svc>-pg-dev.conf} in the service resources directory.</li>
- *   <li>Resolves {@code include classpath("<svc>-dev")} from the same service directory.</li>
- *   <li>Resolves {@code include classpath("ditto-postgres-persistence")} from the parent class
- *       loader (this module's main resources) — the REAL shared Postgres profile conf (provider
- *       wiring + client/pool/SSL defaults in one file).</li>
+ *   <li>{@code <svc>-dev.conf} is found in the service resources directory (it must exist).</li>
+ *   <li>{@code ditto-postgres-persistence.conf} is found in the parent class loader (this module's
+ *       main resources) — the REAL shared Postgres profile conf (provider wiring + client/pool/SSL
+ *       defaults in one file).</li>
  * </ul>
- * No copies exist in this module's test resources for the pg-dev or *-dev confs.
+ * The profile is layered over the dev conf and the result is resolved like {@code ConfigFactory.load}.
+ * No copies exist in this module's test resources for the *-dev confs.
  *
- * <h3>Absence checks scoped to the pg-dev profile layer</h3>
- * Assertions 1 and 2 (no Mongo class/ID) are checked against the pg-dev profile alone
- * ({@code <svc>-pg-dev.conf} + its includes). The service base conf ({@code <svc>.conf}) defines
- * the Mongo plugin blocks that are active when Postgres is NOT selected — those blocks are not
- * part of the pg-dev override layer and must not be confused with the Postgres profile. The proof
- * is: the pg-dev override layer introduces zero Mongo wiring (the Mongo-free switchability claim
- * applies to the Postgres profile, not to the base service defaults).
+ * <h3>Absence checks scoped to the Postgres dev layer</h3>
+ * Assertions 1 and 2 (no Mongo class/ID) are checked against the dev layer alone
+ * ({@code ditto-postgres-persistence.conf} over {@code <svc>-dev.conf}). The service base conf
+ * ({@code <svc>.conf}) includes the backend profile on the classpath; the MongoDB one is not part of
+ * the Postgres dev layer and must not be confused with it. The proof is: the Postgres dev layer
+ * introduces zero Mongo wiring (the Mongo-free switchability claim applies to the Postgres profile,
+ * not to the base service defaults).
  *
  * <h3>read-journal.entity sourced from real service base conf (not test-injected)</h3>
- * The pg-dev conf includes only {@code <svc>-dev.conf} (dev cluster/HTTP settings), not the full
- * {@code <svc>.conf}. The {@code read-journal.entity} key is set in the real {@code <svc>.conf}
- * (not in any pg-dev override). Assertion 3 reads this value from the REAL
+ * The dev layer holds only {@code <svc>-dev.conf} (dev cluster/HTTP settings) and the profile, not
+ * the full {@code <svc>.conf}. The {@code read-journal.entity} key is set in the real {@code <svc>.conf}
+ * (not in any dev layer). Assertion 3 reads this value from the REAL
  * {@code <svc>/service/src/main/resources/<svc>.conf} file via {@code ConfigFactory.parseFile()}.
  * The value is NOT a hand-typed test constant: if the real conf were missing or wrong, the test
  * would fail, making this a genuine proof of production correctness.
@@ -159,7 +160,7 @@ public final class PostgresProfileHoconLintTest {
                 new Object[]{
                         "things",
                         "things/service/src/main/resources",
-                        "things-pg-dev",
+                        "things-dev",
                         "ditto-postgres-things-journal",
                         "ditto-postgres-things-snapshots",
                         "things",    // expected read-journal entity value (verified against real things.conf)
@@ -168,7 +169,7 @@ public final class PostgresProfileHoconLintTest {
                 new Object[]{
                         "policies",
                         "policies/service/src/main/resources",
-                        "policies-pg-dev",
+                        "policies-dev",
                         "ditto-postgres-policies-journal",
                         "ditto-postgres-policies-snapshots",
                         "policies",
@@ -177,7 +178,7 @@ public final class PostgresProfileHoconLintTest {
                 new Object[]{
                         "connectivity",
                         "connectivity/service/src/main/resources",
-                        "connectivity-pg-dev",
+                        "connectivity-dev",
                         "ditto-postgres-connections-journal",
                         "ditto-postgres-connections-snapshots",
                         "connections",
@@ -193,7 +194,7 @@ public final class PostgresProfileHoconLintTest {
     public String serviceResourcesRelPath;
 
     @Parameterized.Parameter(2)
-    public String pgDevResourceName;
+    public String devResourceName;
 
     @Parameterized.Parameter(3)
     public String expectedJournalId;
@@ -214,7 +215,7 @@ public final class PostgresProfileHoconLintTest {
      *
      * <p>This means:
      * <ul>
-     *   <li>{@code <svc>-pg-dev.conf} and {@code <svc>-dev.conf} resolve from the REAL service
+     *   <li>{@code <svc>-dev.conf} and {@code <svc>.conf} resolve from the REAL service
      *       {@code src/main/resources} directory (not from any test-resource copy).</li>
      *   <li>{@code ditto-postgres-persistence.conf} resolves from the parent class loader
      *       (this module's main resources).</li>
@@ -239,22 +240,21 @@ public final class PostgresProfileHoconLintTest {
     }
 
     /**
-     * Loads the Postgres pg-dev config from the REAL service source files.
-     *
-     * <p>Uses a URLClassLoader rooted at the real service resources directory so that
-     * {@code <svc>-pg-dev.conf} and its {@code include classpath("<svc>-dev")} are resolved from
-     * the actual source tree, not from any test-resource copies.  The shared Postgres profile
-     * conf ({@code ditto-postgres-persistence.conf}) is resolved
-     * from the parent class loader (this module's main resources).
+     * Loads the Postgres dev layer from the REAL source files: {@code ditto-postgres-persistence.conf} over
+     * {@code <svc>-dev.conf}, both read through {@link #buildServiceClassLoader()} and resolved like
+     * {@code ConfigFactory.load}. The dev conf comes from the actual service source tree (it must exist), the shared
+     * Postgres profile conf from the parent class loader (this module's main resources).
      *
      * <p>This config is used for the positive anchor and the Mongo-absence assertions (assertions
-     * 1 and 2).  The service base conf ({@code <svc>.conf}) is NOT included here — it contains the
-     * Mongo plugin definitions that are active when Postgres is NOT selected and must not be
-     * conflated with the Postgres override profile.
+     * 1 and 2).  The service base conf ({@code <svc>.conf}) is NOT included here — it pulls in whichever
+     * backend profile is on the classpath and must not be conflated with the Postgres dev layer.
      */
-    private Config loadPgDevConfig() {
+    private Config loadPostgresDevLayer() {
         final ClassLoader cl = buildServiceClassLoader();
-        return ConfigFactory.load(cl, pgDevResourceName);
+        return ConfigFactory.load(cl,
+                ConfigFactory.parseResources(cl, "ditto-postgres-persistence.conf")
+                        .withFallback(ConfigFactory.parseResources(cl, devResourceName + ".conf",
+                                ConfigParseOptions.defaults().setAllowMissing(false))));
     }
 
     /**
@@ -345,16 +345,16 @@ public final class PostgresProfileHoconLintTest {
     // --------------------------------------------------
 
     /**
-     * Positive anchor (part 1): the loaded pg-dev config DOES carry the Postgres provider class.
+     * Positive anchor (part 1): the loaded Postgres dev layer DOES carry the Postgres provider class.
      * This proves we loaded the Postgres profile and the absence assertions below are non-vacuous.
      */
     @Test
     public void postgresProviderClassIsPresentInEffectiveConfig() {
-        final Config config = loadPgDevConfig();
+        final Config config = loadPostgresDevLayer();
 
         assertThat(config.hasPath(PROVIDER_CLASS_PATH))
-                .as("Postgres provider class path (%s) must be present in %s",
-                        PROVIDER_CLASS_PATH, pgDevResourceName)
+                .as("Postgres provider class path (%s) must be present in the dev layer of %s",
+                        PROVIDER_CLASS_PATH, devResourceName)
                 .isTrue();
         assertThat(config.getString(PROVIDER_CLASS_PATH))
                 .as("Postgres provider class must be the PostgresPersistenceBackendProvider")
@@ -395,7 +395,7 @@ public final class PostgresProfileHoconLintTest {
     // --------------------------------------------------
 
     /**
-     * Assertion 1: no config VALUE in the Postgres pg-dev profile contains the Mongo plugin
+     * Assertion 1: no config VALUE in the Postgres dev layer contains the Mongo plugin
      * class package {@code pekko.contrib.persistence.mongodb}.
      *
      * <p>Walks every resolved config entry by rendering to a concise (comment-free) JSON string
@@ -403,19 +403,19 @@ public final class PostgresProfileHoconLintTest {
      * excludes HOCON comments, which prevents false positives from documentation comments in
      * {@code ditto-postgres-persistence.conf} that mention the Mongo plugin class for reference.
      *
-     * <p>Checked against the pg-dev profile only (not the service base conf), since the base conf
-     * appropriately retains inactive Mongo plugin definitions for when Postgres is NOT selected.
-     * The proof is: the pg-dev override layer itself introduces zero Mongo plugin class wiring.
+     * <p>Checked against the dev layer only (not the service base conf), since the base conf pulls in
+     * whichever backend profile is on the classpath.
+     * The proof is: the Postgres dev layer itself introduces zero Mongo plugin class wiring.
      */
     @Test
     public void noMongoPluginClassStringsInEffectiveConfig() {
-        final Config config = loadPgDevConfig();
+        final Config config = loadPostgresDevLayer();
         // ConfigRenderOptions.concise() renders without comments — prevents false positives from
         // documentation comments in the Postgres profile confs that reference Mongo for contrast.
         final String rendered = config.root().render(ConfigRenderOptions.concise());
 
         assertThat(rendered)
-                .as("[%s] Postgres pg-dev profile must NOT contain Mongo plugin class package '%s' — "
+                .as("[%s] Postgres dev layer must NOT contain Mongo plugin class package '%s' — "
                                 + "a Mongo class would indicate the profile switch is incomplete",
                         serviceName, MONGO_PLUGIN_CLASS_PACKAGE)
                 .doesNotContain(MONGO_PLUGIN_CLASS_PACKAGE);
@@ -426,7 +426,7 @@ public final class PostgresProfileHoconLintTest {
     // --------------------------------------------------
 
     /**
-     * Assertion 2: no config KEY or VALUE in the Postgres pg-dev profile references
+     * Assertion 2: no config KEY or VALUE in the Postgres dev layer references
      * {@code pekko-contrib-mongodb-persistence-} (the Mongo plugin-id naming convention).
      *
      * <p>Uses {@code root().render(ConfigRenderOptions.concise())} which renders all keys and
@@ -435,18 +435,18 @@ public final class PostgresProfileHoconLintTest {
      * ID listed in an auto-start array would be caught, while documentation comments that mention
      * the Mongo IDs for contrast are excluded.
      *
-     * <p>Checked against the pg-dev profile only — see {@link #noMongoPluginClassStringsInEffectiveConfig()}
+     * <p>Checked against the dev layer only — see {@link #noMongoPluginClassStringsInEffectiveConfig()}
      * for the rationale.
      */
     @Test
     public void noMongoPluginIdsInEffectiveConfig() {
-        final Config config = loadPgDevConfig();
+        final Config config = loadPostgresDevLayer();
         // ConfigRenderOptions.concise() renders without comments — prevents false positives from
         // documentation comments in the Postgres profile confs that reference Mongo plugin IDs.
         final String rendered = config.root().render(ConfigRenderOptions.concise());
 
         assertThat(rendered)
-                .as("[%s] Postgres pg-dev profile must NOT reference Mongo plugin IDs with prefix '%s' — "
+                .as("[%s] Postgres dev layer must NOT reference Mongo plugin IDs with prefix '%s' — "
                                 + "Mongo plugin IDs must not appear in the Postgres profile",
                         serviceName, MONGO_PLUGIN_ID_PREFIX)
                 .doesNotContain(MONGO_PLUGIN_ID_PREFIX);
@@ -502,7 +502,7 @@ public final class PostgresProfileHoconLintTest {
      * Pekko's {@code IdentityEventAdapter} and crashes the JSONB write path. Mongo binds the base interface
      * ({@code connectivity.conf}); the Postgres profile must mirror it in all four journal blocks. This assertion is
      * NOT parameterized per-service on purpose: it walks all four blocks directly out of
-     * {@code ditto-postgres-persistence.conf} regardless of which service's pg-dev profile is under test.
+     * {@code ditto-postgres-persistence.conf} regardless of which service's dev layer is under test.
      */
     @Test
     public void everyPostgresJournalBindsTheBaseEventInterface() {
@@ -548,19 +548,19 @@ public final class PostgresProfileHoconLintTest {
     }
 
     /**
-     * Assertion 5, per service: the pg-dev override layer ({@code <svc>-pg-dev.conf} alone, its includes skipped)
-     * sets no {@code pekko.persistence} path, so the narrowing it used to do is gone and the service conf's mapping of
-     * the profile's per-entity keys decides the auto-start lists.
+     * Assertion 5, per service: the dev layer ({@code <svc>-dev.conf} alone, its includes skipped) sets no
+     * {@code pekko.persistence} path, so nothing narrows the auto-start lists and the service conf's mapping of the
+     * profile's per-entity keys decides them.
      */
     @Test
-    public void pgDevLayerSetsNoAutoStartLists() {
+    public void devLayerSetsNoAutoStartLists() {
         final ClassLoader cl = buildServiceClassLoader();
-        assertThat(cl.getResource(pgDevResourceName + ".conf")).as("%s.conf must be found", pgDevResourceName)
+        assertThat(cl.getResource(devResourceName + ".conf")).as("%s.conf must be found", devResourceName)
                 .isNotNull();
-        final Config pgDevLayer = ConfigFactory.parseResources(cl, pgDevResourceName + ".conf",
+        final Config devLayer = ConfigFactory.parseResources(cl, devResourceName + ".conf",
                 ConfigParseOptions.defaults().setAllowMissing(false).setIncluder(noOpIncluder()));
-        assertThat(pgDevLayer.hasPath("pekko.persistence"))
-                .as("%s: the pg-dev layer must not narrow the auto-start lists any more", serviceName)
+        assertThat(devLayer.hasPath("pekko.persistence"))
+                .as("%s: the dev layer must not narrow the auto-start lists", serviceName)
                 .isFalse();
     }
 
@@ -603,16 +603,19 @@ public final class PostgresProfileHoconLintTest {
     }
 
     /**
-     * Assertion 6, per service: the pg-dev override layer ({@code <svc>-pg-dev.conf} with its includes, parsed WITHOUT
-     * reference.conf and the service base conf) sets no {@code remember-entities-store}, so connectivity keeps the
+     * Assertion 6, per service: the dev layer ({@code <svc>-dev.conf} with its includes, parsed WITHOUT reference.conf
+     * and the service base conf) sets no {@code remember-entities-store}, so connectivity keeps the
      * {@code eventsourced} store its base conf declares — no layer switches it to {@code ddata}.
      */
     @Test
-    public void pgDevLayerDoesNotOverrideTheRememberEntitiesStore() {
-        final Config pgDevLayer = ConfigFactory.parseResources(buildServiceClassLoader(), pgDevResourceName)
+    public void devLayerDoesNotOverrideTheRememberEntitiesStore() {
+        final ClassLoader cl = buildServiceClassLoader();
+        assertThat(cl.getResource(devResourceName + ".conf")).as("%s.conf must be found", devResourceName)
+                .isNotNull();
+        final Config devLayer = ConfigFactory.parseResources(cl, devResourceName)
                 .resolve(ConfigResolveOptions.defaults().setAllowUnresolved(true));
-        assertThat(pgDevLayer.hasPath("pekko.cluster.sharding.remember-entities-store"))
-                .as("%s: the pg-dev layer must leave remember-entities-store to the service conf", serviceName)
+        assertThat(devLayer.hasPath("pekko.cluster.sharding.remember-entities-store"))
+                .as("%s: the dev layer must leave remember-entities-store to the service conf", serviceName)
                 .isFalse();
     }
 

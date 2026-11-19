@@ -57,10 +57,8 @@ Postgres wiring. The overlays encode four non-obvious fixes:
    reach the run classpath. The launcher is never shaded or published, so r2dbc stays out of every service image.
    Run *Reload All Maven Projects* after pulling for IntelliJ to pick up the new module. (In IntelliJ the module
    graph also resolves the project's `reactor-core` 3.5.20, so the allinone's old 3.4.x copy is not involved.)
-4. **Narrowed auto-start lists.** The PostgreSQL profile's default `pekko.persistence.*.auto-start-*` lists name
-   the plugins of all four entities; each service's `*-pg-dev.conf` narrows them to its own entity's plugins,
-   because a service defines only its own persistence dispatchers. The operations, streaming and health-check
-   actors come from the backend provider, so no MongoDB setting is needed.
+4. **No auto-start narrowing.** The PostgreSQL profile declares per-entity auto-start keys, and each service conf
+   maps its own entity's keys onto Pekko's auto-start lists, so no overlay narrows anything.
 
 One more knob is passed via env (the service configs already expose it):
 * `POSTGRES_SSL_MODE=disable` — the default SSL mode is `verify-full`; a local plaintext Postgres needs this or
@@ -167,7 +165,8 @@ curl -s -H "$AUTH" http://localhost:8080/api/2/things/org.eclipse.ditto:demo-thi
 ## Step 4 — Things-Search on PostgreSQL (full stack)
 
 `run-compound-postgres.sh` also starts the Things-Search service on the **opt-in PostgreSQL search backend**
-(`search-postgres.conf` = `search-dev` + one top-level `include classpath("ditto-postgres-search")`). The
+(`search-postgres.conf` = `search-dev` only; `search.conf`'s `ditto-search-backend` include picks the
+PostgreSQL search profile from the prepended `search-r2dbc` jar). The
 classpath prepends the `search-r2dbc` module jar + its runtime deps (postgres-client, r2dbc driver stack)
 before the thingsearch allinone — the CLI equivalent of mounting the `ditto-postgres-client-extension` +
 `ditto-postgres-search-extension` JAR pair in `/opt/ditto/extensions/`.

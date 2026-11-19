@@ -74,8 +74,8 @@
         </dependency>
         <!--
             The thing-search service, whose "SearchService (Postgres)" run config points its classpath at this module.
-            Contributes the SearchService main class + search.conf (Mongo-default search-persistence-provider, swapped to
-            the Postgres one by the search-pg-dev.conf overlay).
+            Contributes the SearchService main class + search.conf, whose fixed-name ditto-search-backend include
+            picks the PostgreSQL search provider, since this classpath holds only the PostgreSQL backend.
         -->
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
@@ -83,7 +83,8 @@
         </dependency>
         <!--
             The PostgreSQL persistence backend the run configs need on the classpath: PostgresPersistenceBackendProvider
-            (selected by the *-pg-dev.conf overlay), the Postgres journal/snapshot plugin classes, the
+            (picked by the fixed-name ditto-persistence-backend include of each service conf, since this classpath
+            holds only the PostgreSQL backend), the Postgres journal/snapshot plugin classes, the
             ditto-postgres-persistence.conf profile (provider wiring + client/pool/SSL defaults), and the
             r2dbc-postgresql driver + pool.
         -->
@@ -93,13 +94,25 @@
         </dependency>
         <!--
             The PostgreSQL SEARCH backend the "SearchService (Postgres)" run config needs on the classpath:
-            PostgresSearchPersistenceProvider (selected by the search-pg-dev.conf overlay), the search read/write/
-            aggregation impls, and the ditto-postgres-search.conf profile. The shared ditto-internal-utils-postgres-client
-            (client/pool + r2dbc driver stack) arrives TRANSITIVELY through this dependency — do not list it separately.
+            PostgresSearchPersistenceProvider (picked by the ditto-search-backend include of search.conf), the search
+            read/write/aggregation impls, and the ditto-postgres-search.conf profile. The shared
+            ditto-internal-utils-postgres-client (client/pool + r2dbc driver stack) arrives TRANSITIVELY through this
+            dependency — do not list it separately.
         -->
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-internal-utils-search-r2dbc</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.assertj</groupId>
+            <artifactId>assertj-core</artifactId>
+            <scope>test</scope>
         </dependency>
     </dependencies>
 </project>

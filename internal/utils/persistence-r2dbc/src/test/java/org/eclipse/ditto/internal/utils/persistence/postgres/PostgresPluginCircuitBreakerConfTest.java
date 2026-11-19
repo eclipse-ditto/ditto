@@ -80,15 +80,15 @@ public final class PostgresPluginCircuitBreakerConfTest {
             "internal/utils/persistence/src/main/resources/ditto-mongo-persistence.conf";
 
     /**
-     * Each service: real resources dir, its pg-dev profile, the profile's auto-start entity key and the Postgres
-     * plugins it auto-starts.
+     * Each service: real resources dir, its dev conf, the profile's auto-start entity key and the Postgres plugins it
+     * auto-starts.
      */
     private static final List<ServiceProfile> SERVICES = List.of(
-            new ServiceProfile("things/service/src/main/resources", "things-pg-dev", "things",
+            new ServiceProfile("things/service/src/main/resources", "things-dev", "things",
                     "ditto-postgres-things-journal", "ditto-postgres-things-snapshots"),
-            new ServiceProfile("policies/service/src/main/resources", "policies-pg-dev", "policies",
+            new ServiceProfile("policies/service/src/main/resources", "policies-dev", "policies",
                     "ditto-postgres-policies-journal", "ditto-postgres-policies-snapshots"),
-            new ServiceProfile("connectivity/service/src/main/resources", "connectivity-pg-dev", "connections",
+            new ServiceProfile("connectivity/service/src/main/resources", "connectivity-dev", "connections",
                     "ditto-postgres-connections-journal", "ditto-postgres-connections-snapshots"));
 
     @Rule
@@ -165,21 +165,24 @@ public final class PostgresPluginCircuitBreakerConfTest {
         }
     }
 
-    /** Each service's real Postgres profile (its *-pg-dev.conf) starts its plugins with the Mongo breaker values. */
+    /**
+     * Each service's Postgres dev layer (the profile over its real {@code <svc>-dev.conf}) starts its plugins with the
+     * Mongo breaker values.
+     */
     @Test
     public void eachServicesPostgresProfileStartsItsPluginsWithTheMongoBreakerValues() {
         for (final ServiceProfile service : SERVICES) {
-            final Config config = pgDevConfigWithEnv(service, Map.of());
+            final Config config = postgresDevConfigWithEnv(service, Map.of());
             assertThat(config.getStringList(
                     "ditto.persistence-backend.auto-start." + service.entityKey() + ".journals"))
-                    .as("%s declares its journal for auto-start", service.pgDevResource())
+                    .as("%s declares its journal for auto-start", service.devResource())
                     .containsExactly(service.journal());
             assertBreaker(effectiveBreaker(config, service.journal(), JOURNAL_FALLBACK), service.journal(),
                     5, Duration.ofSeconds(5), Duration.ofSeconds(3));
             assertBreaker(effectiveBreaker(config, service.snapshots(), SNAPSHOT_FALLBACK), service.snapshots(),
                     5, Duration.ofSeconds(10), Duration.ofSeconds(6));
 
-            final Config overridden = pgDevConfigWithEnv(service, ALL_BREAKER_ENV);
+            final Config overridden = postgresDevConfigWithEnv(service, ALL_BREAKER_ENV);
             assertBreaker(effectiveBreaker(overridden, service.journal(), JOURNAL_FALLBACK), service.journal(),
                     7, Duration.ofSeconds(11), Duration.ofSeconds(13));
             assertBreaker(effectiveBreaker(overridden, service.snapshots(), SNAPSHOT_FALLBACK), service.snapshots(),
@@ -261,16 +264,19 @@ public final class PostgresPluginCircuitBreakerConfTest {
     }
 
     /**
-     * The service's real {@code <svc>-pg-dev.conf} (and its {@code <svc>-dev.conf} include) from the service's
-     * resources directory; {@code ditto-postgres-persistence.conf} comes from this module via the parent class loader.
-     * Resolved like {@code ConfigFactory.load}, but with the system environment off.
+     * The env map over {@code ditto-postgres-persistence.conf} (from this module via the parent class loader) over the
+     * service's real {@code <svc>-dev.conf} from the service's resources directory, which must exist. Resolved like
+     * {@code ConfigFactory.load}, but with the system environment off.
      */
-    private static Config pgDevConfigWithEnv(final ServiceProfile service, final Map<String, String> env) {
+    private static Config postgresDevConfigWithEnv(final ServiceProfile service, final Map<String, String> env) {
         final ClassLoader serviceClassLoader = serviceClassLoader(service);
         return ConfigFactory.load(serviceClassLoader,
                 ConfigFactory.parseMap(env)
                         .withFallback(ConfigFactory.parseResources(serviceClassLoader,
-                                service.pgDevResource() + ".conf")),
+                                "ditto-postgres-persistence.conf"))
+                        .withFallback(ConfigFactory.parseResources(serviceClassLoader,
+                                service.devResource() + ".conf",
+                                ConfigParseOptions.defaults().setAllowMissing(false))),
                 ConfigResolveOptions.defaults().setUseSystemEnvironment(false));
     }
 
@@ -285,7 +291,7 @@ public final class PostgresPluginCircuitBreakerConfTest {
         }
     }
 
-    private record ServiceProfile(String resourcesDir, String pgDevResource, String entityKey, String journal,
+    private record ServiceProfile(String resourcesDir, String devResource, String entityKey, String journal,
             String snapshots) {}
 
     /**

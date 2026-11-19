@@ -8,7 +8,7 @@
       <env name="DITTO_TRACING_SAMPLER" value="always" />
     </envs>
     <option name="MAIN_CLASS_NAME" value="org.eclipse.ditto.connectivity.service.ConnectivityService" />
-    <module name="ditto-connectivity-service" />
+    <module name="ditto-ide-mongo-launcher" />
     <option name="VM_PARAMETERS" value="-Xms512m -Xmx512m --add-opens java.base/java.nio=ALL-UNNAMED --add-opens java.base/sun.nio.ch=ALL-UNNAMED --add-opens java.base/sun.security.util=ALL-UNNAMED" />
     <method v="2">
       <option name="Make" enabled="true" />

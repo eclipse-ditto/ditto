@@ -26,8 +26,8 @@ import java.util.Optional;
  * <ul>
  *     <li>the {@code pekko.persistence.journal.auto-start-journals} /
  *     {@code pekko.persistence.snapshot-store.auto-start-snapshot-stores} plugin IDs a given service ships
- *     ({@link #getAutoStartPluginIds(String)}) — consumed by the HOCON drift tests of the {@code *-pg-dev.conf}
- *     overrides and by the PostgreSQL provider's boot-time plugin-wiring check; and</li>
+ *     ({@link #getAutoStartPluginIds(String)}) — consumed by the HOCON drift tests of the PostgreSQL profile
+ *     and by the PostgreSQL provider's boot-time plugin-wiring check; and</li>
  *     <li>the dedicated journal + snapshot plugin IDs of the cluster-sharding {@code remember-entities} event-sourced
  *     store for an entity ({@link #getRememberStorePluginIds(String)}) — consumed by connectivity's sharding
  *     settings. A backend may name none, and the shard region then keeps the plugin IDs of the configuration.</li>

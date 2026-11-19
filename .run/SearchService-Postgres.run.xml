@@ -24,11 +24,8 @@
       <env name="THINGS_SEARCH_UPDATER_STREAM_PERSISTENCE_PARALLELISM" value="4" />
       <env name="THINGS_SEARCH_UPDATER_STREAM_WRITE_INTERVAL" value="1s" />
       <env name="DITTO_TRACING_SAMPLER" value="always" />
-      <!-- Inject the Postgres search dev profile as the highest-priority (FILE_BASED) config layer. Things-Search joins
-           the Policies-founded cluster at 2552 (no seed-nodes override) — launch alongside Policies via the compound
-           "Ditto (Postgres)", or restart this alone against a running Policies. -->
-      <env name="HOSTING_ENVIRONMENT" value="filebased" />
-      <env name="HOSTING_ENVIRONMENT_FILE_LOCATION" value="$PROJECT_DIR$/thingsearch/service/src/main/resources/search-pg-dev.conf" />
+      <!-- Things-Search joins the Policies-founded cluster at 2552 (no seed-nodes override) — launch alongside
+           Policies via the compound "Ditto (Postgres)", or restart this alone against a running Policies. -->
       <!-- Local plaintext Postgres: disable SSL or the pool refuses to connect (default mode is verify-full). -->
       <env name="POSTGRES_SSL_MODE" value="disable" />
       <env name="POSTGRES_URI" value="r2dbc:postgresql://localhost:5432/ditto" />
