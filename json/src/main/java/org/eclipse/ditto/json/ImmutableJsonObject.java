@@ -22,6 +22,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Deque;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -854,16 +855,76 @@ final class ImmutableJsonObject extends AbstractJsonValue implements JsonObject 
                             that.cborBytes, that.cborOffset, that.cborLength)) {
                 return true;
             }
-            // Two JsonObjects with the same field set are equal regardless of insertion
-            // order (Map.equals is set-based). When that returns false, fall back to
-            // comparing the rendered JSON string form: this catches cases where the field
-            // maps hold semantically-equivalent but class-incompatible JsonValue instances
-            // (e.g. NullAttributes vs JsonValue.nullLiteral(), both rendering as "null").
-            // Pre-refactor, the eager CBOR encoding masked this asymmetry because both
-            // null kinds encode to the same byte; the lazy refactor preserves master's
-            // observable equality contract by combining both checks here.
-            return Objects.equals(fields(), that.fields())
-                    || asJsonObjectString().equals(that.asJsonObjectString());
+            // Compared structurally, regardless of field order, and without rendering both objects to JSON strings:
+            // values of different classes which render the same JSON are equal, e.g. NullAttributes and
+            // JsonValue.nullLiteral() or FeatureProperties and a JsonObject with the same fields.
+            return fieldsEqual(fields(), that.fields());
+        }
+
+        private static boolean fieldsEqual(final CompactFieldMap fields, final CompactFieldMap otherFields) {
+            if (fields.size() != otherFields.size()) {
+                return false;
+            }
+            for (final JsonField field : fields.fieldList()) {
+                final JsonField otherField = otherFields.get(field.getKeyName());
+                if (null == otherField || !jsonValuesEqual(field.getValue(), otherField.getValue())) {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        private static boolean jsonValuesEqual(final JsonValue value, final JsonValue otherValue) {
+            if (value == otherValue) {
+                return true;
+            }
+            if (value.isNull() || otherValue.isNull()) {
+                return value.isNull() && otherValue.isNull();
+            }
+            if (value.isObject()) {
+                if (!otherValue.isObject()) {
+                    return false;
+                }
+                if (value instanceof ImmutableJsonObject && otherValue instanceof ImmutableJsonObject) {
+                    return value.equals(otherValue);
+                }
+                return objectsEqual(value.asObject(), otherValue.asObject());
+            }
+            if (value.isArray()) {
+                return otherValue.isArray() && arraysEqual(value.asArray(), otherValue.asArray());
+            }
+            return value.equals(otherValue);
+        }
+
+        // for JsonObjects of other classes, e.g. wrappers of a JsonObject
+        private static boolean objectsEqual(final JsonObject jsonObject, final JsonObject otherJsonObject) {
+            if (jsonObject.getSize() != otherJsonObject.getSize()) {
+                return false;
+            }
+            final Map<String, JsonValue> otherValues = new HashMap<>();
+            for (final JsonField otherField : otherJsonObject) {
+                otherValues.put(otherField.getKeyName(), otherField.getValue());
+            }
+            for (final JsonField field : jsonObject) {
+                final JsonValue otherValue = otherValues.get(field.getKeyName());
+                if (null == otherValue || !jsonValuesEqual(field.getValue(), otherValue)) {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        private static boolean arraysEqual(final JsonArray jsonArray, final JsonArray otherJsonArray) {
+            if (jsonArray.getSize() != otherJsonArray.getSize()) {
+                return false;
+            }
+            final Iterator<JsonValue> otherValues = otherJsonArray.iterator();
+            for (final JsonValue value : jsonArray) {
+                if (!otherValues.hasNext() || !jsonValuesEqual(value, otherValues.next())) {
+                    return false;
+                }
+            }
+            return true;
         }
 
         @Override
