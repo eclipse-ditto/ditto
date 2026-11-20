@@ -17,9 +17,7 @@ import static org.assertj.core.api.Assertions.assertThatNullPointerException;
 
 import java.util.ServiceLoader;
 
-import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.internal.utils.persistence.api.PersistenceBackendBootstrap;
-import org.eclipse.ditto.internal.utils.persistence.mongo.config.DefaultMongoDbConfig;
 import org.junit.Test;
 
 import com.typesafe.config.Config;
@@ -27,10 +25,22 @@ import com.typesafe.config.ConfigFactory;
 
 /**
  * Unit tests for {@link MongoPersistenceBackendBootstrap}.
+ * <p>
+ * The expected URIs are literals captured from the URI code ({@code DefaultMongoDbConfig} and
+ * {@code MongoDbUriSupplier}), which is unchanged since the base of the feature branch. The URI code appends no
+ * auth-related option, so the credentials case pins that credentials and the source query pass through untouched.
+ * The order of the appended options is {@code HashMap} iteration order; it is pinned on purpose.
  */
 public final class MongoPersistenceBackendBootstrapTest {
 
     private static final String MONGO_URI_PATH = "pekko.contrib.persistence.mongodb.mongo.mongouri";
+
+    private static final String PLAIN_URI = "ditto.mongodb.uri = \"mongodb://h:27017/db\"";
+    private static final String CREDENTIALS_URI =
+            "ditto.mongodb.uri = \"mongodb://user:secret@h:27017/db?authSource=admin\"";
+    private static final String SSL = "ditto.mongodb.options.ssl = true";
+    private static final String EXTRA_URI_OPTIONS =
+            "ditto.mongodb.options.extra-uri-options { maxPoolSize = 7, retryWrites = false }";
 
     private static final Config MONGO_CONFIG = ConfigFactory.parseString(String.join("\n",
             "ditto.mongodb.uri = \"mongodb://u:p@h:27017/db\"",
@@ -39,17 +49,33 @@ public final class MongoPersistenceBackendBootstrapTest {
             "ditto.foo = 1"));
 
     @Test
-    public void injectsSameUriAsDefaultMongoDbConfig() {
-        final Config result = new MongoPersistenceBackendBootstrap().adjustRawConfig(MONGO_CONFIG);
+    public void sslOptionIsAppended() {
+        assertThat(injectedUri(PLAIN_URI, SSL)).isEqualTo("mongodb://h:27017/db?ssl=true");
+    }
 
-        final String expected = DefaultMongoDbConfig.of(DefaultScopedConfig.dittoScoped(MONGO_CONFIG)).getMongoDbUri();
-        final String actual = result.getString(MONGO_URI_PATH);
-        assertThat(actual).isEqualTo(expected)
-                .startsWith("mongodb://u:p@h:27017/db?")
-                .contains("ssl=true")
-                .contains("maxPoolSize=7");
+    @Test
+    public void credentialsAndAuthSourcePassThrough() {
+        assertThat(injectedUri(CREDENTIALS_URI))
+                .isEqualTo("mongodb://user:secret@h:27017/db?authSource=admin&ssl=false");
+    }
+
+    @Test
+    public void extraUriOptionsAreAppendedInStableOrder() {
+        assertThat(injectedUri(PLAIN_URI, EXTRA_URI_OPTIONS))
+                .isEqualTo("mongodb://h:27017/db?retryWrites=false&maxPoolSize=7&ssl=false");
+    }
+
+    @Test
+    public void sslCredentialsAndExtraOptionsCombined() {
+        final Config config = ConfigFactory.parseString(String.join("\n", CREDENTIALS_URI, SSL, EXTRA_URI_OPTIONS,
+                "ditto.foo = 1"));
+
+        final Config result = new MongoPersistenceBackendBootstrap().adjustRawConfig(config);
+
+        assertThat(result.getString(MONGO_URI_PATH)).isEqualTo(
+                "mongodb://user:secret@h:27017/db?authSource=admin&retryWrites=false&maxPoolSize=7&ssl=true");
         assertThat(result.getInt("ditto.foo")).isEqualTo(1);
-        assertThat(MONGO_CONFIG.hasPath(MONGO_URI_PATH)).isFalse();
+        assertThat(config.hasPath(MONGO_URI_PATH)).isFalse();
     }
 
     @Test
@@ -82,6 +108,11 @@ public final class MongoPersistenceBackendBootstrapTest {
     public void rejectsNullConfig() {
         assertThatNullPointerException()
                 .isThrownBy(() -> new MongoPersistenceBackendBootstrap().adjustRawConfig(null));
+    }
+
+    private static String injectedUri(final String... configLines) {
+        final Config config = ConfigFactory.parseString(String.join("\n", configLines));
+        return new MongoPersistenceBackendBootstrap().adjustRawConfig(config).getString(MONGO_URI_PATH);
     }
 
 }

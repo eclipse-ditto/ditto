@@ -140,6 +140,20 @@
             <scope>test</scope>
             <type>test-jar</type>
         </dependency>
+        <!-- PostgreSQL, TEST SCOPE ONLY: golden replay of PostgreSQL journal rows through the real adapters
+             (the *PostgresEventAdapterGoldenTest classes). Test scope never ships in the allinone; the enforcer
+             below bans every other scope, and the ArchUnit rule PersistenceBoundaryArchTest keeps PostgreSQL types
+             out of this module's MAIN code. -->
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-internal-utils-persistence-r2dbc</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-internal-utils-postgres-client</artifactId>
+            <scope>test</scope>
+        </dependency>
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-base-model</artifactId>
@@ -250,7 +264,14 @@
                         The r2dbc persistence module and its shaded extension jar must NEVER leak into a
                         service allinone. PostgreSQL support ships as a separate drop-in extension jar; the
                         service images stay Mongo-only by default. This guard fails the build if anyone adds
-                        ditto-internal-utils-persistence-r2dbc(-extension) as a dependency of this service.
+                        ditto-internal-utils-persistence-r2dbc(-extension) as a compile, runtime or provided
+                        dependency of this service: compile and runtime scope would leak r2dbc into the service
+                        allinone (the shade plugin resolves runtime scope), provided scope would let this
+                        module's main code compile against PostgreSQL types. TEST scope is exempt (the
+                        <includes> below): it never ships, and it carries the golden replay of PostgreSQL journal
+                        rows through the real adapters (the *PostgresEventAdapterGoldenTest classes).
+                        PersistenceBoundaryArchTest keeps PostgreSQL types out of this module's MAIN code
+                        regardless of scope.
                     -->
                     <execution>
                         <id>enforce-no-r2dbc-in-service</id>
@@ -270,10 +291,24 @@
                                         <exclude>io.r2dbc:*</exclude>
                                         <exclude>org.postgresql:r2dbc-postgresql</exclude>
                                     </excludes>
+                                    <!-- Exceptions to the bans above, pattern groupId:artifactId:version:type:scope:
+                                         the same artifacts in TEST scope only (the PostgreSQL IT and its
+                                         Testcontainers fixture). Any other scope still fails the build. -->
+                                    <includes>
+                                        <include>org.eclipse.ditto:ditto-internal-utils-persistence-r2dbc:*:*:test</include>
+                                        <include>org.eclipse.ditto:ditto-internal-utils-postgres-client:*:*:test</include>
+                                        <include>io.r2dbc:*:*:*:test</include>
+                                        <include>org.postgresql:r2dbc-postgresql:*:*:test</include>
+                                    </includes>
                                     <message>
-                                        org.eclipse.ditto:ditto-internal-utils-persistence-r2dbc(-extension) must
-                                        not be a dependency of a service module — it would leak r2dbc into the
-                                        service allinone. PostgreSQL ships as a separate drop-in extension jar.
+                                        org.eclipse.ditto:ditto-internal-utils-persistence-r2dbc(-extension),
+                                        ditto-internal-utils-postgres-client and the r2dbc/PostgreSQL driver must
+                                        not be compile, runtime or provided dependencies of a service module:
+                                        compile and runtime scope would leak r2dbc into the service allinone (the
+                                        shade plugin resolves runtime scope), provided scope would let this module's
+                                        main code compile against PostgreSQL types. PostgreSQL ships as a separate
+                                        drop-in extension jar. Only TEST scope is allowed: it never ships and carries
+                                        the golden replay of PostgreSQL journal rows through the real adapters.
                                     </message>
                                 </bannedDependencies>
                             </rules>

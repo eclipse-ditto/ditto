@@ -26,9 +26,10 @@ import com.tngtech.archunit.core.importer.ImportOption;
 /**
  * Switchability proof for the thing-search SPI: the thing-search persistence-API
  * ({@code org.eclipse.ditto.thingsearch.persistence.api..}) is backend-neutral. It must reference NEITHER
- * backend: no Mongo (com.mongodb / org.bson / the legacy {@code pekko.contrib.persistence.mongodb} plugin /
- * MongoReadJournal) AND no Postgres (io.r2dbc / org.postgresql / the {@code ...persistence.postgres} backend
- * package).
+ * backend: no Mongo (com.mongodb / org.bson / org.mongodb / the legacy {@code pekko.contrib.persistence.mongodb}
+ * plugin / MongoReadJournal / the Mongo module {@code ...internal.utils.persistence.mongo} / the MongoDB search
+ * backend {@code ...thingsearch.persistence.mongo}) AND no Postgres (io.r2dbc / org.postgresql / the
+ * {@code ...persistence.postgres} backend package).
  * <p>
  * Hosted in the persistence-api module itself: that module has NO backend dependency on its classpath, which
  * is exactly why it is the cleanest place to assert neutrality.
@@ -44,15 +45,21 @@ public final class ThingsearchPersistenceApiNeutralityArchTest {
     private static final String API_PKG = "org.eclipse.ditto.thingsearch.persistence.api..";
 
     private static final DescribedPredicate<JavaClass> IS_MONGO =
-            new DescribedPredicate<>("be a Mongo type (com.mongodb.., org.bson.., "
-                    + "pekko.contrib.persistence.mongodb.., or named MongoReadJournal)") {
+            new DescribedPredicate<>("be a Mongo type (com.mongodb.., org.bson.., org.mongodb.., "
+                    + "pekko.contrib.persistence.mongodb.., org.eclipse.ditto.internal.utils.persistence.mongo.., "
+                    + "org.eclipse.ditto.thingsearch.persistence.mongo.., or named MongoReadJournal)") {
                 @Override
                 public boolean test(final JavaClass javaClass) {
                     final String pkg = javaClass.getPackageName();
                     return pkg.equals("com.mongodb") || pkg.startsWith("com.mongodb.")
                             || pkg.equals("org.bson") || pkg.startsWith("org.bson.")
+                            || pkg.equals("org.mongodb") || pkg.startsWith("org.mongodb.")
                             || pkg.equals("pekko.contrib.persistence.mongodb")
                             || pkg.startsWith("pekko.contrib.persistence.mongodb.")
+                            || pkg.equals("org.eclipse.ditto.internal.utils.persistence.mongo")
+                            || pkg.startsWith("org.eclipse.ditto.internal.utils.persistence.mongo.")
+                            || pkg.equals("org.eclipse.ditto.thingsearch.persistence.mongo")
+                            || pkg.startsWith("org.eclipse.ditto.thingsearch.persistence.mongo.")
                             || javaClass.getSimpleName().equals("MongoReadJournal");
                 }
             };

@@ -35,8 +35,10 @@ import com.tngtech.archunit.core.importer.ImportOption;
  * Rule 1 therefore bans only those switchable artifacts - NOT the whole Mongo zone:
  * <ul>
  *     <li>{@code com.mongodb..} and {@code org.bson..} (the raw Mongo driver and BSON),</li>
+ *     <li>{@code org.mongodb..} (the Mongo Scala driver and its reactive streams),</li>
  *     <li>{@code pekko.contrib.persistence.mongodb..} (the legacy Mongo persistence plugin classes; note the
- *     {@code pekko.} prefix, NOT {@code org.apache.pekko.}), and</li>
+ *     {@code pekko.} prefix, NOT {@code org.apache.pekko.}),</li>
+ *     <li>{@code org.eclipse.ditto.thingsearch.persistence.mongo..} (the MongoDB search backend), and</li>
  *     <li>any class named {@code MongoReadJournal} (obtained via {@code provider.getReadJournal()}).</li>
  * </ul>
  * A further rule, {@code serviceMainCodeDoesNotDependOnMongoModule}, bans the whole Mongo module
@@ -57,15 +59,19 @@ public final class PersistenceBoundaryArchTest {
      * {@code ...persistence.mongo.config..}); {@code serviceMainCodeDoesNotDependOnMongoModule} bans those.
      */
     private static final DescribedPredicate<JavaClass> IS_SWITCHABLE_MONGO =
-            new DescribedPredicate<>("be a switchable Mongo artifact (com.mongodb.., org.bson.., "
-                    + "pekko.contrib.persistence.mongodb.., or named MongoReadJournal)") {
+            new DescribedPredicate<>("be a switchable Mongo artifact (com.mongodb.., org.bson.., org.mongodb.., "
+                    + "pekko.contrib.persistence.mongodb.., org.eclipse.ditto.thingsearch.persistence.mongo.., "
+                    + "or named MongoReadJournal)") {
                 @Override
                 public boolean test(final JavaClass javaClass) {
                     final String pkg = javaClass.getPackageName();
                     return pkg.equals("com.mongodb") || pkg.startsWith("com.mongodb.")
                             || pkg.equals("org.bson") || pkg.startsWith("org.bson.")
+                            || pkg.equals("org.mongodb") || pkg.startsWith("org.mongodb.")
                             || pkg.equals("pekko.contrib.persistence.mongodb")
                             || pkg.startsWith("pekko.contrib.persistence.mongodb.")
+                            || pkg.equals("org.eclipse.ditto.thingsearch.persistence.mongo")
+                            || pkg.startsWith("org.eclipse.ditto.thingsearch.persistence.mongo.")
                             || javaClass.getSimpleName().equals("MongoReadJournal");
                 }
             };
@@ -100,7 +106,8 @@ public final class PersistenceBoundaryArchTest {
         noClasses()
                 .should().dependOnClassesThat(IS_SWITCHABLE_MONGO)
                 .as("policies-service MAIN code must not depend on any switchable Mongo artifact "
-                        + "(com.mongodb.., org.bson.., pekko.contrib.persistence.mongodb.., MongoReadJournal)")
+                        + "(com.mongodb.., org.bson.., org.mongodb.., pekko.contrib.persistence.mongodb.., "
+                        + "org.eclipse.ditto.thingsearch.persistence.mongo.., MongoReadJournal)")
                 .because("the switchable Mongo touchpoints are routed through the backend-neutral persistence-API")
                 .check(policiesServiceMainClasses);
     }
@@ -157,6 +164,24 @@ public final class PersistenceBoundaryArchTest {
         assertThat(IS_SWITCHABLE_MONGO.test(mongoReadJournal))
                 .as("the switchable-Mongo matcher must match the real pekko.contrib.persistence.mongodb."
                         + "MongoReadJournal plugin class, otherwise Rule 1 would be vacuous")
+                .isTrue();
+    }
+
+    /**
+     * Meta-test: proves the {@code org.mongodb..} branch of {@link #IS_SWITCHABLE_MONGO} is NON-VACUOUS. The Mongo
+     * Scala driver class {@code org.mongodb.scala.MongoClient} is on this module's test classpath (through
+     * {@code ditto-internal-utils-persistence}); MAIN code cannot reference it, so this check is the only one that
+     * exercises the branch. The {@code org.eclipse.ditto.thingsearch.persistence.mongo..} branch has no class on this
+     * classpath; the {@code enforce-no-mongo-in-service} enforcer rule bans its artifact.
+     */
+    @Test
+    public void switchableMongoMatcherMatchesScalaDriver() throws ClassNotFoundException {
+        final JavaClass scalaMongoClient =
+                new ClassFileImporter().importClass(Class.forName("org.mongodb.scala.MongoClient"));
+
+        assertThat(IS_SWITCHABLE_MONGO.test(scalaMongoClient))
+                .as("the switchable-Mongo matcher must match the Mongo Scala driver class "
+                        + "org.mongodb.scala.MongoClient")
                 .isTrue();
     }
 }

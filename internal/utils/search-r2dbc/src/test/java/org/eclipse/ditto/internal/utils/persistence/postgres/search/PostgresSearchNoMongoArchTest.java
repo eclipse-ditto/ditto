@@ -13,6 +13,9 @@
 package org.eclipse.ditto.internal.utils.persistence.postgres.search;
 
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
+import static org.assertj.core.api.Assertions.assertThat;
+
+import java.util.List;
 
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -25,8 +28,10 @@ import com.tngtech.archunit.core.importer.ImportOption;
 
 /**
  * ArchUnit closure for the Postgres search backend (boundary rule 3): NO class in
- * {@code search-r2dbc}'s MAIN code may depend on Mongo (com.mongodb / org.bson / the legacy
- * {@code pekko.contrib.persistence.mongodb} plugin / MongoReadJournal). This module IS the Postgres implementation of
+ * {@code search-r2dbc}'s MAIN code may depend on Mongo (com.mongodb / org.bson / org.mongodb / the legacy
+ * {@code pekko.contrib.persistence.mongodb} plugin / MongoReadJournal / the Mongo module
+ * {@code ...internal.utils.persistence.mongo} / the MongoDB search backend {@code ...thingsearch.persistence.mongo}).
+ * {@code io.r2dbc} is deliberately not on the list. This module IS the Postgres implementation of
  * the neutral {@code SearchPersistenceProvider} SPI (mirrors {@code ThingsearchPersistenceApiNeutralityArchTest} and
  * thingsearch-service's {@code PersistenceBoundaryArchTest}), so unlike those two neutral/mixed modules there is no
  * corresponding "must not depend on Postgres" rule here — depending on Postgres IS this module's entire purpose.
@@ -51,15 +56,21 @@ public final class PostgresSearchNoMongoArchTest {
     private static final String SEARCH_R2DBC_MAIN_PKG = "org.eclipse.ditto.internal.utils.persistence.postgres.search..";
 
     private static final DescribedPredicate<JavaClass> IS_MONGO =
-            new DescribedPredicate<>("be a Mongo type (com.mongodb.., org.bson.., "
-                    + "pekko.contrib.persistence.mongodb.., or named MongoReadJournal)") {
+            new DescribedPredicate<>("be a Mongo type (com.mongodb.., org.bson.., org.mongodb.., "
+                    + "pekko.contrib.persistence.mongodb.., org.eclipse.ditto.internal.utils.persistence.mongo.., "
+                    + "org.eclipse.ditto.thingsearch.persistence.mongo.., or named MongoReadJournal)") {
                 @Override
                 public boolean test(final JavaClass javaClass) {
                     final String pkg = javaClass.getPackageName();
                     return pkg.equals("com.mongodb") || pkg.startsWith("com.mongodb.")
                             || pkg.equals("org.bson") || pkg.startsWith("org.bson.")
+                            || pkg.equals("org.mongodb") || pkg.startsWith("org.mongodb.")
                             || pkg.equals("pekko.contrib.persistence.mongodb")
                             || pkg.startsWith("pekko.contrib.persistence.mongodb.")
+                            || pkg.equals("org.eclipse.ditto.internal.utils.persistence.mongo")
+                            || pkg.startsWith("org.eclipse.ditto.internal.utils.persistence.mongo.")
+                            || pkg.equals("org.eclipse.ditto.thingsearch.persistence.mongo")
+                            || pkg.startsWith("org.eclipse.ditto.thingsearch.persistence.mongo.")
                             || javaClass.getSimpleName().equals("MongoReadJournal");
                 }
             };
@@ -83,6 +94,26 @@ public final class PostgresSearchNoMongoArchTest {
                 .because("search-r2dbc is the Postgres implementation of the neutral SearchPersistenceProvider SPI; "
                         + "it must never couple to the Mongo backend it replaces")
                 .check(searchR2dbcMainClasses);
+    }
+
+    /**
+     * Meta-test: proves the {@code org.mongodb..}, {@code ...internal.utils.persistence.mongo..} and
+     * {@code ...thingsearch.persistence.mongo..} branches of {@link #IS_MONGO} are NON-VACUOUS. One real class of each
+     * package is on this module's test classpath (through {@code ditto-thingsearch-persistence-mongo}); they are
+     * loaded by name so that this test compiles only against what is on the classpath.
+     */
+    @Test
+    public void mongoMatcherMatchesEveryMongoPackageOnTheTestClasspath() throws ClassNotFoundException {
+        final List<String> classNames = List.of(
+                "org.eclipse.ditto.thingsearch.persistence.mongo.MongoSearchPersistenceProvider",
+                "org.eclipse.ditto.internal.utils.persistence.mongo.MongoClientWrapper",
+                "org.mongodb.scala.MongoClient");
+        for (final String className : classNames) {
+            final JavaClass javaClass = new ClassFileImporter().importClass(Class.forName(className));
+            assertThat(IS_MONGO.test(javaClass))
+                    .as("the Mongo matcher must match %s", className)
+                    .isTrue();
+        }
     }
 
 }
