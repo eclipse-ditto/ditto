@@ -279,8 +279,8 @@ public final class CachingPolicyEnforcerProviderTest {
             when(changed.dataValue()).thenReturn(orSet);
             cachingActor.tell(changed, ActorRef.noSender());
             verify(cache, timeout(3000)).asMap();
-            verify(cache).invalidate(PolicyId.of("namespace1", "foo"));
-            verify(cache).invalidate(PolicyId.of("namespace4", "foo"));
+            verify(cache, timeout(3000)).invalidate(PolicyId.of("namespace1", "foo"));
+            verify(cache, timeout(3000)).invalidate(PolicyId.of("namespace4", "foo"));
             verifyNoMoreInteractions(cache);
         }};
 
