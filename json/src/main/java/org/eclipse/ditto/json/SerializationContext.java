@@ -37,6 +37,21 @@ public interface SerializationContext extends Closeable, Flushable {
     void writeCachedElement(byte[] cachedData) throws IOException;
 
     /**
+     * Like {@link #writeCachedElement(byte[])}, for cached data which is a slice of a bigger array.
+     *
+     * @param cachedData the array containing the data to write.
+     * @param offset the offset of the data in {@code cachedData}.
+     * @param length the length of the data.
+     * @throws IOException if writing fails.
+     * @since 3.9.10
+     */
+    default void writeCachedElement(final byte[] cachedData, final int offset, final int length) throws IOException {
+        writeCachedElement(0 == offset && cachedData.length == length
+                ? cachedData
+                : java.util.Arrays.copyOfRange(cachedData, offset, offset + length));
+    }
+
+    /**
      * Writes {@code null} to the serialization context.
      */
     void writeNull() throws IOException;

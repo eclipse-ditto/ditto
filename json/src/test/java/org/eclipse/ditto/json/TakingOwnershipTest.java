@@ -41,14 +41,14 @@ public final class TakingOwnershipTest {
     }
 
     @Test
-    public void objectTakingOwnershipDoesNotCopyFields() {
+    public void objectTakingOwnershipKeepsCompactFieldsOfItsOwn() {
         final Map<String, JsonField> fields = fields();
         final JsonObject takingOwnership = JsonFactory.createJsonObjectTakingOwnership(fields);
 
-        // only to prove that the map was not copied - callers must never do this
+        // the fields are held in an exactly sized array of the object's own, not in the passed map
         fields.remove("foo");
 
-        assertThat(takingOwnership.getSize()).isEqualTo(1);
+        assertThat(takingOwnership.getSize()).isEqualTo(2);
     }
 
     @Test
@@ -81,14 +81,14 @@ public final class TakingOwnershipTest {
     }
 
     @Test
-    public void arrayTakingOwnershipDoesNotCopyValues() {
+    public void arrayTakingOwnershipKeepsCompactValuesOfItsOwn() {
         final List<JsonValue> values = values();
         final JsonArray takingOwnership = JsonFactory.createJsonArrayTakingOwnership(values);
 
-        // only to prove that the list was not copied - callers must never do this
+        // the values are held in an exactly sized array of the array's own, not in the passed list
         values.remove(0);
 
-        assertThat(takingOwnership.getSize()).isEqualTo(1);
+        assertThat(takingOwnership.getSize()).isEqualTo(2);
     }
 
     @Test
