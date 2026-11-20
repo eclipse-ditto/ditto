@@ -88,4 +88,23 @@ public final class ImmutableFeaturePropertiesTest extends LengthRestrictionTestB
                 .toBuilder()
                 .build();
     }
+
+    @Test
+    public void objectHoldingFeaturePropertiesEqualsObjectHoldingTheSameJson() {
+        final JsonObject json = JsonObject.newBuilder()
+                .set("temperature", 21.5)
+                .set("modes", org.eclipse.ditto.json.JsonArray.of(org.eclipse.ditto.json.JsonValue.of("eco")))
+                .build();
+        final FeatureProperties featureProperties = ThingsModelFactory.newFeatureProperties(json);
+
+        final JsonObject holdingFeatureProperties = JsonObject.newBuilder().set("properties", featureProperties).build();
+        final JsonObject holdingJson = JsonObject.newBuilder().set("properties", json).build();
+
+        assertThat(holdingFeatureProperties).isEqualTo(holdingJson);
+        assertThat(holdingJson).isEqualTo(holdingFeatureProperties);
+        assertThat(holdingJson).isNotEqualTo(JsonObject.newBuilder()
+                .set("properties", ThingsModelFactory.newFeatureProperties(json.setValue("temperature", 22)))
+                .build());
+    }
+
 }
