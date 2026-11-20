@@ -45,9 +45,15 @@
 
         Shade strategy: an EXPLICIT include whitelist (artifactSet/includes). For an extension jar a whitelist is safer
         than a blacklist — only the artifacts we name are bundled, so no transitive can silently leak in. Everything
-        already present on every allinone classpath (pekko, all other ditto modules, the netty CORE jars, slf4j/logback,
-        jackson, typesafe-config) is therefore simply NOT listed and stays out by construction. reactor-core IS bundled
-        at the bom-pinned version as a belt-and-suspenders copy; the allinone's own reactor-core wins by classpath order.
+        already present on every allinone classpath (pekko, all other ditto modules, slf4j/logback, jackson,
+        typesafe-config) is therefore simply NOT listed and stays out by construction. reactor-core IS bundled at the
+        bom-pinned version as a belt-and-suspenders copy; the allinone's own reactor-core wins by classpath order.
+
+        netty IS bundled: since the MongoDB backend became an extension, the policies, things and search allinones carry
+        no netty at all (it came only with the MongoDB driver). This jar therefore ships every netty artifact that
+        reactor-netty-core pulls in (core, transports, codecs), at the bom-pinned version. Connectivity carries the same
+        netty version through its own connectors, so it holds identical classes twice; that is harmless (parent-first:
+        the allinone copy wins), as with the MongoDB extension.
     -->
 
     <dependencies>
@@ -99,8 +105,8 @@
                             <artifactSet>
                                 <!--
                                     Explicit whitelist: the shared postgres-client module PLUS ONLY the
-                                    r2dbc/reactor/netty/scram runtime that the allinone jars do not already carry.
-                                    Everything else (pekko, other ditto modules, netty core, slf4j/logback, jackson,
+                                    r2dbc/reactor/netty/scram runtime that the allinone jars do not already carry (netty
+                                    included: see the module comment). Everything else (pekko, other ditto modules, slf4j/logback, jackson,
                                     typesafe-config, ditto-internal-utils-config/metrics/health) is excluded simply by
                                     NOT being listed here. This whitelist is the third-party stack that the classes
                                     in postgres-client (ConnectionPoolFactory / DittoPostgresClient / PostgresClientExtension)
@@ -117,18 +123,33 @@
                                     <include>io.projectreactor:reactor-core</include>
                                     <include>com.ongres.scram:client</include>
                                     <include>com.ongres.scram:common</include>
-                                    <!-- optional native netty transports (only present if on the classpath) -->
+                                    <!--
+                                        netty, per artifact (no groupId wildcard, so nothing else can leak in), version
+                                        managed by the bom. reactor-netty-core needs netty core (common, buffer,
+                                        transport, resolver, codec-base, handler); its proxy support needs
+                                        netty-handler-proxy with the socks/http/compression codecs; ReactorNettyClient
+                                        needs io.netty.resolver.dns.DnsAddressResolverGroup (resolver-dns, codec-dns,
+                                        the macOS DNS classes); the native transports are optional (only bundled if on
+                                        the classpath).
+                                    -->
+                                    <include>io.netty:netty-buffer</include>
+                                    <include>io.netty:netty-codec-base</include>
+                                    <include>io.netty:netty-codec-compression</include>
+                                    <include>io.netty:netty-codec-dns</include>
+                                    <include>io.netty:netty-codec-http</include>
+                                    <include>io.netty:netty-codec-socks</include>
+                                    <include>io.netty:netty-common</include>
+                                    <include>io.netty:netty-handler</include>
+                                    <include>io.netty:netty-handler-proxy</include>
+                                    <include>io.netty:netty-resolver</include>
+                                    <include>io.netty:netty-resolver-dns</include>
+                                    <include>io.netty:netty-resolver-dns-classes-macos</include>
+                                    <include>io.netty:netty-resolver-dns-native-macos</include>
+                                    <include>io.netty:netty-transport</include>
+                                    <include>io.netty:netty-transport-classes-epoll</include>
                                     <include>io.netty:netty-transport-native-epoll</include>
                                     <include>io.netty:netty-transport-native-kqueue</include>
-                                    <!--
-                                        DNS resolver: reactor-netty's ReactorNettyClient needs
-                                        io.netty.resolver.dns.DnsAddressResolverGroup, and the allinone jars carry netty
-                                        core but NOT netty-resolver-dns/netty-codec-dns (proven by container boot:
-                                        NoClassDefFoundError). Same netty version (4.2.x) as the allinone jars — managed
-                                        by the bom.
-                                    -->
-                                    <include>io.netty:netty-resolver-dns</include>
-                                    <include>io.netty:netty-codec-dns</include>
+                                    <include>io.netty:netty-transport-native-unix-common</include>
                                 </includes>
                             </artifactSet>
                             <filters>

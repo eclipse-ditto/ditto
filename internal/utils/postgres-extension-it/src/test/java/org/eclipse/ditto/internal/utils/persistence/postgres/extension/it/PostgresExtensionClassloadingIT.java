@@ -16,10 +16,13 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.File;
+import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.net.URL;
 import java.net.URLClassLoader;
+import java.util.Collections;
+import java.util.Enumeration;
 import java.util.List;
 import java.util.ServiceLoader;
 import java.util.stream.Collectors;
@@ -39,6 +42,9 @@ import org.junit.Test;
  * allinone classpath, carrying the neutral SPI interfaces ({@link PersistenceBackendProvider},
  * {@link SearchPersistenceProvider}) plus pekko/config, but NOT the extension jars (they are copied, not depended on, so
  * their provider/base classes never reach the parent — preserving the child-loader isolation).
+ * <p>
+ * The netty case puts a parent that hides {@code io.netty.} between the child loader and this test's loader, because
+ * the service allinones of policies, things and search carry no netty: the base jar must supply it itself.
  * <p>
  * Runs under failsafe (needs no docker): {@code mvn install} (so the extension jars are installed and copyable) then the
  * failsafe {@code integration-test} phase.
@@ -61,6 +67,10 @@ public final class PostgresExtensionClassloadingIT {
             "org.eclipse.ditto.internal.utils.persistence.postgres.client.PostgresExtensionVersions";
     private static final String R2DBC_DRIVER_CLASS = "io.r2dbc.postgresql.PostgresqlConnectionFactoryProvider";
     private static final String VERIFY_METHOD = "verify";
+    private static final String NETTY_SSL_CLASS = "io.netty.handler.ssl.CipherSuiteFilter";
+    private static final String NETTY_CHANNEL_CLASS = "io.netty.channel.Channel";
+    private static final String NETTY_BUFFER_CLASS = "io.netty.buffer.ByteBuf";
+    private static final String REACTOR_TCP_CLIENT_CLASS = "reactor.netty.tcp.TcpClient";
 
     private static File extensionsDir;
 
@@ -87,6 +97,17 @@ public final class PostgresExtensionClassloadingIT {
     }
 
     private static URLClassLoader extensionLoader(final File... jars) {
+        // Parent = this test's loader = the "service allinone-like" classpath (neutral SPI + pekko + config).
+        return new URLClassLoader(toUrls(jars), PostgresExtensionClassloadingIT.class.getClassLoader());
+    }
+
+    private static URLClassLoader extensionLoaderHidingNetty(final File... jars) {
+        // Parent = this test's loader with io.netty hidden, as on the policies/things/search allinone classpath.
+        return new URLClassLoader(toUrls(jars),
+                new NettyHidingClassLoader(PostgresExtensionClassloadingIT.class.getClassLoader()));
+    }
+
+    private static URL[] toUrls(final File... jars) {
         final URL[] urls = new URL[jars.length];
         for (int i = 0; i < jars.length; i++) {
             try {
@@ -95,8 +116,7 @@ public final class PostgresExtensionClassloadingIT {
                 throw new IllegalStateException(e);
             }
         }
-        // Parent = this test's loader = the "service allinone-like" classpath (neutral SPI + pekko + config).
-        return new URLClassLoader(urls, PostgresExtensionClassloadingIT.class.getClassLoader());
+        return urls;
     }
 
     @Test
@@ -173,6 +193,22 @@ public final class PostgresExtensionClassloadingIT {
         assertThat(loadBootstraps(PostgresExtensionClassloadingIT.class.getClassLoader())).isEmpty();
     }
 
+    @Test
+    public void baseJarCarriesNettyWhenTheParentHidesIt() throws Exception {
+        try (final URLClassLoader loader = extensionLoaderHidingNetty(baseJar())) {
+            // Control: the parent really hides netty, so whatever resolves below comes from the base jar.
+            assertThatThrownBy(() -> Class.forName(NETTY_CHANNEL_CLASS, false, loader.getParent()))
+                    .isInstanceOf(ClassNotFoundException.class);
+            for (final String nettyClass : List.of(NETTY_SSL_CLASS, NETTY_CHANNEL_CLASS, NETTY_BUFFER_CLASS)) {
+                assertThat(loader.loadClass(nettyClass).getClassLoader())
+                        .as("%s defined by the base jar", nettyClass)
+                        .isSameAs(loader);
+            }
+            // Static initialisation of reactor-netty's TCP client links netty core.
+            assertThat(Class.forName(REACTOR_TCP_CLIENT_CLASS, true, loader).getClassLoader()).isSameAs(loader);
+        }
+    }
+
     private static void assertSinglePostgresqlBootstrap(final URLClassLoader loader) {
         final List<PersistenceBackendBootstrap> bootstraps = loadBootstraps(loader);
         assertThat(bootstraps).extracting(PersistenceBackendBootstrap::backendName).containsExactly("postgresql");
@@ -201,6 +237,38 @@ public final class PostgresExtensionClassloadingIT {
         } catch (final InvocationTargetException e) {
             return e.getCause();
         }
+    }
+
+    /**
+     * Parent that hides io.netty, as the policies/things/search allinones do since MongoDB became an extension.
+     */
+    private static final class NettyHidingClassLoader extends ClassLoader {
+
+        private static final String HIDDEN_PACKAGE = "io.netty.";
+        private static final String HIDDEN_RESOURCE_PREFIX = "io/netty/";
+
+        private NettyHidingClassLoader(final ClassLoader parent) {
+            super(parent);
+        }
+
+        @Override
+        protected Class<?> loadClass(final String name, final boolean resolve) throws ClassNotFoundException {
+            if (name.startsWith(HIDDEN_PACKAGE)) {
+                throw new ClassNotFoundException(name);
+            }
+            return super.loadClass(name, resolve);
+        }
+
+        @Override
+        public URL getResource(final String name) {
+            return name.startsWith(HIDDEN_RESOURCE_PREFIX) ? null : super.getResource(name);
+        }
+
+        @Override
+        public Enumeration<URL> getResources(final String name) throws IOException {
+            return name.startsWith(HIDDEN_RESOURCE_PREFIX) ? Collections.emptyEnumeration() : super.getResources(name);
+        }
+
     }
 
 }
