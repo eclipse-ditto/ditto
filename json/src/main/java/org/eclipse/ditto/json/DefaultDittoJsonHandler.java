@@ -15,9 +15,7 @@ package org.eclipse.ditto.json;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.function.UnaryOperator;
 
 import javax.annotation.concurrent.NotThreadSafe;
@@ -174,11 +172,7 @@ public final class DefaultDittoJsonHandler extends DittoJsonHandler<List<JsonVal
             stringBuilder.append('}');
             valueString = stringBuilder.toString();
         }
-        final Map<String, JsonField> fieldMap = new LinkedHashMap<>(jsonFields.size());
-        for (final JsonField jsonField : jsonFields) {
-            fieldMap.put(jsonField.getKeyName(), jsonField);
-        }
-        jsonValue = ImmutableJsonObject.ofTakingOwnership(fieldMap, valueString);
+        jsonValue = ImmutableJsonObject.ofParsedFields(jsonFields, valueString);
     }
 
     @Override

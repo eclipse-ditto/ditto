@@ -416,7 +416,7 @@ public final class ImmutableJsonArrayTest {
         assertThat(getInternalField(jsonArray, "jsonArrayStringRepresentation"))
                 .as("string representation must not be eagerly created on construction")
                 .isNull();
-        assertThat(getInternalField(jsonArray, "cborArrayRepresentation"))
+        assertThat(getInternalField(jsonArray, "cborBytes"))
                 .as("CBOR representation must not be eagerly created on construction")
                 .isNull();
         assertThat(getInternalField(jsonArray, "valuesRef"))
