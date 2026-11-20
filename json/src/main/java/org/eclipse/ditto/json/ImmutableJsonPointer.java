@@ -248,7 +248,7 @@ final class ImmutableJsonPointer implements JsonPointer {
 
     @Override
     public Optional<JsonKey> get(final int level) {
-        if (level < getLevelCount()) {
+        if (level >= 0 && level < getLevelCount()) {
             return Optional.of(jsonKeyHierarchy.get(level));
         } else {
             return Optional.empty();
