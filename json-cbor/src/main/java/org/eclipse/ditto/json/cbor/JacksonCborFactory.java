@@ -18,7 +18,7 @@ import java.io.OutputStream;
 import java.nio.BufferOverflowException;
 import java.nio.ByteBuffer;
 import java.text.MessageFormat;
-import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -36,6 +36,7 @@ import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.json.SerializationContext;
 
 import com.fasterxml.jackson.core.JsonGenerator;
+import com.fasterxml.jackson.core.JsonLocation;
 import com.fasterxml.jackson.core.JsonToken;
 import com.fasterxml.jackson.dataformat.cbor.CBORFactory;
 import com.fasterxml.jackson.dataformat.cbor.CBORGenerator;
@@ -63,40 +64,40 @@ public final class JacksonCborFactory implements CborFactory {
         return true;
     }
 
+    // The passed bytes are copied once - the caller may reuse them, e.g. a pooled buffer - and the parsed objects and
+    // arrays reference slices of that copy as their CBOR representation, which lets them release their fields under
+    // memory pressure.
+
     @Override
     public JsonValue readFrom(final byte[] bytes) {
-        final ByteBuffer byteBuffer = ByteBuffer.wrap(bytes);
-        try {
-            final CBORParser parser = JACKSON_CBOR_FACTORY.createParser(bytes);
-            return parseValue(parser, byteBuffer);
-        } catch (final IOException | IllegalArgumentException | ArrayIndexOutOfBoundsException e) {
-            throw createJsonParseException(byteBuffer, e);
-        }
+        return parseOwnedBytes(bytes.clone(), 0, bytes.length);
     }
 
     @Override
     public JsonValue readFrom(final byte[] bytes, final int offset, final int length) {
-        // ensure that buffers position is zero so that offsets determined by CBORParser map directly to positions in
-        // this buffer.
-        final ByteBuffer byteBuffer = ByteBuffer.wrap(bytes, offset, length).slice();
-        try {
-            final CBORParser parser = JACKSON_CBOR_FACTORY.createParser(bytes, offset, length);
-            return parseValue(parser, byteBuffer);
-        } catch (final IOException | IllegalArgumentException e) {
-            throw createJsonParseException(byteBuffer, e);
-        }
+        return parseOwnedBytes(Arrays.copyOfRange(bytes, offset, offset + length), 0, length);
     }
 
     @Override
     public JsonValue readFrom(final ByteBuffer byteBuffer) {
-        // ensure that buffers position is zero so that offsets determined by CBORParser map directly to positions in
-        // this buffer.
         final ByteBuffer slicedByteBuffer = byteBuffer.slice();
+        final byte[] bytes = new byte[slicedByteBuffer.remaining()];
+        slicedByteBuffer.get(bytes);
+        return parseOwnedBytes(bytes, 0, bytes.length);
+    }
+
+    @Override
+    public JsonValue readFromOwnedBytes(final byte[] bytes, final int offset, final int length) {
+        return parseOwnedBytes(bytes, offset, length);
+    }
+
+    private static JsonValue parseOwnedBytes(final byte[] bytes, final int offset, final int length) {
         try {
-            final CBORParser parser = JACKSON_CBOR_FACTORY.createParser(ByteBufferInputStream.of(slicedByteBuffer));
-            return parseValue(parser, slicedByteBuffer);
-        } catch (final IOException | IllegalArgumentException e) {
-            throw createJsonParseException(slicedByteBuffer, e);
+            final CBORParser parser = JACKSON_CBOR_FACTORY.createParser(bytes, offset, length);
+            final ParseContext context = new ParseContext(parser, bytes);
+            return parseValue(context, parser.nextToken());
+        } catch (final IOException | IllegalArgumentException | ArrayIndexOutOfBoundsException e) {
+            throw createJsonParseException(ByteBuffer.wrap(bytes, offset, length).slice(), e);
         }
     }
 
@@ -227,21 +228,17 @@ public final class JacksonCborFactory implements CborFactory {
         serializationContext.close();
     }
 
-    private static JsonValue parseValue(final CBORParser parser, final ByteBuffer byteBuffer) throws IOException {
-        return parseValue(parser, byteBuffer, parser.nextToken());
-    }
-
-    private static JsonValue parseValue(final CBORParser parser, final ByteBuffer byteBuffer,
-            @Nullable final JsonToken currentToken)
+    private static JsonValue parseValue(final ParseContext context, @Nullable final JsonToken currentToken)
             throws IOException {
+        final CBORParser parser = context.parser;
         if (currentToken == null) {
             throw new IOException("Unexpected end of input while expecting value.");
         }
         switch (currentToken) {
             case START_OBJECT:
-                return parseObject(parser, byteBuffer);
+                return parseObject(context);
             case START_ARRAY:
-                return parseArray(parser, byteBuffer);
+                return parseArray(context);
             case VALUE_STRING:
                 return JsonValue.of(parser.getValueAsString());
             case VALUE_NUMBER_INT:
@@ -274,24 +271,105 @@ public final class JacksonCborFactory implements CborFactory {
         }
     }
 
-    private static JsonObject parseObject(final CBORParser parser, final ByteBuffer byteBuffer) throws IOException {
-        final Map<String, JsonField> map = new LinkedHashMap<>();
+    private static JsonObject parseObject(final ParseContext context) throws IOException {
+        final CBORParser parser = context.parser;
+        final int start = context.offsetOf(parser.currentTokenLocation());
+        final int level = context.depth++;
+        JsonField[] fields = context.fieldBuffer(level);
+        int size = 0;
         while (parser.nextToken() == JsonToken.FIELD_NAME) {
             final String key = parser.currentName();
-            final JsonField jsonField = JsonField.newInstance(key, parseValue(parser, byteBuffer));
-            map.put(key, jsonField);
+            final JsonField jsonField = JsonField.newInstance(key, parseValue(context, parser.nextToken()));
+            if (size == fields.length) {
+                fields = context.growFieldBuffer(level);
+            }
+            fields[size++] = jsonField;
         }
-        // No copy of the object's bytes is kept as its CBOR representation: on every nesting level, that copied each
-        // byte once per level and made each level hold a copy of it.
-        return JsonFactory.createJsonObjectTakingOwnership(map);
+        context.depth = level;
+        final int end = context.offsetOf(parser.currentLocation());
+        return JsonFactory.createJsonObjectFromCborSlice(Arrays.copyOf(fields, size), context.bytes, start,
+                end - start);
     }
 
-    private static JsonArray parseArray(final CBORParser parser, final ByteBuffer byteBuffer) throws IOException {
-        final List<JsonValue> list = new ArrayList<>();
+    private static JsonArray parseArray(final ParseContext context) throws IOException {
+        final CBORParser parser = context.parser;
+        final int start = context.offsetOf(parser.currentTokenLocation());
+        final int level = context.depth++;
+        JsonValue[] values = context.valueBuffer(level);
+        int size = 0;
         while (parser.nextToken() != JsonToken.END_ARRAY) {
-            list.add(parseValue(parser, byteBuffer, parser.currentToken()));
+            final JsonValue jsonValue = parseValue(context, parser.currentToken());
+            if (size == values.length) {
+                values = context.growValueBuffer(level);
+            }
+            values[size++] = jsonValue;
         }
-        return JsonFactory.createJsonArrayTakingOwnership(list);
+        context.depth = level;
+        final int end = context.offsetOf(parser.currentLocation());
+        return JsonFactory.createJsonArrayFromCborSlice(Arrays.copyOf(values, size), context.bytes, start,
+                end - start);
+    }
+
+    /**
+     * State of parsing one CBOR message: the parsed bytes and per nesting level a reusable buffer for the fields or
+     * values of the object or array being parsed on that level, so only exactly sized arrays are allocated per value.
+     */
+    private static final class ParseContext {
+
+        private final CBORParser parser;
+        private final byte[] bytes;
+        private JsonField[][] fieldBuffers;
+        private JsonValue[][] valueBuffers;
+        private int depth;
+
+        private ParseContext(final CBORParser parser, final byte[] bytes) {
+            this.parser = parser;
+            this.bytes = bytes;
+            fieldBuffers = new JsonField[8][];
+            valueBuffers = new JsonValue[8][];
+            depth = 0;
+        }
+
+        private int offsetOf(final JsonLocation location) {
+            // the parser reports absolute offsets in the parsed array, also when created with an offset
+            return (int) location.getByteOffset();
+        }
+
+        private JsonField[] fieldBuffer(final int level) {
+            if (level >= fieldBuffers.length) {
+                fieldBuffers = Arrays.copyOf(fieldBuffers, level * 2);
+            }
+            JsonField[] buffer = fieldBuffers[level];
+            if (null == buffer) {
+                buffer = new JsonField[16];
+                fieldBuffers[level] = buffer;
+            }
+            return buffer;
+        }
+
+        private JsonField[] growFieldBuffer(final int level) {
+            final JsonField[] grown = Arrays.copyOf(fieldBuffers[level], fieldBuffers[level].length * 2);
+            fieldBuffers[level] = grown;
+            return grown;
+        }
+
+        private JsonValue[] valueBuffer(final int level) {
+            if (level >= valueBuffers.length) {
+                valueBuffers = Arrays.copyOf(valueBuffers, level * 2);
+            }
+            JsonValue[] buffer = valueBuffers[level];
+            if (null == buffer) {
+                buffer = new JsonValue[16];
+                valueBuffers[level] = buffer;
+            }
+            return buffer;
+        }
+
+        private JsonValue[] growValueBuffer(final int level) {
+            final JsonValue[] grown = Arrays.copyOf(valueBuffers[level], valueBuffers[level].length * 2);
+            valueBuffers[level] = grown;
+            return grown;
+        }
     }
 
     /**

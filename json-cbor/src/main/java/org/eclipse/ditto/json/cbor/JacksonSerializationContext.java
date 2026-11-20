@@ -90,6 +90,13 @@ public final class JacksonSerializationContext implements SerializationContext {
     }
 
     @Override
+    public void writeCachedElement(final byte[] cachedData, final int offset, final int length) throws IOException {
+        flush();
+        outputStream.write(cachedData, offset, length);
+        informJacksonThatOneElementWasWritten();
+    }
+
+    @Override
     public void writeNull() throws IOException {
         jacksonGenerator.writeNull();
     }

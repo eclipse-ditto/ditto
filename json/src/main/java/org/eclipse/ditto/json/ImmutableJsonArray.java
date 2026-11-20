@@ -22,7 +22,6 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Deque;
 import java.util.Iterator;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -91,6 +90,22 @@ final class ImmutableJsonArray extends AbstractJsonValue implements JsonArray {
             @Nullable final String stringRepresentation) {
         requireNonNull(values, ASSERTION_VALUES_OF_JSON_ARRAY);
         return new ImmutableJsonArray(SoftReferencedValueList.ofTakingOwnership(values, stringRepresentation));
+    }
+
+    /**
+     * Creates a JSON array parsed from CBOR, taking over the passed values array and referencing its CBOR
+     * representation as slice of {@code cborBytes}, which must never be modified.
+     *
+     * @param ownedValues the values, taken over; none of them is {@code null}.
+     * @param cborBytes the bytes containing the CBOR representation.
+     * @param cborOffset the offset of the CBOR representation in {@code cborBytes}.
+     * @param cborLength the length of the CBOR representation.
+     * @return the JSON array.
+     */
+    static ImmutableJsonArray ofCborSlice(final JsonValue[] ownedValues, final byte[] cborBytes,
+            final int cborOffset, final int cborLength) {
+        return new ImmutableJsonArray(
+                SoftReferencedValueList.ofCborSlice(ownedValues, cborBytes, cborOffset, cborLength));
     }
 
     /**
@@ -311,9 +326,12 @@ final class ImmutableJsonArray extends AbstractJsonValue implements JsonArray {
 
         // Same lazy-encoding invariant as ImmutableJsonObject.SoftReferencedFieldMap: whenever valuesRef holds a
         // SoftReference, at least one representation must be non-null so recoverValues() can rebuild the list after
-        // a soft-clear; volatile gives the cross-thread happens-before for that without taking a lock.
+        // a soft-clear. The CBOR representation is final, the lazily created string representation volatile.
         private volatile String jsonArrayStringRepresentation;
-        private volatile byte[] cborArrayRepresentation;
+        // slice of a byte array possibly shared with the enclosing and nested values parsed from the same message
+        @Nullable private final byte[] cborBytes;
+        private final int cborOffset;
+        private final int cborLength;
         private int hashCode;
         // Either the List<JsonValue> held strongly (while no serialised representation exists to recover it from)
         // or a SoftReference<List<JsonValue>> once a representation is available. values() unwraps both cases.
@@ -322,18 +340,18 @@ final class ImmutableJsonArray extends AbstractJsonValue implements JsonArray {
         private SoftReferencedValueList(final List<JsonValue> jsonValueList,
                 @Nullable final String stringRepresentation,
                 @Nullable final byte[] cborArrayRepresentation) {
-            this(jsonValueList, stringRepresentation, cborArrayRepresentation, true);
+            this(Collections.unmodifiableList(new ArrayList<>(jsonValueList)), stringRepresentation,
+                    cborArrayRepresentation, 0, null != cborArrayRepresentation ? cborArrayRepresentation.length : 0);
         }
 
-        private SoftReferencedValueList(final List<JsonValue> jsonValueList,
+        private SoftReferencedValueList(final List<JsonValue> immutable,
                 @Nullable final String stringRepresentation,
-                @Nullable final byte[] cborArrayRepresentation,
-                final boolean copyValueList) {
-            final List<JsonValue> immutable = Collections.unmodifiableList(
-                    copyValueList ? new ArrayList<>(jsonValueList) : jsonValueList);
+                @Nullable final byte[] cborBytes, final int cborOffset, final int cborLength) {
             jsonArrayStringRepresentation = stringRepresentation;
-            this.cborArrayRepresentation = cborArrayRepresentation;
-            if (stringRepresentation != null || cborArrayRepresentation != null) {
+            this.cborBytes = cborBytes;
+            this.cborOffset = cborOffset;
+            this.cborLength = cborLength;
+            if (stringRepresentation != null || cborBytes != null) {
                 valuesRef = new SoftReference<>(immutable);
             } else {
                 valuesRef = immutable;
@@ -351,7 +369,15 @@ final class ImmutableJsonArray extends AbstractJsonValue implements JsonArray {
 
         static SoftReferencedValueList ofTakingOwnership(final List<JsonValue> values,
                 @Nullable final String stringRepresentation) {
-            return new SoftReferencedValueList(values, stringRepresentation, null, false);
+            // parsed values are never null: an exactly sized immutable list, without wrapper and spare capacity
+            return new SoftReferencedValueList(new CompactValueList(values.toArray(new JsonValue[0])),
+                    stringRepresentation, null, 0, 0);
+        }
+
+        static SoftReferencedValueList ofCborSlice(final JsonValue[] ownedValues, final byte[] cborBytes,
+                final int cborOffset, final int cborLength) {
+            return new SoftReferencedValueList(new CompactValueList(ownedValues), null, cborBytes, cborOffset,
+                    cborLength);
         }
 
         static SoftReferencedValueList of(final List<JsonValue> jsonValueList,
@@ -439,8 +465,11 @@ final class ImmutableJsonArray extends AbstractJsonValue implements JsonArray {
 
         private List<JsonValue> recoverValues() {
             final List<JsonValue> recovered;
-            if (CBOR_FACTORY.isCborAvailable() && cborArrayRepresentation != null) {
-                recovered = parseToList(cborArrayRepresentation);
+            final byte[] bytes = cborBytes;
+            if (CBOR_FACTORY.isCborAvailable() && bytes != null) {
+                // the slice is immutable and owned by this array: parse it in place, the nested values slice it
+                return ((ImmutableJsonArray) CBOR_FACTORY.readFromOwnedBytes(bytes, cborOffset, cborLength))
+                        .valueList.values();
             } else if (jsonArrayStringRepresentation != null) {
                 recovered = parseToList(jsonArrayStringRepresentation);
             } else {
@@ -454,15 +483,6 @@ final class ImmutableJsonArray extends AbstractJsonValue implements JsonArray {
             final ValueListJsonHandler jsonHandler = new ValueListJsonHandler();
             JsonValueParser.fromString(jsonHandler).accept(jsonArrayString);
             return jsonHandler.getValue();
-        }
-
-        private static List<JsonValue> parseToList(final byte[] cborArrayRepresentation) {
-            final JsonValue jsonArray = CBOR_FACTORY.readFrom(cborArrayRepresentation);
-            List<JsonValue> list = new LinkedList<>();
-            for (JsonValue jsonValue : jsonArray.asArray()) {
-                list.add(jsonValue);
-            }
-            return list;
         }
 
         Iterator<JsonValue> getIterator() {
@@ -490,8 +510,9 @@ final class ImmutableJsonArray extends AbstractJsonValue implements JsonArray {
                 }
                 return false;
             }
-            if (cborArrayRepresentation != null && that.cborArrayRepresentation != null &&
-                    Arrays.equals(cborArrayRepresentation, that.cborArrayRepresentation)) {
+            if (cborBytes != null && that.cborBytes != null &&
+                    CompactFieldMap.rangeEquals(cborBytes, cborOffset, cborLength,
+                            that.cborBytes, that.cborOffset, that.cborLength)) {
                 return true;
             }
             return Objects.equals(values(), that.values());
@@ -517,9 +538,9 @@ final class ImmutableJsonArray extends AbstractJsonValue implements JsonArray {
         }
 
         void writeValue(final SerializationContext serializationContext) throws IOException {
-            final byte[] cborRepresentation = cborArrayRepresentation;
-            if (null != cborRepresentation) {
-                serializationContext.writeCachedElement(cborRepresentation);
+            final byte[] bytes = cborBytes;
+            if (null != bytes) {
+                serializationContext.writeCachedElement(bytes, cborOffset, cborLength);
             } else {
                 // write the values as part of the context's output instead of creating a CBOR representation first
                 CBOR_FACTORY.writeArray(values(), serializationContext);
@@ -532,23 +553,23 @@ final class ImmutableJsonArray extends AbstractJsonValue implements JsonArray {
             if (jsonArrayStringRepresentation != null) {
                 return jsonArrayStringRepresentation.length();
             }
-            if (cborArrayRepresentation != null) {
-                return cborArrayRepresentation.length;
+            if (cborBytes != null) {
+                return cborLength;
             }
             return 512;
         }
 
         public long upperBoundForStringSize() {
             // callers need a real bound: materialise the string representation lazily when neither form exists
-            if (jsonArrayStringRepresentation == null && cborArrayRepresentation == null) {
+            if (jsonArrayStringRepresentation == null && cborBytes == null) {
                 asJsonArrayString();
             }
             long max = 0L;
             if (jsonArrayStringRepresentation != null) {
                 max = jsonArrayStringRepresentation.length();
             }
-            if (cborArrayRepresentation != null) {
-                final long cborSize = cborArrayRepresentation.length * CBOR_MAX_COMPRESSION_RATIO;
+            if (cborBytes != null) {
+                final long cborSize = cborLength * CBOR_MAX_COMPRESSION_RATIO;
                 if (cborSize > max) {
                     max = cborSize;
                 }

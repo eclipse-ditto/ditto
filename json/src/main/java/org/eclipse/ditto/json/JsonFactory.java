@@ -985,6 +985,47 @@ public final class JsonFactory {
      * @throws IllegalArgumentException if {@code keyOrPointer} would lead to an empty JsonPointer.
      * @throws JsonPointerInvalidException if the passed {@code keyOrPointer} contained double slashes.
      */
+    /**
+     * Creates a {@link JsonObject} parsed from CBOR: takes over the passed fields array and references its CBOR
+     * representation as slice of {@code cborBytes}, so that its fields can be released under memory pressure and
+     * be parsed again from the slice.
+     * <p>
+     * <b>This is a Ditto internal API is not intended for re-use.</b>
+     * It therefore is not treated as API which is held binary compatible to previous versions.
+     * </p>
+     *
+     * @param ownedFields the fields in parsing order - the caller must neither modify the array nor keep it.
+     * @param cborBytes the bytes containing the CBOR representation, never to be modified by anyone.
+     * @param cborOffset the offset of the CBOR representation in {@code cborBytes}.
+     * @param cborLength the length of the CBOR representation.
+     * @return the created JsonObject.
+     * @since 3.9.10
+     */
+    public static JsonObject createJsonObjectFromCborSlice(final JsonField[] ownedFields, final byte[] cborBytes,
+            final int cborOffset, final int cborLength) {
+        return ImmutableJsonObject.ofCborSlice(ownedFields, cborBytes, cborOffset, cborLength);
+    }
+
+    /**
+     * Creates a {@link JsonArray} parsed from CBOR, like
+     * {@link #createJsonObjectFromCborSlice(JsonField[], byte[], int, int)}.
+     * <p>
+     * <b>This is a Ditto internal API is not intended for re-use.</b>
+     * It therefore is not treated as API which is held binary compatible to previous versions.
+     * </p>
+     *
+     * @param ownedValues the values - the caller must neither modify the array nor keep it; none is {@code null}.
+     * @param cborBytes the bytes containing the CBOR representation, never to be modified by anyone.
+     * @param cborOffset the offset of the CBOR representation in {@code cborBytes}.
+     * @param cborLength the length of the CBOR representation.
+     * @return the created JsonArray.
+     * @since 3.9.10
+     */
+    public static JsonArray createJsonArrayFromCborSlice(final JsonValue[] ownedValues, final byte[] cborBytes,
+            final int cborOffset, final int cborLength) {
+        return ImmutableJsonArray.ofCborSlice(ownedValues, cborBytes, cborOffset, cborLength);
+    }
+
     static JsonPointer getNonEmptyPointer(final CharSequence keyOrPointer) {
         requireNonNull(keyOrPointer, "The key or pointer char sequence must not be null!");
 
