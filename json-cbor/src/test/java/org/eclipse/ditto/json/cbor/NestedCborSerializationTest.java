@@ -94,10 +94,10 @@ public final class NestedCborSerializationTest {
         cborFactory.writeToByteBuffer(underTest, ByteBuffer.allocate(1024));
 
         for (final Object jsonValue : new Object[]{underTest, nested}) {
-            assertThat(getInternalField(jsonValue, "fieldMap", "cborObjectRepresentation")).isNull();
+            assertThat(getInternalField(jsonValue, "fieldMap", "cborBytes")).isNull();
             assertThat(getInternalField(jsonValue, "fieldMap", "fieldsRef")).isNotInstanceOf(SoftReference.class);
         }
-        assertThat(getInternalField(nestedArray, "valueList", "cborArrayRepresentation")).isNull();
+        assertThat(getInternalField(nestedArray, "valueList", "cborBytes")).isNull();
         assertThat(getInternalField(nestedArray, "valueList", "valuesRef")).isNotInstanceOf(SoftReference.class);
     }
 
@@ -121,18 +121,21 @@ public final class NestedCborSerializationTest {
     }
 
     @Test
-    public void parsingKeepsNoCborRepresentationInNestedValues() throws Exception {
+    public void parsingKeepsOneSharedCborCopyForAllNestedValues() throws Exception {
         final JsonObject parsed = cborFactory.readFrom(cborFactory.toByteArray(deeplyNested(3))).asObject();
         final JsonObject child = parsed.getValue("child").map(JsonValue::asObject).orElseThrow(AssertionError::new);
         final JsonArray siblings =
                 parsed.getValue("siblings").map(JsonValue::asArray).orElseThrow(AssertionError::new);
+        final Object sharedBytes = getInternalField(parsed, "fieldMap", "cborBytes");
 
+        // no copy per nesting level: all values reference slices of the same bytes and can release their fields
+        assertThat(sharedBytes).isInstanceOf(byte[].class);
         for (final Object jsonValue : new Object[]{parsed, child}) {
-            assertThat(getInternalField(jsonValue, "fieldMap", "cborObjectRepresentation")).isNull();
-            assertThat(getInternalField(jsonValue, "fieldMap", "fieldsRef")).isNotInstanceOf(SoftReference.class);
+            assertThat(getInternalField(jsonValue, "fieldMap", "cborBytes")).isSameAs(sharedBytes);
+            assertThat(getInternalField(jsonValue, "fieldMap", "fieldsRef")).isInstanceOf(SoftReference.class);
         }
-        assertThat(getInternalField(siblings, "valueList", "cborArrayRepresentation")).isNull();
-        assertThat(getInternalField(siblings, "valueList", "valuesRef")).isNotInstanceOf(SoftReference.class);
+        assertThat(getInternalField(siblings, "valueList", "cborBytes")).isSameAs(sharedBytes);
+        assertThat(getInternalField(siblings, "valueList", "valuesRef")).isInstanceOf(SoftReference.class);
     }
 
     @Test
