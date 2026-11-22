@@ -50,7 +50,7 @@ import org.junit.Test;
 public final class TimeseriesRouteCrossThingTest extends EndpointTestBase {
 
     private static final String BASE = "/timeseries/things";
-    private static final String NAMESPACE = "io.beyonnex.smartheating";
+    private static final String NAMESPACE = "org.eclipse.ditto.heating";
     private static final String PATH = "/features/circuit/properties/flowTemperature";
 
     private static final Function<Jsonifiable<?>, Optional<Object>> ECHO_RESPONSE_PROVIDER =

@@ -265,7 +265,7 @@ public final class MongoDbTimeseriesAdapterTest {
                 .withMessageContaining("backend down");
     }
 
-    // Note: complex-value rejection at the write-path used to live here. Since IOT-495 the
+    // Note: complex-value rejection at the write-path used to live here. Now the
     // invariant is enforced at the model layer (ImmutableTimeseriesDataPoint.of), so the data
     // point can't be constructed at all — the model's own test covers it
     // (ImmutableTimeseriesDataPointTest#factoryRejectsObjectValue / ...RejectsArrayValue).

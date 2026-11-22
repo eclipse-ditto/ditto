@@ -210,7 +210,7 @@ public final class TimeseriesBsonMapperTest {
     // --- Reject complex values (per per-series type-binding rule) ---
 
     // Note: array/object value rejection used to live in TimeseriesBsonMapper and was tested
-    // here. Since IOT-495, the model layer (ImmutableTimeseriesDataPoint.of) enforces the same
+    // here. Now the model layer (ImmutableTimeseriesDataPoint.of) enforces the same
     // invariant — non-scalar values can't even reach this mapper because the data point can't
     // be constructed. The model-level coverage lives in
     // ImmutableTimeseriesDataPointTest#factoryRejectsArrayValue / factoryRejectsObjectValue.

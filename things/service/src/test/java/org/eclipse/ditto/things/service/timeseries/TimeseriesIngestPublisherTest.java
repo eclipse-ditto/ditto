@@ -751,7 +751,7 @@ public final class TimeseriesIngestPublisherTest {
 
     private static ThingModel nestedAnnotatedSubmodel() {
         // An object property `status` with an annotated nested `temperature` scalar and an
-        // un-annotated `updatedAt` sibling — mirrors the heatsense WoT temperature submodels.
+        // un-annotated `updatedAt` sibling — a typical temperature submodel.
         final JsonObject annotation = JsonFactory.newObjectBuilder()
                 .set("ingest", "ALL")
                 .build();
@@ -784,7 +784,7 @@ public final class TimeseriesIngestPublisherTest {
 
     private static ThingModel categorisedAnnotatedSubmodel() {
         // flowTemperature is an object property grouped under ditto:category "status", with an
-        // annotated nested temperature scalar — mirrors the heatsense circuit submodel.
+        // annotated nested temperature scalar — a typical heating circuit submodel.
         final JsonObject annotation = JsonFactory.newObjectBuilder()
                 .set("ingest", "ALL")
                 .build();

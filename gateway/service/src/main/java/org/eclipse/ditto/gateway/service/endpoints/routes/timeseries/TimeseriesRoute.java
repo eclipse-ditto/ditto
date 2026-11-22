@@ -58,7 +58,7 @@ import org.eclipse.ditto.timeseries.model.signals.commands.RetrieveTimeseries;
 
 /**
  * Route exposing timeseries reads as a top-level resource alongside {@code /things} and
- * {@code /policies}, matching the IOT-495 Phase 1 URL shape:
+ * {@code /policies}, matching the Phase 1 URL shape:
  * <pre>
  *   GET /api/2/timeseries/things/{thingId}/features/{featureId}/properties/{property-pointer}
  *       ?from=&lt;ISO-8601&gt;&amp;to=&lt;ISO-8601&gt;[&amp;limit=&lt;n&gt;]

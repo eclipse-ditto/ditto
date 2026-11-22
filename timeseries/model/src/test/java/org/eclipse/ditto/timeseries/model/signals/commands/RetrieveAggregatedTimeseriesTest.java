@@ -35,7 +35,7 @@ import org.junit.Test;
  */
 public final class RetrieveAggregatedTimeseriesTest {
 
-    private static final String NAMESPACE = "io.beyonnex.smartheating";
+    private static final String NAMESPACE = "org.eclipse.ditto.heating";
     private static final JsonPointer PATH =
             JsonPointer.of("/features/circuit/properties/flowTemperature");
 

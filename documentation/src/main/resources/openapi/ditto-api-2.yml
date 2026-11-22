@@ -9778,7 +9778,7 @@ paths:
           required: true
           schema:
             type: string
-            example: io.beyonnex.smartheating
+            example: org.eclipse.ditto.heating
         - name: paths
           in: query
           description: |-

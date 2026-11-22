@@ -103,7 +103,7 @@ import com.typesafe.config.ConfigFactory;
  */
 public final class TimeseriesAggregateActorEnforcementTest {
 
-    private static final String NAMESPACE = "io.beyonnex.smartheating";
+    private static final String NAMESPACE = "org.eclipse.ditto.heating";
     private static final PolicyId ROOT_POLICY_ID = PolicyId.of(NAMESPACE, "namespace-root");
     private static final JsonPointer PATH =
             JsonPointer.of("/features/circuit/properties/flowTemperature");
@@ -268,7 +268,7 @@ public final class TimeseriesAggregateActorEnforcementTest {
     public void wildcardNamespacePatternResolves() {
         new TestKit(actorSystem) {{
             final Fixture f = new Fixture();
-            f.namespacePolicies = namespacePolicies("io.beyonnex.*", ROOT_POLICY_ID);
+            f.namespacePolicies = namespacePolicies("org.eclipse.ditto.*", ROOT_POLICY_ID);
             f.start("gate-wildcard");
             f.ask(this, List.of(PATH));
 

@@ -37,7 +37,7 @@ import nl.jqno.equalsverifier.EqualsVerifier;
  */
 public final class ImmutableCrossThingTimeseriesQueryTest {
 
-    private static final String NAMESPACE = "io.beyonnex.smartheating";
+    private static final String NAMESPACE = "org.eclipse.ditto.heating";
     private static final List<JsonPointer> PATHS = Collections.singletonList(
             JsonPointer.of("/features/circuit/properties/flowTemperature"));
     private static final Instant FROM = Instant.parse("2026-07-01T00:00:00Z");
