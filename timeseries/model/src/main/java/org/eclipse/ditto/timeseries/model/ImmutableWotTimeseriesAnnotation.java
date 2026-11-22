@@ -19,6 +19,8 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
@@ -30,6 +32,8 @@ import org.eclipse.ditto.json.JsonKey;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonParseException;
+import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.json.JsonPointerInvalidException;
 import org.eclipse.ditto.json.JsonValue;
 
 /**
@@ -38,20 +42,28 @@ import org.eclipse.ditto.json.JsonValue;
 @Immutable
 final class ImmutableWotTimeseriesAnnotation implements WotTimeseriesAnnotation {
 
+    private static final Pattern THING_JSON_PLACEHOLDER =
+            Pattern.compile("^\\{\\{\\s*thing-json:\\s*([^\\s{}|]+)\\s*}}$");
+
     private final Ingest ingest;
     private final Map<String, String> tags;
+    @Nullable private final JsonPointer timePath;
 
-    private ImmutableWotTimeseriesAnnotation(final Ingest ingest, final Map<String, String> tags) {
+    private ImmutableWotTimeseriesAnnotation(final Ingest ingest, final Map<String, String> tags,
+            @Nullable final JsonPointer timePath) {
         this.ingest = ingest;
         this.tags = tags;
+        this.timePath = timePath;
     }
 
-    static WotTimeseriesAnnotation of(final Ingest ingest, final Map<String, String> tags) {
+    static WotTimeseriesAnnotation of(final Ingest ingest, final Map<String, String> tags,
+            @Nullable final JsonPointer timePath) {
         checkNotNull(ingest, "ingest");
         checkNotNull(tags, "tags");
         return new ImmutableWotTimeseriesAnnotation(
                 ingest,
-                Collections.unmodifiableMap(new LinkedHashMap<>(tags)));
+                Collections.unmodifiableMap(new LinkedHashMap<>(tags)),
+                timePath == null || timePath.isEmpty() ? null : timePath);
     }
 
     static WotTimeseriesAnnotation fromJson(final JsonObject jsonObject) {
@@ -69,8 +81,12 @@ final class ImmutableWotTimeseriesAnnotation implements WotTimeseriesAnnotation 
                 .map(ImmutableWotTimeseriesAnnotation::tagsFromJson)
                 .orElseGet(Collections::emptyMap);
 
+        final JsonPointer timePath = jsonObject.getValue(JsonFields.TIME.getPointer())
+                .map(ImmutableWotTimeseriesAnnotation::timePathFromJson)
+                .orElse(null);
+
         return new ImmutableWotTimeseriesAnnotation(
-                ingest, Collections.unmodifiableMap(new LinkedHashMap<>(tags)));
+                ingest, Collections.unmodifiableMap(new LinkedHashMap<>(tags)), timePath);
     }
 
     static Optional<WotTimeseriesAnnotation> findInProperty(final JsonObject propertySchema,
@@ -81,6 +97,24 @@ final class ImmutableWotTimeseriesAnnotation implements WotTimeseriesAnnotation 
                 .filter(JsonValue::isObject)
                 .map(JsonValue::asObject)
                 .map(ImmutableWotTimeseriesAnnotation::fromJson);
+    }
+
+    private static JsonPointer timePathFromJson(final JsonValue time) {
+        final Matcher matcher = time.isString() ? THING_JSON_PLACEHOLDER.matcher(time.asString()) : null;
+        if (matcher != null && matcher.matches()) {
+            try {
+                final JsonPointer path = JsonPointer.of(matcher.group(1));
+                if (!path.isEmpty()) {
+                    return path;
+                }
+            } catch (final JsonPointerInvalidException e) {
+                // reported below like any other invalid value
+            }
+        }
+        throw new DittoJsonException(JsonParseException.newBuilder()
+                .message("Field <" + JsonFields.TIME.getPointer() + "> has an invalid value: <" + time + ">.")
+                .description("Expected a single placeholder of the form \"{{ thing-json:<path> }}\".")
+                .build());
     }
 
     private static Map<String, String> tagsFromJson(final JsonObject tagsJson) {
@@ -109,6 +143,11 @@ final class ImmutableWotTimeseriesAnnotation implements WotTimeseriesAnnotation 
     }
 
     @Override
+    public Optional<JsonPointer> getTimePath() {
+        return Optional.ofNullable(timePath);
+    }
+
+    @Override
     public JsonObject toJson() {
         final JsonObjectBuilder builder = JsonFactory.newObjectBuilder()
                 .set(JsonFields.INGEST, ingest.getName());
@@ -119,6 +158,9 @@ final class ImmutableWotTimeseriesAnnotation implements WotTimeseriesAnnotation 
                 tagsBuilder.set(JsonKey.of(entry.getKey()), entry.getValue());
             }
             builder.set(JsonFields.TAGS, tagsBuilder.build());
+        }
+        if (timePath != null) {
+            builder.set(JsonFields.TIME, "{{ thing-json:" + timePath.toString().substring(1) + " }}");
         }
 
         return builder.build();
@@ -133,12 +175,12 @@ final class ImmutableWotTimeseriesAnnotation implements WotTimeseriesAnnotation 
             return false;
         }
         final ImmutableWotTimeseriesAnnotation that = (ImmutableWotTimeseriesAnnotation) o;
-        return ingest == that.ingest && Objects.equals(tags, that.tags);
+        return ingest == that.ingest && Objects.equals(tags, that.tags) && Objects.equals(timePath, that.timePath);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(ingest, tags);
+        return Objects.hash(ingest, tags, timePath);
     }
 
     @Override
@@ -146,6 +188,7 @@ final class ImmutableWotTimeseriesAnnotation implements WotTimeseriesAnnotation 
         return getClass().getSimpleName() + " [" +
                 "ingest=" + ingest +
                 ", tags=" + tags +
+                ", timePath=" + timePath +
                 "]";
     }
 }

@@ -25,6 +25,7 @@ import org.eclipse.ditto.base.model.exceptions.DittoJsonException;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonMissingFieldException;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.junit.Test;
 
@@ -242,5 +243,58 @@ public final class ImmutableWotTimeseriesAnnotationTest {
         final String s = underTest.toString();
 
         assertThat(s).contains("ALL").contains("attributes/building");
+    }
+
+    @Test
+    public void timePathIsEmptyByDefault() {
+        assertThat(WotTimeseriesAnnotation.of(Ingest.ALL, sampleTags()).getTimePath()).isEmpty();
+    }
+
+    @Test
+    public void fromJsonReadsTimePlaceholder() {
+        final JsonObject json = JsonFactory.newObjectBuilder()
+                .set("ingest", "ALL")
+                .set("time", "{{thing-json:features/env/properties/status/updatedAt}}")
+                .build();
+
+        assertThat(WotTimeseriesAnnotation.fromJson(json).getTimePath())
+                .contains(JsonPointer.of("/features/env/properties/status/updatedAt"));
+    }
+
+    @Test
+    public void roundTripPreservesTimePath() {
+        final WotTimeseriesAnnotation original = WotTimeseriesAnnotation.of(Ingest.ALL, sampleTags(),
+                JsonPointer.of("/features/env/properties/status/updatedAt"));
+
+        final JsonObject json = original.toJson();
+
+        assertThat(json.getValue("time"))
+                .contains(JsonValue.of("{{ thing-json:features/env/properties/status/updatedAt }}"));
+        assertThat(WotTimeseriesAnnotation.fromJson(json)).isEqualTo(original);
+    }
+
+    @Test
+    public void toJsonOmitsTimeWhenNotDeclared() {
+        assertThat(WotTimeseriesAnnotation.of(Ingest.ALL, sampleTags()).toJson().contains("time")).isFalse();
+    }
+
+    @Test
+    public void fromJsonRejectsTimeThatIsNotASinglePlaceholder() {
+        for (final JsonValue time : new JsonValue[] {
+                JsonValue.of("features/env/properties/status/updatedAt"),
+                JsonValue.of("{{ thing-json:attributes/a }}-x"),
+                JsonValue.of("{{ thing-json:attributes/a | fn:default('x') }}"),
+                JsonValue.of("{{ thing:id }}"),
+                JsonValue.of("{{ thing-json:/ }}"),
+                JsonValue.of("{{ thing-json:features//x }}"),
+                JsonValue.of(""),
+                JsonValue.of(1),
+                JsonValue.nullLiteral()}) {
+            final JsonObject json = JsonFactory.newObjectBuilder().set("ingest", "ALL").set("time", time).build();
+
+            assertThatExceptionOfType(DittoJsonException.class)
+                    .as("time %s", time)
+                    .isThrownBy(() -> WotTimeseriesAnnotation.fromJson(json));
+        }
     }
 }

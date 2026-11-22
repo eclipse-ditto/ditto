@@ -16,6 +16,7 @@ import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -40,6 +41,7 @@ import org.eclipse.ditto.internal.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.internal.utils.metrics.instruments.counter.Counter;
 import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.pekko.logging.ThreadSafeDittoLogger;
+import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.things.model.Thing;
@@ -295,14 +297,15 @@ public final class TimeseriesIngestPublisher extends AbstractActorWithTimers {
             final ThingEvent<?> event,
             final ResolvedLeafCache leafCache) {
 
-        final Instant timestamp = event.getTimestamp().orElse(Instant.now());
+        final Instant eventTime = event.getTimestamp().orElse(Instant.now());
         final long revision = event.getRevision();
         final List<TimeseriesDataPoint> dataPoints = new ArrayList<>();
 
         // Resolve tag placeholders (e.g. "{{ thing-json:attributes/building }}") against the
         // post-event Thing once per event — all leaves of one event share the same Thing snapshot.
+        final Supplier<JsonObject> thingJson = memoize(() -> thing.toJson(FieldType.REGULAR));
         final Supplier<TagExpressionResolver> tagResolver =
-                memoize(() -> new TagExpressionResolver(thing.toJson(FieldType.REGULAR)));
+                memoize(() -> new TagExpressionResolver(thingJson.get()));
 
         for (final PropertyLeaf leaf : leaves) {
             final Optional<Map.Entry<ThingSubmodel, ThingModel>> submodel = submodels.entrySet().stream()
@@ -324,10 +327,86 @@ public final class TimeseriesIngestPublisher extends AbstractActorWithTimers {
                     .append(leaf.path());
             final Map<String, JsonValue> resolvedTags =
                     resolveTags(annotation.getTags(), tagResolver, thing);
+            final Instant timestamp = annotation.getTimePath()
+                    .map(timePath -> measurementTime(timePath, event, eventTime, thingJson, thingId))
+                    .orElse(eventTime);
             dataPoints.add(TimeseriesDataPoint.of(thingId, thingPath, timestamp, leaf.value(), revision,
                     resolvedTags, resolved.get().unit()));
         }
         return dataPoints;
+    }
+
+    /**
+     * The time a data point was measured, read from the Thing field the annotation declares as {@code time}. The
+     * field counts only if this event wrote it: a value updated without its time field would otherwise carry the
+     * time of an earlier measurement. Falls back to the event time when the event did not write the field, the
+     * field is missing or is no ISO-8601 instant, and caps a time later than the event at the event time, as a
+     * device clock can run ahead.
+     */
+    private static Instant measurementTime(final JsonPointer timePath, final ThingEvent<?> event,
+            final Instant eventTime, final Supplier<JsonObject> thingJson, final ThingId thingId) {
+
+        final Optional<JsonValue> written = valueWrittenBy(event, timePath);
+        if (written.isEmpty()) {
+            final boolean missing = thingJson.get().getValue(timePath).filter(value -> !value.isNull()).isEmpty();
+            return fallBackToEventTime(missing ? TimeFallback.MISSING : TimeFallback.UNCHANGED, timePath, thingId,
+                    eventTime);
+        }
+        final Instant measured;
+        try {
+            measured = Instant.parse(written.get().asString());
+        } catch (final UnsupportedOperationException | DateTimeParseException e) {
+            return fallBackToEventTime(TimeFallback.INVALID, timePath, thingId, eventTime);
+        }
+        if (measured.isAfter(eventTime)) {
+            return fallBackToEventTime(TimeFallback.FUTURE, timePath, thingId, eventTime);
+        }
+        return measured;
+    }
+
+    private static Optional<JsonValue> valueWrittenBy(final ThingEvent<?> event, final JsonPointer path) {
+        final JsonPointer resourcePath = event.getResourcePath();
+        if (resourcePath.getLevelCount() > path.getLevelCount()) {
+            return Optional.empty();
+        }
+        for (int level = 0; level < resourcePath.getLevelCount(); level++) {
+            if (!resourcePath.get(level).equals(path.get(level))) {
+                return Optional.empty();
+            }
+        }
+        final JsonPointer relative = path.getSubPointer(resourcePath.getLevelCount()).orElse(JsonPointer.empty());
+        return event.getEntity()
+                .flatMap(entity -> relative.isEmpty() ? Optional.of(entity)
+                        : entity.isObject() ? entity.asObject().getValue(relative) : Optional.empty())
+                .filter(value -> !value.isNull());
+    }
+
+    private static Instant fallBackToEventTime(final TimeFallback reason, final JsonPointer timePath,
+            final ThingId thingId, final Instant eventTime) {
+
+        reason.counter.increment();
+        LOGGER.debug("Using the event time for a data point of thing <{}>: time field <{}> is {}.",
+                thingId, timePath, reason.tag);
+        return eventTime;
+    }
+
+    /**
+     * Why a data point declaring a time field is stamped with the event time, counted in Kamon
+     * {@code timeseries_ingest_time_fallback} with the {@code reason} tag.
+     */
+    private enum TimeFallback {
+        UNCHANGED("unchanged"),
+        MISSING("missing"),
+        INVALID("invalid"),
+        FUTURE("future");
+
+        private final String tag;
+        private final Counter counter;
+
+        TimeFallback(final String tag) {
+            this.tag = tag;
+            counter = DittoMetrics.counter("timeseries_ingest_time_fallback").tag("reason", tag);
+        }
     }
 
     /**

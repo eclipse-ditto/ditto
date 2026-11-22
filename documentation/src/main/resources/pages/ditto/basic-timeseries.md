@@ -71,6 +71,38 @@ Tag keys are full thing paths, which is what makes them checkable as [policy](ba
 
 Because tags are frozen at ingest, they describe **the state of the world when the measurement was taken**. For a thing moved from building A to building B, points recorded while it was in A keep `building=A` forever. This is deliberate, and it differs from selecting things by their current attributes.
 
+### Measurement time
+
+A data point carries the time of the event that changed the property. A device that reports its measurement time alongside the value, for example after a delayed or batched uplink, can declare that field as `time`:
+
+```json
+"status": {
+  "type": "object",
+  "properties": {
+    "temperature": {
+      "type": "number",
+      "ditto:timeseries": {
+        "ingest": "ALL",
+        "time": "{{ thing-json:features/env/properties/status/updatedAt }}"
+      }
+    },
+    "updatedAt": { "type": "string", "format": "date-time" }
+  }
+}
+```
+
+`time` is a single `{{ thing-json:<path> }}` placeholder with the full path of the field in the Thing. The field holds a date-time with seconds and a `Z` or `±HH:MM` offset, such as `2026-01-01T10:00:00+01:00`; dates without a time and epoch numbers are not read. Since the path names the feature, a ThingModel used for several features needs one per feature.
+
+The value and its time must be written by the same event, e.g. one merge of the object holding both. The data point takes the event time instead when:
+
+- the event did not write the field, so a value updated without its time field never carries the time of an earlier measurement;
+- the field is missing, or is not such a date-time;
+- the time is later than the event, as a device clock can run ahead.
+
+Declare the annotation on the value itself, not on the object holding the value and its time: an annotation applies to every value below it, so the time field would be recorded as a series of its own.
+
+Each of these increments the `timeseries_ingest_time_fallback` metric, tagged with the `reason` (`unchanged`, `missing`, `invalid` or `future`). A point whose measurement time lies further back than the [retention](#retention) is removed when retention runs.
+
 ## Reading one thing
 
 ```

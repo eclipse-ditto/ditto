@@ -20,6 +20,7 @@ import static org.mockito.Mockito.when;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
@@ -36,10 +37,15 @@ import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.things.model.Feature;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.ThingsModelFactory;
+import org.eclipse.ditto.things.model.signals.events.FeatureModified;
+import org.eclipse.ditto.things.model.signals.events.FeaturePropertiesModified;
 import org.eclipse.ditto.things.model.signals.events.FeaturePropertyModified;
+import org.eclipse.ditto.things.model.signals.events.FeaturesModified;
+import org.eclipse.ditto.things.model.signals.events.ThingEvent;
 import org.eclipse.ditto.things.model.signals.events.ThingMerged;
 import org.eclipse.ditto.things.model.signals.events.ThingModified;
 import org.eclipse.ditto.timeseries.api.commands.IngestDataPoints;
@@ -69,6 +75,7 @@ public final class TimeseriesIngestPublisherTest {
     private static final String FEATURE_ID = "env";
     private static final String PROPERTY_NAME = "temperature";
     private static final String NESTED_FEATURE_PROPERTY = "status";
+    private static final Instant EVENT_TIME = Instant.parse("2026-01-01T00:00:00Z");
 
     // Mirrors a real ThingModel @context: the Ditto WoT extension bound to the "ditto" prefix,
     // so the publisher's getAtContext().determinePrefixFor(...) resolves it.
@@ -484,6 +491,225 @@ public final class TimeseriesIngestPublisherTest {
     }
 
     // --- WoT TM construction helpers ---
+
+    @Test
+    public void dataPointWithoutDeclaredTimeTakesTheEventTime() {
+        final IngestDataPoints command = ingest(nestedAnnotatedSubmodel(),
+                mergeStatus(status(55.0, "2025-12-31T23:00:00Z")));
+
+        assertThat(command.getDataPoints().get(0).getTimestamp()).isEqualTo(EVENT_TIME);
+    }
+
+    @Test
+    public void declaredTimeFieldWrittenByTheEventIsTheMeasurementTime() {
+        final IngestDataPoints command = ingest(timedSubmodel(), mergeStatus(status(55.0, "2025-12-31T23:00:00Z")));
+
+        assertThat(command.getDataPoints()).hasSize(1);
+        assertThat(command.getDataPoints().get(0).getTimestamp()).isEqualTo(Instant.parse("2025-12-31T23:00:00Z"));
+    }
+
+    @Test
+    public void declaredTimeWithAnOffsetIsReadAsTheSameInstant() {
+        final IngestDataPoints command =
+                ingest(timedSubmodel(), mergeStatus(status(55.0, "2025-12-31T23:00:00+01:00")));
+
+        assertThat(command.getDataPoints().get(0).getTimestamp()).isEqualTo(Instant.parse("2025-12-31T22:00:00Z"));
+    }
+
+    @Test
+    public void declaredTimeIsReadFromAFullThingReplace() {
+        final Thing thing = thingWithStatus(status(55.0, "2025-12-31T23:00:00Z"));
+        final IngestDataPoints command = ingest(timedSubmodel(),
+                ThingModified.of(thing, 1L, EVENT_TIME, DittoHeaders.empty(), null), thing);
+
+        assertThat(command.getDataPoints().get(0).getTimestamp()).isEqualTo(Instant.parse("2025-12-31T23:00:00Z"));
+    }
+
+    @Test
+    public void valueUpdatedWithoutItsTimeFieldTakesTheEventTime() {
+        // The Thing still holds the time of the previous measurement; it must not be reused for the new value.
+        final Thing thing = thingWithStatus(status(56.0, "2025-12-31T23:00:00Z"));
+        final FeaturePropertyModified event = FeaturePropertyModified.of(THING_ID, FEATURE_ID,
+                JsonPointer.of("status/temperature"), JsonValue.of(56.0), 2L, EVENT_TIME, DittoHeaders.empty(), null);
+
+        final IngestDataPoints command = ingest(timedSubmodel(), event, thing);
+
+        assertThat(command.getDataPoints().get(0).getValue()).isEqualTo(JsonValue.of(56.0));
+        assertThat(command.getDataPoints().get(0).getTimestamp()).isEqualTo(EVENT_TIME);
+    }
+
+    @Test
+    public void missingTimeFieldTakesTheEventTime() {
+        final JsonObject withoutTime = JsonFactory.newObjectBuilder().set("temperature", 55.0).build();
+
+        final IngestDataPoints command = ingest(timedSubmodel(), mergeStatus(withoutTime), thingWithStatus(withoutTime));
+
+        assertThat(command.getDataPoints().get(0).getTimestamp()).isEqualTo(EVENT_TIME);
+    }
+
+    @Test
+    public void timeFieldThatIsNoInstantTakesTheEventTime() {
+        for (final JsonValue time : new JsonValue[] {
+                JsonValue.of("yesterday"), JsonValue.of("2025-12-31"), JsonValue.of(1767222000000L)}) {
+            final JsonObject value = JsonFactory.newObjectBuilder().set("temperature", 55.0).set("updatedAt", time).build();
+
+            final IngestDataPoints command = ingest(timedSubmodel(), mergeStatus(value), thingWithStatus(value));
+
+            assertThat(command.getDataPoints().get(0).getTimestamp()).as("time %s", time).isEqualTo(EVENT_TIME);
+        }
+    }
+
+    @Test
+    public void timeLaterThanTheEventIsCappedAtTheEventTime() {
+        final IngestDataPoints command = ingest(timedSubmodel(), mergeStatus(status(55.0, "2026-01-01T00:00:01Z")));
+
+        assertThat(command.getDataPoints().get(0).getTimestamp()).isEqualTo(EVENT_TIME);
+    }
+
+    @Test
+    public void declaredTimeIsReadFromEveryEventShapeThatWritesIt() {
+        final JsonObject status = status(55.0, "2025-12-31T23:00:00Z");
+        final Thing thing = thingWithStatus(status);
+        final Feature feature = thing.getFeatures().flatMap(f -> f.getFeature(FEATURE_ID)).orElseThrow();
+        final List<ThingEvent<?>> events = List.of(
+                FeaturePropertiesModified.of(THING_ID, FEATURE_ID, feature.getProperties().orElseThrow(), 1L,
+                        EVENT_TIME, DittoHeaders.empty(), null),
+                FeatureModified.of(THING_ID, feature, 1L, EVENT_TIME, DittoHeaders.empty(), null),
+                FeaturesModified.of(THING_ID, thing.getFeatures().orElseThrow(), 1L, EVENT_TIME, DittoHeaders.empty(),
+                        null),
+                ThingMerged.of(THING_ID, JsonPointer.of("/features"), thing.getFeatures().orElseThrow().toJson(), 1L,
+                        EVENT_TIME, DittoHeaders.empty(), null),
+                ThingMerged.of(THING_ID, JsonPointer.empty(), thing.toJson(), 1L, EVENT_TIME, DittoHeaders.empty(),
+                        null));
+
+        for (final ThingEvent<?> event : events) {
+            final IngestDataPoints command = ingest(timedSubmodel(), event, thing);
+
+            assertThat(command.getDataPoints()).as(event.getType()).hasSize(1);
+            assertThat(command.getDataPoints().get(0).getTimestamp()).as(event.getType())
+                    .isEqualTo(Instant.parse("2025-12-31T23:00:00Z"));
+        }
+    }
+
+    @Test
+    public void timeFieldRemovedByMergePatchTakesTheEventTime() {
+        final JsonObject patch = JsonFactory.newObjectBuilder()
+                .set("temperature", 55.0)
+                .set("updatedAt", JsonValue.nullLiteral())
+                .build();
+        final Thing thing = thingWithStatus(JsonFactory.newObjectBuilder().set("temperature", 55.0).build());
+
+        final IngestDataPoints command = ingest(timedSubmodel(), mergeStatus(patch), thing);
+
+        assertThat(command.getDataPoints().get(0).getTimestamp()).isEqualTo(EVENT_TIME);
+    }
+
+    @Test
+    public void timeEqualToTheEventTimeIsKept() {
+        final IngestDataPoints command = ingest(timedSubmodel(), mergeStatus(status(55.0, EVENT_TIME.toString())));
+
+        assertThat(command.getDataPoints().get(0).getTimestamp()).isEqualTo(EVENT_TIME);
+    }
+
+    @Test
+    public void invalidTimeAnnotationSkipsOnlyItsProperty() {
+        final JsonObject properties = JsonFactory.newObjectBuilder()
+                .set(PROPERTY_NAME, JsonFactory.newObjectBuilder()
+                        .set("type", "number")
+                        .set("ditto:timeseries", JsonObject.newBuilder().set("ingest", "ALL").build())
+                        .build())
+                .set("humidity", JsonFactory.newObjectBuilder()
+                        .set("type", "number")
+                        .set("ditto:timeseries", JsonObject.newBuilder()
+                                .set("ingest", "ALL")
+                                .set("time", "features/env/properties/updatedAt")
+                                .build())
+                        .build())
+                .build();
+        final ThingModel submodel = ThingModel.fromJson(JsonObject.newBuilder()
+                .set("@context", DITTO_CONTEXT)
+                .set("@type", "tm:ThingModel")
+                .set("properties", properties)
+                .build());
+        final ThingMerged event = ThingMerged.of(THING_ID, JsonPointer.of("/features/env/properties"),
+                JsonObject.newBuilder().set(PROPERTY_NAME, 21.5).set("humidity", 40).build(), 1L, EVENT_TIME,
+                DittoHeaders.empty(), null);
+
+        final IngestDataPoints command = ingest(submodel, event, thingWithDefinition());
+
+        assertThat(command.getDataPoints()).hasSize(1);
+        assertThat((Object) command.getDataPoints().get(0).getPath())
+                .isEqualTo(JsonPointer.of("/features/env/properties/temperature"));
+    }
+
+    private static IngestDataPoints ingest(final ThingModel submodel, final ThingMerged event) {
+        return ingest(submodel, event, thingWithStatus(event.getValue().asObject()));
+    }
+
+    private static IngestDataPoints ingest(final ThingModel submodel, final ThingEvent<?> event, final Thing thing) {
+        final IngestDataPoints[] result = new IngestDataPoints[1];
+        new TestKit(actorSystem) {{
+            final TestProbe shardProbe = new TestProbe(actorSystem);
+            final ActorRef publisher = actorSystem.actorOf(
+                    TimeseriesIngestPublisher.props(shardProbe.ref(), resolverWith(submodel), Duration.ofSeconds(2)));
+
+            publisher.tell(new TimeseriesIngestPublisher.IngestRequest(event, thing), getRef());
+
+            result[0] = shardProbe.expectMsgClass(IngestDataPoints.class);
+            shardProbe.reply(IngestDataPointsResponse.of(THING_ID, result[0].getDittoHeaders()));
+            actorSystem.stop(publisher);
+        }};
+        return result[0];
+    }
+
+    private static ThingMerged mergeStatus(final JsonObject status) {
+        return ThingMerged.of(THING_ID, JsonPointer.of("/features/env/properties/status"), status, 1L, EVENT_TIME,
+                DittoHeaders.empty(), null);
+    }
+
+    private static JsonObject status(final double temperature, final String updatedAt) {
+        return JsonFactory.newObjectBuilder().set("temperature", temperature).set("updatedAt", updatedAt).build();
+    }
+
+    private static Thing thingWithStatus(final JsonObject status) {
+        return ThingsModelFactory.newThingBuilder()
+                .setId(THING_ID)
+                .setDefinition(ThingsModelFactory.newDefinition(TM_IRI.toString()))
+                .setFeature(ThingsModelFactory.newFeatureBuilder()
+                        .properties(ThingsModelFactory.newFeaturePropertiesBuilder()
+                                .set(NESTED_FEATURE_PROPERTY, status)
+                                .build())
+                        .withId(FEATURE_ID)
+                        .build())
+                .build();
+    }
+
+    private static ThingModel timedSubmodel() {
+        final JsonObject annotation = JsonFactory.newObjectBuilder()
+                .set("ingest", "ALL")
+                .set("time", "{{ thing-json:features/env/properties/status/updatedAt }}")
+                .build();
+        final JsonObject nestedProperties = JsonFactory.newObjectBuilder()
+                .set("temperature", JsonFactory.newObjectBuilder()
+                        .set("type", "number")
+                        .set("ditto:timeseries", annotation)
+                        .build())
+                .set("updatedAt", JsonFactory.newObjectBuilder()
+                        .set("type", "string")
+                        .set("format", "date-time")
+                        .build())
+                .build();
+        return ThingModel.fromJson(JsonObject.newBuilder()
+                .set("@context", DITTO_CONTEXT)
+                .set("@type", "tm:ThingModel")
+                .set("properties", JsonFactory.newObjectBuilder()
+                        .set(NESTED_FEATURE_PROPERTY, JsonFactory.newObjectBuilder()
+                                .set("type", "object")
+                                .set("properties", nestedProperties)
+                                .build())
+                        .build())
+                .build());
+    }
 
     private static WotThingModelResolver resolverWith(final ThingModel submodel) {
         final WotThingModelResolver resolver = mock(WotThingModelResolver.class);

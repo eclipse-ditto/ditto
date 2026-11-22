@@ -15,12 +15,15 @@ package org.eclipse.ditto.timeseries.model;
 import java.util.Map;
 import java.util.Optional;
 
+import javax.annotation.Nullable;
+
 import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.base.model.json.Jsonifiable;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonPointer;
 
 /**
  * Parsed representation of a {@code ditto:timeseries} extension annotation declared on a WoT
@@ -58,7 +61,22 @@ public interface WotTimeseriesAnnotation extends Jsonifiable<JsonObject> {
      * @throws NullPointerException if any argument is {@code null}.
      */
     static WotTimeseriesAnnotation of(final Ingest ingest, final Map<String, String> tags) {
-        return ImmutableWotTimeseriesAnnotation.of(ingest, tags);
+        return ImmutableWotTimeseriesAnnotation.of(ingest, tags, null);
+    }
+
+    /**
+     * Returns a new {@code WotTimeseriesAnnotation} whose data points take their time from a field of the Thing.
+     *
+     * @param ingest the ingestion mode.
+     * @param tags the declared tag map. Must not be {@code null}; may be empty.
+     * @param timePath the path of the Thing field holding the measurement time, or {@code null} to timestamp
+     * data points with the time of the event.
+     * @return the new annotation.
+     * @throws NullPointerException if {@code ingest} or {@code tags} is {@code null}.
+     */
+    static WotTimeseriesAnnotation of(final Ingest ingest, final Map<String, String> tags,
+            @Nullable final JsonPointer timePath) {
+        return ImmutableWotTimeseriesAnnotation.of(ingest, tags, timePath);
     }
 
     /**
@@ -69,8 +87,8 @@ public interface WotTimeseriesAnnotation extends Jsonifiable<JsonObject> {
      * @return the parsed annotation.
      * @throws NullPointerException if {@code jsonObject} is {@code null}.
      * @throws org.eclipse.ditto.json.JsonMissingFieldException if {@code ingest} is missing.
-     * @throws org.eclipse.ditto.json.JsonParseException if {@code ingest} has an unknown value or
-     * a tag value is not a JSON string.
+     * @throws org.eclipse.ditto.json.JsonParseException if {@code ingest} has an unknown value, a tag value is not a
+     * JSON string, or {@code time} is not a single {@code {{ thing-json:<path> }}} placeholder.
      */
     static WotTimeseriesAnnotation fromJson(final JsonObject jsonObject) {
         return ImmutableWotTimeseriesAnnotation.fromJson(jsonObject);
@@ -117,6 +135,12 @@ public interface WotTimeseriesAnnotation extends Jsonifiable<JsonObject> {
     Map<String, String> getTags();
 
     /**
+     * @return the path of the Thing field holding the measurement time of the data points, declared as
+     * {@code "time": "{{ thing-json:<path> }}"}; empty when the data points take the time of the event.
+     */
+    Optional<JsonPointer> getTimePath();
+
+    /**
      * @return {@code true} when {@link #getIngest()} is {@link Ingest#ALL}; {@code false}
      * otherwise (i.e. {@link Ingest#NONE}).
      */
@@ -145,6 +169,13 @@ public interface WotTimeseriesAnnotation extends Jsonifiable<JsonObject> {
          */
         public static final JsonFieldDefinition<JsonObject> TAGS =
                 JsonFactory.newJsonObjectFieldDefinition("tags", FieldType.REGULAR, JsonSchemaVersion.V_2);
+
+        /**
+         * The Thing field holding the measurement time, as a {@code {{ thing-json:<path> }}} placeholder.
+         * Optional; absent means the time of the event.
+         */
+        public static final JsonFieldDefinition<String> TIME =
+                JsonFactory.newStringFieldDefinition("time", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
         private JsonFields() {
             throw new AssertionError();
