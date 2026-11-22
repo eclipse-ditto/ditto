@@ -65,12 +65,13 @@ public interface WotTimeseriesAnnotation extends Jsonifiable<JsonObject> {
     }
 
     /**
-     * Returns a new {@code WotTimeseriesAnnotation} whose data points take their time from a field of the Thing.
+     * Returns a new {@code WotTimeseriesAnnotation} whose data points take their time from a property of the feature
+     * holding the value.
      *
      * @param ingest the ingestion mode.
      * @param tags the declared tag map. Must not be {@code null}; may be empty.
-     * @param timePath the path of the Thing field holding the measurement time, or {@code null} to timestamp
-     * data points with the time of the event.
+     * @param timePath the path of the property holding the measurement time, relative to the properties of the
+     * feature holding the value, or {@code null} to timestamp data points with the time of the event.
      * @return the new annotation.
      * @throws NullPointerException if {@code ingest} or {@code tags} is {@code null}.
      */
@@ -88,7 +89,7 @@ public interface WotTimeseriesAnnotation extends Jsonifiable<JsonObject> {
      * @throws NullPointerException if {@code jsonObject} is {@code null}.
      * @throws org.eclipse.ditto.json.JsonMissingFieldException if {@code ingest} is missing.
      * @throws org.eclipse.ditto.json.JsonParseException if {@code ingest} has an unknown value, a tag value is not a
-     * JSON string, or {@code time} is not a single {@code {{ thing-json:<path> }}} placeholder.
+     * JSON string, or {@code time} is not a non-empty property path.
      */
     static WotTimeseriesAnnotation fromJson(final JsonObject jsonObject) {
         return ImmutableWotTimeseriesAnnotation.fromJson(jsonObject);
@@ -135,8 +136,9 @@ public interface WotTimeseriesAnnotation extends Jsonifiable<JsonObject> {
     Map<String, String> getTags();
 
     /**
-     * @return the path of the Thing field holding the measurement time of the data points, declared as
-     * {@code "time": "{{ thing-json:<path> }}"}; empty when the data points take the time of the event.
+     * @return the path of the property holding the measurement time of the data points, relative to the properties
+     * of the feature holding the value, e.g. {@code status/updatedAt}; empty when the data points take the time of
+     * the event.
      */
     Optional<JsonPointer> getTimePath();
 
@@ -171,7 +173,8 @@ public interface WotTimeseriesAnnotation extends Jsonifiable<JsonObject> {
                 JsonFactory.newJsonObjectFieldDefinition("tags", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
         /**
-         * The Thing field holding the measurement time, as a {@code {{ thing-json:<path> }}} placeholder.
+         * The property holding the measurement time, as a path relative to the properties of the feature holding the
+         * value.
          * Optional; absent means the time of the event.
          */
         public static final JsonFieldDefinition<String> TIME =

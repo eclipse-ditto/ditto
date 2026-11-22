@@ -73,7 +73,7 @@ Because tags are frozen at ingest, they describe **the state of the world when t
 
 ### Measurement time
 
-A data point carries the time of the event that changed the property. A device that reports its measurement time alongside the value, for example after a delayed or batched uplink, can declare that field as `time`:
+A data point carries the time of the event that changed the property. A device that reports its measurement time alongside the value, for example after a delayed or batched uplink, can declare that property as `time`:
 
 ```json
 "status": {
@@ -83,7 +83,7 @@ A data point carries the time of the event that changed the property. A device t
       "type": "number",
       "ditto:timeseries": {
         "ingest": "ALL",
-        "time": "{{ thing-json:features/env/properties/status/updatedAt }}"
+        "time": "status/updatedAt"
       }
     },
     "updatedAt": { "type": "string", "format": "date-time" }
@@ -91,17 +91,42 @@ A data point carries the time of the event that changed the property. A device t
 }
 ```
 
-`time` is a single `{{ thing-json:<path> }}` placeholder with the full path of the field in the Thing. The field holds a date-time with seconds and a `Z` or `±HH:MM` offset, such as `2026-01-01T10:00:00+01:00`; dates without a time and epoch numbers are not read. Since the path names the feature, a ThingModel used for several features needs one per feature.
+`time` is the path of a property of the same feature, relative to its `properties`, so a ThingModel works under whatever name a Thing mounts it as a feature. The path may point anywhere in that feature, e.g. to one time shared by several values:
 
-The value and its time must be written by the same event, e.g. one merge of the object holding both. The data point takes the event time instead when:
+```json
+"status": {
+  "type": "object",
+  "properties": {
+    "measuredAt": { "type": "string", "format": "date-time" },
+    "channel1": { "type": "integer", "ditto:timeseries": { "ingest": "ALL", "time": "status/measuredAt" } },
+    "channel2": { "type": "integer", "ditto:timeseries": { "ingest": "ALL", "time": "status/measuredAt" } }
+  }
+}
+```
 
-- the event did not write the field, so a value updated without its time field never carries the time of an earlier measurement;
-- the field is missing, or is not such a date-time;
-- the time is later than the event, as a device clock can run ahead.
+It cannot point into the Thing's attributes or into another feature. The property holds a date-time with seconds and a `Z` or `±HH:MM` offset, such as `2026-01-01T10:00:00+01:00`; dates without a time and epoch numbers are not read.
 
-Declare the annotation on the value itself, not on the object holding the value and its time: an annotation applies to every value below it, so the time field would be recorded as a series of its own.
+The value and its time must be written by the same event, e.g. one merge of the object holding both. For a Thing holding `{"temperature": 21.5, "updatedAt": "2026-11-22T08:00:00Z"}` under `status`, an event at 09:00 merging into `status`:
 
-Each of these increments the `timeseries_ingest_time_fallback` metric, tagged with the `reason` (`unchanged`, `missing`, `invalid` or `future`). A point whose measurement time lies further back than the [retention](#retention) is removed when retention runs.
+| Event writes | Data point | `reason` |
+|---|---|---|
+| `{"temperature": 22.0, "updatedAt": "2026-11-22T08:55:00Z"}` | 22.0 at 08:55 | |
+| `{"temperature": 22.0}` | 22.0 at 09:00 | `unchanged` |
+| `{"temperature": 22.0, "updatedAt": null}` | 22.0 at 09:00 | `missing` |
+| `{"temperature": 22.0, "updatedAt": "2026-11-22"}` | 22.0 at 09:00 | `invalid` |
+| `{"temperature": 22.0, "updatedAt": "2026-11-22T10:00:00Z"}` | 22.0 at 09:00 | `future` |
+| `{"temperature": 22.0, "updatedAt": "1970-01-01T00:00:00Z"}` | 22.0 at 09:00 | `past` |
+| `{"temperature": 21.5, "updatedAt": "2026-11-22T08:00:00Z"}` | none: re-sent | |
+| `{"temperature": 21.4, "updatedAt": "2026-11-22T08:00:00Z"}` | 21.4 at 08:00: a correction | |
+
+- A value updated without its time takes the event time, so it never carries the time of an earlier measurement.
+- A time after the event is taken as a device clock running ahead.
+- A time further back than the things service's `ditto.things.timeseries.max-measurement-age` (`35d` by default, environment variable `THINGS_TIMESERIES_MAX_MEASUREMENT_AGE`) before the event is taken as a reset device clock.
+- An unchanged value with an unchanged time, from a device re-sending its last reading or a Thing replaced as a whole, records nothing.
+
+Every point taking the event time instead of its declared time increments the `timeseries_ingest_time_fallback` metric, tagged with the `reason`; every skipped re-sent point increments `timeseries_ingest_resent`.
+
+Declare the annotation on the value itself, not on the object holding the value and its time: an annotation applies to every value below it, so the time would be recorded as a series of its own.
 
 ## Reading one thing
 

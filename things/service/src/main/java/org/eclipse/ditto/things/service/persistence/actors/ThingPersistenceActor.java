@@ -346,10 +346,10 @@ public final class ThingPersistenceActor
                 searchShardRegionProxy.tell(eventToPublish, getSelf());
             }
             if (timeseriesIngestPublisher != null) {
-                // Unenriched event plus the snapshot: the publisher resolves the WoT model
-                // against the post-event Thing and filters by annotation itself.
+                // Unenriched event plus the Thing before and after it: the publisher resolves the WoT model
+                // against the post-event Thing, filters by annotation itself and detects re-sent measurements.
                 timeseriesIngestPublisher.tell(
-                        new TimeseriesIngestPublisher.IngestRequest(event, entitySnapshot), getSelf());
+                        new TimeseriesIngestPublisher.IngestRequest(event, entitySnapshot, previousEntity), getSelf());
             }
         });
     }

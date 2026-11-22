@@ -25,6 +25,8 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
+import javax.annotation.Nullable;
+
 import org.apache.pekko.actor.ActorRef;
 import org.apache.pekko.actor.ActorSystem;
 import org.apache.pekko.actor.Status;
@@ -542,7 +544,8 @@ public final class TimeseriesIngestPublisherTest {
     public void missingTimeFieldTakesTheEventTime() {
         final JsonObject withoutTime = JsonFactory.newObjectBuilder().set("temperature", 55.0).build();
 
-        final IngestDataPoints command = ingest(timedSubmodel(), mergeStatus(withoutTime), thingWithStatus(withoutTime));
+        final IngestDataPoints command =
+                ingest(timedSubmodel(), mergeStatus(withoutTime), thingWithStatus(withoutTime));
 
         assertThat(command.getDataPoints().get(0).getTimestamp()).isEqualTo(EVENT_TIME);
     }
@@ -551,7 +554,8 @@ public final class TimeseriesIngestPublisherTest {
     public void timeFieldThatIsNoInstantTakesTheEventTime() {
         for (final JsonValue time : new JsonValue[] {
                 JsonValue.of("yesterday"), JsonValue.of("2025-12-31"), JsonValue.of(1767222000000L)}) {
-            final JsonObject value = JsonFactory.newObjectBuilder().set("temperature", 55.0).set("updatedAt", time).build();
+            final JsonObject value =
+                    JsonFactory.newObjectBuilder().set("temperature", 55.0).set("updatedAt", time).build();
 
             final IngestDataPoints command = ingest(timedSubmodel(), mergeStatus(value), thingWithStatus(value));
 
@@ -622,7 +626,7 @@ public final class TimeseriesIngestPublisherTest {
                         .set("type", "number")
                         .set("ditto:timeseries", JsonObject.newBuilder()
                                 .set("ingest", "ALL")
-                                .set("time", "features/env/properties/updatedAt")
+                                .set("time", "{{ thing-json:features/env/properties/updatedAt }}")
                                 .build())
                         .build())
                 .build();
@@ -642,18 +646,115 @@ public final class TimeseriesIngestPublisherTest {
                 .isEqualTo(JsonPointer.of("/features/env/properties/temperature"));
     }
 
+    @Test
+    public void resentValueAndTimeGiveNoDataPoint() {
+        final JsonObject status = status(55.0, "2025-12-31T23:00:00Z");
+        final Thing thing = thingWithStatus(status);
+
+        new TestKit(actorSystem) {{
+            final TestProbe shardProbe = new TestProbe(actorSystem);
+            final ActorRef publisher = actorSystem.actorOf(
+                    TimeseriesIngestPublisher.props(shardProbe.ref(), resolverWith(timedSubmodel()),
+                            Duration.ofSeconds(2)));
+
+            publisher.tell(new TimeseriesIngestPublisher.IngestRequest(mergeStatus(status), thing, thing), getRef());
+
+            shardProbe.expectNoMessage(scala.concurrent.duration.Duration.create(500, TimeUnit.MILLISECONDS));
+        }};
+    }
+
+    @Test
+    public void correctedValueWithTheSameTimeIsKept() {
+        final Thing previous = thingWithStatus(status(55.0, "2025-12-31T23:00:00Z"));
+        final JsonObject corrected = status(54.0, "2025-12-31T23:00:00Z");
+
+        final IngestDataPoints command =
+                ingest(timedSubmodel(), mergeStatus(corrected), thingWithStatus(corrected), previous);
+
+        assertThat(command.getDataPoints().get(0).getValue()).isEqualTo(JsonValue.of(54.0));
+        assertThat(command.getDataPoints().get(0).getTimestamp()).isEqualTo(Instant.parse("2025-12-31T23:00:00Z"));
+    }
+
+    @Test
+    public void sameValueWithANewTimeIsKept() {
+        final Thing previous = thingWithStatus(status(55.0, "2025-12-31T22:00:00Z"));
+        final JsonObject next = status(55.0, "2025-12-31T23:00:00Z");
+
+        final IngestDataPoints command = ingest(timedSubmodel(), mergeStatus(next), thingWithStatus(next), previous);
+
+        assertThat(command.getDataPoints().get(0).getTimestamp()).isEqualTo(Instant.parse("2025-12-31T23:00:00Z"));
+    }
+
+    @Test
+    public void timeOlderThanTheMaximumMeasurementAgeTakesTheEventTime() {
+        final String[] times = {"1970-01-01T00:00:05Z", EVENT_TIME.minus(Duration.ofDays(36)).toString()};
+        for (final String time : times) {
+            final IngestDataPoints command = ingest(timedSubmodel(), mergeStatus(status(55.0, time)));
+
+            assertThat(command.getDataPoints().get(0).getTimestamp()).as(time).isEqualTo(EVENT_TIME);
+        }
+    }
+
+    @Test
+    public void timeWithinTheMaximumMeasurementAgeIsKept() {
+        final Instant time = EVENT_TIME.minus(Duration.ofDays(34));
+
+        final IngestDataPoints command = ingest(timedSubmodel(), mergeStatus(status(55.0, time.toString())));
+
+        assertThat(command.getDataPoints().get(0).getTimestamp()).isEqualTo(time);
+    }
+
+    @Test
+    public void timePathIsResolvedInTheFeatureOfTheValue() {
+        // the same submodel mounted under another feature name reads the time from its own feature
+        final JsonObject status = status(55.0, "2025-12-31T23:00:00Z");
+        final Thing thing = ThingsModelFactory.newThingBuilder()
+                .setId(THING_ID)
+                .setDefinition(ThingsModelFactory.newDefinition(TM_IRI.toString()))
+                .setFeature(ThingsModelFactory.newFeatureBuilder()
+                        .properties(ThingsModelFactory.newFeaturePropertiesBuilder()
+                                .set(NESTED_FEATURE_PROPERTY, status)
+                                .build())
+                        .withId("system")
+                        .build())
+                .build();
+        final ThingMerged event = ThingMerged.of(THING_ID, JsonPointer.of("/features/system/properties/status"),
+                status, 1L, EVENT_TIME, DittoHeaders.empty(), null);
+
+        new TestKit(actorSystem) {{
+            final TestProbe shardProbe = new TestProbe(actorSystem);
+            final ActorRef publisher = actorSystem.actorOf(TimeseriesIngestPublisher.props(shardProbe.ref(),
+                    resolverWith("system", timedSubmodel()), Duration.ofSeconds(2)));
+
+            publisher.tell(new TimeseriesIngestPublisher.IngestRequest(event, thing), getRef());
+
+            final IngestDataPoints command = shardProbe.expectMsgClass(IngestDataPoints.class);
+            shardProbe.reply(IngestDataPointsResponse.of(THING_ID, command.getDittoHeaders()));
+            assertThat((Object) command.getDataPoints().get(0).getPath())
+                    .isEqualTo(JsonPointer.of("/features/system/properties/status/temperature"));
+            assertThat(command.getDataPoints().get(0).getTimestamp())
+                    .isEqualTo(Instant.parse("2025-12-31T23:00:00Z"));
+        }};
+    }
+
     private static IngestDataPoints ingest(final ThingModel submodel, final ThingMerged event) {
         return ingest(submodel, event, thingWithStatus(event.getValue().asObject()));
     }
 
     private static IngestDataPoints ingest(final ThingModel submodel, final ThingEvent<?> event, final Thing thing) {
+        return ingest(submodel, event, thing, null);
+    }
+
+    private static IngestDataPoints ingest(final ThingModel submodel, final ThingEvent<?> event, final Thing thing,
+            @Nullable final Thing previousThing) {
+
         final IngestDataPoints[] result = new IngestDataPoints[1];
         new TestKit(actorSystem) {{
             final TestProbe shardProbe = new TestProbe(actorSystem);
             final ActorRef publisher = actorSystem.actorOf(
                     TimeseriesIngestPublisher.props(shardProbe.ref(), resolverWith(submodel), Duration.ofSeconds(2)));
 
-            publisher.tell(new TimeseriesIngestPublisher.IngestRequest(event, thing), getRef());
+            publisher.tell(new TimeseriesIngestPublisher.IngestRequest(event, thing, previousThing), getRef());
 
             result[0] = shardProbe.expectMsgClass(IngestDataPoints.class);
             shardProbe.reply(IngestDataPointsResponse.of(THING_ID, result[0].getDittoHeaders()));
@@ -687,7 +788,7 @@ public final class TimeseriesIngestPublisherTest {
     private static ThingModel timedSubmodel() {
         final JsonObject annotation = JsonFactory.newObjectBuilder()
                 .set("ingest", "ALL")
-                .set("time", "{{ thing-json:features/env/properties/status/updatedAt }}")
+                .set("time", "status/updatedAt")
                 .build();
         final JsonObject nestedProperties = JsonFactory.newObjectBuilder()
                 .set("temperature", JsonFactory.newObjectBuilder()
@@ -712,12 +813,16 @@ public final class TimeseriesIngestPublisherTest {
     }
 
     private static WotThingModelResolver resolverWith(final ThingModel submodel) {
+        return resolverWith(FEATURE_ID, submodel);
+    }
+
+    private static WotThingModelResolver resolverWith(final String featureId, final ThingModel submodel) {
         final WotThingModelResolver resolver = mock(WotThingModelResolver.class);
         final ThingModel topLevel = ThingModel.fromJson(JsonObject.empty());
         when(resolver.resolveThingModel(any(IRI.class), any(DittoHeaders.class)))
                 .thenReturn(CompletableFuture.completedFuture(topLevel));
         final Map<ThingSubmodel, ThingModel> submodels = new HashMap<>();
-        submodels.put(new ThingSubmodel(FEATURE_ID, IRI.of("https://example.com/env.tm.jsonld")),
+        submodels.put(new ThingSubmodel(featureId, IRI.of("https://example.com/env.tm.jsonld")),
                 submodel);
         when(resolver.resolveThingModelSubmodels(any(ThingModel.class), any(DittoHeaders.class)))
                 .thenReturn(CompletableFuture.completedFuture(submodels));

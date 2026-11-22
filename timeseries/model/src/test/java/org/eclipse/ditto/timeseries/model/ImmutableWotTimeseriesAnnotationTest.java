@@ -251,25 +251,23 @@ public final class ImmutableWotTimeseriesAnnotationTest {
     }
 
     @Test
-    public void fromJsonReadsTimePlaceholder() {
+    public void fromJsonReadsTimePath() {
         final JsonObject json = JsonFactory.newObjectBuilder()
                 .set("ingest", "ALL")
-                .set("time", "{{thing-json:features/env/properties/status/updatedAt}}")
+                .set("time", "status/updatedAt")
                 .build();
 
-        assertThat(WotTimeseriesAnnotation.fromJson(json).getTimePath())
-                .contains(JsonPointer.of("/features/env/properties/status/updatedAt"));
+        assertThat(WotTimeseriesAnnotation.fromJson(json).getTimePath()).contains(JsonPointer.of("/status/updatedAt"));
     }
 
     @Test
     public void roundTripPreservesTimePath() {
-        final WotTimeseriesAnnotation original = WotTimeseriesAnnotation.of(Ingest.ALL, sampleTags(),
-                JsonPointer.of("/features/env/properties/status/updatedAt"));
+        final WotTimeseriesAnnotation original =
+                WotTimeseriesAnnotation.of(Ingest.ALL, sampleTags(), JsonPointer.of("/status/updatedAt"));
 
         final JsonObject json = original.toJson();
 
-        assertThat(json.getValue("time"))
-                .contains(JsonValue.of("{{ thing-json:features/env/properties/status/updatedAt }}"));
+        assertThat(json.getValue("time")).contains(JsonValue.of("status/updatedAt"));
         assertThat(WotTimeseriesAnnotation.fromJson(json)).isEqualTo(original);
     }
 
@@ -279,14 +277,12 @@ public final class ImmutableWotTimeseriesAnnotationTest {
     }
 
     @Test
-    public void fromJsonRejectsTimeThatIsNotASinglePlaceholder() {
+    public void fromJsonRejectsTimeThatIsNoPropertyPath() {
         for (final JsonValue time : new JsonValue[] {
-                JsonValue.of("features/env/properties/status/updatedAt"),
-                JsonValue.of("{{ thing-json:attributes/a }}-x"),
-                JsonValue.of("{{ thing-json:attributes/a | fn:default('x') }}"),
-                JsonValue.of("{{ thing:id }}"),
-                JsonValue.of("{{ thing-json:/ }}"),
-                JsonValue.of("{{ thing-json:features//x }}"),
+                JsonValue.of("{{ thing-json:features/env/properties/status/updatedAt }}"),
+                JsonValue.of("{{ feature:id }}/updatedAt"),
+                JsonValue.of("/"),
+                JsonValue.of("status//updatedAt"),
                 JsonValue.of(""),
                 JsonValue.of(1),
                 JsonValue.nullLiteral()}) {

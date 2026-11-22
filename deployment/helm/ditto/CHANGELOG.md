@@ -26,6 +26,8 @@ sections: `Added`, `Changed`, `Deprecated`, `Removed`, `Fixed`, `Security`.
 - New `global.featureFlags.timeseriesEnabled` (default `false`), passed to the things, gateway and connectivity
   services as `DITTO_DEVOPS_FEATURE_TIMESERIES_ENABLED`. It switches on the ingest of WoT-annotated properties and
   the `/api/2/timeseries` endpoints; enable it together with `timeseries.enabled`.
+- New `things.config.timeseries.maxMeasurementAge` (default `35d`), passed to the things service as
+  `THINGS_TIMESERIES_MAX_MEASUREMENT_AGE`: how far before its event a data point's measurement time may lie.
 
 ## [4.9.0]
 

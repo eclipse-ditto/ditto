@@ -19,8 +19,6 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
@@ -41,9 +39,6 @@ import org.eclipse.ditto.json.JsonValue;
  */
 @Immutable
 final class ImmutableWotTimeseriesAnnotation implements WotTimeseriesAnnotation {
-
-    private static final Pattern THING_JSON_PLACEHOLDER =
-            Pattern.compile("^\\{\\{\\s*thing-json:\\s*([^\\s{}|]+)\\s*}}$");
 
     private final Ingest ingest;
     private final Map<String, String> tags;
@@ -100,10 +95,9 @@ final class ImmutableWotTimeseriesAnnotation implements WotTimeseriesAnnotation 
     }
 
     private static JsonPointer timePathFromJson(final JsonValue time) {
-        final Matcher matcher = time.isString() ? THING_JSON_PLACEHOLDER.matcher(time.asString()) : null;
-        if (matcher != null && matcher.matches()) {
+        if (time.isString() && !time.asString().contains("{")) {
             try {
-                final JsonPointer path = JsonPointer.of(matcher.group(1));
+                final JsonPointer path = JsonPointer.of(time.asString());
                 if (!path.isEmpty()) {
                     return path;
                 }
@@ -113,7 +107,7 @@ final class ImmutableWotTimeseriesAnnotation implements WotTimeseriesAnnotation 
         }
         throw new DittoJsonException(JsonParseException.newBuilder()
                 .message("Field <" + JsonFields.TIME.getPointer() + "> has an invalid value: <" + time + ">.")
-                .description("Expected a single placeholder of the form \"{{ thing-json:<path> }}\".")
+                .description("Expected the path of a property of the same feature, e.g. \"status/updatedAt\".")
                 .build());
     }
 
@@ -160,7 +154,7 @@ final class ImmutableWotTimeseriesAnnotation implements WotTimeseriesAnnotation 
             builder.set(JsonFields.TAGS, tagsBuilder.build());
         }
         if (timePath != null) {
-            builder.set(JsonFields.TIME, "{{ thing-json:" + timePath.toString().substring(1) + " }}");
+            builder.set(JsonFields.TIME, timePath.toString().substring(1));
         }
 
         return builder.build();

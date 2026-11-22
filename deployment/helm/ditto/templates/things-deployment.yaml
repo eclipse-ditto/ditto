@@ -340,6 +340,8 @@ spec:
               value: "{{ .Values.things.config.supervisor.localAskTimeoutDuringRecovery }}"
             - name: THINGS_SUPERVISOR_LOCAL_ASK_ENFORCER_TIMEOUT
               value: "{{ .Values.things.config.supervisor.localAskEnforcerTimeout }}"
+            - name: THINGS_TIMESERIES_MAX_MEASUREMENT_AGE
+              value: "{{ .Values.things.config.timeseries.maxMeasurementAge }}"
             - name: THINGS_WOT_TO_THING_DESCRIPTION_BASE_PREFIX
               value: "{{ .Values.things.config.wot.tdBasePrefix }}"
             - name: THINGS_WOT_THING_MODEL_CACHE_SIZE

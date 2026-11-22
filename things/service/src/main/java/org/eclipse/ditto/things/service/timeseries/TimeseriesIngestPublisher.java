@@ -37,6 +37,7 @@ import org.apache.pekko.pattern.Patterns;
 import org.eclipse.ditto.base.model.entity.id.WithEntityId;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.FieldType;
+import org.eclipse.ditto.internal.utils.config.DittoConfigError;
 import org.eclipse.ditto.internal.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.internal.utils.metrics.instruments.counter.Counter;
 import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
@@ -59,6 +60,8 @@ import org.eclipse.ditto.wot.api.resolver.ThingSubmodel;
 import org.eclipse.ditto.wot.api.resolver.WotThingModelResolver;
 import org.eclipse.ditto.wot.model.IRI;
 import org.eclipse.ditto.wot.model.ThingModel;
+
+import com.typesafe.config.Config;
 
 /**
  * Per-Things-service-node actor that turns {@link ThingEvent}s into {@link IngestDataPoints}
@@ -125,6 +128,15 @@ public final class TimeseriesIngestPublisher extends AbstractActorWithTimers {
 
     private static final int RESOLVED_LEAVES_CACHE_SIZE = 10_000;
 
+    private static final String MAX_MEASUREMENT_AGE_PATH = "ditto.things.timeseries.max-measurement-age";
+    private static final Duration DEFAULT_MAX_MEASUREMENT_AGE = Duration.ofDays(35);
+
+    /**
+     * Kamon {@code timeseries_ingest_resent} — incremented per data point skipped because its event wrote the same
+     * value and measurement time the Thing already held.
+     */
+    private static final Counter RESENT = DittoMetrics.counter("timeseries_ingest_resent");
+
     /**
      * Kamon {@code timeseries_ingest_dropped} — incremented per batch given up after retries or failing to build, and
      * by {@link ResolvedLeafCache} per property with an invalid annotation.
@@ -140,6 +152,7 @@ public final class TimeseriesIngestPublisher extends AbstractActorWithTimers {
     private final ActorRef shardRegionProxy;
     private final WotThingModelResolver wotResolver;
     private final Duration askTimeout;
+    private final Duration maxMeasurementAge;
     private final ResolvedLeafCache resolvedLeaves = new ResolvedLeafCache(RESOLVED_LEAVES_CACHE_SIZE);
 
     @SuppressWarnings("unused")
@@ -150,6 +163,17 @@ public final class TimeseriesIngestPublisher extends AbstractActorWithTimers {
         this.shardRegionProxy = checkNotNull(shardRegionProxy, "shardRegionProxy");
         this.wotResolver = checkNotNull(wotResolver, "wotResolver");
         this.askTimeout = checkNotNull(askTimeout, "askTimeout");
+        maxMeasurementAge = maxMeasurementAge(getContext().getSystem().settings().config());
+    }
+
+    private static Duration maxMeasurementAge(final Config config) {
+        final Duration maxAge = config.hasPath(MAX_MEASUREMENT_AGE_PATH)
+                ? config.getDuration(MAX_MEASUREMENT_AGE_PATH)
+                : DEFAULT_MAX_MEASUREMENT_AGE;
+        if (maxAge.isNegative() || maxAge.isZero()) {
+            throw new DittoConfigError("<" + MAX_MEASUREMENT_AGE_PATH + "> must be positive, was <" + maxAge + ">.");
+        }
+        return maxAge;
     }
 
     /**
@@ -182,6 +206,7 @@ public final class TimeseriesIngestPublisher extends AbstractActorWithTimers {
     private void handleIngestRequest(final IngestRequest request) {
         final ThingEvent<?> event = request.event();
         final Thing thing = request.thing();
+        final Thing previousThing = request.previousThing();
 
         final List<PropertyLeaf> leaves = ThingEventLeafExtractor.extractLeaves(event);
         if (leaves.isEmpty()) {
@@ -212,10 +237,11 @@ public final class TimeseriesIngestPublisher extends AbstractActorWithTimers {
         final ActorRef self = getSelf();
         final Executor dispatcher = getContext().getDispatcher();
         final ResolvedLeafCache leafCache = resolvedLeaves;
+        final Duration maxAge = maxMeasurementAge;
         wotResolver.resolveThingModel(tmIri.get(), headers)
                 .thenCompose(tm -> wotResolver.resolveThingModelSubmodels(tm, headers))
-                .thenApplyAsync(submodels -> buildDataPointsOrDrop(thingId, leaves, thing, submodels, event,
-                        leafCache), dispatcher)
+                .thenApplyAsync(submodels -> buildDataPointsOrDrop(thingId, leaves, thing, previousThing, submodels,
+                        event, leafCache, maxAge), dispatcher)
                 .thenAccept(dataPoints -> {
                     if (!dataPoints.isEmpty()) {
                         self.tell(IngestDataPoints.of(thingId, dataPoints, headers), self);
@@ -276,12 +302,15 @@ public final class TimeseriesIngestPublisher extends AbstractActorWithTimers {
     private static List<TimeseriesDataPoint> buildDataPointsOrDrop(final ThingId thingId,
             final List<PropertyLeaf> leaves,
             final Thing thing,
+            @Nullable final Thing previousThing,
             final Map<ThingSubmodel, ThingModel> submodels,
             final ThingEvent<?> event,
-            final ResolvedLeafCache leafCache) {
+            final ResolvedLeafCache leafCache,
+            final Duration maxMeasurementAge) {
 
         try {
-            return buildDataPoints(thingId, leaves, thing, submodels, event, leafCache);
+            return buildDataPoints(thingId, leaves, thing, previousThing, submodels, event, leafCache,
+                    maxMeasurementAge);
         } catch (final RuntimeException e) {
             DROPPED_BATCHES.increment();
             LOGGER.warn("Dropping timeseries data points of thing <{}> for event <{}>: {}",
@@ -293,11 +322,15 @@ public final class TimeseriesIngestPublisher extends AbstractActorWithTimers {
     private static List<TimeseriesDataPoint> buildDataPoints(final ThingId thingId,
             final List<PropertyLeaf> leaves,
             final Thing thing,
+            @Nullable final Thing previousThing,
             final Map<ThingSubmodel, ThingModel> submodels,
             final ThingEvent<?> event,
-            final ResolvedLeafCache leafCache) {
+            final ResolvedLeafCache leafCache,
+            final Duration maxMeasurementAge) {
 
         final Instant eventTime = event.getTimestamp().orElse(Instant.now());
+        final MeasurementTimes times = new MeasurementTimes(thingId, event, eventTime,
+                eventTime.minus(maxMeasurementAge), previousThing);
         final long revision = event.getRevision();
         final List<TimeseriesDataPoint> dataPoints = new ArrayList<>();
 
@@ -320,74 +353,119 @@ public final class TimeseriesIngestPublisher extends AbstractActorWithTimers {
                 continue;
             }
             final WotTimeseriesAnnotation annotation = resolved.get().annotation();
-            final JsonPointer thingPath = JsonPointer.empty()
+            final JsonPointer featureProperties = JsonPointer.empty()
                     .append(JsonPointer.of("features"))
                     .append(JsonPointer.of(leaf.featureId()))
-                    .append(JsonPointer.of("properties"))
-                    .append(leaf.path());
+                    .append(JsonPointer.of("properties"));
+            final JsonPointer thingPath = featureProperties.append(leaf.path());
+            final Optional<Instant> timestamp = annotation.getTimePath()
+                    .map(timePath -> times.of(featureProperties.append(timePath), thingPath, leaf.value(), thingJson))
+                    .orElse(Optional.of(eventTime));
+            if (timestamp.isEmpty()) {
+                continue;
+            }
             final Map<String, JsonValue> resolvedTags =
                     resolveTags(annotation.getTags(), tagResolver, thing);
-            final Instant timestamp = annotation.getTimePath()
-                    .map(timePath -> measurementTime(timePath, event, eventTime, thingJson, thingId))
-                    .orElse(eventTime);
-            dataPoints.add(TimeseriesDataPoint.of(thingId, thingPath, timestamp, leaf.value(), revision,
+            dataPoints.add(TimeseriesDataPoint.of(thingId, thingPath, timestamp.get(), leaf.value(), revision,
                     resolvedTags, resolved.get().unit()));
         }
         return dataPoints;
     }
 
     /**
-     * The time a data point was measured, read from the Thing field the annotation declares as {@code time}. The
-     * field counts only if this event wrote it: a value updated without its time field would otherwise carry the
-     * time of an earlier measurement. Falls back to the event time when the event did not write the field, the
-     * field is missing or is no ISO-8601 instant, and caps a time later than the event at the event time, as a
-     * device clock can run ahead.
+     * Decides the time of the data points of one event whose annotation declares a {@code time} property. The
+     * property counts only if this event wrote it: a value updated without its time would otherwise carry the time
+     * of an earlier measurement. Falls back to the event time when the event did not write the property, it is
+     * missing or no ISO-8601 instant, or it lies after the event (device clocks run ahead) or further back than the
+     * maximum measurement age (e.g. a reset device clock). A value and time the Thing already held, re-sent by a
+     * device or rewritten by a replace, give no data point at all.
      */
-    private static Instant measurementTime(final JsonPointer timePath, final ThingEvent<?> event,
-            final Instant eventTime, final Supplier<JsonObject> thingJson, final ThingId thingId) {
+    private static final class MeasurementTimes {
 
-        final Optional<JsonValue> written = valueWrittenBy(event, timePath);
-        if (written.isEmpty()) {
-            final boolean missing = thingJson.get().getValue(timePath).filter(value -> !value.isNull()).isEmpty();
-            return fallBackToEventTime(missing ? TimeFallback.MISSING : TimeFallback.UNCHANGED, timePath, thingId,
-                    eventTime);
-        }
-        final Instant measured;
-        try {
-            measured = Instant.parse(written.get().asString());
-        } catch (final UnsupportedOperationException | DateTimeParseException e) {
-            return fallBackToEventTime(TimeFallback.INVALID, timePath, thingId, eventTime);
-        }
-        if (measured.isAfter(eventTime)) {
-            return fallBackToEventTime(TimeFallback.FUTURE, timePath, thingId, eventTime);
-        }
-        return measured;
-    }
+        private final ThingId thingId;
+        private final ThingEvent<?> event;
+        private final Instant eventTime;
+        private final Instant earliest;
+        private final Supplier<Optional<JsonObject>> previousThingJson;
 
-    private static Optional<JsonValue> valueWrittenBy(final ThingEvent<?> event, final JsonPointer path) {
-        final JsonPointer resourcePath = event.getResourcePath();
-        if (resourcePath.getLevelCount() > path.getLevelCount()) {
-            return Optional.empty();
+        private MeasurementTimes(final ThingId thingId, final ThingEvent<?> event, final Instant eventTime,
+                final Instant earliest, @Nullable final Thing previousThing) {
+
+            this.thingId = thingId;
+            this.event = event;
+            this.eventTime = eventTime;
+            this.earliest = earliest;
+            previousThingJson = memoize(() -> Optional.ofNullable(previousThing)
+                    .map(previous -> previous.toJson(FieldType.REGULAR)));
         }
-        for (int level = 0; level < resourcePath.getLevelCount(); level++) {
-            if (!resourcePath.get(level).equals(path.get(level))) {
+
+        /**
+         * @return the time of the data point of {@code value} at {@code valuePath}, or empty to skip the re-sent
+         * point.
+         */
+        Optional<Instant> of(final JsonPointer timePath, final JsonPointer valuePath, final JsonValue value,
+                final Supplier<JsonObject> thingJson) {
+
+            final Optional<JsonValue> written = valueWrittenBy(event, timePath);
+            if (written.isEmpty()) {
+                final boolean missing =
+                        thingJson.get().getValue(timePath).filter(time -> !time.isNull()).isEmpty();
+                return Optional.of(fallBack(missing ? TimeFallback.MISSING : TimeFallback.UNCHANGED, timePath));
+            }
+            if (isResent(timePath, written.get(), valuePath, value)) {
+                RESENT.increment();
+                LOGGER.debug("Skipping the data point <{}> of thing <{}>: value and time <{}> are unchanged.",
+                        valuePath, thingId, written.get());
                 return Optional.empty();
             }
+            final Instant measured;
+            try {
+                measured = Instant.parse(written.get().asString());
+            } catch (final UnsupportedOperationException | DateTimeParseException e) {
+                return Optional.of(fallBack(TimeFallback.INVALID, timePath));
+            }
+            if (measured.isAfter(eventTime)) {
+                return Optional.of(fallBack(TimeFallback.FUTURE, timePath));
+            }
+            if (measured.isBefore(earliest)) {
+                return Optional.of(fallBack(TimeFallback.PAST, timePath));
+            }
+            return Optional.of(measured);
         }
-        final JsonPointer relative = path.getSubPointer(resourcePath.getLevelCount()).orElse(JsonPointer.empty());
-        return event.getEntity()
-                .flatMap(entity -> relative.isEmpty() ? Optional.of(entity)
-                        : entity.isObject() ? entity.asObject().getValue(relative) : Optional.empty())
-                .filter(value -> !value.isNull());
-    }
 
-    private static Instant fallBackToEventTime(final TimeFallback reason, final JsonPointer timePath,
-            final ThingId thingId, final Instant eventTime) {
+        private boolean isResent(final JsonPointer timePath, final JsonValue time, final JsonPointer valuePath,
+                final JsonValue value) {
 
-        reason.counter.increment();
-        LOGGER.debug("Using the event time for a data point of thing <{}>: time field <{}> is {}.",
-                thingId, timePath, reason.tag);
-        return eventTime;
+            return previousThingJson.get()
+                    .filter(previous -> previous.getValue(timePath).filter(time::equals).isPresent())
+                    .filter(previous -> previous.getValue(valuePath).filter(value::equals).isPresent())
+                    .isPresent();
+        }
+
+        private Instant fallBack(final TimeFallback reason, final JsonPointer timePath) {
+            reason.counter.increment();
+            LOGGER.debug("Using the event time for a data point of thing <{}>: time property <{}> is {}.",
+                    thingId, timePath, reason.tag);
+            return eventTime;
+        }
+
+        private static Optional<JsonValue> valueWrittenBy(final ThingEvent<?> event, final JsonPointer path) {
+            final JsonPointer resourcePath = event.getResourcePath();
+            if (resourcePath.getLevelCount() > path.getLevelCount()) {
+                return Optional.empty();
+            }
+            for (int level = 0; level < resourcePath.getLevelCount(); level++) {
+                if (!resourcePath.get(level).equals(path.get(level))) {
+                    return Optional.empty();
+                }
+            }
+            final JsonPointer relative =
+                    path.getSubPointer(resourcePath.getLevelCount()).orElse(JsonPointer.empty());
+            return event.getEntity()
+                    .flatMap(entity -> relative.isEmpty() ? Optional.of(entity)
+                            : entity.isObject() ? entity.asObject().getValue(relative) : Optional.empty())
+                    .filter(written -> !written.isNull());
+        }
     }
 
     /**
@@ -398,7 +476,8 @@ public final class TimeseriesIngestPublisher extends AbstractActorWithTimers {
         UNCHANGED("unchanged"),
         MISSING("missing"),
         INVALID("invalid"),
-        FUTURE("future");
+        FUTURE("future"),
+        PAST("past");
 
         private final String tag;
         private final Counter counter;
@@ -467,10 +546,15 @@ public final class TimeseriesIngestPublisher extends AbstractActorWithTimers {
      * @param event the event that just persisted.
      * @param thing the entity Thing after applying the event; may be null when the persistence
      * actor is operating on a non-existent or just-deleted entity.
+     * @param previousThing the entity Thing before the event; null when the event created it.
      */
-    public record IngestRequest(ThingEvent<?> event, @Nullable Thing thing) {
+    public record IngestRequest(ThingEvent<?> event, @Nullable Thing thing, @Nullable Thing previousThing) {
         public IngestRequest {
             checkNotNull(event, "event");
+        }
+
+        public IngestRequest(final ThingEvent<?> event, @Nullable final Thing thing) {
+            this(event, thing, null);
         }
     }
 
