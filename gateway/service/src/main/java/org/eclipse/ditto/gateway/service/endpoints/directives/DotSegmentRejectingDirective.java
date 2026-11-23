@@ -28,13 +28,15 @@ import org.slf4j.LoggerFactory;
 
 /**
  * Custom Pekko Http directive rejecting requests whose raw request path contains dot segments ({@code .} or
- * {@code ..}, also in percent-encoded form, e.g. {@code %2e%2e}).
+ * {@code ..}), also when the dots are percent-encoded (e.g. {@code %2e%2e}) or when the segment is only delimited by a
+ * percent-encoded slash ({@code %2f}, e.g. {@code a%2f..%2fb}).
  * <p>
- * Pekko HTTP silently removes dot segments when it builds the effective request URI, so such a request would be routed
- * to a different resource than the one named in the raw path. Reverse proxies in front of the gateway may interpret the
- * same raw path differently (e.g. nginx decodes {@code %2f} before resolving dot segments), which allows a request to be
- * routed through a proxy location which was not intended for it. Dot segments are not needed for any Ditto API, so they
- * are rejected with {@code 400 Bad Request}.
+ * Pekko HTTP silently removes (unencoded) dot segments when it builds the effective request URI, so such a request
+ * would be routed to a different resource than the one named in the raw path. Reverse proxies in front of the gateway
+ * may interpret the same raw path differently: e.g. nginx decodes {@code %2f} before resolving dot segments, while the
+ * gateway treats {@code %2f} as part of a path segment. Both allow a request to be routed through a proxy location
+ * which was not intended for it. Dot segments are not needed for any Ditto API, so they are rejected with
+ * {@code 400 Bad Request}.
  * </p>
  * <p>
  * The check requires the {@code Raw-Request-URI} header (Pekko HTTP setting
@@ -50,6 +52,7 @@ public final class DotSegmentRejectingDirective {
             "URI ''{0}'' contains dot segments (''.'' or ''..'') in its path, which are not supported.";
 
     private static final Pattern SCHEME_AND_AUTHORITY = Pattern.compile("^[a-zA-Z][a-zA-Z0-9+.\\-]*://[^/?#]*");
+    private static final Pattern ENCODED_SLASH = Pattern.compile("%2f", Pattern.CASE_INSENSITIVE);
     private static final Pattern ENCODED_DOT = Pattern.compile("%2e", Pattern.CASE_INSENSITIVE);
 
     private DotSegmentRejectingDirective() {
@@ -86,13 +89,14 @@ public final class DotSegmentRejectingDirective {
 
     /**
      * Determines whether the path of the passed raw request URI (origin-form or absolute-form) contains a dot segment
-     * ({@code .} or {@code ..}), also in percent-encoded form.
+     * ({@code .} or {@code ..}), also with percent-encoded dots or percent-encoded slashes as delimiters.
      *
      * @param rawRequestUri the raw request URI as sent by the client.
      * @return {@code true} if the path contains a dot segment.
      */
     static boolean containsDotSegment(final String rawRequestUri) {
-        final String path = extractRawPath(rawRequestUri);
+        // decode "%2f" first, as proxies like nginx treat it as a path separator when resolving dot segments
+        final String path = ENCODED_SLASH.matcher(extractRawPath(rawRequestUri)).replaceAll("/");
         for (final String segment : path.split("/", -1)) {
             final String decodedDots = ENCODED_DOT.matcher(segment).replaceAll(".");
             if (".".equals(decodedDots) || "..".equals(decodedDots)) {

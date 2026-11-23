@@ -407,9 +407,16 @@ dbconfig:
 ## SECURITY: the Ingress routes requests directly to the gateway. If Ditto "pre-authentication" is enabled (which is the
 ##  case when "global.jwtOnly" is false), the ingress controller must set the "x-ditto-pre-authenticated" header from a
 ##  verified identity, or remove it, on every path - otherwise clients can impersonate arbitrary subjects.
+##  Rendering fails in that case unless "preAuthenticationHeaderSanitized" is set to true (see below).
 ingress:
   # enabled controls whether Ingress resources are created
   enabled: false
+  # preAuthenticationHeaderSanitized confirms that the ingress controller sets the "x-ditto-pre-authenticated" header
+  #  from a verified identity, or removes it, on every path routed to the gateway (api, ws and devops Ingress).
+  #  Only relevant if Ditto "pre-authentication" is enabled ("global.jwtOnly" false or
+  #  "gateway.config.authentication.enablePreAuthentication" true): rendering the chart with Ingress enabled fails
+  #  in that case unless this is set to true. Prefer "global.jwtOnly: true" when using the Ingress.
+  preAuthenticationHeaderSanitized: false
   # className is the IngressClass to use — set to your ingress controller's class name
   className: ""
   # host is the optional hostname for all Ingress resources — if empty, no host rule is set (catch-all)

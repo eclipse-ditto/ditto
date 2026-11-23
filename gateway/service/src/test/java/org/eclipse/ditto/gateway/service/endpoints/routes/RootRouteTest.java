@@ -26,6 +26,7 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.http.javadsl.model.ContentTypes;
 import org.apache.pekko.http.javadsl.model.HttpRequest;
 import org.apache.pekko.http.javadsl.model.StatusCodes;
 import org.apache.pekko.http.javadsl.model.headers.Location;
@@ -329,6 +330,19 @@ public final class RootRouteTest extends EndpointTestBase {
         final String rawPath = THINGS_2_PATH + "/org.eclipse.ditto:dummy/x%2f..%2f..%2f..%2fconnections%2fy/..";
         final TestRouteResult result = rootTestRoute.run(withHttps(withPreAuthenticatedAuthentication(
                 HttpRequest.GET(THINGS_2_PATH + "/org.eclipse.ditto:dummy/")
+                        .addHeader(RawRequestURI.create(rawPath)))));
+
+        result.assertStatusCode(StatusCodes.BAD_REQUEST);
+    }
+
+    @Test
+    public void modifyAttributeWithEncodedSlashDotSegmentPathConfusionIsRejected() {
+        // nginx resolves this raw path to "/api/2/connections", the gateway routes it to an attribute JSON pointer
+        final String rawPath =
+                THINGS_2_PATH + "/org.eclipse.ditto:dummy/attributes/a%2f..%2f..%2f..%2f..%2fconnections";
+        final TestRouteResult result = rootTestRoute.run(withHttps(withPreAuthenticatedAuthentication(
+                HttpRequest.PUT(rawPath)
+                        .withEntity(ContentTypes.APPLICATION_JSON, "42")
                         .addHeader(RawRequestURI.create(rawPath)))));
 
         result.assertStatusCode(StatusCodes.BAD_REQUEST);
