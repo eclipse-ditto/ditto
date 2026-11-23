@@ -110,6 +110,14 @@ When you adapt this for production, make sure the proxy:
   client-supplied value. If a route intentionally skips proxy authentication (e.g. to pass through
   `Authorization: Bearer <JWT>` requests), make sure the header is not forwarded on that route, so the
   gateway has to validate the JWT.
+* **Clears** `x-ditto-pre-authenticated` (`proxy_set_header x-ditto-pre-authenticated "";`) in every
+  location that forwards to the gateway without setting the header itself, e.g. the `/api/2/connections`,
+  `/devops`, `/health`, `/status` and `/stats` locations, which are authenticated by the gateway. A
+  location with its own `proxy_set_header` directives does not inherit those of the `server` block. Do not
+  rely on location matching alone: a proxy which matches locations on the normalized path but forwards the
+  raw path (nginx `proxy_pass` without a URI part) can be tricked into routing an API request through such
+  a location, e.g. via `%2f` and `..` in the path. The gateway rejects paths with dot segments, but the
+  header must be cleared nevertheless.
 * Terminates TLS (see [section 8](#8-transport-security-tls)).
 
 #### Helm chart: mixed Basic auth and JWT mode
