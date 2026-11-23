@@ -58,7 +58,15 @@ public final class DotSegmentRejectingDirectiveTest extends JUnitRouteTest {
                 "/api/2/things/a/..?x=y",
                 "/api/2/things/a/..#fragment",
                 "http://localhost:8080/api/2/things/a/../b",
-                "https://user@ditto.example.com:443/api/2/things/a/%2e%2e"
+                "https://user@ditto.example.com:443/api/2/things/a/%2e%2e",
+                // dot segments only delimited by encoded slashes: nginx resolves them, the gateway does not
+                "/api/2/things/V/attributes/a%2f..%2f..%2f..%2f..%2fconnections",
+                "/api/2/things/V/inbox/messages/x%2f..%2f..%2f..%2f..%2f..%2fconnections",
+                "/api/2/things/V/attributes/a%2F..%2Fb",
+                "/api/2/things/V/attributes/a%2f%2e%2e%2fb",
+                "/api/2/things/V/attributes/a%2f.",
+                "/api/2/things/V/attributes/..%2fa",
+                "/api/2/things/org.eclipse.ditto:thing-1/inbox/messages/a%2f..%2fb"
         );
 
         assertThat(withDotSegments).allSatisfy(uri -> assertThat(containsDotSegment(uri))
@@ -79,7 +87,8 @@ public final class DotSegmentRejectingDirectiveTest extends JUnitRouteTest {
                 "/api/2/things/org.eclipse.ditto:thing-1/features/.f/properties/..x",
                 "/api/2/things/org.eclipse.ditto:thing-1/attributes/%2e%2e%2e",
                 "/api/2/things/org.eclipse.ditto:thing-1/inbox/messages/a%2fb",
-                "/api/2/things/org.eclipse.ditto:thing-1/inbox/messages/a%2f..%2fb",
+                "/api/2/things/org.eclipse.ditto:thing-1/attributes/a%2f...%2fb",
+                "/api/2/things/org.eclipse.ditto:thing-1/attributes/a%252f..%252fb",
                 "/api/2/things?ids=a,b&fields=thingId/..",
                 "/api/2/things#/..",
                 "/api/2/search/things?filter=eq(attributes/x,%22..%22)",
