@@ -79,10 +79,10 @@ final class ImmutableJsonArray extends AbstractJsonValue implements JsonArray {
     }
 
     /**
-     * Like {@link #of(List, String)}, but takes over the passed list instead of copying it - for parsers which build
-     * the list exclusively for the new array. The caller must neither modify the list nor keep a reference to it.
+     * Like {@link #of(List, String)}, for parsers which build the list exclusively for the new array. The values are
+     * copied into an exactly sized compact list, so the returned array does not reference the passed list.
      *
-     * @param values the values of the JSON array, taken over.
+     * @param values the values of the JSON array; none of them is {@code null}.
      * @param stringRepresentation the already known string representation of the returned array or {@code null}.
      * @return the JSON array.
      */

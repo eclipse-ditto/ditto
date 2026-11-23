@@ -35,10 +35,11 @@ final class ImmutableJsonKey implements JsonKey {
     }
 
     /**
-     * Returns a new JSON Key based on the provided string.
+     * Returns a JSON Key based on the provided string. Instances of short keys are shared, so the returned key may
+     * be the same instance as one returned before for an equal string.
      *
      * @param keyValue the character sequence forming the keyValue's value.
-     * @return a new JSON Key.
+     * @return the JSON Key.
      * @throws NullPointerException if {@code keyValue} is {@code null}.
      * @throws IllegalArgumentException if {@code keyValue} is empty.
      */

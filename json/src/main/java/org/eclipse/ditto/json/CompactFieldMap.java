@@ -17,6 +17,7 @@ import java.util.AbstractMap;
 import java.util.AbstractSet;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -169,7 +170,7 @@ final class CompactFieldMap extends AbstractMap<String, JsonField> {
     }
 
     List<JsonField> fieldList() {
-        return Arrays.asList(fields);
+        return Collections.unmodifiableList(Arrays.asList(fields));
     }
 
     @Override
