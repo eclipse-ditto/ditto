@@ -336,6 +336,10 @@ dbconfig:
 
 ## ----------------------------------------------------------------------------
 ## ingress configures the Ingress
+## SECURITY: the Ingress routes requests directly to the gateway. If Ditto "pre-authentication" is enabled (which is the
+##  case when "global.jwtOnly" is false), the ingress controller must set the "x-ditto-pre-authenticated" header from a
+##  verified identity, or remove it, on every path (the default "configuration-snippet" annotation sets it) - otherwise
+##  clients can impersonate arbitrary subjects.
 ingress:
   # enabled whether Ingress should be enabled as alternative to the contained nginx
   enabled: false
@@ -2337,6 +2341,8 @@ gateway:
       # enablePreAuthentication whether Ditto "pre-authentication" should be enabled
       #  note: pre-authentication is always enabled if "global.jwtOnly" is false
       #  only enable it if the gateway is exclusively reachable via a proxy which sets the "x-ditto-pre-authenticated" header
+      #  from a verified identity, or clears it, on *every* route reaching the gateway - a client-supplied header must never
+      #  be forwarded to the gateway (with "global.jwtOnly: true", the nginx of this chart forwards the header unchanged)
       #  ref: https://www.eclipse.dev/ditto/installation-operating.html#pre-authentication
       enablePreAuthentication: false
       # oauth contains the OAuth2.0 / OpenID Connect related configuration
