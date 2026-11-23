@@ -496,8 +496,8 @@ ES6 flag enabled) with strict sandboxing for security.
 
 ### Sandboxing constraints
 
-* No access to Java packages, classes or objects -- all Java classes are hidden from scripts,
-  also when the connectivity configuration `allowUnsafeStandardObjects` is enabled
+* No access to Java classes or objects -- Java packages may be referenced when the connectivity
+  configuration `allowUnsafeStandardObjects` is enabled, but no Java class can be loaded or accessed
 * No file access, network calls, or `exit`/`quit`/`print`
 * Endless loops and deep recursion are terminated
 * Script file size is limited
