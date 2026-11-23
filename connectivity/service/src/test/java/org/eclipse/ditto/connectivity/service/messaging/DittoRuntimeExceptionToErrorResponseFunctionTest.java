@@ -14,15 +14,18 @@ package org.eclipse.ditto.connectivity.service.messaging;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import org.eclipse.ditto.base.model.exceptions.DittoHeaderInvalidException;
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.edge.service.headers.DittoHeadersValidator;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.policies.model.PolicyIdInvalidException;
 import org.eclipse.ditto.policies.model.signals.commands.PolicyErrorResponse;
+import org.eclipse.ditto.policies.model.signals.commands.modify.DeletePolicy;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.ThingIdInvalidException;
 import org.eclipse.ditto.things.model.signals.commands.ThingErrorResponse;
+import org.eclipse.ditto.things.model.signals.commands.modify.DeleteThing;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -74,5 +77,37 @@ public final class DittoRuntimeExceptionToErrorResponseFunctionTest {
                 .isInstanceOf(PolicyErrorResponse.class)
                 .extracting(response -> ((PolicyErrorResponse) response).getEntityId())
                 .isEqualTo(PolicyId.of("unknown:unknown"));
+    }
+
+    @Test
+    public void transformsExceptionForRejectedPolicyCommandToPolicyErrorResponse() {
+        final var policyId = PolicyId.of("namespace:name");
+        final var exception = DittoHeaderInvalidException.newBuilder()
+                .withInvalidHeaderKey(DittoHeaderDefinition.TIMEOUT.getKey())
+                .dittoHeaders(DITTO_HEADERS)
+                .build();
+
+        final var underTest = DittoRuntimeExceptionToErrorResponseFunction.of(dittoHeadersValidator);
+
+        assertThat(underTest.applyForRejectedSignal(exception, DeletePolicy.of(policyId, DITTO_HEADERS)))
+                .isInstanceOf(PolicyErrorResponse.class)
+                .extracting(response -> ((PolicyErrorResponse) response).getEntityId())
+                .isEqualTo(policyId);
+    }
+
+    @Test
+    public void transformsExceptionForRejectedThingCommandToThingErrorResponse() {
+        final var thingId = ThingId.of("namespace:name");
+        final var exception = DittoHeaderInvalidException.newBuilder()
+                .withInvalidHeaderKey(DittoHeaderDefinition.TIMEOUT.getKey())
+                .dittoHeaders(DITTO_HEADERS)
+                .build();
+
+        final var underTest = DittoRuntimeExceptionToErrorResponseFunction.of(dittoHeadersValidator);
+
+        assertThat(underTest.applyForRejectedSignal(exception, DeleteThing.of(thingId, DITTO_HEADERS)))
+                .isInstanceOf(ThingErrorResponse.class)
+                .extracting(response -> ((ThingErrorResponse) response).getEntityId())
+                .isEqualTo(thingId);
     }
 }
