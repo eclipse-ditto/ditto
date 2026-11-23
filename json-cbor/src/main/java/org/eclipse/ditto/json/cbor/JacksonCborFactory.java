@@ -45,6 +45,13 @@ import com.fasterxml.jackson.dataformat.cbor.CBORParser;
 /**
  * Jackson backed implementation of {@link org.eclipse.ditto.json.CborFactory} which loads Jackson and Jackson-CBOR classes in order to
  * actually do the CBOR based serialization/deserialization.
+ * <p>
+ * Parsing copies the passed CBOR bytes once per message, and every parsed {@link JsonObject} and {@link JsonArray}
+ * references its slice of that copy as its CBOR representation. That lets them release their fields under memory
+ * pressure and parse them again from the slice. As a consequence, a retained object or array keeps the complete
+ * message it was parsed from reachable - also after its fields were released - so retaining a small nested value of
+ * a large message (e.g. one with large headers) retains the whole message.
+ * </p>
  *
  * @since 1.2.1
  */

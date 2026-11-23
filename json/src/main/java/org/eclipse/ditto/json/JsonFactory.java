@@ -943,15 +943,14 @@ public final class JsonFactory {
     }
 
     /**
-     * Creates a {@link JsonObject} which takes over the passed field map instead of copying it, for parsers which
-     * build the map exclusively for the new object.
+     * Creates a {@link JsonObject} from a field map which parsers built exclusively for the new object.
+     * The fields are copied into a compact representation, so the passed map is not referenced by the created object.
      * <p>
      * <b>This is a Ditto internal API is not intended for re-use.</b>
      * It therefore is not treated as API which is held binary compatible to previous versions.
      * </p>
      *
-     * @param jsonFieldMap the JSON fields to create the JsonObject from - the caller must neither modify the map nor
-     * keep a reference to it.
+     * @param jsonFieldMap the JSON fields to create the JsonObject from.
      * @return the created JsonObject.
      * @since 3.9.9
      */
@@ -960,15 +959,14 @@ public final class JsonFactory {
     }
 
     /**
-     * Creates a {@link JsonArray} which takes over the passed value list instead of copying it, for parsers which
-     * build the list exclusively for the new array.
+     * Creates a {@link JsonArray} from a value list which parsers built exclusively for the new array.
+     * The values are copied into a compact representation, so the passed list is not referenced by the created array.
      * <p>
      * <b>This is a Ditto internal API is not intended for re-use.</b>
      * It therefore is not treated as API which is held binary compatible to previous versions.
      * </p>
      *
-     * @param jsonValueList the JSON values to create the JsonArray from - the caller must neither modify the list nor
-     * keep a reference to it.
+     * @param jsonValueList the JSON values to create the JsonArray from.
      * @return the created JsonArray.
      * @since 3.9.9
      */
@@ -976,15 +974,6 @@ public final class JsonFactory {
         return ImmutableJsonArray.ofTakingOwnership(jsonValueList, null);
     }
 
-    /**
-     * Converts the specified char sequence to a {@link JsonPointer} which is guaranteed to be not empty.
-     *
-     * @param keyOrPointer a string representation of a JSON pointer or a JsonKey.
-     * @return the pointer.
-     * @throws NullPointerException if {@code keyOrPointer} is {@code null}.
-     * @throws IllegalArgumentException if {@code keyOrPointer} would lead to an empty JsonPointer.
-     * @throws JsonPointerInvalidException if the passed {@code keyOrPointer} contained double slashes.
-     */
     /**
      * Creates a {@link JsonObject} parsed from CBOR: takes over the passed fields array and references its CBOR
      * representation as slice of {@code cborBytes}, so that its fields can be released under memory pressure and
@@ -1026,6 +1015,15 @@ public final class JsonFactory {
         return ImmutableJsonArray.ofCborSlice(ownedValues, cborBytes, cborOffset, cborLength);
     }
 
+    /**
+     * Converts the specified char sequence to a {@link JsonPointer} which is guaranteed to be not empty.
+     *
+     * @param keyOrPointer a string representation of a JSON pointer or a JsonKey.
+     * @return the pointer.
+     * @throws NullPointerException if {@code keyOrPointer} is {@code null}.
+     * @throws IllegalArgumentException if {@code keyOrPointer} would lead to an empty JsonPointer.
+     * @throws JsonPointerInvalidException if the passed {@code keyOrPointer} contained double slashes.
+     */
     static JsonPointer getNonEmptyPointer(final CharSequence keyOrPointer) {
         requireNonNull(keyOrPointer, "The key or pointer char sequence must not be null!");
 

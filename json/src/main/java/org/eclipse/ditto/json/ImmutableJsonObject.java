@@ -85,10 +85,10 @@ final class ImmutableJsonObject extends AbstractJsonValue implements JsonObject 
     }
 
     /**
-     * Like {@link #of(Map, String)}, but takes over the passed map instead of copying it - for parsers which build
-     * the map exclusively for the new object. The caller must neither modify the map nor keep a reference to it.
+     * Like {@link #of(Map, String)}, for parsers which build the map exclusively for the new object. The fields are
+     * copied into a compact representation, so the returned object does not reference the passed map.
      *
-     * @param fields the fields of the JSON object, taken over.
+     * @param fields the fields of the JSON object.
      * @param stringRepresentation the already known string representation of the returned object or {@code null}.
      * @return the JSON object.
      */
