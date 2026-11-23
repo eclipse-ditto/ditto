@@ -563,8 +563,8 @@ Ditto currently includes Rhino version `1.8.1` and has the `VERSION_ES6` flag en
 For sandboxing/security reasons following restrictions apply:
 
 
-* access to Java packages, classes or objects is not possible -- all Java classes are hidden from scripts,
-  also when the connectivity configuration `allowUnsafeStandardObjects` is enabled
+* access to Java classes or objects is not possible -- Java packages may be referenced when the connectivity
+  configuration `allowUnsafeStandardObjects` is enabled, but no Java class can be loaded or accessed
 * using `exit`, `quit`, `print`, etc. is not possible
 * file access is not possible
 * doing remote calls (e.g. to foreign web-servers) is not possible
