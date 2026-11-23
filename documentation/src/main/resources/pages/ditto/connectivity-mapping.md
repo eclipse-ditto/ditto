@@ -556,14 +556,15 @@ code execution.
 Rhino does not fully support EcmaScript 6. Check which language constructs are supported before using
 them in a mapping function. See [https://mozilla.github.io/rhino/compat/engines.html](https://mozilla.github.io/rhino/compat/engines.html).
 
-Ditto currently includes Rhino version `1.7.14` and has the `VERSION_ES6` flag enabled.
+Ditto currently includes Rhino version `1.8.1` and has the `VERSION_ES6` flag enabled.
 
 #### Sandboxing
 
 For sandboxing/security reasons following restrictions apply:
 
 
-* access to Java packages and classes is not possible
+* access to Java packages, classes or objects is not possible -- all Java classes are hidden from scripts,
+  also when the connectivity configuration `allowUnsafeStandardObjects` is enabled
 * using `exit`, `quit`, `print`, etc. is not possible
 * file access is not possible
 * doing remote calls (e.g. to foreign web-servers) is not possible

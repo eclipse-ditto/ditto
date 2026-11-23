@@ -130,11 +130,13 @@ final class JavaScriptMessageMapperRhino extends AbstractMessageMapper {
         try {
             // create scope once and load the required libraries in order to get best performance:
             contextFactory.call(cx -> {
+                // Java classes are never accessible from scripts, independent of the standard objects, as the
+                // SandboxingContextFactory hides all of them via its ClassShutter
                 final Scriptable scope;
                 if (javaScriptConfig.isAllowUnsafeStandardObjects()) {
                     scope = cx.initStandardObjects();
                 } else {
-                    scope = cx.initSafeStandardObjects(); // that one disables "print, exit, quit", etc.
+                    scope = cx.initSafeStandardObjects(); // omits the LiveConnect objects "Packages", "java", etc.
                 }
                 initLibraries(cx, scope, javaScriptConfig.getCommonJsModulesPath().orElse(null));
                 return scope;
