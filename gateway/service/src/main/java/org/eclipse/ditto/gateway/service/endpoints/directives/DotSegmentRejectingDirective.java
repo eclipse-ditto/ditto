@@ -70,7 +70,7 @@ public final class DotSegmentRejectingDirective {
         return extractRequest(request -> {
             final String rawRequestUri = getRawRequestUri(request);
             if (containsDotSegment(rawRequestUri)) {
-                LOGGER.info("Rejecting request with dot segments in its path: <{}>", rawRequestUri);
+                LOGGER.debug("Rejecting request with dot segments in its path: <{}>", rawRequestUri);
                 return complete(StatusCodes.BAD_REQUEST,
                         MessageFormat.format(URI_DOT_SEGMENTS_TEMPLATE, rawRequestUri));
             }
