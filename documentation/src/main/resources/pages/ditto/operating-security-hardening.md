@@ -132,6 +132,16 @@ exclusively via that nginx. If you only use OpenID Connect, configure `global.jw
 disables pre-authentication (as long as `gateway.config.authentication.enablePreAuthentication` stays
 `false`).
 
+#### Helm chart: Ingress
+
+With `ingress.enabled: true`, the Helm chart creates Ingress resources which route `/api`, `/ws`, `/devops` and
+the other gateway paths **directly to the gateway**, bypassing the bundled nginx. The chart cannot configure the
+handling of the `x-ditto-pre-authenticated` header for arbitrary ingress controllers, so with pre-authentication
+enabled any client could send the header itself. Rendering the chart therefore fails if an Ingress routing to the
+gateway is enabled while pre-authentication is enabled. Configure `global.jwtOnly: true` when using the Ingress
+(recommended), or make the ingress controller set the header from a verified identity or remove it on every path
+and confirm that by setting `ingress.preAuthenticationHeaderSanitized: true`.
+
 #### Replace the sample credentials
 
 The bundled `deployment/docker/nginx.htpasswd` ships with a sample user (`ditto`) and a well-known

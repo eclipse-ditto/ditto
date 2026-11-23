@@ -1,0 +1,23 @@
+# Copyright (c) 2026 Contributors to the Eclipse Foundation
+#
+# See the NOTICE file(s) distributed with this work for additional
+# information regarding copyright ownership.
+#
+# This program and the accompanying materials are made available under the
+# terms of the Eclipse Public License 2.0 which is available at
+# http://www.eclipse.org/legal/epl-2.0
+#
+# SPDX-License-Identifier: EPL-2.0
+{{- /*
+  The Ingress resources route requests directly to the gateway. If Ditto "pre-authentication" is enabled, the gateway
+  trusts the "x-ditto-pre-authenticated" header, so the ingress controller must set it from a verified identity or
+  remove it on every path. As the chart cannot configure this in a controller-independent way, refuse to render such a
+  setup unless the operator explicitly confirms it via "ingress.preAuthenticationHeaderSanitized".
+*/}}
+{{- if .Values.ingress.enabled }}
+{{- $preAuthenticationEnabled := or .Values.gateway.config.authentication.enablePreAuthentication (not .Values.global.jwtOnly) }}
+{{- $gatewayIngressEnabled := or .Values.ingress.api.enabled .Values.ingress.ws.enabled .Values.ingress.devops.enabled }}
+{{- if and $preAuthenticationEnabled $gatewayIngressEnabled (not .Values.ingress.preAuthenticationHeaderSanitized) }}
+{{- fail "ingress.enabled is true while Ditto pre-authentication is enabled (global.jwtOnly is false or gateway.config.authentication.enablePreAuthentication is true): the Ingress routes requests directly to the gateway, so clients could impersonate arbitrary subjects via the \"x-ditto-pre-authenticated\" header. Either set global.jwtOnly to true (and keep gateway.config.authentication.enablePreAuthentication false), or configure your ingress controller to set the header from a verified identity or remove it on every path and confirm that by setting ingress.preAuthenticationHeaderSanitized to true." }}
+{{- end }}
+{{- end }}

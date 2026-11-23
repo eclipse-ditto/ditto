@@ -51,7 +51,7 @@ own `proxy_set_header` directives, as those do not inherit the ones of the enclo
 
 Proxies may interpret a request path differently than the gateway does, e.g. nginx decodes `%2f` before it resolves
 dot segments, while the gateway does not. The gateway therefore rejects requests whose path contains dot segments
-(`.` or `..`, also percent-encoded) with status `400`.
+(`.` or `..`, also percent-encoded or delimited by a percent-encoded slash `%2f`) with status `400`.
 
 ### Example: nginx configuration
 
