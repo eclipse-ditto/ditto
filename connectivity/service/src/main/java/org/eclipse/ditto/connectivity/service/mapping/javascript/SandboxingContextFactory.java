@@ -15,6 +15,7 @@ package org.eclipse.ditto.connectivity.service.mapping.javascript;
 import java.time.Duration;
 
 import org.mozilla.javascript.Callable;
+import org.mozilla.javascript.ClassShutter;
 import org.mozilla.javascript.Context;
 import org.mozilla.javascript.ContextFactory;
 import org.mozilla.javascript.Scriptable;
@@ -33,6 +34,15 @@ final class SandboxingContextFactory extends ContextFactory {
      * Use pure interpreter mode, otherwise max script exec time observation won't work.
      */
     private static final int OPTIMIZATION_LEVEL = -1;
+
+    /**
+     * Hides all Java classes from scripts, independent of the standard objects initialized in the scope.
+     * Rhino consults the ClassShutter whenever a Java object could become reachable from a script: when attaching the
+     * Java exception to a caught error ({@code rhinoException} / {@code javaException}), when resolving classes via
+     * {@code Packages} / {@code java}, and when accessing members of any wrapped Java object.
+     * Mapping scripts only work with native JavaScript objects, so no Java class needs to be visible.
+     */
+    private static final ClassShutter DENY_ALL_CLASS_SHUTTER = fullClassName -> false;
 
     private final Duration maxScriptExecutionTime;
     private final int maxStackDepth;
@@ -57,6 +67,7 @@ final class SandboxingContextFactory extends ContextFactory {
         cx.setInstructionObserverThreshold(INSTRUCTION_OBSERVER_THRESHOLD);
         cx.setLanguageVersion(Context.VERSION_ES6);
         cx.setMaximumInterpreterStackDepth(maxStackDepth);
+        cx.setClassShutter(DENY_ALL_CLASS_SHUTTER);
         return cx;
     }
 
