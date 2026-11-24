@@ -317,6 +317,20 @@ spec:
               value: "{{ .Values.things.config.policiesEnforcer.askWithRetry.backOffDelay.max }}"
             - name: ENFORCEMENT_ASK_BACKOFF_DELAY_RANDOM_FACTOR
               value: "{{ .Values.things.config.policiesEnforcer.askWithRetry.backOffDelay.randomFactor }}"
+            - name: ENFORCEMENT_CREATED_POLICY_ROLLBACK_ASK_TIMEOUT
+              value: "{{ .Values.things.config.policiesEnforcer.createdPolicyRollback.askTimeout }}"
+            - name: ENFORCEMENT_CREATED_POLICY_ROLLBACK_RETRY_STRATEGY
+              value: "{{ .Values.things.config.policiesEnforcer.createdPolicyRollback.retryStrategy }}"
+            - name: ENFORCEMENT_CREATED_POLICY_ROLLBACK_RETRY_ATTEMPTS
+              value: "{{ .Values.things.config.policiesEnforcer.createdPolicyRollback.retryAttempts }}"
+            - name: ENFORCEMENT_CREATED_POLICY_ROLLBACK_FIXED_DELAY
+              value: "{{ .Values.things.config.policiesEnforcer.createdPolicyRollback.fixedDelay }}"
+            - name: ENFORCEMENT_CREATED_POLICY_ROLLBACK_BACKOFF_DELAY_MIN
+              value: "{{ .Values.things.config.policiesEnforcer.createdPolicyRollback.backOffDelay.min }}"
+            - name: ENFORCEMENT_CREATED_POLICY_ROLLBACK_BACKOFF_DELAY_MAX
+              value: "{{ .Values.things.config.policiesEnforcer.createdPolicyRollback.backOffDelay.max }}"
+            - name: ENFORCEMENT_CREATED_POLICY_ROLLBACK_BACKOFF_DELAY_RANDOM_FACTOR
+              value: "{{ .Values.things.config.policiesEnforcer.createdPolicyRollback.backOffDelay.randomFactor }}"
             - name: DITTO_POLICIES_ENFORCER_CACHE_ENABLED
               value: "{{ .Values.things.config.policiesEnforcer.cache.enabled }}"
             - name: DITTO_POLICIES_ENFORCER_CACHE_MAX_SIZE

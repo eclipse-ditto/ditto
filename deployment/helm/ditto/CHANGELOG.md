@@ -17,8 +17,10 @@ sections: `Added`, `Changed`, `Deprecated`, `Removed`, `Fixed`, `Security`.
 
 ## [4.11.0]
 
-Adds the Helm side of the opt-in PostgreSQL persistence and search backends. Everything is off by default: a
-deployment on MongoDB renders the same manifests as with the previous chart version and needs no change.
+Adds the Helm side of the opt-in PostgreSQL persistence and search backends. Everything PostgreSQL is off by default.
+A deployment on MongoDB renders the same manifests as with the previous chart version, except for the seven new
+`ENFORCEMENT_CREATED_POLICY_ROLLBACK_*` environment variables of the things Deployment, whose defaults equal the
+service's built-in defaults; it needs no change.
 
 ### Added
 - New `postgres.tls` block (default `enabled: false`) for Ditto services on the opt-in PostgreSQL backend: `caCert`
@@ -36,6 +38,11 @@ deployment on MongoDB renders the same manifests as with the previous chart vers
   PostgreSQL extension JARs into `/opt/ditto/extensions`, and carries commented `POSTGRES_POOL_MAX_SIZE` examples
   under `extraEnv`. Activating a PostgreSQL backend itself stays a file-based overlay
   (`HOSTING_ENVIRONMENT=filebased`); chart-native PostgreSQL configuration values are a later step.
+- New `things.config.policiesEnforcer.createdPolicyRollback` (defaults `askTimeout` 3s, `retryStrategy`
+  `BACKOFF_DELAY`, `retryAttempts` 3, `fixedDelay` 2s, `backOffDelay` 500ms–4s with `randomFactor` 0.5), passed to
+  the things service as `ENFORCEMENT_CREATED_POLICY_ROLLBACK_*`. It configures the bounded retries of the deletion of
+  a policy that the things service created for a thing whose creation then failed.
+
 ## [4.10.0]
 
 ### Added

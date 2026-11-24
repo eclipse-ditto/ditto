@@ -1328,6 +1328,25 @@ things:
           max: 10s
           # randomFactor the randomization factor to apply to the backoff delay
           randomFactor: 0.5
+      # createdPolicyRollback contains configuration of the deletion of a policy that the things service created for a
+      #  thing whose creation then failed; the reply to the failed creation waits for this deletion
+      createdPolicyRollback:
+        # askTimeout the timeout for each deletion attempt - when no answer is returned after this, a retry is done
+        askTimeout: 3s
+        # retryStrategy the strategy for retrying the deletion, one of: OFF, NO_DELAY, FIXED_DELAY, BACKOFF_DELAY
+        retryStrategy: BACKOFF_DELAY
+        # retryAttempts how often to retry the deletion when it is not confirmed within the configured "askTimeout"
+        retryAttempts: 3
+        # fixedDelay the fixed delay between retries when "retryStrategy" is FIXED_DELAY
+        fixedDelay: 2s
+        # backOffDelay the backoff delay configuration when "retryStrategy" is BACKOFF_DELAY
+        backOffDelay:
+          # min the minimum delay before retrying
+          min: 500ms
+          # max the maximum delay before retrying
+          max: 4s
+          # randomFactor the randomization factor to apply to the backoff delay
+          randomFactor: 0.5
       # cache holds the configuration of policy enforcer caching
       cache:
         # enabled whether caching of policy enforcers should be enabled

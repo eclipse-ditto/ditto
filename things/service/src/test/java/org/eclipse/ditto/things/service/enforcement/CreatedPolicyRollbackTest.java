@@ -167,6 +167,22 @@ public final class CreatedPolicyRollbackTest {
         policies.expectNoMessage(SHORT);
     }
 
+    @Test
+    public void retryWaitsForTheBackOffDelay() throws Exception {
+        final CompletionStage<CreatedPolicyRollback.Result> rollback = start(backOffConfig());
+
+        policies.expectMsg(DELETE_POLICY);
+        policies.reply(PolicyUnavailableException.newBuilder(POLICY_ID).dittoHeaders(HEADERS).build());
+        final long repliedAt = System.nanoTime();
+
+        policies.expectNoMessage(FiniteDuration.apply(400, TimeUnit.MILLISECONDS));
+        policies.expectMsg(FiniteDuration.apply(5, TimeUnit.SECONDS), DELETE_POLICY);
+        assertThat(TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - repliedAt)).isGreaterThanOrEqualTo(500L);
+        policies.reply(DeletePolicyResponse.of(POLICY_ID, HEADERS));
+
+        assertResult(rollback, CreatedPolicyRollback.Outcome.DELETED, 2);
+    }
+
     private CompletionStage<CreatedPolicyRollback.Result> start(final AskWithRetryConfig config) {
         return CreatedPolicyRollback.deletePolicy(policies.ref(), DELETE_POLICY, THING_ID, config, system);
     }
@@ -178,6 +194,19 @@ public final class CreatedPolicyRollbackTest {
                 "  retry-attempts = " + retryAttempts + "\n" +
                 "  fixed-delay = 50ms\n" +
                 "  backoff-delay { min = 50ms, max = 100ms, random-factor = 0.0 }\n" +
+                "}"), "rollback");
+    }
+
+    /**
+     * A back-off configuration whose first pause is at least 500 ms; the ask timeout is far above that pause.
+     */
+    private static AskWithRetryConfig backOffConfig() {
+        return DefaultAskWithRetryConfig.of(ConfigFactory.parseString("rollback {\n" +
+                "  ask-timeout = 3s\n" +
+                "  retry-strategy = BACKOFF_DELAY\n" +
+                "  retry-attempts = 2\n" +
+                "  fixed-delay = 50ms\n" +
+                "  backoff-delay { min = 500ms, max = 4s, random-factor = 0.0 }\n" +
                 "}"), "rollback");
     }
 
