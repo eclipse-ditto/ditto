@@ -338,8 +338,9 @@ dbconfig:
 ## ingress configures the Ingress
 ## SECURITY: the Ingress routes requests directly to the gateway. If Ditto "pre-authentication" is enabled (which is the
 ##  case when "global.jwtOnly" is false), the ingress controller must set the "x-ditto-pre-authenticated" header from a
-##  verified identity, or remove it, on every path (the default "configuration-snippet" annotation sets it) - otherwise
-##  clients can impersonate arbitrary subjects.
+##  verified identity, or remove it, on every path - otherwise clients can impersonate arbitrary subjects. The default
+##  "configuration-snippet" annotations of "api" (reused by "devops" if it has no own annotations) and "ws" set it from
+##  the basic auth user; keep this when overriding those annotations.
 ingress:
   # enabled whether Ingress should be enabled as alternative to the contained nginx
   enabled: false
@@ -502,6 +503,10 @@ ingress:
       nginx.ingress.kubernetes.io/proxy-next-upstream-tries: "4"
       nginx.ingress.kubernetes.io/proxy-next-upstream-timeout: "50"
       nginx.ingress.kubernetes.io/proxy-buffering: "off"
+      # always set the pre-authenticated subject from the basic auth user, never forward a client-supplied header
+      nginx.ingress.kubernetes.io/configuration-snippet: |
+        proxy_set_header X-Forwarded-User $remote_user;
+        proxy_set_header x-ditto-pre-authenticated "nginx:$remote_user";
   # the / Ingress configuration for serving the landing page and static resources
   root:
     # paths configures ingress paths
