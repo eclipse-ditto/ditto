@@ -20,7 +20,7 @@ import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 
 /**
- * Drift guard for the C-1 read-side binding in the SHIPPED Postgres persistence profile.
+ * Drift guard for the read-side event-adapter binding in the SHIPPED Postgres persistence profile.
  *
  * <h2>The defect this guards against</h2>
  * Pekko's {@code WriteJournalBase.adaptFromJournal} resolves the read {@code EventAdapter} by

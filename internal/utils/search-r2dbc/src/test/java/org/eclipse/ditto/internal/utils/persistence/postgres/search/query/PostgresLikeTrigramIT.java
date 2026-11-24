@@ -63,7 +63,7 @@ import reactor.core.publisher.Mono;
  * <b>Plan tests</b> EXPLAIN the production {@code count} statement ({@link SearchQueryAssembler#count}, sudo form) with
  * the pattern bound exactly as the persistence binds it, under {@code plan_cache_mode = force_custom_plan} (the
  * shipped search pool setting) and {@code enable_seqscan = off} (index eligibility on a small fixture), after
- * {@code VACUUM ANALYZE}. <b>Result-parity tests</b> compare the translated predicate with the pre-change plain
+ * {@code VACUUM ANALYZE}. <b>Result-parity tests</b> compare the translated predicate with the plain
  * {@code COLLATE "C"} predicate on ASCII and non-ASCII values (umlauts, {@code ß}, combining characters, CJK, an
  * astral-plane emoji, escaped SQL wildcards), both through {@code sf_trgm} (the competing B-trees dropped in a
  * rolled-back transaction) and through the heap filter (no bitmap scans).
@@ -86,8 +86,8 @@ public final class PostgresLikeTrigramIT {
     private static final String NO_BITMAP_SCANS = "SET enable_bitmapscan = off";
 
     /**
-     * The pre-change translation of {@code like} on a flat path (sudo form): the plain {@code COLLATE "C"} column. The
-     * wildcard-feature form differs only in the alias, which does not change the result set.
+     * The trigram-free translation of {@code like} on a flat path (sudo form): the plain {@code COLLATE "C"} column.
+     * The wildcard-feature form differs only in the alias, which does not change the result set.
      */
     private static final String LEGACY_LIKE_SQL = "SELECT st.thing_id FROM search_things st WHERE EXISTS "
             + "(SELECT 1 FROM search_flat sf WHERE sf.thing_id = st.thing_id AND sf.wpath = $1 "
@@ -185,7 +185,7 @@ public final class PostgresLikeTrigramIT {
         // Without a run of three consecutive literal letters/digits there is no guaranteed trigram: *ab*, *?, *---*
         // and ????? yield none (sf_trgm could only be read in full, which the planner mis-costs on large paths), *47
         // only a padded, unselective "47 ". These patterns keep the plain predicate (sf_trgm is not a candidate) and
-        // the wpath-bounded B-tree plan they had before.
+        // the wpath-bounded B-tree plan.
         final Map<String, String> patternsByField = new LinkedHashMap<>();
         patternsByField.put("*ab*", "name");
         patternsByField.put("*?", "name");
@@ -446,7 +446,7 @@ public final class PostgresLikeTrigramIT {
                 .build());
     }
 
-    /** Runs the pre-change plain-collation predicate with the translated statement's wpath and pattern binds. */
+    /** Runs the plain-collation predicate with the translated statement's wpath and pattern binds. */
     private static Set<String> legacyThingIds(final RenderedSql translated) {
         final List<Object> binds = translated.bindValues();
         assertThat(binds).hasSize(2);

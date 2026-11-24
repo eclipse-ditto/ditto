@@ -1,5 +1,5 @@
 {
-  "comment": "Parity-matrix corpus manifest (Task G1). Every listed thing under things/ is written through BOTH backends' full production write paths; each thing's policyId selects the policy fixture under policies/ (file name = local name part of the policy id).",
+  "comment": "Parity-matrix corpus manifest. Every listed thing under things/ is written through BOTH backends' full production write paths; each thing's policyId selects the policy fixture under policies/ (file name = local name part of the policy id).",
   "things": [
     "scalars-red",
     "scalars-blue",

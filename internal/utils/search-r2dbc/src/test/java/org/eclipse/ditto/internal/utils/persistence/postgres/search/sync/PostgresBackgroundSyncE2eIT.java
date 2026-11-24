@@ -86,7 +86,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 /**
- * Background-sync end-to-end IT against the REAL Postgres search backend (plan Phase G, bullet 2): six scenarios
+ * Background-sync end-to-end IT against the REAL Postgres search backend: six scenarios
  * proving that the production sync machinery detects and repairs index inconsistencies on a real PG 16 container.
  * <p>
  * The pipeline under test is the production one — the REAL {@link BackgroundSyncStream} (thingsearch/service MAIN
@@ -94,7 +94,7 @@ import reactor.core.publisher.Mono;
  * {@link PostgresThingsSearchPersistence#sudoStreamMetadata} stream over rows written by the REAL
  * {@link PostgresSearchUpdaterFlow}; flagged things are re-indexed through that same real flow and the repair is
  * verified by real RQL query answers ({@link PostgresThingsSearchPersistence#findAll}). Only two seams are
- * fixture/stub by design (the genuinely-both-services-on-PG verification is G3's full-stack run):
+ * fixture/stub by design (running both services on PostgreSQL is the job of a full-stack run):
  * </p>
  * <ul>
  *     <li>the things-side metadata source is fixture-built, shaped EXACTLY like
@@ -114,12 +114,12 @@ import reactor.core.publisher.Mono;
  *     <li>missing-from-index → flagged → re-indexed → RQL query finds it;</li>
  *     <li>out-of-date thing revision → flagged with thing-cache invalidation → re-indexed → query reflects the new
  *     state; the up-to-date companion stays silent;</li>
- *     <li><strong>policy-update fan-out with UNCHANGED thing revision</strong> (the round-2 Critical regression):
+ *     <li><strong>policy-update fan-out with UNCHANGED thing revision</strong> (a regression guard):
  *     identical thing revision on both sides, bumped policy revision → MUST be flagged, and the same-revision repair
- *     write MUST land via the unconditional upsert (the old {@code revision < EXCLUDED.revision} guard starved
+ *     write MUST land via the unconditional upsert (a {@code revision < EXCLUDED.revision} guard would starve
  *     exactly this write) → auth visibility flips;</li>
  *     <li>imported-policy staleness: detected from the FULL referenced policy tags (id+revision) that
- *     {@code sudoStreamMetadata} rebuilds from the {@code referenced_policies} column (C2/C3 adjudication);</li>
+ *     {@code sudoStreamMetadata} rebuilds from the {@code referenced_policies} column;</li>
  *     <li>force-update: a bit-wrong but revision-equal row is INVISIBLE to the normal comparison (pinned) and is
  *     rewritten by the force route's unconditional upsert;</li>
  *     <li>tolerance window: index rows modified inside the window are skipped on both index-side branches; zero
@@ -128,12 +128,12 @@ import reactor.core.publisher.Mono;
  * <p>
  * NOTE (scenarios 3 &amp; 4): the REPAIRED write model these scenarios re-index is hand-authored in the test (the
  * post-fan-out / post-import auth state is supplied directly), not recomputed here by the real enforcement flow — the
- * production enforcement recompute that produces that write model from a policy change is covered end-to-end by the G3
+ * production enforcement recompute that produces that write model from a policy change is covered end-to-end by a
  * full-stack run. What these scenarios prove is the DETECTION path (real {@code BackgroundSyncStream} ×
  * {@code sudoStreamMetadata}) and that the repair write lands via the unconditional upsert.
  * </p>
  * <p>
- * Deliberately NO offline-skip guard (module Phase-G zero-skip discipline, precedent {@code SearchBackendParityIT}):
+ * Deliberately NO offline-skip guard (like {@code SearchBackendParityIT}, this verification must never skip):
  * a missing Docker daemon must FAIL this verification loudly.
  * </p>
  */
@@ -271,7 +271,7 @@ public final class PostgresBackgroundSyncE2eIT {
     }
 
     // ================================================================================================================
-    // scenario 3 — policy-update fan-out with UNCHANGED thing revision (round-2 Critical regression)
+    // scenario 3 — policy-update fan-out with UNCHANGED thing revision (regression guard)
     // ================================================================================================================
 
     @Test
@@ -334,7 +334,7 @@ public final class PostgresBackgroundSyncE2eIT {
         index(doc(fresh, 2L, ownerFresh, 3L, Set.of(PolicyTag.of(ownerFresh, 3L), PolicyTag.of(importedFresh, 1L)),
                 "purple", List.of("subject-imp-old")));
 
-        // C2/C3 adjudication: the REAL search-side stream exposes FULL referenced policy tags (id AND revision).
+        // The REAL search-side stream exposes FULL referenced policy tags (id AND revision).
         final Metadata indexedStale = streamIndex().stream()
                 .filter(metadata -> metadata.getThingId().equals(stale)).findFirst().orElseThrow();
         assertThat(indexedStale.getThingPolicyTag()).contains(PolicyTag.of(owner, 3L));

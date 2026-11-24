@@ -34,16 +34,16 @@ import org.bson.json.JsonMode;
 import org.junit.Test;
 
 /**
- * Golden-file regression test for {@link EnforcedThingMapper} (Task A1 - pre-refactor BSON baseline).
+ * Golden-file regression test for {@link EnforcedThingMapper} (the BSON baseline of the Mongo search index).
  *
- * <p>For every case in {@link GoldenFixtures#CASE_NAMES} this test runs TODAY'S full mapping chain via
+ * <p>For every case in {@link GoldenFixtures#CASE_NAMES} this test runs the full mapping chain via
  * {@link GoldenFixtureRunner#run(String)} and asserts the resulting {@code BsonDocument}, rendered as
  * canonical extended JSON ({@link JsonMode#EXTENDED}), is byte-for-byte identical to the committed expected
  * file under {@code src/test/resources/golden/expected/<case>.json}.
  *
- * <p>This test must stay green across the upcoming Phase-A split of {@code EnforcedThingMapper} into a
- * backend-neutral document builder plus a Mongo BSON encoder - it is the correctness proof that the split
- * preserves today's exact wire format. A failure here means the refactor changed observable BSON output;
+ * <p>This test must stay green across any change to the backend-neutral document builder and the Mongo BSON
+ * encoder that {@code EnforcedThingMapper} composes - it is the correctness proof that they keep the exact wire
+ * format. A failure here means a change altered observable BSON output;
  * fixtures must never be touched to "fix" a failure without confirming the change is intended (see
  * {@code EnforcedThingMapperGoldenGenerator} for how the expected files were produced).
  */

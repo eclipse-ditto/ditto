@@ -75,8 +75,8 @@ public final class WotValidationConfigEventSerializerTest {
     }
 
     /**
-     * The real event types are camel case ({@code …:wotValidationConfigCreated}); the case-sensitive match of today's
-     * adapter therefore tags them with the bare prefix. This pins that behaviour so the journal tags do not change.
+     * The real event types are camel case ({@code …:wotValidationConfigCreated}); the adapter's case-sensitive match
+     * therefore tags them with the bare prefix. This pins that behaviour so the journal tags do not change.
      */
     @Test
     public void getJournalTagsOfTheRealEventTypesIsTheBarePrefix() {

@@ -1,5 +1,5 @@
 {
-  "comment": "The parity-matrix RQL battery (Task G1). Unless a case names auth situations, the engine crosses it with EVERY situation from auth-subjects.json (sudo + 8 subject lists). mode: find (default) | count | cursorWalk. Cases carrying a 'divergence' id exercise exactly one frozen allowlist entry and PIN each backend's observed behavior; all other cases assert strict Mongo==Postgres parity.",
+  "comment": "The parity-matrix RQL battery. Unless a case names auth situations, the engine crosses it with EVERY situation from auth-subjects.json (sudo + 8 subject lists). mode: find (default) | count | cursorWalk. Cases carrying a 'divergence' id exercise exactly one frozen allowlist entry and PIN each backend's observed behavior; all other cases assert strict Mongo==Postgres parity.",
   "cases": [
     {
       "name": "eq-attr-color-red",
@@ -68,19 +68,19 @@
     },
     {
       "name": "eq-attr-nullattr-null",
-      "comment": "ne(path,null) Mongo-parity battery (Task 2): eq(p,null) matches ONLY a JSON-null leaf (nenull-nullvals), never 'missing' nor the string \"null\".",
+      "comment": "ne(path,null) Mongo-parity battery: eq(p,null) matches ONLY a JSON-null leaf (nenull-nullvals), never 'missing' nor the string \"null\".",
       "filter": "eq(attributes/nullAttr,null)",
       "expectNonEmptySudo": true
     },
     {
       "name": "ne-attr-nullattr-null",
-      "comment": "ne(path,null) Mongo-parity battery (Task 2): ne(p,null) matches only a leaf that EXISTS with a non-null value (nenull-realvals, nenull-stringvals) -- a JSON-null leaf (nenull-nullvals) and a missing leaf are both excluded.",
+      "comment": "ne(path,null) Mongo-parity battery: ne(p,null) matches only a leaf that EXISTS with a non-null value (nenull-realvals, nenull-stringvals) -- a JSON-null leaf (nenull-nullvals) and a missing leaf are both excluded.",
       "filter": "ne(attributes/nullAttr,null)",
       "expectNonEmptySudo": true
     },
     {
       "name": "ne-attr-nullattr-string-null",
-      "comment": "ne(path,null) Mongo-parity battery (Task 2): ne(p,\"null\") is a STRING comparison, distinct from ne(p,null) -- it matches the JSON-null leaf (nenull-nullvals, whose value differs from the string) and the real value (nenull-realvals), excluding only the leaf whose actual value equals the string \"null\" (nenull-stringvals).",
+      "comment": "ne(path,null) Mongo-parity battery: ne(p,\"null\") is a STRING comparison, distinct from ne(p,null) -- it matches the JSON-null leaf (nenull-nullvals, whose value differs from the string) and the real value (nenull-realvals), excluding only the leaf whose actual value equals the string \"null\" (nenull-stringvals).",
       "filter": "ne(attributes/nullAttr,\"null\")",
       "expectNonEmptySudo": true
     },
@@ -234,26 +234,26 @@
     },
     {
       "name": "eq-feature-nullprop-null",
-      "comment": "ne(path,null) Mongo-parity battery (Task 2), specific-feature-property path shape: eq(p,null) matches ONLY the JSON-null leaf (nenull-nullvals).",
+      "comment": "ne(path,null) Mongo-parity battery, specific-feature-property path shape: eq(p,null) matches ONLY the JSON-null leaf (nenull-nullvals).",
       "filter": "eq(features/f1/properties/nullProp,null)",
       "expectNonEmptySudo": true
     },
     {
       "name": "ne-feature-nullprop-null",
-      "comment": "ne(path,null) Mongo-parity battery (Task 2), specific-feature-property path shape: ne(p,null) matches only a leaf that EXISTS with a non-null value (nenull-realvals, nenull-stringvals).",
+      "comment": "ne(path,null) Mongo-parity battery, specific-feature-property path shape: ne(p,null) matches only a leaf that EXISTS with a non-null value (nenull-realvals, nenull-stringvals).",
       "filter": "ne(features/f1/properties/nullProp,null)",
       "expectNonEmptySudo": true
     },
     {
       "name": "ne-feature-nullprop-string-null",
-      "comment": "ne(path,null) Mongo-parity battery (Task 2), specific-feature-property path shape: ne(p,\"null\") is a STRING comparison distinct from ne(p,null) -- matches nenull-nullvals (JSON-null differs from the string) and nenull-realvals, excludes nenull-stringvals (actual value equals the string \"null\").",
+      "comment": "ne(path,null) Mongo-parity battery, specific-feature-property path shape: ne(p,\"null\") is a STRING comparison distinct from ne(p,null) -- matches nenull-nullvals (JSON-null differs from the string) and nenull-realvals, excludes nenull-stringvals (actual value equals the string \"null\").",
       "filter": "ne(features/f1/properties/nullProp,\"null\")",
       "expectNonEmptySudo": true
     },
     {
       "name": "eq-wildcard-status-off",
       "filter": "eq(features/*/properties/status,\"off\")",
-      "comment": "Allowlist entry #8 (sudo-wildcard-value-mongo-degenerate-path, G1 adjudication): under SUDO Mongo's GetFilterBsonVisitor.matchWildcardFeatureValue degrades to a dotted top-level path matching nothing, while Postgres answers the features/* value predicate semantically (PG strict superset; sudo bypasses auth by definition). The sudo run therefore PINS both backends' observed results; every non-sudo situation asserts strict parity (per-feature value+auth coupling identical on both backends).",
+      "comment": "Allowlist entry #8 (sudo-wildcard-value-mongo-degenerate-path): under SUDO Mongo's GetFilterBsonVisitor.matchWildcardFeatureValue degrades to a dotted top-level path matching nothing, while Postgres answers the features/* value predicate semantically (PG strict superset; sudo bypasses auth by definition). The sudo run therefore PINS both backends' observed results; every non-sudo situation asserts strict parity (per-feature value+auth coupling identical on both backends).",
       "expectNonEmptyAuth": "full",
       "divergence": "sudo-wildcard-value-mongo-degenerate-path",
       "expected": {
@@ -271,7 +271,7 @@
     {
       "name": "eq-wildcard-status-on",
       "filter": "eq(features/*/properties/status,\"on\")",
-      "comment": "Allowlist entry #8 (sudo-wildcard-value-mongo-degenerate-path, G1 adjudication): under SUDO Mongo's GetFilterBsonVisitor.matchWildcardFeatureValue degrades to a dotted top-level path matching nothing, while Postgres answers the features/* value predicate semantically (PG strict superset; sudo bypasses auth by definition). The sudo run therefore PINS both backends' observed results; every non-sudo situation asserts strict parity (per-feature value+auth coupling identical on both backends).",
+      "comment": "Allowlist entry #8 (sudo-wildcard-value-mongo-degenerate-path): under SUDO Mongo's GetFilterBsonVisitor.matchWildcardFeatureValue degrades to a dotted top-level path matching nothing, while Postgres answers the features/* value predicate semantically (PG strict superset; sudo bypasses auth by definition). The sudo run therefore PINS both backends' observed results; every non-sudo situation asserts strict parity (per-feature value+auth coupling identical on both backends).",
       "expectNonEmptyAuth": "full",
       "divergence": "sudo-wildcard-value-mongo-degenerate-path",
       "expected": {
@@ -300,7 +300,7 @@
     {
       "name": "ne-wildcard-status-on",
       "filter": "ne(features/*/properties/status,\"on\")",
-      "comment": "Allowlist entry #8 (sudo-wildcard-value-mongo-degenerate-path, G1 adjudication): under SUDO Mongo's GetFilterBsonVisitor.matchWildcardFeatureValue degrades to a dotted top-level path matching nothing, while Postgres answers the features/* value predicate semantically (PG strict superset; sudo bypasses auth by definition). The sudo run therefore PINS both backends' observed results; every non-sudo situation asserts strict parity (per-feature value+auth coupling identical on both backends).",
+      "comment": "Allowlist entry #8 (sudo-wildcard-value-mongo-degenerate-path): under SUDO Mongo's GetFilterBsonVisitor.matchWildcardFeatureValue degrades to a dotted top-level path matching nothing, while Postgres answers the features/* value predicate semantically (PG strict superset; sudo bypasses auth by definition). The sudo run therefore PINS both backends' observed results; every non-sudo situation asserts strict parity (per-feature value+auth coupling identical on both backends).",
       "expectNonEmptyAuth": "full",
       "divergence": "sudo-wildcard-value-mongo-degenerate-path",
       "expected": {
@@ -319,7 +319,7 @@
     {
       "name": "gt-wildcard-level",
       "filter": "gt(features/*/properties/level,5)",
-      "comment": "Allowlist entry #8 (sudo-wildcard-value-mongo-degenerate-path, G1 adjudication): under SUDO Mongo's GetFilterBsonVisitor.matchWildcardFeatureValue degrades to a dotted top-level path matching nothing, while Postgres answers the features/* value predicate semantically (PG strict superset; sudo bypasses auth by definition). The sudo run therefore PINS both backends' observed results; every non-sudo situation asserts strict parity (per-feature value+auth coupling identical on both backends).",
+      "comment": "Allowlist entry #8 (sudo-wildcard-value-mongo-degenerate-path): under SUDO Mongo's GetFilterBsonVisitor.matchWildcardFeatureValue degrades to a dotted top-level path matching nothing, while Postgres answers the features/* value predicate semantically (PG strict superset; sudo bypasses auth by definition). The sudo run therefore PINS both backends' observed results; every non-sudo situation asserts strict parity (per-feature value+auth coupling identical on both backends).",
       "expectNonEmptyAuth": "full",
       "divergence": "sudo-wildcard-value-mongo-degenerate-path",
       "expected": {
@@ -336,7 +336,7 @@
     {
       "name": "ge-wildcard-level",
       "filter": "ge(features/*/properties/level,9)",
-      "comment": "Allowlist entry #8 (sudo-wildcard-value-mongo-degenerate-path, G1 adjudication): under SUDO Mongo's GetFilterBsonVisitor.matchWildcardFeatureValue degrades to a dotted top-level path matching nothing, while Postgres answers the features/* value predicate semantically (PG strict superset; sudo bypasses auth by definition). The sudo run therefore PINS both backends' observed results; every non-sudo situation asserts strict parity (per-feature value+auth coupling identical on both backends).",
+      "comment": "Allowlist entry #8 (sudo-wildcard-value-mongo-degenerate-path): under SUDO Mongo's GetFilterBsonVisitor.matchWildcardFeatureValue degrades to a dotted top-level path matching nothing, while Postgres answers the features/* value predicate semantically (PG strict superset; sudo bypasses auth by definition). The sudo run therefore PINS both backends' observed results; every non-sudo situation asserts strict parity (per-feature value+auth coupling identical on both backends).",
       "expectNonEmptyAuth": "full",
       "divergence": "sudo-wildcard-value-mongo-degenerate-path",
       "expected": {
@@ -353,7 +353,7 @@
     {
       "name": "lt-wildcard-level",
       "filter": "lt(features/*/properties/level,4)",
-      "comment": "Allowlist entry #8 (sudo-wildcard-value-mongo-degenerate-path, G1 adjudication): under SUDO Mongo's GetFilterBsonVisitor.matchWildcardFeatureValue degrades to a dotted top-level path matching nothing, while Postgres answers the features/* value predicate semantically (PG strict superset; sudo bypasses auth by definition). The sudo run therefore PINS both backends' observed results; every non-sudo situation asserts strict parity (per-feature value+auth coupling identical on both backends).",
+      "comment": "Allowlist entry #8 (sudo-wildcard-value-mongo-degenerate-path): under SUDO Mongo's GetFilterBsonVisitor.matchWildcardFeatureValue degrades to a dotted top-level path matching nothing, while Postgres answers the features/* value predicate semantically (PG strict superset; sudo bypasses auth by definition). The sudo run therefore PINS both backends' observed results; every non-sudo situation asserts strict parity (per-feature value+auth coupling identical on both backends).",
       "expectNonEmptyAuth": "full",
       "divergence": "sudo-wildcard-value-mongo-degenerate-path",
       "expected": {
@@ -371,7 +371,7 @@
     {
       "name": "le-wildcard-level",
       "filter": "le(features/*/properties/level,3)",
-      "comment": "Allowlist entry #8 (sudo-wildcard-value-mongo-degenerate-path, G1 adjudication): under SUDO Mongo's GetFilterBsonVisitor.matchWildcardFeatureValue degrades to a dotted top-level path matching nothing, while Postgres answers the features/* value predicate semantically (PG strict superset; sudo bypasses auth by definition). The sudo run therefore PINS both backends' observed results; every non-sudo situation asserts strict parity (per-feature value+auth coupling identical on both backends).",
+      "comment": "Allowlist entry #8 (sudo-wildcard-value-mongo-degenerate-path): under SUDO Mongo's GetFilterBsonVisitor.matchWildcardFeatureValue degrades to a dotted top-level path matching nothing, while Postgres answers the features/* value predicate semantically (PG strict superset; sudo bypasses auth by definition). The sudo run therefore PINS both backends' observed results; every non-sudo situation asserts strict parity (per-feature value+auth coupling identical on both backends).",
       "expectNonEmptyAuth": "full",
       "divergence": "sudo-wildcard-value-mongo-degenerate-path",
       "expected": {
@@ -389,7 +389,7 @@
     {
       "name": "in-wildcard-status",
       "filter": "in(features/*/properties/status,\"off\",\"standby\")",
-      "comment": "Allowlist entry #8 (sudo-wildcard-value-mongo-degenerate-path, G1 adjudication): under SUDO Mongo's GetFilterBsonVisitor.matchWildcardFeatureValue degrades to a dotted top-level path matching nothing, while Postgres answers the features/* value predicate semantically (PG strict superset; sudo bypasses auth by definition). The sudo run therefore PINS both backends' observed results; every non-sudo situation asserts strict parity (per-feature value+auth coupling identical on both backends).",
+      "comment": "Allowlist entry #8 (sudo-wildcard-value-mongo-degenerate-path): under SUDO Mongo's GetFilterBsonVisitor.matchWildcardFeatureValue degrades to a dotted top-level path matching nothing, while Postgres answers the features/* value predicate semantically (PG strict superset; sudo bypasses auth by definition). The sudo run therefore PINS both backends' observed results; every non-sudo situation asserts strict parity (per-feature value+auth coupling identical on both backends).",
       "expectNonEmptyAuth": "full",
       "divergence": "sudo-wildcard-value-mongo-degenerate-path",
       "expected": {
@@ -408,7 +408,7 @@
     {
       "name": "like-wildcard-status",
       "filter": "like(features/*/properties/status,\"of*\")",
-      "comment": "Allowlist entry #8 (sudo-wildcard-value-mongo-degenerate-path, G1 adjudication): under SUDO Mongo's GetFilterBsonVisitor.matchWildcardFeatureValue degrades to a dotted top-level path matching nothing, while Postgres answers the features/* value predicate semantically (PG strict superset; sudo bypasses auth by definition). The sudo run therefore PINS both backends' observed results; every non-sudo situation asserts strict parity (per-feature value+auth coupling identical on both backends).",
+      "comment": "Allowlist entry #8 (sudo-wildcard-value-mongo-degenerate-path): under SUDO Mongo's GetFilterBsonVisitor.matchWildcardFeatureValue degrades to a dotted top-level path matching nothing, while Postgres answers the features/* value predicate semantically (PG strict superset; sudo bypasses auth by definition). The sudo run therefore PINS both backends' observed results; every non-sudo situation asserts strict parity (per-feature value+auth coupling identical on both backends).",
       "expectNonEmptyAuth": "full",
       "divergence": "sudo-wildcard-value-mongo-degenerate-path",
       "expected": {
@@ -426,7 +426,7 @@
     {
       "name": "ilike-wildcard-status",
       "filter": "ilike(features/*/properties/status,\"OFF*\")",
-      "comment": "Allowlist entry #8 (sudo-wildcard-value-mongo-degenerate-path, G1 adjudication): under SUDO Mongo's GetFilterBsonVisitor.matchWildcardFeatureValue degrades to a dotted top-level path matching nothing, while Postgres answers the features/* value predicate semantically (PG strict superset; sudo bypasses auth by definition). The sudo run therefore PINS both backends' observed results; every non-sudo situation asserts strict parity (per-feature value+auth coupling identical on both backends).",
+      "comment": "Allowlist entry #8 (sudo-wildcard-value-mongo-degenerate-path): under SUDO Mongo's GetFilterBsonVisitor.matchWildcardFeatureValue degrades to a dotted top-level path matching nothing, while Postgres answers the features/* value predicate semantically (PG strict superset; sudo bypasses auth by definition). The sudo run therefore PINS both backends' observed results; every non-sudo situation asserts strict parity (per-feature value+auth coupling identical on both backends).",
       "expectNonEmptyAuth": "full",
       "divergence": "sudo-wildcard-value-mongo-degenerate-path",
       "expected": {
@@ -444,7 +444,7 @@
     {
       "name": "eq-wildcard-nullprop-null",
       "filter": "eq(features/*/properties/nullProp,null)",
-      "comment": "ne(path,null) Mongo-parity battery (Task 2), wildcard-feature-property path shape, crossed with allowlist entry #8 (sudo-wildcard-value-mongo-degenerate-path): under SUDO Mongo degrades to nothing while Postgres answers semantically -- only nenull-nullvals (JSON-null nullProp) matches. Every non-sudo situation asserts strict parity.",
+      "comment": "ne(path,null) Mongo-parity battery, wildcard-feature-property path shape, crossed with allowlist entry #8 (sudo-wildcard-value-mongo-degenerate-path): under SUDO Mongo degrades to nothing while Postgres answers semantically -- only nenull-nullvals (JSON-null nullProp) matches. Every non-sudo situation asserts strict parity.",
       "expectNonEmptyAuth": "full",
       "divergence": "sudo-wildcard-value-mongo-degenerate-path",
       "expected": {
@@ -461,7 +461,7 @@
     {
       "name": "ne-wildcard-nullprop-null",
       "filter": "ne(features/*/properties/nullProp,null)",
-      "comment": "ne(path,null) Mongo-parity battery (Task 2), wildcard-feature-property path shape, crossed with allowlist entry #8 (sudo-wildcard-value-mongo-degenerate-path): under SUDO Mongo degrades to nothing while Postgres answers semantically -- nenull-realvals and nenull-stringvals match (nullProp exists and is non-null), nenull-nullvals (JSON-null) is excluded. Every non-sudo situation asserts strict parity.",
+      "comment": "ne(path,null) Mongo-parity battery, wildcard-feature-property path shape, crossed with allowlist entry #8 (sudo-wildcard-value-mongo-degenerate-path): under SUDO Mongo degrades to nothing while Postgres answers semantically -- nenull-realvals and nenull-stringvals match (nullProp exists and is non-null), nenull-nullvals (JSON-null) is excluded. Every non-sudo situation asserts strict parity.",
       "expectNonEmptyAuth": "full",
       "divergence": "sudo-wildcard-value-mongo-degenerate-path",
       "expected": {
@@ -479,7 +479,7 @@
     {
       "name": "ne-wildcard-nullprop-string-null",
       "filter": "ne(features/*/properties/nullProp,\"null\")",
-      "comment": "ne(path,null) Mongo-parity battery (Task 2), wildcard-feature-property path shape, crossed with allowlist entry #8 (sudo-wildcard-value-mongo-degenerate-path): under SUDO Mongo degrades to nothing while Postgres answers semantically -- ne(p,\"null\") is a STRING comparison distinct from ne(p,null): nenull-nullvals (JSON-null differs from the string) and nenull-realvals match, nenull-stringvals (actual value equals the string \"null\") is excluded. Every non-sudo situation asserts strict parity.",
+      "comment": "ne(path,null) Mongo-parity battery, wildcard-feature-property path shape, crossed with allowlist entry #8 (sudo-wildcard-value-mongo-degenerate-path): under SUDO Mongo degrades to nothing while Postgres answers semantically -- ne(p,\"null\") is a STRING comparison distinct from ne(p,null): nenull-nullvals (JSON-null differs from the string) and nenull-realvals match, nenull-stringvals (actual value equals the string \"null\") is excluded. Every non-sudo situation asserts strict parity.",
       "expectNonEmptyAuth": "full",
       "divergence": "sudo-wildcard-value-mongo-degenerate-path",
       "expected": {
@@ -507,7 +507,7 @@
     {
       "name": "empty-wildcard-property",
       "filter": "empty(features/*/properties/status)",
-      "comment": "status is on every pre-SB-02 feature and on no zzempty-* feature: the zzempty-* things are the only matches (a feature that LACKS the property matches, SB-02 item 1) -- before them this case was vacuous (empty on both backends).",
+      "comment": "status is on every feature outside the zzempty-* things and on no zzempty-* feature: the zzempty-* things are the only matches (a feature that LACKS the property matches) -- without them this case would be vacuous (empty on both backends).",
       "expectNonEmptySudo": true
     },
     {
@@ -773,19 +773,19 @@
     },
     {
       "name": "eq-definition-null",
-      "comment": "ne(path,null) Mongo-parity battery (Task 2), /definition path shape (slash-mapped simple field -> visitPointer, same flat probe as attributes): eq(p,null) matches ONLY the JSON-null leaf (nenull-nullvals).",
+      "comment": "ne(path,null) Mongo-parity battery, /definition path shape (slash-mapped simple field -> visitPointer, same flat probe as attributes): eq(p,null) matches ONLY the JSON-null leaf (nenull-nullvals).",
       "filter": "eq(definition,null)",
       "expectNonEmptySudo": true
     },
     {
       "name": "ne-definition-null",
-      "comment": "ne(path,null) Mongo-parity battery (Task 2), /definition path shape: ne(p,null) matches only a leaf that EXISTS with a non-null value (nenull-realvals, scalars-red, scalars-blue, scalars-green, plus nenull-stringvals whose value is the string \"null\") -- nenull-nullvals (JSON-null) and every thing missing definition are excluded.",
+      "comment": "ne(path,null) Mongo-parity battery, /definition path shape: ne(p,null) matches only a leaf that EXISTS with a non-null value (nenull-realvals, scalars-red, scalars-blue, scalars-green, plus nenull-stringvals whose value is the string \"null\") -- nenull-nullvals (JSON-null) and every thing missing definition are excluded.",
       "filter": "ne(definition,null)",
       "expectNonEmptySudo": true
     },
     {
       "name": "ne-definition-string-null",
-      "comment": "ne(path,null) Mongo-parity battery (Task 2), /definition path shape: ne(p,\"null\") is a STRING comparison distinct from ne(p,null) -- matches nenull-nullvals (JSON-null differs from the string) and every other definition-bearing thing, excludes only nenull-stringvals (actual value equals the string \"null\").",
+      "comment": "ne(path,null) Mongo-parity battery, /definition path shape: ne(p,\"null\") is a STRING comparison distinct from ne(p,null) -- matches nenull-nullvals (JSON-null differs from the string) and every other definition-bearing thing, excludes only nenull-stringvals (actual value equals the string \"null\").",
       "filter": "ne(definition,\"null\")",
       "expectNonEmptySudo": true
     },
@@ -1044,7 +1044,7 @@
     {
       "name": "not-wildcard-eq",
       "filter": "not(eq(features/*/properties/status,\"on\"))",
-      "comment": "Allowlist entry #8 (sudo-wildcard-value-mongo-degenerate-path, G1 adjudication): under SUDO Mongo's GetFilterBsonVisitor.matchWildcardFeatureValue degrades to a dotted top-level path matching nothing, while Postgres answers the features/* value predicate semantically (PG strict superset; sudo bypasses auth by definition). The sudo run therefore PINS both backends' observed results; every non-sudo situation asserts strict parity (per-feature value+auth coupling identical on both backends). NOTE: the pinned lists are each backend's FIRST default-page-size (25) results of its divergent full match set (Mongo matches all 37, Postgres the 29 things with no feature whose status is \"on\"; Task 2's nenull-* fixtures carry a status:\"on\" property precisely so they land in Mongo's degenerate all-match set but NOT Postgres' semantically-correct one, same as the pre-existing feature-bearing things).",
+      "comment": "Allowlist entry #8 (sudo-wildcard-value-mongo-degenerate-path): under SUDO Mongo's GetFilterBsonVisitor.matchWildcardFeatureValue degrades to a dotted top-level path matching nothing, while Postgres answers the features/* value predicate semantically (PG strict superset; sudo bypasses auth by definition). The sudo run therefore PINS both backends' observed results; every non-sudo situation asserts strict parity (per-feature value+auth coupling identical on both backends). NOTE: the pinned lists are each backend's FIRST default-page-size (25) results of its divergent full match set (Mongo matches all 37, Postgres the 29 things with no feature whose status is \"on\"; the nenull-* fixtures carry a status:\"on\" property precisely so they land in Mongo's degenerate all-match set but NOT Postgres' semantically-correct one, same as the other feature-bearing things).",
       "expectNonEmptyAuth": "full",
       "divergence": "sudo-wildcard-value-mongo-degenerate-path",
       "expected": {
@@ -1111,7 +1111,7 @@
     {
       "name": "and-wildcard-value-auth-coupling",
       "filter": "and(eq(features/*/properties/status,\"off\"),exists(features/*))",
-      "comment": "Allowlist entry #8 (sudo-wildcard-value-mongo-degenerate-path, G1 adjudication): under SUDO Mongo's GetFilterBsonVisitor.matchWildcardFeatureValue degrades to a dotted top-level path matching nothing, while Postgres answers the features/* value predicate semantically (PG strict superset; sudo bypasses auth by definition). The sudo run therefore PINS both backends' observed results; every non-sudo situation asserts strict parity (per-feature value+auth coupling identical on both backends).",
+      "comment": "Allowlist entry #8 (sudo-wildcard-value-mongo-degenerate-path): under SUDO Mongo's GetFilterBsonVisitor.matchWildcardFeatureValue degrades to a dotted top-level path matching nothing, while Postgres answers the features/* value predicate semantically (PG strict superset; sudo bypasses auth by definition). The sudo run therefore PINS both backends' observed results; every non-sudo situation asserts strict parity (per-feature value+auth coupling identical on both backends).",
       "expectNonEmptyAuth": "full",
       "divergence": "sudo-wildcard-value-mongo-degenerate-path",
       "expected": {
@@ -1194,7 +1194,7 @@
         "sort(+features/meter/properties/reading,+thingId)"
       ],
       "expectNonEmptySudo": true,
-      "comment": "Concrete feature-property sort (the sort lateral binds path = wpath = the concrete wpath to use the full search_flat key prefix). zsort-a/-d hold arrays (ASC sorts by the MIN element), zsort-b also has feature meter2 with reading 1, so the /features/*/properties/reading twin rows carry a smaller value than its own meter reading (5) and must not leak into the sort, zsort-c misses the key (null rank, first) although its meter2 twin rows carry 99, zsort-e is a string (after all numbers). Sort keys carry no auth on either backend (plan §3.3 exception 3), so every auth situation must agree, incl. 'limited' (features revoked). The zsort-* ids sort after every other pre-SB-02 parity id (the SB-02 zzempty-* ids sort after them for the same reason) so first-page-pinned divergence lists (not-wildcard-eq) stay stable, and every zsort feature carries status \"on\" (so only the full eq-wildcard-status-on pin lists them; the empty(features/*/...) divergence a feature WITHOUT status once tripped in empty-wildcard-property -- Mongo matched a thing with a feature that lacks the property, Postgres did not -- was closed by SB-02)."
+      "comment": "Concrete feature-property sort (the sort lateral binds path = wpath = the concrete wpath to use the full search_flat key prefix). zsort-a/-d hold arrays (ASC sorts by the MIN element), zsort-b also has feature meter2 with reading 1, so the /features/*/properties/reading twin rows carry a smaller value than its own meter reading (5) and must not leak into the sort, zsort-c misses the key (null rank, first) although its meter2 twin rows carry 99, zsort-e is a string (after all numbers). Sort keys carry no auth on either backend, so every auth situation must agree, incl. 'limited' (features revoked). The zsort-* ids sort after every other parity id except the zzempty-* ones (which sort after them for the same reason) so first-page-pinned divergence lists (not-wildcard-eq) stay stable, and every zsort feature carries status \"on\" (so only the full eq-wildcard-status-on pin lists them; a feature WITHOUT status would be matched by empty-wildcard-property, on both backends, because a feature that lacks the property matches)."
     },
     {
       "name": "sort-feature-prop-desc",
@@ -1336,7 +1336,7 @@
       "name": "count-wildcard-ne",
       "mode": "count",
       "filter": "ne(features/*/properties/status,\"on\")",
-      "comment": "Allowlist entry #8 (sudo-wildcard-value-mongo-degenerate-path, G1 adjudication): under SUDO Mongo's GetFilterBsonVisitor.matchWildcardFeatureValue degrades to a dotted top-level path matching nothing, while Postgres answers the features/* value predicate semantically (PG strict superset; sudo bypasses auth by definition). The sudo run therefore PINS both backends' observed results; every non-sudo situation asserts strict parity (per-feature value+auth coupling identical on both backends).",
+      "comment": "Allowlist entry #8 (sudo-wildcard-value-mongo-degenerate-path): under SUDO Mongo's GetFilterBsonVisitor.matchWildcardFeatureValue degrades to a dotted top-level path matching nothing, while Postgres answers the features/* value predicate semantically (PG strict superset; sudo bypasses auth by definition). The sudo run therefore PINS both backends' observed results; every non-sudo situation asserts strict parity (per-feature value+auth coupling identical on both backends).",
       "expectNonEmptyAuth": "full",
       "divergence": "sudo-wildcard-value-mongo-degenerate-path",
       "expectedCount": {
@@ -1388,7 +1388,7 @@
         "sudo",
         "full"
       ],
-      "comment": "Walks the dedicated single-type-bracket walker corpus: missing-value things exercise the null-sort-value resume branch (D4 review gap), int/long/double values cross the numeric sub-type boundaries and the 42/42 tie exercises the eq-dimension resume. Mixed-type brackets are NOT cursor-crossable on EITHER backend (shared upstream type-bracketed gt/lt limitation, see PostgresCursorResumeIT), and explicit-null sort values duplicate on both backends after a null boundary (exists(key) matches explicit null), so those stay in the SORT battery (sort-rank-asc/desc) but out of the walks."
+      "comment": "Walks the dedicated single-type-bracket walker corpus: missing-value things exercise the null-sort-value resume branch, int/long/double values cross the numeric sub-type boundaries and the 42/42 tie exercises the eq-dimension resume. Mixed-type brackets are NOT cursor-crossable on EITHER backend (shared upstream type-bracketed gt/lt limitation, see PostgresCursorResumeIT), and explicit-null sort values duplicate on both backends after a null boundary (exists(key) matches explicit null), so those stay in the SORT battery (sort-rank-asc/desc) but out of the walks."
     },
     {
       "name": "walk-rank-desc",
@@ -1448,111 +1448,111 @@
     {
       "name": "in-attr-nullattr-value-null",
       "filter": "in(attributes/nullAttr,\"real-value\",null)",
-      "comment": "null-operand Mongo-parity battery (SB-01), attribute path: in(p,v,null) is Mongo {$in:[v,null]} -- matches the listed value (nenull-realvals), a JSON-null leaf (nenull-nullvals) AND a MISSING leaf (every thing without the key); only a leaf with a different value (nenull-stringvals) is excluded. No exists() clause (only eq(null)/ne add one).",
+      "comment": "null-operand Mongo-parity battery, attribute path: in(p,v,null) is Mongo {$in:[v,null]} -- matches the listed value (nenull-realvals), a JSON-null leaf (nenull-nullvals) AND a MISSING leaf (every thing without the key); only a leaf with a different value (nenull-stringvals) is excluded. No exists() clause (only eq(null)/ne add one).",
       "expectNonEmptySudo": true
     },
     {
       "name": "in-attr-nullattr-null",
       "filter": "in(attributes/nullAttr,null)",
-      "comment": "null-operand Mongo-parity battery (SB-01), attribute path: in(p,null) is Mongo {$in:[null]} = {p:null} -- matches a JSON-null leaf (nenull-nullvals) AND a MISSING leaf, unlike Ditto's eq(p,null) which adds exists() and matches only the JSON-null leaf.",
+      "comment": "null-operand Mongo-parity battery, attribute path: in(p,null) is Mongo {$in:[null]} = {p:null} -- matches a JSON-null leaf (nenull-nullvals) AND a MISSING leaf, unlike Ditto's eq(p,null) which adds exists() and matches only the JSON-null leaf.",
       "expectNonEmptySudo": true
     },
     {
       "name": "ge-attr-nullattr-null",
       "filter": "ge(attributes/nullAttr,null)",
-      "comment": "null-operand Mongo-parity battery (SB-01), attribute path: ge(p,null) is Mongo {$gte:null} = {p:null} -- matches a JSON-null leaf (nenull-nullvals) AND a MISSING leaf; NOT Ditto's eq(p,null), which requires the leaf to exist.",
+      "comment": "null-operand Mongo-parity battery, attribute path: ge(p,null) is Mongo {$gte:null} = {p:null} -- matches a JSON-null leaf (nenull-nullvals) AND a MISSING leaf; NOT Ditto's eq(p,null), which requires the leaf to exist.",
       "expectNonEmptySudo": true
     },
     {
       "name": "le-attr-nullattr-null",
       "filter": "le(attributes/nullAttr,null)",
-      "comment": "null-operand Mongo-parity battery (SB-01), attribute path: le(p,null) is Mongo {$lte:null} = {p:null} -- matches a JSON-null leaf (nenull-nullvals) AND a MISSING leaf; NOT Ditto's eq(p,null), which requires the leaf to exist.",
+      "comment": "null-operand Mongo-parity battery, attribute path: le(p,null) is Mongo {$lte:null} = {p:null} -- matches a JSON-null leaf (nenull-nullvals) AND a MISSING leaf; NOT Ditto's eq(p,null), which requires the leaf to exist.",
       "expectNonEmptySudo": true
     },
     {
       "name": "gt-attr-nullattr-null",
       "filter": "gt(attributes/nullAttr,null)",
-      "comment": "null-operand Mongo-parity battery (SB-01), attribute path: gt(p,null) is Mongo {$gt:null}, which matches NOTHING (no value is strictly greater than null) -- empty on both backends under every auth situation; not-gt-attr-nullattr-null proves 'nothing' is not 'everything'."
+      "comment": "null-operand Mongo-parity battery, attribute path: gt(p,null) is Mongo {$gt:null}, which matches NOTHING (no value is strictly greater than null) -- empty on both backends under every auth situation; not-gt-attr-nullattr-null proves 'nothing' is not 'everything'."
     },
     {
       "name": "lt-attr-nullattr-null",
       "filter": "lt(attributes/nullAttr,null)",
-      "comment": "null-operand Mongo-parity battery (SB-01), attribute path: lt(p,null) is Mongo {$lt:null}, which matches NOTHING (no value is strictly smaller than null) -- empty on both backends under every auth situation; not-lt-attr-nullattr-null proves 'nothing' is not 'everything'."
+      "comment": "null-operand Mongo-parity battery, attribute path: lt(p,null) is Mongo {$lt:null}, which matches NOTHING (no value is strictly smaller than null) -- empty on both backends under every auth situation; not-lt-attr-nullattr-null proves 'nothing' is not 'everything'."
     },
     {
       "name": "not-gt-attr-nullattr-null",
       "filter": "not(gt(attributes/nullAttr,null))",
-      "comment": "null-operand Mongo-parity battery (SB-01), attribute path: not(gt(p,null)) negates a never-matching predicate -- every visible thing matches on both backends (Mongo nor({$gt:null}) ∧ global read; Postgres NOT false ∧ global read).",
+      "comment": "null-operand Mongo-parity battery, attribute path: not(gt(p,null)) negates a never-matching predicate -- every visible thing matches on both backends (Mongo nor({$gt:null}) ∧ global read; Postgres NOT false ∧ global read).",
       "expectNonEmptySudo": true
     },
     {
       "name": "not-lt-attr-nullattr-null",
       "filter": "not(lt(attributes/nullAttr,null))",
-      "comment": "null-operand Mongo-parity battery (SB-01), attribute path: not(lt(p,null)) negates a never-matching predicate -- every visible thing matches on both backends (Mongo nor({$lt:null}) ∧ global read; Postgres NOT false ∧ global read); the companion of lt-attr-nullattr-null, proving 'nothing' is not 'everything'.",
+      "comment": "null-operand Mongo-parity battery, attribute path: not(lt(p,null)) negates a never-matching predicate -- every visible thing matches on both backends (Mongo nor({$lt:null}) ∧ global read; Postgres NOT false ∧ global read); the companion of lt-attr-nullattr-null, proving 'nothing' is not 'everything'.",
       "expectNonEmptySudo": true
     },
     {
       "name": "not-in-attr-nullattr-value-null",
       "filter": "not(in(attributes/nullAttr,\"real-value\",null))",
-      "comment": "null-operand Mongo-parity battery (SB-01), attribute path: not(in(p,v,null)) is the complement of value-or-null-or-missing -- only a leaf that EXISTS with a different value (nenull-stringvals) matches.",
+      "comment": "null-operand Mongo-parity battery, attribute path: not(in(p,v,null)) is the complement of value-or-null-or-missing -- only a leaf that EXISTS with a different value (nenull-stringvals) matches.",
       "expectNonEmptySudo": true
     },
     {
       "name": "in-feature-nullprop-value-null",
       "filter": "in(features/f1/properties/nullProp,\"real-value\",null)",
-      "comment": "null-operand Mongo-parity battery (SB-01), specific-feature-property path: in(p,v,null) is Mongo {$in:[v,null]} -- matches the listed value (nenull-realvals), a JSON-null leaf (nenull-nullvals) AND a MISSING leaf (every thing without the key); only a leaf with a different value (nenull-stringvals) is excluded. No exists() clause (only eq(null)/ne add one). Under the limited auth situation (a policy that revokes features) the feature-bearing things turn into non-matches of the positive form and matches of the negation; feature-less things are unaffected -- parity holds on both backends.",
+      "comment": "null-operand Mongo-parity battery, specific-feature-property path: in(p,v,null) is Mongo {$in:[v,null]} -- matches the listed value (nenull-realvals), a JSON-null leaf (nenull-nullvals) AND a MISSING leaf (every thing without the key); only a leaf with a different value (nenull-stringvals) is excluded. No exists() clause (only eq(null)/ne add one). Under the limited auth situation (a policy that revokes features) the feature-bearing things turn into non-matches of the positive form and matches of the negation; feature-less things are unaffected -- parity holds on both backends.",
       "expectNonEmptySudo": true
     },
     {
       "name": "in-feature-nullprop-null",
       "filter": "in(features/f1/properties/nullProp,null)",
-      "comment": "null-operand Mongo-parity battery (SB-01), specific-feature-property path: in(p,null) is Mongo {$in:[null]} = {p:null} -- matches a JSON-null leaf (nenull-nullvals) AND a MISSING leaf, unlike Ditto's eq(p,null) which adds exists() and matches only the JSON-null leaf.",
+      "comment": "null-operand Mongo-parity battery, specific-feature-property path: in(p,null) is Mongo {$in:[null]} = {p:null} -- matches a JSON-null leaf (nenull-nullvals) AND a MISSING leaf, unlike Ditto's eq(p,null) which adds exists() and matches only the JSON-null leaf.",
       "expectNonEmptySudo": true
     },
     {
       "name": "ge-feature-nullprop-null",
       "filter": "ge(features/f1/properties/nullProp,null)",
-      "comment": "null-operand Mongo-parity battery (SB-01), specific-feature-property path: ge(p,null) is Mongo {$gte:null} = {p:null} -- matches a JSON-null leaf (nenull-nullvals) AND a MISSING leaf; NOT Ditto's eq(p,null), which requires the leaf to exist.",
+      "comment": "null-operand Mongo-parity battery, specific-feature-property path: ge(p,null) is Mongo {$gte:null} = {p:null} -- matches a JSON-null leaf (nenull-nullvals) AND a MISSING leaf; NOT Ditto's eq(p,null), which requires the leaf to exist.",
       "expectNonEmptySudo": true
     },
     {
       "name": "le-feature-nullprop-null",
       "filter": "le(features/f1/properties/nullProp,null)",
-      "comment": "null-operand Mongo-parity battery (SB-01), specific-feature-property path: le(p,null) is Mongo {$lte:null} = {p:null} -- matches a JSON-null leaf (nenull-nullvals) AND a MISSING leaf; NOT Ditto's eq(p,null), which requires the leaf to exist.",
+      "comment": "null-operand Mongo-parity battery, specific-feature-property path: le(p,null) is Mongo {$lte:null} = {p:null} -- matches a JSON-null leaf (nenull-nullvals) AND a MISSING leaf; NOT Ditto's eq(p,null), which requires the leaf to exist.",
       "expectNonEmptySudo": true
     },
     {
       "name": "gt-feature-nullprop-null",
       "filter": "gt(features/f1/properties/nullProp,null)",
-      "comment": "null-operand Mongo-parity battery (SB-01), specific-feature-property path: gt(p,null) is Mongo {$gt:null}, which matches NOTHING (no value is strictly greater than null) -- empty on both backends under every auth situation; not-gt-feature-nullprop-null proves 'nothing' is not 'everything'."
+      "comment": "null-operand Mongo-parity battery, specific-feature-property path: gt(p,null) is Mongo {$gt:null}, which matches NOTHING (no value is strictly greater than null) -- empty on both backends under every auth situation; not-gt-feature-nullprop-null proves 'nothing' is not 'everything'."
     },
     {
       "name": "lt-feature-nullprop-null",
       "filter": "lt(features/f1/properties/nullProp,null)",
-      "comment": "null-operand Mongo-parity battery (SB-01), specific-feature-property path: lt(p,null) is Mongo {$lt:null}, which matches NOTHING (no value is strictly smaller than null) -- empty on both backends under every auth situation; not-lt-feature-nullprop-null proves 'nothing' is not 'everything'."
+      "comment": "null-operand Mongo-parity battery, specific-feature-property path: lt(p,null) is Mongo {$lt:null}, which matches NOTHING (no value is strictly smaller than null) -- empty on both backends under every auth situation; not-lt-feature-nullprop-null proves 'nothing' is not 'everything'."
     },
     {
       "name": "not-gt-feature-nullprop-null",
       "filter": "not(gt(features/f1/properties/nullProp,null))",
-      "comment": "null-operand Mongo-parity battery (SB-01), specific-feature-property path: not(gt(p,null)) negates a never-matching predicate -- every visible thing matches on both backends (Mongo nor({$gt:null}) ∧ global read; Postgres NOT false ∧ global read).",
+      "comment": "null-operand Mongo-parity battery, specific-feature-property path: not(gt(p,null)) negates a never-matching predicate -- every visible thing matches on both backends (Mongo nor({$gt:null}) ∧ global read; Postgres NOT false ∧ global read).",
       "expectNonEmptySudo": true
     },
     {
       "name": "not-lt-feature-nullprop-null",
       "filter": "not(lt(features/f1/properties/nullProp,null))",
-      "comment": "null-operand Mongo-parity battery (SB-01), specific-feature-property path: not(lt(p,null)) negates a never-matching predicate -- every visible thing matches on both backends (Mongo nor({$lt:null}) ∧ global read; Postgres NOT false ∧ global read); the companion of lt-feature-nullprop-null, proving 'nothing' is not 'everything'.",
+      "comment": "null-operand Mongo-parity battery, specific-feature-property path: not(lt(p,null)) negates a never-matching predicate -- every visible thing matches on both backends (Mongo nor({$lt:null}) ∧ global read; Postgres NOT false ∧ global read); the companion of lt-feature-nullprop-null, proving 'nothing' is not 'everything'.",
       "expectNonEmptySudo": true
     },
     {
       "name": "not-in-feature-nullprop-value-null",
       "filter": "not(in(features/f1/properties/nullProp,\"real-value\",null))",
-      "comment": "null-operand Mongo-parity battery (SB-01), specific-feature-property path: not(in(p,v,null)) is the complement of value-or-null-or-missing -- only a leaf that EXISTS with a different value (nenull-stringvals) matches. Under the limited auth situation (a policy that revokes features) the feature-bearing things turn into non-matches of the positive form and matches of the negation; feature-less things are unaffected -- parity holds on both backends.",
+      "comment": "null-operand Mongo-parity battery, specific-feature-property path: not(in(p,v,null)) is the complement of value-or-null-or-missing -- only a leaf that EXISTS with a different value (nenull-stringvals) matches. Under the limited auth situation (a policy that revokes features) the feature-bearing things turn into non-matches of the positive form and matches of the negation; feature-less things are unaffected -- parity holds on both backends.",
       "expectNonEmptySudo": true
     },
     {
       "name": "in-wildcard-nullprop-value-null",
       "filter": "in(features/*/properties/nullProp,\"real-value\",null)",
-      "comment": "null-operand Mongo-parity battery (SB-01), wildcard-feature-property path: in(p,v,null) matches a thing with at least one VISIBLE feature whose nullProp is the listed value, JSON null or MISSING (elemMatch per feature); nenull-stringvals (only feature f1 holds a different value) and feature-less things are excluded. Crossed with allowlist entry #8 (sudo-wildcard-value-mongo-degenerate-path): under SUDO Mongo degrades the wildcard to the top-level dotted path properties.nullProp, which NO document has, so a null-including operand matches EVERY thing (null = missing) while Postgres answers the features/* predicate semantically (per visible feature). Every non-sudo situation asserts strict parity.",
+      "comment": "null-operand Mongo-parity battery, wildcard-feature-property path: in(p,v,null) matches a thing with at least one VISIBLE feature whose nullProp is the listed value, JSON null or MISSING (elemMatch per feature); nenull-stringvals (only feature f1 holds a different value) and feature-less things are excluded. Crossed with allowlist entry #8 (sudo-wildcard-value-mongo-degenerate-path): under SUDO Mongo degrades the wildcard to the top-level dotted path properties.nullProp, which NO document has, so a null-including operand matches EVERY thing (null = missing) while Postgres answers the features/* predicate semantically (per visible feature). Every non-sudo situation asserts strict parity.",
       "expectNonEmptyAuth": "full",
       "divergence": "sudo-wildcard-value-mongo-degenerate-path",
       "expected": {
@@ -1613,7 +1613,7 @@
     {
       "name": "in-wildcard-nullprop-null",
       "filter": "in(features/*/properties/nullProp,null)",
-      "comment": "null-operand Mongo-parity battery (SB-01), wildcard-feature-property path: in(p,null) matches a thing with at least one VISIBLE feature whose nullProp is JSON null or MISSING; nenull-realvals and nenull-stringvals (their only feature holds a value) and feature-less things are excluded. Crossed with allowlist entry #8 (sudo-wildcard-value-mongo-degenerate-path): under SUDO Mongo degrades the wildcard to the top-level dotted path properties.nullProp, which NO document has, so a null-including operand matches EVERY thing (null = missing) while Postgres answers the features/* predicate semantically (per visible feature). Every non-sudo situation asserts strict parity.",
+      "comment": "null-operand Mongo-parity battery, wildcard-feature-property path: in(p,null) matches a thing with at least one VISIBLE feature whose nullProp is JSON null or MISSING; nenull-realvals and nenull-stringvals (their only feature holds a value) and feature-less things are excluded. Crossed with allowlist entry #8 (sudo-wildcard-value-mongo-degenerate-path): under SUDO Mongo degrades the wildcard to the top-level dotted path properties.nullProp, which NO document has, so a null-including operand matches EVERY thing (null = missing) while Postgres answers the features/* predicate semantically (per visible feature). Every non-sudo situation asserts strict parity.",
       "expectNonEmptyAuth": "full",
       "divergence": "sudo-wildcard-value-mongo-degenerate-path",
       "expected": {
@@ -1673,7 +1673,7 @@
     {
       "name": "ge-wildcard-nullprop-null",
       "filter": "ge(features/*/properties/nullProp,null)",
-      "comment": "null-operand Mongo-parity battery (SB-01), wildcard-feature-property path: ge(p,null) ($gte:null) matches a thing with at least one VISIBLE feature whose nullProp is JSON null or MISSING; nenull-realvals, nenull-stringvals and feature-less things are excluded. Crossed with allowlist entry #8 (sudo-wildcard-value-mongo-degenerate-path): under SUDO Mongo degrades the wildcard to the top-level dotted path properties.nullProp, which NO document has, so a null-including operand matches EVERY thing (null = missing) while Postgres answers the features/* predicate semantically (per visible feature). Every non-sudo situation asserts strict parity.",
+      "comment": "null-operand Mongo-parity battery, wildcard-feature-property path: ge(p,null) ($gte:null) matches a thing with at least one VISIBLE feature whose nullProp is JSON null or MISSING; nenull-realvals, nenull-stringvals and feature-less things are excluded. Crossed with allowlist entry #8 (sudo-wildcard-value-mongo-degenerate-path): under SUDO Mongo degrades the wildcard to the top-level dotted path properties.nullProp, which NO document has, so a null-including operand matches EVERY thing (null = missing) while Postgres answers the features/* predicate semantically (per visible feature). Every non-sudo situation asserts strict parity.",
       "expectNonEmptyAuth": "full",
       "divergence": "sudo-wildcard-value-mongo-degenerate-path",
       "expected": {
@@ -1733,7 +1733,7 @@
     {
       "name": "le-wildcard-nullprop-null",
       "filter": "le(features/*/properties/nullProp,null)",
-      "comment": "null-operand Mongo-parity battery (SB-01), wildcard-feature-property path: le(p,null) ($lte:null) matches a thing with at least one VISIBLE feature whose nullProp is JSON null or MISSING; nenull-realvals, nenull-stringvals and feature-less things are excluded. Crossed with allowlist entry #8 (sudo-wildcard-value-mongo-degenerate-path): under SUDO Mongo degrades the wildcard to the top-level dotted path properties.nullProp, which NO document has, so a null-including operand matches EVERY thing (null = missing) while Postgres answers the features/* predicate semantically (per visible feature). Every non-sudo situation asserts strict parity.",
+      "comment": "null-operand Mongo-parity battery, wildcard-feature-property path: le(p,null) ($lte:null) matches a thing with at least one VISIBLE feature whose nullProp is JSON null or MISSING; nenull-realvals, nenull-stringvals and feature-less things are excluded. Crossed with allowlist entry #8 (sudo-wildcard-value-mongo-degenerate-path): under SUDO Mongo degrades the wildcard to the top-level dotted path properties.nullProp, which NO document has, so a null-including operand matches EVERY thing (null = missing) while Postgres answers the features/* predicate semantically (per visible feature). Every non-sudo situation asserts strict parity.",
       "expectNonEmptyAuth": "full",
       "divergence": "sudo-wildcard-value-mongo-degenerate-path",
       "expected": {
@@ -1793,29 +1793,29 @@
     {
       "name": "gt-wildcard-nullprop-null",
       "filter": "gt(features/*/properties/nullProp,null)",
-      "comment": "null-operand Mongo-parity battery (SB-01), wildcard-feature-property path: gt(p,null) is Mongo {$gt:null}, which matches NOTHING (no value is strictly greater than null) -- empty on both backends under every auth situation; not-gt-wildcard-nullprop-null proves 'nothing' is not 'everything'."
+      "comment": "null-operand Mongo-parity battery, wildcard-feature-property path: gt(p,null) is Mongo {$gt:null}, which matches NOTHING (no value is strictly greater than null) -- empty on both backends under every auth situation; not-gt-wildcard-nullprop-null proves 'nothing' is not 'everything'."
     },
     {
       "name": "lt-wildcard-nullprop-null",
       "filter": "lt(features/*/properties/nullProp,null)",
-      "comment": "null-operand Mongo-parity battery (SB-01), wildcard-feature-property path: lt(p,null) is Mongo {$lt:null}, which matches NOTHING (no value is strictly smaller than null) -- empty on both backends under every auth situation; not-lt-wildcard-nullprop-null proves 'nothing' is not 'everything'."
+      "comment": "null-operand Mongo-parity battery, wildcard-feature-property path: lt(p,null) is Mongo {$lt:null}, which matches NOTHING (no value is strictly smaller than null) -- empty on both backends under every auth situation; not-lt-wildcard-nullprop-null proves 'nothing' is not 'everything'."
     },
     {
       "name": "not-gt-wildcard-nullprop-null",
       "filter": "not(gt(features/*/properties/nullProp,null))",
-      "comment": "null-operand Mongo-parity battery (SB-01), wildcard-feature-property path: not(gt(p,null)) negates a never-matching predicate -- every visible thing matches on both backends (Mongo nor({$gt:null}) ∧ global read; Postgres NOT false ∧ global read). Under SUDO the wildcard degenerate path matches nothing on Mongo too, so no divergence here.",
+      "comment": "null-operand Mongo-parity battery, wildcard-feature-property path: not(gt(p,null)) negates a never-matching predicate -- every visible thing matches on both backends (Mongo nor({$gt:null}) ∧ global read; Postgres NOT false ∧ global read). Under SUDO the wildcard degenerate path matches nothing on Mongo too, so no divergence here.",
       "expectNonEmptySudo": true
     },
     {
       "name": "not-lt-wildcard-nullprop-null",
       "filter": "not(lt(features/*/properties/nullProp,null))",
-      "comment": "null-operand Mongo-parity battery (SB-01), wildcard-feature-property path: not(lt(p,null)) negates a never-matching predicate -- every visible thing matches on both backends (Mongo nor({$lt:null}) ∧ global read; Postgres NOT false ∧ global read). Under SUDO the wildcard degenerate path matches nothing on Mongo too, so no divergence here; the companion of lt-wildcard-nullprop-null, proving 'nothing' is not 'everything'.",
+      "comment": "null-operand Mongo-parity battery, wildcard-feature-property path: not(lt(p,null)) negates a never-matching predicate -- every visible thing matches on both backends (Mongo nor({$lt:null}) ∧ global read; Postgres NOT false ∧ global read). Under SUDO the wildcard degenerate path matches nothing on Mongo too, so no divergence here; the companion of lt-wildcard-nullprop-null, proving 'nothing' is not 'everything'.",
       "expectNonEmptySudo": true
     },
     {
       "name": "not-in-wildcard-nullprop-value-null",
       "filter": "not(in(features/*/properties/nullProp,\"real-value\",null))",
-      "comment": "null-operand Mongo-parity battery (SB-01), wildcard-feature-property path: not(in(p,v,null)) is the complement of 'some visible feature has the value, null or no nullProp' -- feature-less things and nenull-stringvals match. Under SUDO Mongo's degenerate path matches every thing, so its negation is EMPTY. Crossed with allowlist entry #8 (sudo-wildcard-value-mongo-degenerate-path): under SUDO Mongo degrades the wildcard to the top-level dotted path properties.nullProp, which NO document has, so a null-including operand matches EVERY thing (null = missing) while Postgres answers the features/* predicate semantically (per visible feature). Every non-sudo situation asserts strict parity.",
+      "comment": "null-operand Mongo-parity battery, wildcard-feature-property path: not(in(p,v,null)) is the complement of 'some visible feature has the value, null or no nullProp' -- feature-less things and nenull-stringvals match. Under SUDO Mongo's degenerate path matches every thing, so its negation is EMPTY. Crossed with allowlist entry #8 (sudo-wildcard-value-mongo-degenerate-path): under SUDO Mongo degrades the wildcard to the top-level dotted path properties.nullProp, which NO document has, so a null-including operand matches EVERY thing (null = missing) while Postgres answers the features/* predicate semantically (per visible feature). Every non-sudo situation asserts strict parity.",
       "expectNonEmptyAuth": "full",
       "divergence": "sudo-wildcard-value-mongo-degenerate-path",
       "expected": {
@@ -1856,118 +1856,118 @@
     {
       "name": "in-definition-value-null",
       "filter": "in(definition,\"org.example:NeNull:1.0.0\",null)",
-      "comment": "null-operand Mongo-parity battery (SB-01), /definition path (slash-mapped simple field): in(p,v,null) is Mongo {$in:[v,null]} -- matches the listed value (nenull-realvals), a JSON-null leaf (nenull-nullvals) AND a MISSING leaf (every thing without the key); only a leaf with a different value (nenull-stringvals) is excluded. No exists() clause (only eq(null)/ne add one).",
+      "comment": "null-operand Mongo-parity battery, /definition path (slash-mapped simple field): in(p,v,null) is Mongo {$in:[v,null]} -- matches the listed value (nenull-realvals), a JSON-null leaf (nenull-nullvals) AND a MISSING leaf (every thing without the key); only a leaf with a different value (nenull-stringvals) is excluded. No exists() clause (only eq(null)/ne add one).",
       "expectNonEmptySudo": true
     },
     {
       "name": "in-definition-null",
       "filter": "in(definition,null)",
-      "comment": "null-operand Mongo-parity battery (SB-01), /definition path (slash-mapped simple field): in(p,null) is Mongo {$in:[null]} = {p:null} -- matches a JSON-null leaf (nenull-nullvals) AND a MISSING leaf, unlike Ditto's eq(p,null) which adds exists() and matches only the JSON-null leaf.",
+      "comment": "null-operand Mongo-parity battery, /definition path (slash-mapped simple field): in(p,null) is Mongo {$in:[null]} = {p:null} -- matches a JSON-null leaf (nenull-nullvals) AND a MISSING leaf, unlike Ditto's eq(p,null) which adds exists() and matches only the JSON-null leaf.",
       "expectNonEmptySudo": true
     },
     {
       "name": "ge-definition-null",
       "filter": "ge(definition,null)",
-      "comment": "null-operand Mongo-parity battery (SB-01), /definition path (slash-mapped simple field): ge(p,null) is Mongo {$gte:null} = {p:null} -- matches a JSON-null leaf (nenull-nullvals) AND a MISSING leaf; NOT Ditto's eq(p,null), which requires the leaf to exist.",
+      "comment": "null-operand Mongo-parity battery, /definition path (slash-mapped simple field): ge(p,null) is Mongo {$gte:null} = {p:null} -- matches a JSON-null leaf (nenull-nullvals) AND a MISSING leaf; NOT Ditto's eq(p,null), which requires the leaf to exist.",
       "expectNonEmptySudo": true
     },
     {
       "name": "le-definition-null",
       "filter": "le(definition,null)",
-      "comment": "null-operand Mongo-parity battery (SB-01), /definition path (slash-mapped simple field): le(p,null) is Mongo {$lte:null} = {p:null} -- matches a JSON-null leaf (nenull-nullvals) AND a MISSING leaf; NOT Ditto's eq(p,null), which requires the leaf to exist.",
+      "comment": "null-operand Mongo-parity battery, /definition path (slash-mapped simple field): le(p,null) is Mongo {$lte:null} = {p:null} -- matches a JSON-null leaf (nenull-nullvals) AND a MISSING leaf; NOT Ditto's eq(p,null), which requires the leaf to exist.",
       "expectNonEmptySudo": true
     },
     {
       "name": "gt-definition-null",
       "filter": "gt(definition,null)",
-      "comment": "null-operand Mongo-parity battery (SB-01), /definition path (slash-mapped simple field): gt(p,null) is Mongo {$gt:null}, which matches NOTHING (no value is strictly greater than null) -- empty on both backends under every auth situation; not-gt-definition-null proves 'nothing' is not 'everything'."
+      "comment": "null-operand Mongo-parity battery, /definition path (slash-mapped simple field): gt(p,null) is Mongo {$gt:null}, which matches NOTHING (no value is strictly greater than null) -- empty on both backends under every auth situation; not-gt-definition-null proves 'nothing' is not 'everything'."
     },
     {
       "name": "lt-definition-null",
       "filter": "lt(definition,null)",
-      "comment": "null-operand Mongo-parity battery (SB-01), /definition path (slash-mapped simple field): lt(p,null) is Mongo {$lt:null}, which matches NOTHING (no value is strictly smaller than null) -- empty on both backends under every auth situation; not-lt-definition-null proves 'nothing' is not 'everything'."
+      "comment": "null-operand Mongo-parity battery, /definition path (slash-mapped simple field): lt(p,null) is Mongo {$lt:null}, which matches NOTHING (no value is strictly smaller than null) -- empty on both backends under every auth situation; not-lt-definition-null proves 'nothing' is not 'everything'."
     },
     {
       "name": "not-gt-definition-null",
       "filter": "not(gt(definition,null))",
-      "comment": "null-operand Mongo-parity battery (SB-01), /definition path (slash-mapped simple field): not(gt(p,null)) negates a never-matching predicate -- every visible thing matches on both backends (Mongo nor({$gt:null}) ∧ global read; Postgres NOT false ∧ global read).",
+      "comment": "null-operand Mongo-parity battery, /definition path (slash-mapped simple field): not(gt(p,null)) negates a never-matching predicate -- every visible thing matches on both backends (Mongo nor({$gt:null}) ∧ global read; Postgres NOT false ∧ global read).",
       "expectNonEmptySudo": true
     },
     {
       "name": "not-lt-definition-null",
       "filter": "not(lt(definition,null))",
-      "comment": "null-operand Mongo-parity battery (SB-01), /definition path (slash-mapped simple field): not(lt(p,null)) negates a never-matching predicate -- every visible thing matches on both backends (Mongo nor({$lt:null}) ∧ global read; Postgres NOT false ∧ global read); the companion of lt-definition-null, proving 'nothing' is not 'everything'.",
+      "comment": "null-operand Mongo-parity battery, /definition path (slash-mapped simple field): not(lt(p,null)) negates a never-matching predicate -- every visible thing matches on both backends (Mongo nor({$lt:null}) ∧ global read; Postgres NOT false ∧ global read); the companion of lt-definition-null, proving 'nothing' is not 'everything'.",
       "expectNonEmptySudo": true
     },
     {
       "name": "not-in-definition-value-null",
       "filter": "not(in(definition,\"org.example:NeNull:1.0.0\",null))",
-      "comment": "null-operand Mongo-parity battery (SB-01), /definition path (slash-mapped simple field): not(in(p,v,null)) is the complement of value-or-null-or-missing -- only a leaf that EXISTS with a different value (nenull-stringvals) matches.",
+      "comment": "null-operand Mongo-parity battery, /definition path (slash-mapped simple field): not(in(p,v,null)) is the complement of value-or-null-or-missing -- only a leaf that EXISTS with a different value (nenull-stringvals) matches.",
       "expectNonEmptySudo": true
     },
     {
       "name": "in-thingid-value-null",
       "filter": "in(thingId,\"org.eclipse.ditto.parity:scalars-red\",null)",
-      "comment": "null-operand Mongo-parity battery (SB-01), root-mapped thingId (Mongo _id, Postgres column; never null, never missing): in(thingId,v,null) matches exactly the listed id -- the null member can match nothing.",
+      "comment": "null-operand Mongo-parity battery, root-mapped thingId (Mongo _id, Postgres column; never null, never missing): in(thingId,v,null) matches exactly the listed id -- the null member can match nothing.",
       "expectNonEmptySudo": true
     },
     {
       "name": "ge-thingid-null",
       "filter": "ge(thingId,null)",
-      "comment": "null-operand Mongo-parity battery (SB-01), root-mapped thingId: ge(thingId,null) = {_id:null} matches NOTHING because _id is never null nor missing (the thing-level counterparts ge-attr-nullattr-null etc. DO match missing leaves)."
+      "comment": "null-operand Mongo-parity battery, root-mapped thingId: ge(thingId,null) = {_id:null} matches NOTHING because _id is never null nor missing (the thing-level counterparts ge-attr-nullattr-null etc. DO match missing leaves)."
     },
     {
       "name": "gt-thingid-null",
       "filter": "gt(thingId,null)",
-      "comment": "null-operand Mongo-parity battery (SB-01), root-mapped thingId: gt(thingId,null) matches NOTHING on both backends."
+      "comment": "null-operand Mongo-parity battery, root-mapped thingId: gt(thingId,null) matches NOTHING on both backends."
     },
     {
       "name": "not-gt-namespace-null",
       "filter": "not(gt(namespace,null))",
-      "comment": "null-operand Mongo-parity battery (SB-01), root-mapped namespace: not(gt(namespace,null)) matches every visible thing (negation of a never-matching predicate).",
+      "comment": "null-operand Mongo-parity battery, root-mapped namespace: not(gt(namespace,null)) matches every visible thing (negation of a never-matching predicate).",
       "expectNonEmptySudo": true
     },
     {
       "name": "in-namespace-value-null",
       "filter": "in(namespace,\"org.eclipse.ditto.parity\",null)",
-      "comment": "null-operand Mongo-parity battery (SB-01), root-mapped namespace: in(namespace,v,null) matches exactly the things of the listed namespace -- the null member can match nothing (namespace is never null nor missing).",
+      "comment": "null-operand Mongo-parity battery, root-mapped namespace: in(namespace,v,null) matches exactly the things of the listed namespace -- the null member can match nothing (namespace is never null nor missing).",
       "expectNonEmptySudo": true
     },
     {
       "name": "and-in-nullattr-value-null-eq-color-red",
       "filter": "and(in(attributes/nullAttr,\"real-value\",null),eq(attributes/color,\"red\"))",
-      "comment": "null-operand Mongo-parity battery (SB-01), selective-leg shape: and(in(p,v,null), eq(color,red)) -- scalars-red and parityb-red (nullAttr MISSING, color red) match; the in() with a null member is not a point leg, eq(color) is.",
+      "comment": "null-operand Mongo-parity battery, selective-leg shape: and(in(p,v,null), eq(color,red)) -- scalars-red and parityb-red (nullAttr MISSING, color red) match; the in() with a null member is not a point leg, eq(color) is.",
       "expectNonEmptySudo": true
     },
     {
       "name": "and-in-nullattr-value-null-exists-size",
       "filter": "and(in(attributes/nullAttr,\"real-value\",null),exists(attributes/size))",
-      "comment": "null-operand Mongo-parity battery (SB-01), selective-leg shape: and(in(p,v,null), exists(size)) -- no point leg at all (in() carries null, exists never is one); every thing with a size attribute and a missing/null/listed nullAttr matches.",
+      "comment": "null-operand Mongo-parity battery, selective-leg shape: and(in(p,v,null), exists(size)) -- no point leg at all (in() carries null, exists never is one); every thing with a size attribute and a missing/null/listed nullAttr matches.",
       "expectNonEmptySudo": true
     },
     {
       "name": "and-eq-color-red-in-nullattr-null",
       "filter": "and(eq(attributes/color,\"red\"),in(attributes/nullAttr,null))",
-      "comment": "null-operand Mongo-parity battery (SB-01), selective-leg shape: and(eq(color,red), in(p,null)) -- eq(color) is the point leg; in(p,null) (null OR missing) must not be hoisted; scalars-red and parityb-red match.",
+      "comment": "null-operand Mongo-parity battery, selective-leg shape: and(eq(color,red), in(p,null)) -- eq(color) is the point leg; in(p,null) (null OR missing) must not be hoisted; scalars-red and parityb-red match.",
       "expectNonEmptySudo": true
     },
     {
       "name": "count-in-attr-nullattr-value-null",
       "mode": "count",
       "filter": "in(attributes/nullAttr,\"real-value\",null)",
-      "comment": "null-operand Mongo-parity battery (SB-01), count mode: in(p,v,null) counts the listed value, the JSON-null leaf and every MISSING leaf (everything but nenull-stringvals).",
+      "comment": "null-operand Mongo-parity battery, count mode: in(p,v,null) counts the listed value, the JSON-null leaf and every MISSING leaf (everything but nenull-stringvals).",
       "expectNonEmptySudo": true
     },
     {
       "name": "not-ge-attr-nullattr-null",
       "filter": "not(ge(attributes/nullAttr,null))",
-      "comment": "null-operand Mongo-parity battery (SB-01), attribute path: not(ge(p,null)) is the complement of null-or-missing -- only a leaf that EXISTS with a non-null value matches (nenull-realvals, nenull-stringvals), like ne(p,null).",
+      "comment": "null-operand Mongo-parity battery, attribute path: not(ge(p,null)) is the complement of null-or-missing -- only a leaf that EXISTS with a non-null value matches (nenull-realvals, nenull-stringvals), like ne(p,null).",
       "expectNonEmptySudo": true
     },
     {
       "name": "empty-wildcard-brightness",
       "filter": "empty(features/*/properties/brightness)",
-      "comment": "empty() wildcard Mongo-parity battery (SB-02), feature-property path: Mongo elemMatch(f, and(or(eq(properties.brightness,null),eq([]),eq({}),eq(\"\")), auth)) and $eq:null also matches a MISSING key, so a thing matches when at least one VISIBLE feature lacks brightness or holds an empty marker (scalars-red: sensor lacks it); a thing without features never matches. Before SB-02 PostgreSQL probed only rows AT the wildcard wpath, so a feature without the key could not match. The SB-02 corpus things are named zzempty-* so they sort after zsort-e and leave every first-page pin untouched; being feature-bearing without nullProp they join the complete PostgreSQL pins of in/ge/le-wildcard-nullprop-* (null = missing), which SB-02 extended.",
+      "comment": "empty() wildcard Mongo-parity battery, feature-property path: Mongo elemMatch(f, and(or(eq(properties.brightness,null),eq([]),eq({}),eq(\"\")), auth)) and $eq:null also matches a MISSING key, so a thing matches when at least one VISIBLE feature lacks brightness or holds an empty marker (scalars-red: sensor lacks it); a thing without features never matches. A translation that probed only rows AT the wildcard wpath could not match a feature without the key. The corpus things of this battery are named zzempty-* so they sort after zsort-e and leave every first-page pin untouched; being feature-bearing without nullProp they join the complete PostgreSQL pins of in/ge/le-wildcard-nullprop-* (null = missing).",
       "expectNonEmptySudo": true
     },
     {
@@ -1976,13 +1976,13 @@
       "options": [
         "sort(-thingId)"
       ],
-      "comment": "empty() wildcard Mongo-parity battery (SB-02), the complement, page 1 (25) under sort(-thingId) so the zzempty-* things lead the compared page: Mongo $nor[elemMatch(f, and(empty, auth))] = NO visible feature lacks brightness or holds an empty marker there. Two shapes the MongoDB system-test run confirmed: a thing WITHOUT any feature matches (vacuously), and a thing with two features of which one holds brightness and the other lacks it (scalars-red, scalars-blue: lamp holds it, sensor lacks it) does NOT match although a visible feature has a non-empty brightness; no feature-bearing thing carries brightness on every feature, so the page holds the 25 highest-sorting feature-less things (walker-*, unicode, rankdiv-*, rank-*, range-*). The translation is the plain NOT of the per-feature EXISTS, never a positive some-feature-has-a-value probe.",
+      "comment": "empty() wildcard Mongo-parity battery, the complement, page 1 (25) under sort(-thingId) so the zzempty-* things lead the compared page: Mongo $nor[elemMatch(f, and(empty, auth))] = NO visible feature lacks brightness or holds an empty marker there. Two shapes the MongoDB system-test run confirmed: a thing WITHOUT any feature matches (vacuously), and a thing with two features of which one holds brightness and the other lacks it (scalars-red, scalars-blue: lamp holds it, sensor lacks it) does NOT match although a visible feature has a non-empty brightness; no feature-bearing thing carries brightness on every feature, so the page holds the 25 highest-sorting feature-less things (walker-*, unicode, rankdiv-*, rank-*, range-*). The translation is the plain NOT of the per-feature EXISTS, never a positive some-feature-has-a-value probe.",
       "expectNonEmptySudo": true
     },
     {
       "name": "empty-wildcard-obj",
       "filter": "empty(features/*/properties/obj)",
-      "comment": "empty() wildcard Mongo-parity battery (SB-02), object-valued property (item 1b): zzempty-full (its only feature holds obj = {\"a\":1}) must NOT match -- Mongo's eq({}) matches only the empty object, so the wildcard form needs the same deeper-path anti-probe as the concrete form, scoped to the feature; zzempty-hollow (obj = {}) and every feature lacking obj match. Auth coupling: under 'feature' zzempty-graded-unseen matches (its visible f1 lacks obj although the invisible f2 holds one) and zzempty-graded-seen does not (its visible f1 holds obj; the lacking f2 is invisible).",
+      "comment": "empty() wildcard Mongo-parity battery, object-valued property: zzempty-full (its only feature holds obj = {\"a\":1}) must NOT match -- Mongo's eq({}) matches only the empty object, so the wildcard form needs the same deeper-path anti-probe as the concrete form, scoped to the feature; zzempty-hollow (obj = {}) and every feature lacking obj match. Auth coupling: under 'feature' zzempty-graded-unseen matches (its visible f1 lacks obj although the invisible f2 holds one) and zzempty-graded-seen does not (its visible f1 holds obj; the lacking f2 is invisible).",
       "expectNonEmptySudo": true,
       "expectNonEmptyAuth": "feature"
     },
@@ -1992,20 +1992,20 @@
       "options": [
         "sort(-thingId)"
       ],
-      "comment": "empty() wildcard Mongo-parity battery (SB-02), the complement, page 1 (25) under sort(-thingId) so the zzempty-* things lead the compared page: zzempty-full (its only feature holds obj = {\"a\":1}, so it is NOT empty -- the 1b anti-probe under negation) leads, then the feature-less things; zzempty-split (f1 obj = {}), zzempty-hollow ({}) and every thing with a feature lacking obj are excluded; under 'feature' only zzempty-graded-seen (the one policy-graded thing whose visible feature holds a non-empty obj).",
+      "comment": "empty() wildcard Mongo-parity battery, the complement, page 1 (25) under sort(-thingId) so the zzempty-* things lead the compared page: zzempty-full (its only feature holds obj = {\"a\":1}, so it is NOT empty -- the 1b anti-probe under negation) leads, then the feature-less things; zzempty-split (f1 obj = {}), zzempty-hollow ({}) and every thing with a feature lacking obj are excluded; under 'feature' only zzempty-graded-seen (the one policy-graded thing whose visible feature holds a non-empty obj).",
       "expectNonEmptySudo": true,
       "expectNonEmptyAuth": "feature"
     },
     {
       "name": "empty-and-exists-wildcard-obj",
       "filter": "and(empty(features/*/properties/obj),exists(features/*/properties/obj))",
-      "comment": "empty() wildcard Mongo-parity battery (SB-02), the empty-object branch next to exists(): zzempty-hollow (obj = {} present and empty) matches; the two wildcard terms are separate elemMatch/EXISTS probes on both backends, so a thing with one feature lacking obj and another holding one (zzempty-graded-*) matches too.",
+      "comment": "empty() wildcard Mongo-parity battery, the empty-object branch next to exists(): zzempty-hollow (obj = {} present and empty) matches; the two wildcard terms are separate elemMatch/EXISTS probes on both backends, so a thing with one feature lacking obj and another holding one (zzempty-graded-*) matches too.",
       "expectNonEmptySudo": true
     },
     {
       "name": "empty-wildcard-props",
       "filter": "empty(features/*/properties)",
-      "comment": "empty() wildcard Mongo-parity battery (SB-02), bare /properties: a feature without properties (zzempty-shapes defonly, void) or with properties = {} (zzempty-shapes blank) matches, a feature with at least one property does not -- before SB-02 PostgreSQL matched EVERY feature with properties here (the object row exists and the wildcard form had no deeper-path anti-probe).",
+      "comment": "empty() wildcard Mongo-parity battery, bare /properties: a feature without properties (zzempty-shapes defonly, void) or with properties = {} (zzempty-shapes blank) matches, a feature with at least one property does not -- every feature with properties has an object row, so without the feature-scoped deeper-path anti-probe PostgreSQL would match them all.",
       "expectNonEmptySudo": true
     },
     {
@@ -2014,13 +2014,13 @@
       "options": [
         "sort(-thingId)"
       ],
-      "comment": "empty() wildcard Mongo-parity battery (SB-02), the complement, page 1 (25) under sort(-thingId) so the zzempty-* things lead the compared page: every thing whose visible features ALL have at least one property (zzempty-split, zzempty-markers, zzempty-hollow, both zzempty-graded-*, zzempty-full, zsort-*, ...) leads, then the feature-less things; zzempty-shapes (defonly/void without properties, blank with {}) is excluded.",
+      "comment": "empty() wildcard Mongo-parity battery, the complement, page 1 (25) under sort(-thingId) so the zzempty-* things lead the compared page: every thing whose visible features ALL have at least one property (zzempty-split, zzempty-markers, zzempty-hollow, both zzempty-graded-*, zzempty-full, zsort-*, ...) leads, then the feature-less things; zzempty-shapes (defonly/void without properties, blank with {}) is excluded.",
       "expectNonEmptySudo": true
     },
     {
       "name": "empty-wildcard-desired",
       "filter": "empty(features/*/desiredProperties)",
-      "comment": "empty() wildcard Mongo-parity battery (SB-02), bare /desiredProperties: missing on every pre-SB-02 feature and {} on zzempty-shapes blank; zzempty-full and zzempty-hollow (their desiredProperties hold target) do not match -- before SB-02 PostgreSQL matched them (the object row exists, no feature-scoped anti-probe).",
+      "comment": "empty() wildcard Mongo-parity battery, bare /desiredProperties: missing on every feature outside the zzempty-* things and {} on zzempty-shapes blank; zzempty-full and zzempty-hollow (their desiredProperties hold target) do not match -- their object row exists, so only the feature-scoped anti-probe keeps them out on PostgreSQL.",
       "expectNonEmptySudo": true
     },
     {
@@ -2029,13 +2029,13 @@
       "options": [
         "sort(-thingId)"
       ],
-      "comment": "empty() wildcard Mongo-parity battery (SB-02), the complement, page 1 (25) under sort(-thingId) so the zzempty-* things lead the compared page: zzempty-hollow (desiredProperties hold target = {}: the container itself is non-empty) and zzempty-full (target, cfg) lead -- the 1b anti-probe on the bare container under negation -- then the feature-less things; zzempty-split (f1 desiredProperties = {}), the zzempty-graded-* (one feature lacks them) and every pre-SB-02 thing (none has desiredProperties) are excluded.",
+      "comment": "empty() wildcard Mongo-parity battery, the complement, page 1 (25) under sort(-thingId) so the zzempty-* things lead the compared page: zzempty-hollow (desiredProperties hold target = {}: the container itself is non-empty) and zzempty-full (target, cfg) lead -- the deeper-path anti-probe on the bare container under negation -- then the feature-less things; zzempty-split (f1 desiredProperties = {}), the zzempty-graded-* (one feature lacks them) and every other feature-bearing thing (none has desiredProperties) are excluded.",
       "expectNonEmptySudo": true
     },
     {
       "name": "empty-wildcard-target",
       "filter": "empty(features/*/desiredProperties/target)",
-      "comment": "empty() wildcard Mongo-parity battery (SB-02), desired-property path: missing on every feature but zzempty-full (5), zzempty-hollow ({} matches) and one feature of each zzempty-graded-* thing.",
+      "comment": "empty() wildcard Mongo-parity battery, desired-property path: missing on every feature but zzempty-full (5), zzempty-hollow ({} matches) and one feature of each zzempty-graded-* thing.",
       "expectNonEmptySudo": true
     },
     {
@@ -2044,13 +2044,13 @@
       "options": [
         "sort(-thingId)"
       ],
-      "comment": "empty() wildcard Mongo-parity battery (SB-02), the complement, page 1 (25) under sort(-thingId) so the zzempty-* things lead the compared page: zzempty-full (target = 5) leads, then the feature-less things; zzempty-hollow (target = {}), zzempty-split (f1 lacks target) and every other feature-bearing thing are excluded.",
+      "comment": "empty() wildcard Mongo-parity battery, the complement, page 1 (25) under sort(-thingId) so the zzempty-* things lead the compared page: zzempty-full (target = 5) leads, then the feature-less things; zzempty-hollow (target = {}), zzempty-split (f1 lacks target) and every other feature-bearing thing are excluded.",
       "expectNonEmptySudo": true
     },
     {
       "name": "empty-wildcard-definition",
       "filter": "empty(features/*/definition)",
-      "comment": "empty() wildcard Mongo-parity battery (SB-02), /definition path: a feature without a definition matches (every pre-SB-02 feature, zzempty-shapes void and blank, zzempty-hollow); zzempty-full (its only feature is defined) does not; the zzempty-graded-* things follow the visible feature under 'feature'.",
+      "comment": "empty() wildcard Mongo-parity battery, /definition path: a feature without a definition matches (every feature outside the zzempty-* things, zzempty-shapes void and blank, zzempty-hollow); zzempty-full (its only feature is defined) does not; the zzempty-graded-* things follow the visible feature under 'feature'.",
       "expectNonEmptySudo": true
     },
     {
@@ -2059,26 +2059,26 @@
       "options": [
         "sort(-thingId)"
       ],
-      "comment": "empty() wildcard Mongo-parity battery (SB-02), the complement, page 1 (25) under sort(-thingId) so the zzempty-* things lead the compared page: zzempty-full (its only feature is defined) leads, then the feature-less things; zzempty-shapes (void/blank undefined) and every other feature-bearing thing are excluded.",
+      "comment": "empty() wildcard Mongo-parity battery, the complement, page 1 (25) under sort(-thingId) so the zzempty-* things lead the compared page: zzempty-full (its only feature is defined) leads, then the feature-less things; zzempty-shapes (void/blank undefined) and every other feature-bearing thing are excluded.",
       "expectNonEmptySudo": true
     },
     {
       "name": "and-empty-wildcard-obj-eq-color-red",
       "filter": "and(empty(features/*/properties/obj),eq(attributes/color,\"red\"))",
-      "comment": "empty() wildcard Mongo-parity battery (SB-02), next to a point leg (the selective-leg CTE path): scalars-red (lamp and sensor lack obj).",
+      "comment": "empty() wildcard Mongo-parity battery, next to a point leg (the selective-leg CTE path): scalars-red (lamp and sensor lack obj).",
       "expectNonEmptySudo": true
     },
     {
       "name": "count-empty-wildcard-brightness",
       "filter": "empty(features/*/properties/brightness)",
       "mode": "count",
-      "comment": "empty() wildcard Mongo-parity battery (SB-02), count mode of empty-wildcard-brightness: the same per-feature probe under the count statement.",
+      "comment": "empty() wildcard Mongo-parity battery, count mode of empty-wildcard-brightness: the same per-feature probe under the count statement.",
       "expectNonEmptySudo": true
     },
     {
       "name": "empty-wildcard-desired-cfg",
       "filter": "empty(features/*/desiredProperties/cfg)",
-      "comment": "empty() wildcard Mongo-parity battery (SB-02), object-valued DESIRED property (item 1b on the desiredProperties/<p> shape): zzempty-full (its only feature holds cfg = {\"mode\":\"auto\"}) must NOT match -- before SB-02 PostgreSQL matched it (object row at the wildcard wpath, no anti-probe); every feature lacking cfg matches.",
+      "comment": "empty() wildcard Mongo-parity battery, object-valued DESIRED property (the deeper-path anti-probe on the desiredProperties/<p> shape): zzempty-full (its only feature holds cfg = {\"mode\":\"auto\"}) must NOT match -- its object row at the wildcard wpath would match without the anti-probe; every feature lacking cfg matches.",
       "expectNonEmptySudo": true
     },
     {
@@ -2087,25 +2087,25 @@
       "options": [
         "sort(-thingId)"
       ],
-      "comment": "empty() wildcard Mongo-parity battery (SB-02), the complement, page 1 (25) under sort(-thingId) so the zzempty-* things lead the compared page: zzempty-full (cfg = {\"mode\":\"auto\"}, the 1b anti-probe under negation: a non-empty object IS in the complement) leads, then the feature-less things; every other feature-bearing thing has a feature lacking cfg and is excluded.",
+      "comment": "empty() wildcard Mongo-parity battery, the complement, page 1 (25) under sort(-thingId) so the zzempty-* things lead the compared page: zzempty-full (cfg = {\"mode\":\"auto\"}, the 1b anti-probe under negation: a non-empty object IS in the complement) leads, then the feature-less things; every other feature-bearing thing has a feature lacking cfg and is excluded.",
       "expectNonEmptySudo": true
     },
     {
       "name": "empty-wildcard-nul",
       "filter": "empty(features/*/properties/nul)",
-      "comment": "empty() wildcard Mongo-parity battery (SB-02), JSON-null marker on a wildcard path: Mongo eq(properties.nul, null) inside elemMatch. zzempty-markers (its ONLY feature holds nul = null) can match only through the type_rank = 1 branch of the same-feature row -- the isolating witness; zzempty-shapes (markers feature) and every feature lacking nul match as well.",
+      "comment": "empty() wildcard Mongo-parity battery, JSON-null marker on a wildcard path: Mongo eq(properties.nul, null) inside elemMatch. zzempty-markers (its ONLY feature holds nul = null) can match only through the type_rank = 1 branch of the same-feature row -- the isolating witness; zzempty-shapes (markers feature) and every feature lacking nul match as well.",
       "expectNonEmptySudo": true
     },
     {
       "name": "empty-wildcard-str",
       "filter": "empty(features/*/properties/str)",
-      "comment": "empty() wildcard Mongo-parity battery (SB-02), empty-string marker on a wildcard path: Mongo eq(properties.str, \"\") inside elemMatch. zzempty-markers (its ONLY feature holds str = \"\") can match only through the val_text = '' branch -- the isolating witness; every feature lacking str matches as well.",
+      "comment": "empty() wildcard Mongo-parity battery, empty-string marker on a wildcard path: Mongo eq(properties.str, \"\") inside elemMatch. zzempty-markers (its ONLY feature holds str = \"\") can match only through the val_text = '' branch -- the isolating witness; every feature lacking str matches as well.",
       "expectNonEmptySudo": true
     },
     {
       "name": "empty-wildcard-arr",
       "filter": "empty(features/*/properties/arr)",
-      "comment": "empty() wildcard Mongo-parity battery (SB-02), empty-array marker on a wildcard path: Mongo eq(properties.arr, []) inside elemMatch. zzempty-markers (its ONLY feature holds arr = []) can match only through the type_rank = 5 (empty-array stub) branch -- the isolating witness; every feature lacking arr matches as well.",
+      "comment": "empty() wildcard Mongo-parity battery, empty-array marker on a wildcard path: Mongo eq(properties.arr, []) inside elemMatch. zzempty-markers (its ONLY feature holds arr = []) can match only through the type_rank = 5 (empty-array stub) branch -- the isolating witness; every feature lacking arr matches as well.",
       "expectNonEmptySudo": true
     },
     {
@@ -2114,25 +2114,25 @@
       "options": [
         "sort(-thingId)"
       ],
-      "comment": "empty() wildcard Mongo-parity battery (SB-02), the complement, page 1 (25) under sort(-thingId) so the zzempty-* things lead the compared page: zzempty-markers (arr = []) and zzempty-shapes (markers holds [], defonly lacks arr) are excluded like every other feature-bearing thing (each has a feature lacking arr), so the page holds the 25 highest-sorting feature-less things.",
+      "comment": "empty() wildcard Mongo-parity battery, the complement, page 1 (25) under sort(-thingId) so the zzempty-* things lead the compared page: zzempty-markers (arr = []) and zzempty-shapes (markers holds [], defonly lacks arr) are excluded like every other feature-bearing thing (each has a feature lacking arr), so the page holds the 25 highest-sorting feature-less things.",
       "expectNonEmptySudo": true
     },
     {
       "name": "empty-wildcard-nullprop",
       "filter": "empty(features/*/properties/nullProp)",
-      "comment": "empty() wildcard Mongo-parity battery (SB-02), JSON null carried by a pre-SB-02 fixture: nenull-nullvals (its ONLY feature f1 holds nullProp = null) can match only through the null branch; nenull-realvals and nenull-stringvals (a value) do not match; every other feature-bearing thing lacks nullProp and matches. Not crossed with allowlist #8: GetEmptyBsonVisitor builds the elemMatch under sudo too, so strict parity holds in all 9 situations.",
+      "comment": "empty() wildcard Mongo-parity battery, JSON null carried by a fixture outside the zzempty-* things: nenull-nullvals (its ONLY feature f1 holds nullProp = null) can match only through the null branch; nenull-realvals and nenull-stringvals (a value) do not match; every other feature-bearing thing lacks nullProp and matches. Not crossed with allowlist #8: GetEmptyBsonVisitor builds the elemMatch under sudo too, so strict parity holds in all 9 situations.",
       "expectNonEmptySudo": true
     },
     {
       "name": "not-empty-wildcard-nullprop",
       "filter": "and(exists(features/*),not(empty(features/*/properties/nullProp)))",
-      "comment": "empty() wildcard Mongo-parity battery (SB-02), the complement restricted to feature-bearing things so its two witnesses are on the compared page: nenull-realvals and nenull-stringvals (their only feature holds a value) are the ONLY matches; nenull-nullvals (null) and every thing with a feature lacking nullProp are excluded; the feature-less things (which match the bare not(...) vacuously) are cut by exists(features/*).",
+      "comment": "empty() wildcard Mongo-parity battery, the complement restricted to feature-bearing things so its two witnesses are on the compared page: nenull-realvals and nenull-stringvals (their only feature holds a value) are the ONLY matches; nenull-nullvals (null) and every thing with a feature lacking nullProp are excluded; the feature-less things (which match the bare not(...) vacuously) are cut by exists(features/*).",
       "expectNonEmptySudo": true
     },
     {
       "name": "empty-wildcard-secretcode",
       "filter": "empty(features/*/properties/secretcode)",
-      "comment": "empty() wildcard Mongo-parity battery (SB-02), a property-level REVOKE in the wildcard auth chain ([<root>, /features, /id, /properties, /properties/secretcode] on a.f_id): under 'feature' (policy-graded, /features/lamp/properties/secretcode revoked) scalars-green matches through f1 (lacks secretcode; its lamp holds \"s3cr3t\", not empty), feature-agree/-disagree and the zzempty-graded-* through their visible f1; policy-full things are invisible to that subject. Under sudo every feature-bearing thing has a feature lacking secretcode.",
+      "comment": "empty() wildcard Mongo-parity battery, a property-level REVOKE in the wildcard auth chain ([<root>, /features, /id, /properties, /properties/secretcode] on a.f_id): under 'feature' (policy-graded, /features/lamp/properties/secretcode revoked) scalars-green matches through f1 (lacks secretcode; its lamp holds \"s3cr3t\", not empty), feature-agree/-disagree and the zzempty-graded-* through their visible f1; policy-full things are invisible to that subject. Under sudo every feature-bearing thing has a feature lacking secretcode.",
       "expectNonEmptySudo": true,
       "expectNonEmptyAuth": "feature"
     }

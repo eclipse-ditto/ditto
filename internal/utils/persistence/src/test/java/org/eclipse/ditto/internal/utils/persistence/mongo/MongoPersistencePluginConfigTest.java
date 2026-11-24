@@ -34,10 +34,13 @@ import com.typesafe.config.ConfigFactory;
  * remember-store IDs, and serve as the "auto-start set == shipped static list" check at the unit level.
  * Expected values are explicit literals that match the shipped HOCON:
  * <ul>
- *     <li>things.conf lines 609–614: things auto-start journal + snapshot (WoT excluded).</li>
- *     <li>policies.conf lines 291–296: policies auto-start journal + snapshot.</li>
- *     <li>connectivity.conf lines 1227–1232: connectivity auto-start journal + snapshot.</li>
- *     <li>connectivity.conf lines 1175–1176: connection remember-store journal + snapshot.</li>
+ *     <li>things.conf {@code pekko.persistence.journal.auto-start-journals} /
+ *     {@code pekko.persistence.snapshot-store.auto-start-snapshot-stores}: things journal + snapshot (WoT
+ *     excluded).</li>
+ *     <li>policies.conf, the same two keys: policies journal + snapshot.</li>
+ *     <li>connectivity.conf, the same two keys: connection journal + snapshot.</li>
+ *     <li>connectivity.conf {@code pekko.cluster.sharding.journal-plugin-id} / {@code snapshot-plugin-id}: connection
+ *     remember-store journal + snapshot.</li>
  * </ul>
  *
  * @since 4.0.0
@@ -119,13 +122,15 @@ public final class MongoPersistencePluginConfigTest {
 
     @Test
     public void thingsAutoStartSetMatchesShippedHocon() {
-        // things.conf:609-614 — journal + snapshot only; WoT is NOT in this set
+        // things.conf pekko.persistence auto-start-journals / auto-start-snapshot-stores — journal + snapshot only;
+        // WoT is NOT in this set
         final List<String> expected = List.of(
                 "pekko-contrib-mongodb-persistence-things-journal",
                 "pekko-contrib-mongodb-persistence-things-snapshots"
         );
         assertThat(underTest.getAutoStartPluginIds("things"))
-                .as("things auto-start set must match things.conf lines 609-614 exactly (WoT excluded)")
+                .as("things auto-start set must match the auto-start-journals / auto-start-snapshot-stores"
+                        + " of things.conf exactly (WoT excluded)")
                 .containsExactlyInAnyOrderElementsOf(expected);
     }
 
@@ -139,25 +144,28 @@ public final class MongoPersistencePluginConfigTest {
 
     @Test
     public void policiesAutoStartSetMatchesShippedHocon() {
-        // policies.conf:291-296
+        // policies.conf pekko.persistence auto-start-journals / auto-start-snapshot-stores
         final List<String> expected = List.of(
                 "pekko-contrib-mongodb-persistence-policies-journal",
                 "pekko-contrib-mongodb-persistence-policies-snapshots"
         );
         assertThat(underTest.getAutoStartPluginIds("policies"))
-                .as("policies auto-start set must match policies.conf lines 291-296 exactly")
+                .as("policies auto-start set must match the auto-start-journals / auto-start-snapshot-stores"
+                        + " of policies.conf exactly")
                 .containsExactlyInAnyOrderElementsOf(expected);
     }
 
     @Test
     public void connectivityAutoStartSetMatchesShippedHocon() {
-        // connectivity.conf:1227-1232 — main connection journal + snapshots only (not remember-store)
+        // connectivity.conf pekko.persistence auto-start-journals / auto-start-snapshot-stores — main connection
+        // journal + snapshots only (not remember-store)
         final List<String> expected = List.of(
                 "pekko-contrib-mongodb-persistence-connection-journal",
                 "pekko-contrib-mongodb-persistence-connection-snapshots"
         );
         assertThat(underTest.getAutoStartPluginIds("connectivity"))
-                .as("connectivity auto-start set must match connectivity.conf lines 1227-1232 exactly")
+                .as("connectivity auto-start set must match the auto-start-journals / auto-start-snapshot-stores"
+                        + " of connectivity.conf exactly")
                 .containsExactlyInAnyOrderElementsOf(expected);
     }
 

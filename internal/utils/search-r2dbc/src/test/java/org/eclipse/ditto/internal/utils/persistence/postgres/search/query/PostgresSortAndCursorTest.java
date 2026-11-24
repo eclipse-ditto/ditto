@@ -38,11 +38,11 @@ import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.read.ListAppender;
 
 /**
- * Golden-SQL unit tests for the Task-D3 sort lateral + {@code ORDER BY} assembly + cursor value extraction + resume
- * criteria translation. No database: exact rendered SQL + ordered binds via the D1 renderer, and JSON cursor values via
+ * Golden-SQL unit tests for the sort lateral + {@code ORDER BY} assembly + cursor value extraction + resume criteria
+ * translation. No database: exact rendered SQL + ordered binds via the SQL AST renderer, and JSON cursor values via
  * a map-backed {@link SortValueAccessor}.
  * <p>
- * The four §3.5 sort-parity requirements are each pinned by a named test:
+ * The four sort-parity requirements are each pinned by a named test:
  * <ul>
  *   <li><b>(a) missing == null</b> → {@link #missingKeyCoalescesIntoNullRankTyingWithExplicitNull()} +
  *       {@link #resumeNullSortValueTranslatesMissingOrExplicitNull()}</li>
@@ -55,7 +55,7 @@ import ch.qos.logback.core.read.ListAppender;
  */
 public final class PostgresSortAndCursorTest {
 
-    /** The service's default simple-field-mappings (search.conf) — same set the D2 translation test uses. */
+    /** The service's default simple-field-mappings (search.conf) — same set RqlToSqlTranslationTest uses. */
     private static final Map<String, String> MAPPINGS = Map.of(
             "thingId", "_id",
             "namespace", "_namespace",
@@ -214,7 +214,7 @@ public final class PostgresSortAndCursorTest {
                 .hasMessageContaining("/features/*/properties/temp");
     }
 
-    // ============================================================================ cursor projection (handoff to D4)
+    // ====================================================== cursor projection (handoff to the statement assembly)
 
     @Test
     public void cursorProjectionsAliasFlatAndRootColumns() {
@@ -270,7 +270,7 @@ public final class PostgresSortAndCursorTest {
         // rank-4 (object) boundary: objects tie on the flat table, so the cursor carries the rank marker and resumes by
         // rank, then by thing id
         assertThat(flatSortValue(4, null, null, null)).isEqualTo("[{\"typeRank\":4}]");
-        // (d): rank-5 (empty array / array of array), rank-1 and missing have no scalar cursor value → null (§3.5)
+        // (d): rank-5 (empty array / array of array), rank-1 and missing have no scalar cursor value → null
         assertThat(flatSortValue(5, null, null, null)).isEqualTo("[null]");
         assertThat(flatSortValue(1, null, null, null)).isEqualTo("[null]");
         assertThat(flatSortValue(null, null, null, null)).isEqualTo("[null]");
@@ -284,7 +284,7 @@ public final class PostgresSortAndCursorTest {
         assertThat(clause.toSortValues(accessor(row)).toString()).isEqualTo("[\"ns:thing1\"]");
     }
 
-    // ============================================================================ resume-criteria translation (D2 reuse)
+    // ================================================ resume-criteria translation (reuses the criteria translation)
 
     @Test
     public void resumeNullSortValueTranslatesMissingOrExplicitNull() {

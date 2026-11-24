@@ -245,8 +245,8 @@ public final class PostgresReadJournalPaginationIT {
 
     @Test
     public void mostRecentTagsOfEmptyNewestEventDoesNotLeakOlderTags() throws Exception {
-        // Newest event (sn=2) carries NO tags; an older event (sn=1) does. LIMIT-after-unnest used to leak the
-        // older event's tag when the newest event's tags array was empty.
+        // Newest event (sn=2) carries NO tags; an older event (sn=1) does. A LIMIT after the unnest would leak the
+        // older event's tag when the newest event's tags array is empty.
         await(operations.insertEvents(List.of(new PostgresPersistenceOperations.JournalInsert(
                 "thing:mtags:m2", 1L, "m", List.of("old-tag"), "{}"))).toFuture());
         await(operations.insertEvents(List.of(new PostgresPersistenceOperations.JournalInsert(

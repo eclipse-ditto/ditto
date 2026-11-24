@@ -54,7 +54,7 @@ import reactor.core.publisher.Mono;
  * (PG 16) via Testcontainers: the {@link PostgresTimestampPersistence} bookmark (upsert/read round-trips) and
  * {@link PostgresThingsSearchPersistence#sudoStreamMetadata} (projection completeness, delete_at filtering, keyset
  * resumption and paging across the fetch size). Metadata rows are seeded via direct SQL so the projected columns are
- * fixed precisely (the C2 write engine's storage of these columns is proven by {@code PostgresSearchWritePathIT}).
+ * fixed precisely (the write engine's storage of these columns is proven by {@code PostgresSearchWritePathIT}).
  * <p>
  * Skipped offline / when no Docker daemon is reachable (the {@link #startContainer() Assume} guard turns an unreachable
  * Docker into a skip, not a failure).
@@ -171,7 +171,7 @@ public final class PostgresSearchSyncIT {
         assertThat(metadata.getModified()).contains(modified);
         // thing policy tag carries BOTH id and revision.
         assertThat(metadata.getThingPolicyTag()).contains(PolicyTag.of(ownPolicy, 4L));
-        // all referenced policy tags carry id + revision (the C2 review adjudication — needed by isPolicyTagUpToDate).
+        // all referenced policy tags carry id + revision (needed by isPolicyTagUpToDate).
         assertThat(metadata.getAllReferencedPolicyTags())
                 .contains(PolicyTag.of(ownPolicy, 4L), PolicyTag.of(importedPolicy, 2L));
     }

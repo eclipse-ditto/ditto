@@ -59,9 +59,9 @@ import reactor.core.publisher.Mono;
  * backend-agnostic {@link PersistenceBackendProvider#bootstrapSchema()} that each service {@code RootActor} calls during
  * boot — and that seam genuinely creates the schema on a fresh database and FAILS BOOT when it cannot.
  * <p>
- * Before this wiring the bootstrap had ZERO production call sites: a fresh database had no tables and the first journal
- * write hit {@code relation does not exist}. The fix added {@code bootstrapSchema()} to the
- * {@link PersistenceBackendProvider} interface (Mongo = no-op default, Postgres overrides) and made every RootActor call
+ * A fresh database has no tables, so without a production call site of the bootstrap the first journal write would hit
+ * {@code relation does not exist}. {@code bootstrapSchema()} is therefore part of the
+ * {@link PersistenceBackendProvider} interface (Mongo = no-op default, Postgres overrides) and every RootActor calls
  * it after {@code PersistenceBackendProvider.get(...)} and before {@code getReadJournal()} / before the persistent-actor
  * shard regions start.
  * </p>
@@ -69,8 +69,8 @@ import reactor.core.publisher.Mono;
  * Crucially this test does NOT call {@code provider.bootstrapSchema()} on a concrete
  * {@code PostgresPersistenceBackendProvider} directly. It resolves the provider through
  * {@link PersistenceBackendProvider#get(ActorSystem, Config)} — the exact extension-loading seam the RootActors use —
- * and invokes {@code bootstrapSchema()} on the returned <em>interface</em>. So it crosses the boot seam where the
- * bug lived: it would fail if the bootstrap were not reachable through that production path.
+ * and invokes {@code bootstrapSchema()} on the returned <em>interface</em>. So it crosses the boot seam itself: it
+ * would fail if the bootstrap were not reachable through that production path.
  * </p>
  * <p>
  * Runs under failsafe ({@code *IT}); skipped offline / when no Docker daemon is reachable.
@@ -151,8 +151,8 @@ public final class PostgresProviderBootstrapIT {
     /**
      * The 'fail boot if the schema cannot be established' guarantee, as the single-attempt fail-fast guard: with the
      * retry disabled, an unreachable database makes the wired boot seam throw at once (so a RootActor calling it would
-     * fail boot) and no tables are silently created. This is the regression guard for the actual finding — the boot
-     * path must fail rather than serve traffic against an absent schema.
+     * fail boot) and no tables are silently created. This is the regression guard for the boot path: it must fail
+     * rather than serve traffic against an absent schema.
      */
     @Test
     public void bootstrapThroughProviderSeamFailsBootWhenDatabaseUnreachable() {

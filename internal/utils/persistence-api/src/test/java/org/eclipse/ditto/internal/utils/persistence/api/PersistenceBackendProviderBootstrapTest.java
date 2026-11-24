@@ -22,11 +22,11 @@ import org.junit.Test;
 
 /**
  * Offline contract test for the boot-seam method {@link PersistenceBackendProvider#bootstrapSchema()} that every service
- * {@code RootActor} now calls on the {@link PersistenceBackendProvider} <em>interface</em> (not a concrete subclass)
+ * {@code RootActor} calls on the {@link PersistenceBackendProvider} <em>interface</em> (not a concrete subclass)
  * before {@code getReadJournal()} and before any persistent actor starts.
  * <p>
- * This is the offline regression guard for a review finding (the Postgres bootstrap previously had zero production call
- * sites). It does not need a database: it pins the contract the RootActors rely on, namely
+ * This is the offline regression guard that the Postgres bootstrap keeps its production call sites. It does not
+ * need a database: it pins the contract the RootActors rely on, namely
  * </p>
  * <ul>
  *     <li>the method is declared on the interface (so a RootActor holding the interface can call it),</li>

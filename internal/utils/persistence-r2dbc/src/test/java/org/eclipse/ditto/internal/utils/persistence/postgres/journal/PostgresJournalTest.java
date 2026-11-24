@@ -130,7 +130,7 @@ public final class PostgresJournalTest {
 
     @Test
     public void readHighestSequenceNrFloorsAtFromSequenceNr() throws Exception {
-        // L-6: readHighestSequenceNr must never return a value below the caller's fromSequenceNr floor. When the
+        // readHighestSequenceNr must never return a value below the caller's fromSequenceNr floor. When the
         // persisted high-water-mark (5) is below the requested floor (10), the floor wins.
         final RecordingConnectionFactory factory = new RecordingConnectionFactory()
                 .onSql("GREATEST(", List.of(Map.of("hwm", 5L)));
@@ -171,7 +171,7 @@ public final class PostgresJournalTest {
 
     @Test
     public void deleteMessagesToInsertBranchNeverFabricatesHighestSn() throws Exception {
-        // R-1 regression guard: on the INSERT path (no prior journal_seq row) a delete must NOT seed highest_sn from
+        // Regression guard: on the INSERT path (no prior journal_seq row) a delete must NOT seed highest_sn from
         // toSequenceNr. The VALUES clause must write a literal 0 into highest_sn so only deleted_to ever moves; otherwise
         // readHighestSequenceNr (= GREATEST(MAX(sn), highest_sn)) would return a sequence number that was never persisted.
         final RecordingConnectionFactory factory = new RecordingConnectionFactory();
@@ -185,7 +185,7 @@ public final class PostgresJournalTest {
         // never the same $n placeholder bound from toSequenceNr that feeds deleted_to.
         assertThat(upsert).contains("(pid, highest_sn, deleted_to)");
         assertThat(upsert).contains("VALUES ($1, 0, $2)");
-        // The defect was VALUES ($1, $2, $2), reusing the toSequenceNr bind for highest_sn.
+        // VALUES ($1, $2, $2) would reuse the toSequenceNr bind for highest_sn.
         assertThat(upsert).doesNotContain("VALUES ($1, $2, $2)");
     }
 

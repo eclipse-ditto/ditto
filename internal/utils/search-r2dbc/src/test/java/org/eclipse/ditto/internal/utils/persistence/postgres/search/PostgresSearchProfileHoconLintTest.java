@@ -24,14 +24,14 @@ import com.typesafe.config.ConfigFactory;
 import com.typesafe.config.ConfigUtil;
 
 /**
- * HOCON lint over the effective {@code ditto-postgres-search.conf} profile (Phase F requirement 2) — the
+ * HOCON lint over the effective {@code ditto-postgres-search.conf} profile — the
  * search-specific counterpart to {@code PostgresProfileHoconLintTest} (persistence-r2dbc).
  * <p>
  * <strong>Why this is NOT a copy of the persistence lint.</strong> That test's positive anchor is the per-service
  * Pekko auto-start journal/snapshot-store IDs ({@code pekko.persistence.journal.auto-start-journals} etc.) — the
  * search backend is not a Pekko-persistence journal plugin at all (it has no journal/snapshot-store), so those config
  * paths simply do not exist for search; asserting them would either be vacuously true (path absent, no assertion run)
- * or actively wrong. The Phase F brief is explicit about this: anchor on the PROVIDER CLASS SET instead. Likewise, this
+ * or actively wrong. So this test anchors on the PROVIDER CLASS SET instead. Likewise, this
  * test does NOT assert a naive "Mongo-free" claim: {@code ditto.mongodb} legitimately remains in the loaded config —
  * {@code search.conf} ships its own Mongo defaults for when the Postgres profile is NOT opted in, and the opt-in
  * profile only SWAPS {@code search-persistence-provider}; it does not (and must not) delete unrelated Mongo config.
@@ -40,8 +40,8 @@ import com.typesafe.config.ConfigUtil;
  * </p>
  * <h3>Config loading — real files, not copies</h3>
  * {@code postgres-search-lint-test.conf} (this module's test resources) is the only test-owned file, and it contains
- * nothing but two {@code include classpath(...)} directives, in the SAME order (later wins) a real
- * {@code search-pg-dev.conf} will use (Phase H):
+ * nothing but two {@code include classpath(...)} directives, in the SAME order (later wins) as the service's
+ * {@code search-pg-dev.conf}:
  * <ol>
  *     <li>{@code include classpath("search")} — the REAL {@code thingsearch/service/src/main/resources/search.conf}
  *     (on this module's test classpath via the {@code ditto-thingsearch-service} test-scope dependency), carrying the
@@ -101,8 +101,8 @@ public final class PostgresSearchProfileHoconLintTest {
     }
 
     /**
-     * {@code force-custom-plan} must be {@code true} for the search profile specifically (plan §3.5 / bench-results
-     * §8.2 — the plancache generic-plan-flip guard the wpath-parameterized read statements need). This key does not
+     * {@code force-custom-plan} must be {@code true} for the search profile specifically (the plancache
+     * generic-plan-flip guard the wpath-parameterized read statements need). This key does not
      * exist at all in the shared {@code ditto-postgres-client.conf} defaults (verified: no {@code force-custom-plan}
      * entry there) — it is introduced solely by {@code ditto-postgres-search.conf} itself, so its presence here proves
      * the search profile's own override layer was genuinely applied, not merely inherited from the client include.

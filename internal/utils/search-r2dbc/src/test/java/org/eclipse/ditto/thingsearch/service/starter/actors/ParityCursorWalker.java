@@ -33,8 +33,8 @@ import org.eclipse.ditto.thingsearch.persistence.api.model.TimestampedThingId;
 /**
  * Pages a query to exhaustion by driving the REAL, package-private {@link ThingsSearchCursor}
  * (encode -&gt; decode -&gt; {@code adjust}) each hop — the identical chain {@code PostgresCursorResumeIT} exercises —
- * for the Phase-G parity matrix IT, which walks BOTH backends through this single helper and compares the page
- * sequences. Lives in the cursor's own package (split-package test source, same precedent as
+ * for the parity matrix IT ({@code SearchBackendParityIT}), which walks BOTH backends through this single helper and
+ * compares the page sequences. Lives in the cursor's own package (split-package test source, same precedent as
  * {@code PostgresCursorResumeIT}) because {@link ThingsSearchCursor} is package-private.
  */
 public final class ParityCursorWalker {

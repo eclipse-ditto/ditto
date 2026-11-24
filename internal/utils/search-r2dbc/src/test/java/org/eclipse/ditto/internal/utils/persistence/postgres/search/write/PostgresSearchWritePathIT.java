@@ -61,7 +61,7 @@ import reactor.core.publisher.Mono;
 
 /**
  * Integration test for {@link PostgresSearchUpdaterFlow} — the per-thing transactional write engine (unconditional
- * upsert + v1.5 anti-join flat maintenance) against a real PostgreSQL (PG 16) via Testcontainers.
+ * upsert + anti-join flat maintenance) against a real PostgreSQL (PG 16) via Testcontainers.
  * <p>
  * Skipped offline / when no Docker daemon is reachable (the {@link #startContainer() Assume} guard turns an unreachable
  * Docker into a skip, not a failure).
@@ -162,7 +162,7 @@ public final class PostgresSearchWritePathIT {
     }
 
     // ============================================================================================================
-    // update changing few leaves — v1.5 anti-join ctid stability
+    // update changing few leaves — anti-join ctid stability
     // ============================================================================================================
 
     @Test
@@ -196,7 +196,7 @@ public final class PostgresSearchWritePathIT {
     }
 
     // ============================================================================================================
-    // same-revision re-write with different auth data — round-2 Critical fan-out starvation regression
+    // same-revision re-write with different auth data — fan-out starvation regression guard
     // ============================================================================================================
 
     @Test

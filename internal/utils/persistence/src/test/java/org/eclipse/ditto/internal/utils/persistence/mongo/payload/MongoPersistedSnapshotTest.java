@@ -31,7 +31,7 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 /**
  * Unit tests for {@link MongoPersistedSnapshot}: the cursor is the {@code _id} as a string, the payload is the
  * {@code s2} document rendered through {@link DittoBsonJson}, and {@code withPayload} puts the new payload into a
- * copy of the document exactly as the connectivity encryption migration did before the store existed
+ * copy of the document in the MongoDB format of the connectivity encryption migration
  * ({@code Document.parse(DittoBsonJson.parse(json).toJson())}), leaving the original document untouched.
  */
 public final class MongoPersistedSnapshotTest {

@@ -44,14 +44,14 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 /**
- * Regression test for {@code r2mlh-m1}: cancelling an in-flight {@code inTransaction(...)} must roll the open
+ * Regression test: cancelling an in-flight {@code inTransaction(...)} must roll the open
  * transaction back <em>before</em> the connection is closed, so an "idle in transaction" connection is never
  * leaked.
  * <p>
  * The connection here is handed out <em>raw</em> (not wrapped in a real {@code PooledConnection}) by overriding
  * {@link ConnectionPool#create()}. This is deliberate: r2dbc-pool's own {@code PooledConnection.close()} resets the
- * connection (issuing a rollback) on release, which would mask the difference between the buggy 3-arg
- * {@code usingWhen} (close-only cleanup) and the fixed 5-arg form. By skipping that wrapper, the only actor that can
+ * connection (issuing a rollback) on release, which would mask the difference between a 3-arg
+ * {@code usingWhen} (close-only cleanup) and the 5-arg form. By skipping that wrapper, the only actor that can
  * roll the transaction back is {@code inTransaction}'s own cancel arm — exactly the contract under test. Against the
  * 3-arg form the close arm runs without a rollback and this test fails (no "rollback" recorded); against the 5-arg
  * form the {@code asyncCancel} arm rolls back before closing and it passes.

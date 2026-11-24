@@ -29,15 +29,15 @@ import com.tngtech.archunit.core.importer.ImportOption;
  * pluggable-persistence boundary rules, applied to the policies service. Symmetric to the
  * connectivity and things boundary tests.
  * <p>
- * The policies service persists through the backend-neutral persistence-API. The refactor routed the
+ * The policies service persists through the backend-neutral persistence-API. The provider owns the
  * <em>switchable</em> Mongo touchpoints (the read-journal, the {@code pekko-contrib-mongodb-persistence} plugin
- * classes and the raw Mongo driver / BSON) through the provider, so service code must no longer reference them.
+ * classes and the raw Mongo driver / BSON), so service code must not reference them.
  * Rule 1 therefore bans only those switchable artifacts - NOT the whole Mongo zone:
  * <ul>
  *     <li>{@code com.mongodb..} and {@code org.bson..} (the raw Mongo driver and BSON),</li>
  *     <li>{@code pekko.contrib.persistence.mongodb..} (the legacy Mongo persistence plugin classes; note the
  *     {@code pekko.} prefix, NOT {@code org.apache.pekko.}), and</li>
- *     <li>any class named {@code MongoReadJournal} (now obtained via {@code provider.getReadJournal()}).</li>
+ *     <li>any class named {@code MongoReadJournal} (obtained via {@code provider.getReadJournal()}).</li>
  * </ul>
  * It deliberately does NOT ban {@code ...internal.utils.persistence.mongo.AbstractMongoEventAdapter} (the base of
  * {@code AbstractPolicyMongoEventAdapter} / {@code DefaultPolicyMongoEventAdapter}) or
@@ -54,7 +54,7 @@ import com.tngtech.archunit.core.importer.ImportOption;
 public final class PersistenceBoundaryArchTest {
 
     /**
-     * The SWITCHABLE Mongo artifacts the pluggable-persistence refactor routed through the provider. Service code
+     * The SWITCHABLE Mongo artifacts the pluggable-persistence provider owns. Service code
      * must not reference these directly. Deliberately does NOT match {@code AbstractMongoEventAdapter} or the
      * {@code ...persistence.mongo.config..} types - those are the intentional bundled-Mongo default.
      */
@@ -123,8 +123,8 @@ public final class PersistenceBoundaryArchTest {
     /**
      * Meta-test: proves Rule 1 is NON-VACUOUS. The real legacy Mongo persistence plugin class
      * {@code pekko.contrib.persistence.mongodb.MongoReadJournal} (from {@code pekko-persistence-mongodb}, on this
-     * module's test classpath) is the canonical switchable artifact the refactor moved behind
-     * {@code provider.getReadJournal()}. It is matched by BOTH the {@code pekko.contrib.persistence.mongodb..}
+     * module's test classpath) is the canonical switchable artifact that {@code provider.getReadJournal()} stands
+     * in for. It is matched by BOTH the {@code pekko.contrib.persistence.mongodb..}
      * package branch AND the {@code MongoReadJournal} simple-name branch of {@link #IS_SWITCHABLE_MONGO}. If the
      * matcher did not actually match it, Rule 1 would silently pass on everything.
      */

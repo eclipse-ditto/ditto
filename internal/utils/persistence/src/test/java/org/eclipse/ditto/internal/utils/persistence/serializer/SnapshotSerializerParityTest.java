@@ -43,7 +43,8 @@ import org.apache.pekko.persistence.SnapshotOffer;
  * JSONB text through the PostgreSQL codec in {@code persistence-r2dbc} (whose accepted shapes its own
  * {@code PostgresSnapshotCodecTest} covers). So the JSON text a PostgreSQL snapshot row holds must equal the JSON the
  * BSON envelope carries, both must recover the identical {@link Thing}, and the production composition
- * {@link NeutralSnapshotAdapter} must behave like the legacy MongoDB adapter it replaced.
+ * {@link NeutralSnapshotAdapter} with the BSON envelope must behave like a Mongo snapshot adapter
+ * ({@code AbstractMongoSnapshotAdapter}) on its own.
  */
 public final class SnapshotSerializerParityTest {
 

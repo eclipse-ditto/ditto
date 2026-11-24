@@ -116,7 +116,7 @@ public final class PostgresThingsSearchUpdaterPersistenceTest {
 
     @Test
     public void ownPolicyAlsoAppearingInReferencedPoliciesIsNotDuplicated() {
-        // the own policy is stored both as policy_id and inside referenced_policies (the C2 write engine mirrors Mongo);
+        // the own policy is stored both as policy_id and inside referenced_policies (the write engine mirrors Mongo);
         // it must be emitted exactly once.
         final String refs = referencedPoliciesJson(PolicyTag.of(OWN_POLICY, 3L));
         final List<PolicyReferenceTag> tags = PostgresThingsSearchUpdaterPersistence.policyReferenceTags(

@@ -30,7 +30,7 @@ import com.typesafe.config.ConfigFactory;
 /**
  * Proves that {@link ConnectivityPostgresEventAdapter#toJournal(Object)} accepts an {@link EmptyEvent} — the
  * "internal" event {@code ConnectionPersistenceActor} persists for the always-alive / priority-update journal-tag
- * path (see {@code ConnectionPersistenceActor} lines 533-535 and 848-850) — and not only concrete
+ * path (see {@code ConnectionPersistenceActor#processPingCommand} and {@code #updatePriority}) — and not only concrete
  * {@code ConnectivityEvent}s.
  * <p>
  * {@link EmptyEvent} implements only the base {@code org.eclipse.ditto.base.model.signals.events.Event} interface,

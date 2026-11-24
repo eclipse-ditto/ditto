@@ -30,7 +30,7 @@ import org.apache.pekko.testkit.javadsl.TestKit;
 /**
  * Unit test for {@link MongoPersistenceOperationsFactory}.
  * <p>
- * Pins the per-entityType collaborator wiring against the historical per-service ops actors (behaviour reference):
+ * Pins the per-entityType collaborator wiring against the per-service ops actors (behaviour reference):
  * <ul>
  *     <li>{@code thing} &rarr; namespaceOps only (mirrors {@code ThingPersistenceOperationsActor.props}),</li>
  *     <li>{@code policy} &rarr; both ops (mirrors {@code PolicyPersistenceOperationsActor.props}),</li>

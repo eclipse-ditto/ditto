@@ -49,8 +49,8 @@ import com.typesafe.config.ConfigFactory;
  * {@code MongoPersistenceOperationsFactoryTest}, this relies on {@code MongoClientWrapper} being lazy: no connection is
  * opened before the first database operation, which these tests never run.
  * <p>
- * The filters and the progress document are pinned to what the connectivity encryption migration produced before the
- * store existed ({@code MigrationStreamFactory.buildEncryptableFieldsFilter}, {@code buildResumeFilter} and
+ * The filters and the progress document are pinned to the MongoDB format of the connectivity encryption migration
+ * ({@code MigrationStreamFactory.buildEncryptableFieldsFilter}, {@code buildResumeFilter} and
  * {@code MigrationProgressTracker.saveProgress}): same dotted paths, same {@code $or} of {@code $exists}, same
  * {@code _id: "current"}, same field names and BSON types (strings, int64, null).
  */
@@ -340,7 +340,7 @@ public final class MongoPersistedPayloadStoreTest {
                 .build();
     }
 
-    /** The progress document exactly as {@code MigrationProgressTracker.saveProgress} built it before the store. */
+    /** The progress document in the MongoDB format of {@code MigrationProgressTracker.saveProgress}. */
     private static Document progressDocumentAsWrittenBefore() {
         return new Document()
                 .append("_id", "current")

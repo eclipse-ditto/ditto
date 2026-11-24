@@ -136,7 +136,7 @@ public final class SchemaVerifierTest {
 
     @Test
     public void threeArgVerifyTableSkipsCollationCheck() {
-        // The legacy 3-arg overload only checks PK + data types, so a pid column with no collation info still passes;
+        // The 3-arg overload only checks PK + data types, so a pid column with no collation info still passes;
         // collation drift is caught only by the 4-arg overload that the bootstrap supplies collation_name to.
         assertThatCode(() -> SchemaVerifier.verifyTable(JOURNAL, "PRIMARY KEY (pid, sn)",
                 Map.of("pid", "text", "sn", "bigint", "event", "jsonb")))

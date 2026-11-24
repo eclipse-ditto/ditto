@@ -142,7 +142,7 @@ public final class PostgresSearchWriteResultsTest {
 
     @Test
     public void upsertSqlIsUnconditionalWithNoRevisionPredicate() {
-        // Round-2 Critical guard at the flow level: the doc-row upsert MUST NOT carry any revision predicate, or a
+        // Fan-out starvation guard at the flow level: the doc-row upsert MUST NOT carry any revision predicate, or a
         // same-revision policy fan-out write (newer auth data) would 0-row and never land.
         final String sql = PostgresSearchUpdaterFlow.UPSERT_DOC_SQL;
         assertThat(sql).contains("ON CONFLICT (thing_id) DO UPDATE");

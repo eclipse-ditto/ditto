@@ -264,7 +264,7 @@ public final class MongoReadJournalIT {
     }
 
     /**
-     * Converts a backend-neutral {@link SnapshotEntry} back to the legacy projected-document shape used by the
+     * Converts a backend-neutral {@link SnapshotEntry} back to the Mongo projected-document shape used by the
      * snapshot-streaming assertions (the {@code _id}, {@code __lifecycle}, {@code _modified} and {@code sn} fields).
      */
     private static Document toComparable(final SnapshotEntry entry) {

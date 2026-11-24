@@ -45,8 +45,7 @@ import reactor.core.publisher.Mono;
 
 /**
  * Testcontainers IT pinning that the journal {@code INSERT} binds {@code written_at} via
- * {@code clock_timestamp()} (per-row wall-clock), NOT {@code now()} (transaction-start time) — ticket
- * {@code r2mlh-l15a} / {@code ditto-postgres-8t8}.
+ * {@code clock_timestamp()} (per-row wall-clock), NOT {@code now()} (transaction-start time).
  * <p>
  * {@link PostgresPersistenceOperations#insertEvents(java.util.List)} writes all events of a single
  * {@code AtomicWrite} inside ONE transaction. Under PostgreSQL semantics {@code now()} returns the

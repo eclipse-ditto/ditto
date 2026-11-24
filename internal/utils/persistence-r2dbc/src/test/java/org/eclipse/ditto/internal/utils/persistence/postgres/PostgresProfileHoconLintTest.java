@@ -524,7 +524,7 @@ public final class PostgresProfileHoconLintTest {
     /**
      * Assertion 6, per service: the pg-dev override layer ({@code <svc>-pg-dev.conf} with its includes, parsed WITHOUT
      * reference.conf and the service base conf) sets no {@code remember-entities-store}, so connectivity keeps the
-     * {@code eventsourced} store its base conf declares — no layer switches it to {@code ddata} any more.
+     * {@code eventsourced} store its base conf declares — no layer switches it to {@code ddata}.
      */
     @Test
     public void pgDevLayerDoesNotOverrideTheRememberEntitiesStore() {

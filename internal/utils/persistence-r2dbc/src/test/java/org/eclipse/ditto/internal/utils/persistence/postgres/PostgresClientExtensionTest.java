@@ -92,8 +92,8 @@ public final class PostgresClientExtensionTest {
         final DittoPostgresClient sharedClient = PostgresClientExtension.get(system).getClient();
 
         // Materialise the journal + snapshot-store plugins exactly as Pekko does: their (Config) constructors resolve
-        // the client via PostgresClientExtension.get(context().system()). If they still each called
-        // DittoPostgresClient.newInstance(...) (the old defect), they would build their own pools and the actor system
+        // the client via PostgresClientExtension.get(context().system()). If they each called
+        // DittoPostgresClient.newInstance(...), they would build their own pools and the actor system
         // would hold > 1 pool — but the only client any of them can reach is the shared one below.
         final ActorRef journalRef = Persistence.get(system).journalFor("ditto-postgres-things-journal", ConfigFactory.empty());
         final ActorRef snapshotRef =
@@ -102,9 +102,9 @@ public final class PostgresClientExtensionTest {
         assertThat(snapshotRef).isNotNull();
 
         // The provider's read-journal must resolve the SAME shared client (one pool across journal + snapshot +
-        // read-journal). This is the load-bearing assertion: before the fix the provider called
-        // DittoPostgresClient.newInstance(...) and built its OWN third pool, so resolvedReadJournalClient() would be a
-        // different instance than the extension's client.
+        // read-journal). This is the load-bearing assertion: a provider that called
+        // DittoPostgresClient.newInstance(...) would build its OWN third pool, so resolvedReadJournalClient() would be
+        // a different instance than the extension's client.
         final PostgresPersistenceBackendProvider provider = new PostgresPersistenceBackendProvider(system,
                 ConfigFactory.parseString(
                         "plugin-ids.thing.journal = \"ditto-postgres-things-journal\"\n"

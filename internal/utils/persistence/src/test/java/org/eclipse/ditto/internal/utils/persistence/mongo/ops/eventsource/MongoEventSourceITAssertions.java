@@ -189,7 +189,7 @@ public abstract class MongoEventSourceITAssertions<I extends EntityId> {
                 "pekko.coordinated-shutdown.exit-jvm=off\n" +
                 "ditto.things.log-incoming-messages=true\n" +
                 "pekko.contrib.persistence.mongodb.mongo.mongouri=\"" + mongoDbUri + "\"\n" +
-                // The persistence-operations actors now build their backend client through the
+                // The persistence-operations actors build their backend client through the
                 // PersistenceBackendProvider, which (for Mongo) reads ditto.mongodb.uri — point it at the same
                 // test container the event-journal writer uses so namespace/entity purges hit the written rows.
                 "ditto.mongodb.uri=\"" + mongoDbUri + "\"\n";

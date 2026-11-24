@@ -47,11 +47,11 @@ import org.apache.pekko.testkit.javadsl.TestKit;
  * round-trip through their per-entity serializer composed with the active backend's {@link SnapshotCodec} (here the
  * Mongo BSON codec, the Things-JVM default).
  * <p>
- * The WoT case is the real reproduction of the live {@code ClassCastException}: the things-JVM-wide {@code
- * snapshot-adapter} is the Thing serializer, so before {@code WotValidationConfigPersistenceActor} got its own
- * serializer hook, a WoT snapshot went through the Thing serializer and blew up. This test pins that the WoT serializer
- * round-trips a {@link WotValidationConfig} (active and deleted) AND that the old path (Thing serializer fed a
- * {@link WotValidationConfig}) still throws — documenting exactly what was broken.
+ * The WoT case is the real reproduction of a {@code ClassCastException}: the things-JVM-wide {@code
+ * snapshot-adapter} is the Thing serializer, so without its own serializer hook in
+ * {@code WotValidationConfigPersistenceActor} a WoT snapshot would go through the Thing serializer and blow up. This
+ * test pins that the WoT serializer round-trips a {@link WotValidationConfig} (active and deleted) AND that the Thing
+ * serializer fed a {@link WotValidationConfig} still throws — documenting exactly why the hook is needed.
  */
 public final class ThingAndWotSnapshotCodecRoundTripTest {
 
@@ -97,7 +97,8 @@ public final class ThingAndWotSnapshotCodecRoundTripTest {
 
         final WotValidationConfig config = activeConfig();
 
-        // The full path that used to ClassCastException: WotValidationConfig -> WoT serializer -> codec -> recover.
+        // The full path a mismatched codec breaks with a ClassCastException: WotValidationConfig -> WoT serializer
+        // -> codec -> recover.
         final Object stored = adapter.toSnapshotStore(config);
         final WotValidationConfig restored = adapter.fromSnapshotStore(new SnapshotOffer(SNAPSHOT_METADATA, stored));
         assertThat(restored).as("WotValidationConfig recovered identically via its own serializer").isEqualTo(config);
@@ -121,8 +122,8 @@ public final class ThingAndWotSnapshotCodecRoundTripTest {
 
     @Test
     public void thingSerializerFedAWotConfigStillThrows_documentingTheOriginalBug() {
-        // Before the fix, WotValidationConfigPersistenceActor inherited the Thing serializer and a WoT snapshot hit
-        // this exact ClassCastException. This pins WHY the WoT serializer is needed.
+        // A WotValidationConfigPersistenceActor that inherited the Thing serializer would hit this exact
+        // ClassCastException on a WoT snapshot. This pins WHY the WoT serializer is needed.
         final SnapshotCodec codec = MongoSnapshotCodec.INSTANCE;
         @SuppressWarnings({"unchecked", "rawtypes"})
         final SnapshotAdapter<WotValidationConfig> wronglyTypedThingAdapter = new NeutralSnapshotAdapter(

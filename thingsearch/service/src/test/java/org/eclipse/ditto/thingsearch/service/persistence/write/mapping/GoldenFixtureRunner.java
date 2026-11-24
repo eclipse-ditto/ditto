@@ -23,7 +23,7 @@ import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingId;
 
 /**
- * Invokes TODAY'S (pre-refactor) full {@link EnforcedThingMapper} mapping chain for a named golden fixture
+ * Invokes the full {@link EnforcedThingMapper} mapping chain for a named golden fixture
  * case, exactly as production wires it.
  *
  * <p>Mirrored call site: {@code EnforcementFlow.computeWriteModel(Metadata, JsonObject)}
@@ -32,7 +32,7 @@ import org.eclipse.ditto.things.model.ThingId;
  * where {@code pair.first()}/{@code pair.second()} are the resolved {@link Policy} and its referenced-policy
  * tags, {@code entry.getRevision()} is the policy revision, {@code metadata} is the previous/"old"
  * {@link Metadata} (used only for its {@code allReferencedPolicyTags}, per
- * {@code EnforcedThingMapper.toWriteModel} lines 85-95), and {@code maxArraySize} is the configured index
+ * {@code EnforcedThingMapper.toWriteModel}), and {@code maxArraySize} is the configured index
  * array-size limit. Shared by {@link EnforcedThingMapperGoldenGenerator} and
  * {@code EnforcedThingMapperGoldenTest} so both exercise identical inputs.
  */

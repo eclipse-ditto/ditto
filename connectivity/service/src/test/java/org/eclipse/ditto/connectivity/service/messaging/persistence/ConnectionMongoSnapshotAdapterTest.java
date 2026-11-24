@@ -38,7 +38,7 @@ public class ConnectionMongoSnapshotAdapterTest {
     public void makeEmptySnapshotsForDeletedConnections() {
         final Config config = ConfigFactory.load("connection-fields-encryption-test");
         final var serializer = new ConnectionMongoSnapshotAdapter(DefaultFieldsEncryptionConfig.of(config.getConfig("connection")));
-        // The Mongo BSON envelope is now the injected snapshot codec; the serializer holds only the domain logic.
+        // The Mongo BSON envelope is the injected snapshot codec; the serializer holds only the domain logic.
         final var underTest = new NeutralSnapshotAdapter<>(serializer, MongoSnapshotCodec.INSTANCE);
         final var deletedSnapshot = (BsonDocument) underTest.toSnapshotStore(
                 TestConstants.createConnection().toBuilder().lifecycle(ConnectionLifecycle.DELETED).build());
@@ -66,7 +66,7 @@ public class ConnectionMongoSnapshotAdapterTest {
 
     @Test
     public void disabledEncryptionWithTheFormerKeyKeptAsCurrentKeyDecryptsAndWritesPlaintext() {
-        // disabling encryption with the former key left as 'symmetrical-key' (the former PostgreSQL advice) keeps
+        // disabling encryption with the former key left as 'symmetrical-key' keeps
         // working: snapshots written while encryption was enabled are still decrypted, and rewritten in plaintext
         final Config config = ConfigFactory.load("connection-fields-encryption-test").getConfig("connection");
         final ConnectionMongoSnapshotAdapter encryptingSerializer =
@@ -93,7 +93,7 @@ public class ConnectionMongoSnapshotAdapterTest {
 
     @Test
     public void disabledEncryptionWithOnlyTheOldKeyDecryptsAndWritesPlaintext() {
-        // the MongoDB procedure for disabling encryption, now valid on both backends: encryption off, no current key,
+        // the MongoDB procedure for disabling encryption, valid on both backends: encryption off, no current key,
         // the last key kept as 'old-symmetrical-key'; a snapshot written under that key still decrypts, and is
         // rewritten in plaintext
         final Config config = ConfigFactory.load("connection-fields-encryption-test").getConfig("connection");
@@ -165,9 +165,8 @@ public class ConnectionMongoSnapshotAdapterTest {
 
     @Test
     public void wrongOldKeyWithoutCurrentKeyFailsDecryption() {
-        // the one input whose outcome the old-key-alone path changed: before, a missing current key kept the
-        // ciphertext with a WARN whatever the old key was; now the old key alone decrypts, so a wrong one fails the
-        // same way a wrong single current key does
+        // without a current key the old key alone decrypts, so a wrong old key fails the same way a wrong single
+        // current key does (the ciphertext is not kept with a WARN)
         final Config config = ConfigFactory.load("connection-fields-encryption-test").getConfig("connection");
         final BsonDocument encryptedSnapshot = encryptWith(config, TestConstants.createConnection());
         final JsonObject encryptedSnapshotJson = JsonObject.of(encryptedSnapshot.toJson());

@@ -34,7 +34,7 @@ import com.typesafe.config.ConfigFactory;
  * Integration test for {@link PostgresSearchPersistenceProvider#healthCheckProps()} — the drop-in
  * {@code PostgresHealthChecker} (postgres-client) reuse — against a real PostgreSQL (PG 16) via Testcontainers.
  * <p>
- * A single scenario walks the full lifecycle the Phase F brief asks for (requirement 1): a live, reachable container
+ * A single scenario walks the full health-check lifecycle: a live, reachable container
  * reports {@link StatusInfo.Status#UP}; the SAME container is then stopped out from under the SAME running actor/pool
  * (no new {@code ActorSystem}, no new provider) and subsequent probes report {@link StatusInfo.Status#DOWN} — proving
  * the transition without the actor crashing. Deliberately a SINGLE test method (rather than two independent ones):

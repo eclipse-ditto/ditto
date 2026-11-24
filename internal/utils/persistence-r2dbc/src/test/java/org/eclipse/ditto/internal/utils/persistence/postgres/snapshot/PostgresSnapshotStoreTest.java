@@ -138,7 +138,7 @@ public final class PostgresSnapshotStoreTest {
     @Test
     public void saveAsyncSerializationFailureSurfacesAsFailedFutureNotSynchronousThrow() {
         // Pekko's SnapshotStore contract requires saveAsync to report failures via the returned Future, not by
-        // throwing synchronously (L-13). An unsupported snapshot payload (e.g. the BsonValue the Mongo adapter would
+        // throwing synchronously. An unsupported snapshot payload (e.g. the BsonValue the Mongo adapter would
         // produce, here represented by a plain Object that toJsonText rejects) must therefore NOT throw out of
         // saveAsync — the IllegalArgumentException must be delivered through the CompletionStage.
         final RecordingConnectionFactory factory = new RecordingConnectionFactory();

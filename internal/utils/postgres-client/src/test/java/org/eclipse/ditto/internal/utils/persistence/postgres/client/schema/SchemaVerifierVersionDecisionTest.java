@@ -54,7 +54,8 @@ public final class SchemaVerifierVersionDecisionTest {
 
     @Test
     public void bootWithOlderLegacyStoredVersionApplies() {
-        // A pre-T05 row (min_compatible_version NULL) that is older than the code is a plain upgrade.
+        // A row written without the min_compatible_version column (NULL) that is older than the code is a plain
+        // upgrade.
         assertThat(SchemaVerifier.verifyStoredVersion(COMPONENT, CODE_CHECKSUM, 3, "old-checksum", 2, null))
                 .isEqualTo(SchemaVersionDecision.APPLY);
     }
@@ -67,8 +68,8 @@ public final class SchemaVerifierVersionDecisionTest {
 
     @Test
     public void bootWithSameVersionLegacyRowApplies() {
-        // A pre-T05 row at the same version: NULL min is treated as the version (2 <= 2), checksum matches -> APPLY,
-        // and the caller's upsert then back-fills this code's min_compatible_version.
+        // A row without min_compatible_version at the same version: NULL min is treated as the version (2 <= 2),
+        // checksum matches -> APPLY, and the caller's upsert then back-fills this code's min_compatible_version.
         assertThat(SchemaVerifier.verifyStoredVersion(COMPONENT, CODE_CHECKSUM, 2, CODE_CHECKSUM, 2, null))
                 .isEqualTo(SchemaVersionDecision.APPLY);
     }
@@ -117,8 +118,8 @@ public final class SchemaVerifierVersionDecisionTest {
 
     @Test
     public void bootWithNewerLegacyStoredVersionTreatsNullMinCompatibleVersionAsTheStoredVersion() {
-        // A pre-T05 row (column missing -> added as NULL): NULL means min_compatible_version = version = 3 > 2
-        // -> refuse, exactly the pre-T05 downgrade guard.
+        // A row written without the column (missing -> added as NULL): NULL means min_compatible_version =
+        // version = 3 > 2 -> refuse, exactly the downgrade guard of schema code without that column.
         assertThatThrownBy(() -> SchemaVerifier.verifyStoredVersion(COMPONENT, CODE_CHECKSUM, 2, "newer-checksum", 3,
                 null))
                 .isInstanceOf(SchemaBootException.class)

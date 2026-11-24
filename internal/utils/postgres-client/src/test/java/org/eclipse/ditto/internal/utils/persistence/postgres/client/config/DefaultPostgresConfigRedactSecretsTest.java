@@ -24,8 +24,7 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 /**
- * Unit test for {@link DefaultPostgresConfig#redactSecrets(String)} (ticket r2mlh-m12, security ticket
- * ditto-postgres-smv).
+ * Unit test for {@link DefaultPostgresConfig#redactSecrets(String)}.
  *
  * <p>R2DBC URIs use the compound scheme {@code r2dbc:postgresql:} (and {@code r2dbc:pool:postgresql:} for the pool
  * wrapper), which {@link java.net.URI} parses as scheme {@code r2dbc} plus an opaque remainder — so userinfo is NOT
@@ -72,14 +71,14 @@ public final class DefaultPostgresConfigRedactSecretsTest {
                             "r2dbc:postgresql://host:5432/db?applicationName=ditto"
                     },
                     {
-                            // ditto-postgres-smv: a literal '@' inside the password (two '@' in the authority) must
+                            // A literal '@' inside the password (two '@' in the authority) must
                             // never leave a plaintext fragment — bail to the <redacted> fallback.
                             "literal @ in password falls back to <redacted>",
                             "r2dbc:postgresql://user:p@ss@host:5432/db",
                             "<redacted>"
                     },
                     {
-                            // ditto-postgres-smv: null input is the documented fallback path.
+                            // Null input is the documented fallback path.
                             "null input falls back to <redacted>",
                             null,
                             "<redacted>"
@@ -112,7 +111,7 @@ public final class DefaultPostgresConfigRedactSecretsTest {
     }
 
     /**
-     * Security cases (ticket ditto-postgres-smv): the redacted output must not contain plaintext secret material,
+     * Security cases: the redacted output must not contain plaintext secret material,
      * regardless of the exact masking strategy.
      */
     public static final class NoLeakTest {

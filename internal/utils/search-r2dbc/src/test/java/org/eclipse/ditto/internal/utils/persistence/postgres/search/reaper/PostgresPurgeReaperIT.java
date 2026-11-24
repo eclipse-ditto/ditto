@@ -44,7 +44,7 @@ import reactor.core.publisher.Mono;
  * SKIP LOCKED} row-level concurrency with an in-flight (simulated {@code ThingUpdater}) transaction, and the
  * advisory-lock single-runner guarantee against a genuinely concurrent second attempt.
  * <p>
- * Rows are inserted with plain SQL (not through the C2 write engine) — this IT is about the reaper's own SQL/lock
+ * Rows are inserted with plain SQL (not through the write engine) — this IT is about the reaper's own SQL/lock
  * semantics, which do not depend on how a row got there.
  * </p>
  * <p>

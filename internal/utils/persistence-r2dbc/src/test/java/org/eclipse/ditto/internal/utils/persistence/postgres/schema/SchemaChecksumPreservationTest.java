@@ -27,14 +27,14 @@ import org.eclipse.ditto.internal.utils.persistence.postgres.client.schema.Table
 import org.junit.Test;
 
 /**
- * Refactor-safety net for the {@code internal/utils/postgres-client} extraction.
+ * Safety net for the persisted schema checksum of the {@code ditto-postgres-persistence} component.
  * <p>
- * Before the extraction the {@code schema_version} table DDL was folded into {@code PostgresSchema.ddlStatements()} as
- * element 0, and the persisted {@code schema_version.checksum} for the {@code ditto-postgres-persistence} component was
- * a SHA-256 over that full list. The extraction hoisted the {@code schema_version} DDL out of {@code PostgresSchema}
- * and into the shared, manager-owned {@link PostgresSchemaManager#SCHEMA_VERSION_DDL}; the manager prepends it to the
- * descriptor's own statements ({@link PostgresSchemaManager#effectiveDdl}) so the effective statement set — and hence
- * the checksum — is byte-for-byte identical to the pre-extraction one.
+ * The persisted {@code schema_version.checksum} of the component is a SHA-256 over a statement list whose element 0 is
+ * the {@code schema_version} table DDL. That DDL is the shared, manager-owned
+ * {@link PostgresSchemaManager#SCHEMA_VERSION_DDL} (in {@code internal/utils/postgres-client}), not part of
+ * {@code PostgresSchema}; the manager prepends it to the descriptor's own statements
+ * ({@link PostgresSchemaManager#effectiveDdl}), so the effective statement set — and hence the checksum — is
+ * byte-for-byte the list the persisted checksum was computed over.
  * </p>
  * <p>
  * This test PINS the exact effective-DDL checksum literal: an already-bootstrapped production database persisted this
@@ -42,9 +42,8 @@ import org.junit.Test;
  * DDL has drifted — that MUST be a deliberate, versioned schema change, never an accidental side effect of code motion.
  * </p>
  * <p>
- * The extraction itself was checksum-neutral, which is what
- * {@link #effectiveDdlPrependsTheSharedSchemaVersionTableToTheComponentStatements()} still proves structurally
- * (version-independently). The pinned literal has since moved four times, deliberately: v2 (snaps
+ * That ordering is what {@link #effectiveDdlPrependsTheSharedSchemaVersionTableToTheComponentStatements()} proves
+ * structurally (version-independently). The pinned literal changed four times, deliberately: v2 (snaps
  * {@code (pid, sn DESC)} index dropped), v3 (lifecycle partial index dropped, vacuum cost budget raised), v4 (the fifth
  * table set {@code connection_remember_*} for connectivity's remember-entities store appended), v5 (the progress table
  * {@code connections_encryption_migration} of connectivity's encryption migration appended). v2 and v3 replaced an
@@ -53,9 +52,9 @@ import org.junit.Test;
  * {@link PostgresSchema#VERSION} bump (1 -&gt; 2, 2 -&gt; 3, 3 -&gt; 4, 4 -&gt; 5), and
  * {@code SchemaVerifier.verifyStoredVersion}
  * treats a stored version OLDER than the code version as an
- * upgrade in flight (pass, then advance the row), so deployed databases upgrade rather than refuse to boot. The later
- * {@code min_compatible_version} column is added by a manager-owned statement outside the effective DDL, so it left
- * this literal unchanged.
+ * upgrade in flight (pass, then advance the row), so deployed databases upgrade rather than refuse to boot. The
+ * {@code min_compatible_version} column is added by a manager-owned statement outside the effective DDL, so it does
+ * not affect this literal.
  * </p>
  */
 public final class SchemaChecksumPreservationTest {
@@ -65,8 +64,8 @@ public final class SchemaChecksumPreservationTest {
      * effective DDL list whose element 0 is the {@code schema_version} table. Frozen here as the compatibility
      * contract — only a deliberate {@link PostgresSchema#VERSION} bump may change it.
      * <p>
-     * History: {@code 117464679ca1d6aa9517a42d54c77de4782ba9b8c7870a88425bcd9b4d0991b4} was the v1 value, preserved
-     * unchanged across the postgres-client extraction; v2 (snaps {@code (pid, sn DESC)} index dropped) stored
+     * Version values: {@code 117464679ca1d6aa9517a42d54c77de4782ba9b8c7870a88425bcd9b4d0991b4} is the v1 value;
+     * v2 (snaps {@code (pid, sn DESC)} index dropped) stored
      * {@link PostgresSchemaV2#CHECKSUM}; v3 (lifecycle partial index dropped, journal and snaps vacuum cost budget
      * raised) stored {@link PostgresSchemaV3#CHECKSUM}; v4 (the {@code connection_remember} table set appended) stored
      * {@link PostgresSchemaV4#CHECKSUM}; v5 (the {@code connections_encryption_migration} table appended) moved it to
@@ -172,8 +171,8 @@ public final class SchemaChecksumPreservationTest {
         // First statement is the shared, manager-owned schema_version table.
         assertThat(effective.get(0)).isEqualTo(PostgresSchemaManager.SCHEMA_VERSION_DDL);
 
-        // The remainder is exactly the component's own statements — i.e. the effective list reconstitutes the historical
-        // "[schema_version, ...componentDdl]" ordering the checksum was originally computed over.
+        // The remainder is exactly the component's own statements — i.e. the effective list is the
+        // "[schema_version, ...componentDdl]" ordering the persisted checksum is computed over.
         final List<String> reconstructed = new ArrayList<>();
         reconstructed.add(PostgresSchemaManager.SCHEMA_VERSION_DDL);
         reconstructed.addAll(PostgresSchema.ddlStatements());

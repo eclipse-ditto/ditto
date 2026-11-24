@@ -25,9 +25,9 @@ import io.r2dbc.spi.ConnectionFactoryOptions;
 
 /**
  * Unit test proving that {@code ConnectionPoolFactory} actually consumes {@code pool.ddl-credentials} when building the
- * DDL-role connection options used by the schema bootstrap (the finding: {@code getDdlCredentials()} /
- * {@code DdlCredentialsConfig.isConfigured()} had ZERO production consumers, so {@code POSTGRES_DDL_USER}/
- * {@code POSTGRES_DDL_PASSWORD} did nothing).
+ * DDL-role connection options used by the schema bootstrap (without a production consumer of
+ * {@code getDdlCredentials()} / {@code DdlCredentialsConfig.isConfigured()}, {@code POSTGRES_DDL_USER}/
+ * {@code POSTGRES_DDL_PASSWORD} would do nothing).
  * <p>
  * Fully offline: building {@link ConnectionFactoryOptions} never opens a connection. SSL is disabled so the boot guard
  * stays quiet.
@@ -52,7 +52,7 @@ public final class ConnectionPoolFactoryDdlTest {
 
         final ConnectionFactoryOptions ddlOptions = ConnectionPoolFactory.buildDdlOptions(config);
 
-        // The DDL role wins over the runtime role -> POSTGRES_DDL_USER/PASSWORD now actually do something.
+        // The DDL role wins over the runtime role -> POSTGRES_DDL_USER/PASSWORD take effect.
         assertThat(ddlOptions.getValue(ConnectionFactoryOptions.USER)).isEqualTo("ditto_ddl");
         assertThat(ddlOptions.getValue(ConnectionFactoryOptions.PASSWORD)).hasToString("ddl_secret");
     }

@@ -44,7 +44,7 @@ import scala.jdk.javaapi.CollectionConverters;
 /**
  * Drives a <em>real</em> {@link ThingEvent} through the journal {@code event-adapter-binding} configured for the
  * Postgres profile ({@link ThingPostgresEventAdapter}) and replays it the way {@code PostgresJournalOps} does, proving
- * the journal seam that {@code ditto-postgres-things-journal} now wires up:
+ * the journal seam that {@code ditto-postgres-things-journal} wires up:
  * <ul>
  *   <li>{@code toJournal} produces a JSONB <em>String</em> payload (not a raw domain event the journal cannot bind, and
  *       not a {@code BsonValue} only the Mongo path understands) wrapped in a {@link Tagged}, so the journal can persist
@@ -54,7 +54,7 @@ import scala.jdk.javaapi.CollectionConverters;
  * </ul>
  * <p>
  * The {@code resolvesThe*BindingSeam}/{@code recoversAReal*ThroughThe*BindingSeam} tests are the load-bearing guard
- * for the C-1 read-side defect: they do NOT call {@code underTest.fromJournal(...)} directly. Instead they build a real
+ * for the read-side binding: they do NOT call {@code underTest.fromJournal(...)} directly. Instead they build a real
  * {@link EventAdapters} from the journal HOCON (the same {@code event-adapters} / {@code event-adapter-bindings} the
  * production {@code ditto-postgres-things-journal} ships) and exercise Pekko's own binding resolution
  * {@code EventAdapters.get(payload.getClass())} — exactly what {@code WriteJournalBase.adaptFromJournal} runs on replay,
@@ -128,7 +128,7 @@ public final class ThingPostgresEventAdapterTest {
         final Tagged tagged = (Tagged) underTest.toJournal(sampleEvent());
 
         assertThat(CollectionConverters.asJava(tagged.tags()))
-                .as("journal tags must reach PostgresJournalOps so they are persisted (H-5)")
+                .as("journal tags must reach PostgresJournalOps so they are persisted")
                 .containsExactlyInAnyOrderElementsOf(JOURNAL_TAGS);
     }
 
@@ -163,12 +163,12 @@ public final class ThingPostgresEventAdapterTest {
     }
 
     /**
-     * THE C-1 read-side guard. Builds Pekko's real {@link EventAdapters} from the journal HOCON and proves that the
+     * THE read-side binding guard. Builds Pekko's real {@link EventAdapters} from the journal HOCON and proves that the
      * type Postgres replays — {@code java.lang.String} (the JSONB column rendered to text by
-     * {@code PostgresJournalOps.toRepr}) — resolves to the JSONB adapter, NOT to {@link IdentityEventAdapter}. Before
-     * the {@code "java.lang.String"} binding was added this assertion failed: {@code get(String.class)} returned the
-     * identity adapter, so on replay the persistent actor received a bare String its {@code match(getEventClass())}
-     * never matched and every event was silently dropped.
+     * {@code PostgresJournalOps.toRepr}) — resolves to the JSONB adapter, NOT to {@link IdentityEventAdapter}. Without
+     * the {@code "java.lang.String"} binding this assertion fails: {@code get(String.class)} returns the identity
+     * adapter, so on replay the persistent actor receives a bare String its {@code match(getEventClass())} never
+     * matches and every event is silently dropped.
      */
     @Test
     public void resolvesTheStringReplayPayloadToTheJsonbAdapterNotIdentity() {
@@ -187,7 +187,7 @@ public final class ThingPostgresEventAdapterTest {
      * End-to-end replay through the binding seam: encodes a real {@link ThingEvent} to a JSONB String the way
      * {@code toJournal} does, then recovers it via {@code EventAdapters.get(payload.getClass()).fromJournal(...)} — the
      * exact call {@code WriteJournalBase.adaptFromJournal} makes on replay. A real {@link ThingEvent} (not a bare
-     * String) must come back, proving recovery no longer silently drops events.
+     * String) must come back, proving recovery does not silently drop events.
      */
     @Test
     public void recoversARealThingEventThroughTheStringBindingSeam() {

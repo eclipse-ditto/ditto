@@ -60,7 +60,7 @@ final class GoldenFixtures {
             .build();
 
     /**
-     * The full coverage-matrix case corpus (see {@code task-a1-brief.md} for the matrix this satisfies).
+     * The full coverage-matrix case corpus.
      */
     static final List<String> CASE_NAMES = List.of(
             "nested-scalars",

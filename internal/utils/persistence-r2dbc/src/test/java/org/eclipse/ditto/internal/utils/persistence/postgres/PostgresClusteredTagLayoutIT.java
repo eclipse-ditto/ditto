@@ -49,7 +49,7 @@ import org.apache.pekko.testkit.javadsl.TestKit;
  * </p>
  * <p>
  * The priority order walks the same windows (its order is made in memory once the last window is read), so its
- * statements are bounded the same way; it no longer reads all tagged rows in one statement.
+ * statements are bounded the same way; it never reads all tagged rows in one statement.
  * </p>
  */
 public final class PostgresClusteredTagLayoutIT {

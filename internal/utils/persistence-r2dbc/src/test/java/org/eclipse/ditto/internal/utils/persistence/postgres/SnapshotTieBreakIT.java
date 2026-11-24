@@ -54,7 +54,7 @@ import reactor.core.publisher.Mono;
  * same {@code (pid, sn)} primary-key prefix (the snaps PK is {@code (pid, sn, written_at)}, so a re-snapshot
  * at the same sequence number is allowed and produces multiple rows that differ only in {@code written_at}).
  * <p>
- * {@code r2mlh-m7}: the per-pid winner is picked by {@code ORDER BY sn DESC, written_at DESC LIMIT 1} (loose index scan).
+ * The per-pid winner is picked by {@code ORDER BY sn DESC, written_at DESC LIMIT 1} (loose index scan).
  * Without the {@code written_at DESC} tiebreaker the row returned for a {@code (pid, sn)} tie is arbitrary;
  * with it, the row with the newest {@code written_at} must win. This IT seeds two rows for one
  * {@code (pid, sn)} (deliberately inserting the OLDER {@code written_at} last, so a naive

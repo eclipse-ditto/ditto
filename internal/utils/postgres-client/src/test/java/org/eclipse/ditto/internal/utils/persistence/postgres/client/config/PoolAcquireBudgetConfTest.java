@@ -47,11 +47,11 @@ public final class PoolAcquireBudgetConfTest {
      * <ul>
      *     <li>policies: {@code policies.conf} declares no {@code local-ask} block, so the code default applies —
      *     {@code LocalAskTimeoutConfig.LocalAskTimeoutConfigValue.ASK_TIMEOUT}
-     *     ({@code ASK_TIMEOUT("timeout", Duration.ofSeconds(5L))}), at {@code base/service/src/main/java/org/eclipse/
-     *     ditto/base/service/config/supervision/LocalAskTimeoutConfig.java:62};</li>
+     *     ({@code ASK_TIMEOUT("timeout", Duration.ofSeconds(5L))}) in {@code LocalAskTimeoutConfig}
+     *     (base/service);</li>
      *     <li>things: {@code ditto.things.thing.supervisor.local-ask.timeout = 5s} (env
-     *     {@code THINGS_SUPERVISOR_LOCAL_ASK_TIMEOUT}), at
-     *     {@code things/service/src/main/resources/things.conf:256}.</li>
+     *     {@code THINGS_SUPERVISOR_LOCAL_ASK_TIMEOUT}), in
+     *     {@code things/service/src/main/resources/things.conf}.</li>
      * </ul>
      * Applied by {@code AbstractPersistenceSupervisor.determineAskTimeoutForPersistenceActorForwarding()} once the
      * persistence actor has recovered; its expiry surfaces as {@code EnforcementTimeoutException}

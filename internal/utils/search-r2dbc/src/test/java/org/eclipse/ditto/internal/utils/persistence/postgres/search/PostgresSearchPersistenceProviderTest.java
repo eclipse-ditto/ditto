@@ -95,8 +95,8 @@ public final class PostgresSearchPersistenceProviderTest {
 
     @Test
     public void healthCheckPropsReturnsThePostgresHealthCheckerPropsDropIn() {
-        // Requirement 1 (Phase F): SearchHealthCheckingActorFactory stores this Props verbatim under the
-        // "persistence" label (thingsearch/service SearchHealthCheckingActorFactory:62) — exactly the same consumption
+        // SearchHealthCheckingActorFactory stores this Props verbatim under the "persistence" label
+        // (thingsearch/service SearchHealthCheckingActorFactory#props) — exactly the same consumption
         // shape MongoHealthChecker.props() satisfies. PostgresHealthChecker (postgres-client) is reused unmodified,
         // identical to PostgresPersistenceBackendProvider#healthCheckProps()'s own precedent.
         final PostgresSearchPersistenceProvider provider =
@@ -283,7 +283,7 @@ public final class PostgresSearchPersistenceProviderTest {
 
     @Test
     public void otherFactoryMethodsNeverStartTheReaperWithoutCreateUpdaterPersistence() {
-        // Reaper-hook pin (Phase F requirement 4, final decision): createUpdaterPersistence() is the ONLY trigger.
+        // Reaper-hook pin: createUpdaterPersistence() is the ONLY trigger.
         // Calling every OTHER factory method -- including createUpdaterFlow(), which a naive reading might mistake
         // for "the write path materializing" -- must NEVER start the reaper on its own.
         final Config noSslGuard = ConfigFactory.parseString(
@@ -318,7 +318,7 @@ public final class PostgresSearchPersistenceProviderTest {
 
     @Test
     public void createUpdaterPersistenceStartsTheReaperExactlyOnceRegardlessOfSurroundingCallOrder() {
-        // Reaper-hook pin (Phase F requirement 4): exactly-once semantics must hold no matter what OTHER provider
+        // Reaper-hook pin: exactly-once semantics must hold no matter what OTHER provider
         // methods are called before, between, or after createUpdaterPersistence() -- not just under back-to-back
         // repeat calls (see createUpdaterPersistenceStartsTheDeleteAtReaperActorExactlyOnce above).
         final Config noSslGuard = ConfigFactory.parseString(

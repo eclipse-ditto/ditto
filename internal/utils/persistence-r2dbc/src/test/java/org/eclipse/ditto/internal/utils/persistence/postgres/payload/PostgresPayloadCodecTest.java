@@ -68,7 +68,7 @@ public final class PostgresPayloadCodecTest {
         return CollectionConverters.asScala(Set.of(elements)).toSet();
     }
 
-    // ── JSON text codec: today's behaviour, unchanged ──────────────────────────────────────────────────────────────
+    // ── JSON text codec ────────────────────────────────────────────────────────────────────────────────────────────
 
     @Test
     public void jsonTextCodecRendersJsonValuesTextAndUtf8BytesAsTheStoredText() {

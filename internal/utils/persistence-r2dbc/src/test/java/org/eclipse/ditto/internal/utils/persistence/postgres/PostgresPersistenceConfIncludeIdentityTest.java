@@ -20,12 +20,12 @@ import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 
 /**
- * Config-identity proof for the postgres-client conf extraction.
+ * Config-identity proof for the include of the shared postgres-client conf.
  * <p>
- * The shared {@code ditto.postgresql.*} client block was factored out of {@code ditto-postgres-persistence.conf} into
- * {@code ditto-postgres-client.conf} (internal/utils/postgres-client), pulled back in via
+ * The shared {@code ditto.postgresql.*} client block lives in {@code ditto-postgres-client.conf}
+ * (internal/utils/postgres-client) and {@code ditto-postgres-persistence.conf} pulls it in via
  * {@code include classpath("ditto-postgres-client")}. This test proves the MERGED config a persistence service resolves
- * is identical to when the block was inlined: the client block (uri/pool/ssl/ddl-credentials — resolved through the
+ * is identical to one with the block inlined: the client block (uri/pool/ssl/ddl-credentials — resolved through the
  * cross-module classpath include) AND the persistence-specific block (the backend-provider extension) both resolve from
  * the single {@code ditto-postgres-persistence.conf} include.
  * </p>
@@ -56,7 +56,7 @@ public final class PostgresPersistenceConfIncludeIdentityTest {
     public void persistenceSpecificBlockStillPresentAlongsideTheIncludedClientBlock() {
         final Config config = resolvePersistenceProfile();
 
-        // The persistence-specific half stays in ditto-postgres-persistence.conf (NOT moved).
+        // The persistence-specific half is in ditto-postgres-persistence.conf itself (NOT in the client conf).
         assertThat(config.hasPath("ditto.extensions.persistence-backend-provider")).isTrue();
         assertThat(config.getString("ditto.extensions.persistence-backend-provider.extension-class"))
                 .isEqualTo("org.eclipse.ditto.internal.utils.persistence.postgres."

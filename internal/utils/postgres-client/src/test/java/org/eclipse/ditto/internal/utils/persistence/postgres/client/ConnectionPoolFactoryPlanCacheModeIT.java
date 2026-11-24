@@ -33,7 +33,8 @@ import io.r2dbc.spi.Connection;
 import reactor.core.publisher.Mono;
 
 /**
- * Integration test proving the plancache generic-plan-flip guard (search plan §3.5 / bench-results doc §8.2) is
+ * Integration test proving the plancache generic-plan-flip guard (design document, Search backend, Query
+ * translation) is
  * <strong>active on a real pooled connection</strong>: with {@code ditto.postgresql.force-custom-plan=true},
  * {@code SHOW plan_cache_mode} returns {@code force_custom_plan} on a connection borrowed from the r2dbc
  * {@link ConnectionPool}; without the flag it stays at PostgreSQL's default {@code auto} — proving the config flag (and

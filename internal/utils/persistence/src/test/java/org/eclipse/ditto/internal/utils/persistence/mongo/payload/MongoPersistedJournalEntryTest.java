@@ -33,8 +33,8 @@ import nl.jqno.equalsverifier.EqualsVerifier;
  * Unit tests for {@link MongoPersistedJournalEntry}: the event payloads are the {@code p} documents of the
  * {@code events} array (events without one are skipped but kept), and {@code withEventPayloads} re-encodes only the
  * payloads that changed into a copy of the document, leaving events without a payload, unchanged payloads and the
- * original document exactly as they were — the behaviour of the connectivity encryption migration before the store
- * existed.
+ * original document exactly as they were — so documents the connectivity encryption migration rewrites on MongoDB
+ * keep their shape.
  */
 public final class MongoPersistedJournalEntryTest {
 

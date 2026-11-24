@@ -40,11 +40,11 @@ import com.typesafe.config.ConfigFactory;
  * <h2>What the trap is</h2>
  * Pekko's {@code Eventsourced} trait initialiser calls {@code journalPluginId()} / {@code snapshotPluginId()}
  * <strong>during the super constructor</strong> (the eager {@code maxMessageBatchSize} val,
- * {@code Eventsourced.scala:98-104}), <em>before</em> any subclass field assigned in the subclass constructor body is
+ * in the {@code Eventsourced} trait), <em>before</em> any subclass field assigned in the subclass constructor body is
  * visible. Therefore the plugin-ID accessors must resolve their value WITHOUT reading a constructor-injected instance
  * field. The production accessors (e.g. {@code ThingPersistenceActor.journalPluginId()}) resolve through the
  * {@link PersistenceBackendProvider} via the field-free {@code context().system()} lookup — {@code ActorCell} pushes the
- * actor context onto the context stack before invoking the constructor ({@code ActorCell.scala:622-623}), so
+ * actor context onto the context stack before invoking the constructor ({@code ActorCell#newActor}), so
  * {@code context()} is available even mid-super-call.
  *
  * <h2>What this test asserts, and HOW</h2>
@@ -106,19 +106,20 @@ public final class InitOrderRegressionTest {
         // the ditto.postgresql.* client defaults (SSL disabled below so no boot guard / no connection is ever attempted
         // offline).
         //
-        // The journal blocks now bind per-entity JSONB event adapters (C-1: ThingPostgresEventAdapter et al.). Pekko's
+        // The journal blocks bind per-entity JSONB event adapters (ThingPostgresEventAdapter et al.). Pekko's
         // Eventsourced super-init eagerly instantiates every configured event adapter via Persistence.createAdapters
-        // (Eventsourced.scala:103), BEFORE the probe constructor body runs. Those adapter classes live in the SERVICE
-        // modules (things/policies/connectivity service), which this internal/utils/persistence-r2dbc test module does
-        // not — and must not — depend on, so they are absent from this test classpath and instantiation would throw
-        // ClassNotFoundException and crash the probe before it can capture the plugin IDs. This test asserts ONLY
+        // (reached from the maxMessageBatchSize initialiser of Eventsourced), BEFORE the probe constructor body runs.
+        // Those adapter classes live in the SERVICE modules (things/policies/connectivity service), which this
+        // internal/utils/persistence-r2dbc test module does not — and must not — depend on, so they are absent from
+        // this test classpath and instantiation would throw ClassNotFoundException and crash the probe before it can
+        // capture the plugin IDs. This test asserts ONLY
         // plugin-ID resolution (a pure HOCON read that happens before any adapter/plugin I/O), so we blank the
         // event-adapter wiring of every Postgres journal block here. The real services keep the adapters on their
         // classpath; the adapter round-trip itself is covered by the per-entity *PostgresEventAdapterTest in the
         // service modules. `null` clears the key (HOCON: a null value removes it and a lower-priority object fallback
         // does not resurge it).
         //
-        // Same reasoning applies to the profile's pekko.persistence.*.auto-start-* lists (Task 6): they now name real
+        // Same reasoning applies to the profile's pekko.persistence.*.auto-start-* lists: they name real
         // Pekko plugin IDs, so Persistence's OWN extension constructor — triggered eagerly by Eventsourced.$init$,
         // i.e. DURING the probe's super-init, before the probe's own constructor body runs — walks the auto-start list
         // and eagerly calls journalFor() for every entry. Each plugin's `plugin-dispatcher` (e.g.

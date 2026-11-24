@@ -32,7 +32,7 @@ import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.read.ListAppender;
 
 /**
- * Unit test proving the L-12 pooler-mode cross-check {@code logPoolerModeCrossCheck} WARNs whenever a non-zero
+ * Unit test proving the pooler-mode cross-check {@code logPoolerModeCrossCheck} WARNs whenever a non-zero
  * prepared-statement cache is configured under any non-{@code SESSION} pooler mode — not only under {@code TRANSACTION}.
  * <p>
  * The dangerous case is {@code DIRECT} (or unset) pooling with a populated prepared-statement cache: it is safe
@@ -89,7 +89,7 @@ public final class ConnectionPoolFactoryPoolerModeLogTest {
 
     @Test
     public void directModeWithPopulatedCacheWarnsAboutFutureTransactionFlip() {
-        // The L-12 failing case: DIRECT pooling is safe TODAY with a named-statement cache, but a future flip to
+        // The failing case: DIRECT pooling is safe TODAY with a named-statement cache, but a future flip to
         // TRANSACTION pooling would break it — that must be a WARN, not silence.
         final PostgresConfig config = configWith("direct", 256);
 

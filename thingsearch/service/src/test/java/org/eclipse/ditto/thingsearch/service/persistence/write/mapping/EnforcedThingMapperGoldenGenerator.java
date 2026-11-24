@@ -21,14 +21,14 @@ import java.nio.file.Path;
 import org.bson.json.JsonMode;
 
 /**
- * The golden-file <strong>generator</strong> for the {@link EnforcedThingMapper} pre-refactor baseline
- * (Task A1). This is a plain {@code main} entry point - deliberately <em>not</em> a JUnit {@code @Test}, so
+ * The golden-file <strong>generator</strong> for the {@link EnforcedThingMapper} BSON baseline.
+ * This is a plain {@code main} entry point - deliberately <em>not</em> a JUnit {@code @Test}, so
  * no test runner (Surefire's filename-glob include/exclude, an IDE's annotation-scanning "Run all tests",
  * or anything else that discovers tests by inspecting bytecode/annotations) can ever pick it up and silently
  * overwrite the committed expected files under {@code src/test/resources/golden/expected/} as a side effect
  * of running the test suite. It must only ever run via the single explicit command documented below.
  *
- * <p>It runs TODAY'S (un-refactored) full mapping chain via {@link GoldenFixtureRunner#run(String)} - which
+ * <p>It runs the full mapping chain via {@link GoldenFixtureRunner#run(String)} - which
  * calls {@code EnforcedThingMapper.toWriteModel(...)} exactly mirroring the production call site at
  * {@code EnforcementFlow.computeWriteModel(...)} - for every fixture pair in
  * {@link GoldenFixtures#CASE_NAMES}, and (re)writes the committed expected file for each case as canonical
@@ -52,8 +52,8 @@ import org.bson.json.JsonMode;
  * </pre>
  * Only re-run this deliberately, after confirming any resulting diff under {@code golden/expected/} is an
  * intended baseline update - the whole point of {@code EnforcedThingMapperGoldenTest} is to catch
- * <em>unintended</em> drift, including during the Phase-A backend-neutral/Mongo-encoder split that follows
- * this task.
+ * <em>unintended</em> drift, including drift from a change to the backend-neutral document builder or the Mongo
+ * BSON encoder.
  */
 public final class EnforcedThingMapperGoldenGenerator {
 

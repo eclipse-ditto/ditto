@@ -76,7 +76,7 @@ public final class PoolMetricsPollerTaggingTest {
         assertThat(tagValues(journalGauges, PostgresMetrics.TAG_POOL)).containsExactly(PostgresMetrics.ROLE_JOURNAL);
         assertThat(tagValues(snapshotGauges, PostgresMetrics.TAG_POOL)).containsExactly(PostgresMetrics.ROLE_SNAPSHOT);
 
-        // The coordinated-shutdown task name must be unique per role, not the old fixed string.
+        // The coordinated-shutdown task name must be unique per role, not one fixed string.
         final String journalTask = PoolMetricsPoller.shutdownTaskName(PostgresMetrics.ROLE_JOURNAL);
         final String snapshotTask = PoolMetricsPoller.shutdownTaskName(PostgresMetrics.ROLE_SNAPSHOT);
         assertThat(journalTask).isNotEqualTo(snapshotTask);

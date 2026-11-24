@@ -63,7 +63,7 @@ import reactor.core.publisher.Mono;
  *     <li>a read heals + retries and returns empty (Mongo's "read of a missing collection is empty"), recreating the
  *     tables;</li>
  *     <li>a journal write (through {@code inTransaction}) heals + retries and succeeds;</li>
- *     <li>with self-heal disabled, the read still fails with {@code 42P01} (no worse than today).</li>
+ *     <li>with self-heal disabled, the read still fails with {@code 42P01} (no worse than without self-heal).</li>
  * </ol>
  */
 public final class PostgresSelfHealIT {

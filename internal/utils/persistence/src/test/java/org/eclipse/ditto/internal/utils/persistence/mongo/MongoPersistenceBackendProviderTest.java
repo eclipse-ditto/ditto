@@ -37,10 +37,10 @@ import com.typesafe.config.ConfigFactory;
  * {@code reference.conf} of this module (the default backend every Ditto service runs unless it opts into another
  * profile).
  *
- * <h2>Why this test exists — the C-3 default-Mongo regression</h2>
- * Once {@code PolicyPersistenceActor}, {@code ConnectionPersistenceActor} and {@code WotValidationConfigPersistenceActor}
- * resolve their Pekko journal/snapshot plugin IDs through this provider (instead of hardcoding the constants), the
- * provider's {@code pluralize()} fallback ({@code entityType + "s"}) becomes load-bearing — and it is WRONG for every
+ * <h2>Why this test exists — the default-Mongo regression</h2>
+ * {@code PolicyPersistenceActor}, {@code ConnectionPersistenceActor} and {@code WotValidationConfigPersistenceActor}
+ * resolve their Pekko journal/snapshot plugin IDs through this provider (instead of hardcoding the constants), so the
+ * provider's {@code pluralize()} fallback ({@code entityType + "s"}) is load-bearing — and it is WRONG for every
  * Ditto entity whose shipped Mongo plugin block does not follow the naive "+s" rule:
  * <ul>
  *     <li>{@code policy} &rarr; pluralize {@code "policys"} (real block {@code policies}),</li>
@@ -89,11 +89,12 @@ public final class MongoPersistenceBackendProviderTest {
     @Parameterized.Parameters(name = "entityType={0}")
     public static Collection<Object[]> parameters() {
         // entityType (exactly as the actor passes it) -> expected REAL Mongo journal id, expected REAL snapshot id.
-        // These names are verified against the shipped service configs:
-        //   thing                 -> things.conf:614 / :655 (pluralize happens to be correct here)
-        //   policy                -> policies.conf:297 / :342
-        //   connection            -> connectivity.conf:1235 / :1280 (NO trailing s)
-        //   wot-validation-config -> things.conf:679 / :725        (NO trailing s)
+        // These names are verified against the plugin blocks pekko-contrib-mongodb-persistence-<x>-journal /
+        // -snapshots of the shipped service configs, with <x>:
+        //   thing                 -> things in things.conf (pluralize happens to be correct here)
+        //   policy                -> policies in policies.conf
+        //   connection            -> connection in connectivity.conf (NO trailing s)
+        //   wot-validation-config -> wot-validation-config in things.conf (NO trailing s)
         return Arrays.asList(new Object[][]{
                 {"thing", "pekko-contrib-mongodb-persistence-things-journal",
                         "pekko-contrib-mongodb-persistence-things-snapshots"},
@@ -119,11 +120,11 @@ public final class MongoPersistenceBackendProviderTest {
     public void resolvesRealMongoBlockNamesForEntityActor() {
         assertThat(provider.getJournalPluginId(entityType))
                 .as("Mongo journal plugin id for entity <%s> must match the shipped block "
-                        + "(C-3 default-backend regression guard)", entityType)
+                        + "(default-backend regression guard)", entityType)
                 .isEqualTo(expectedJournalPluginId);
         assertThat(provider.getSnapshotPluginId(entityType))
                 .as("Mongo snapshot plugin id for entity <%s> must match the shipped block "
-                        + "(C-3 default-backend regression guard)", entityType)
+                        + "(default-backend regression guard)", entityType)
                 .isEqualTo(expectedSnapshotPluginId);
     }
 
@@ -142,11 +143,11 @@ public final class MongoPersistenceBackendProviderTest {
     }
 
     /**
-     * Task 9 regression guard: the string-shorthand extension declaration
+     * Regression guard: the string-shorthand extension declaration
      * ({@code ditto.extensions.persistence-backend-provider = "org.eclipse...MongoPersistenceBackendProvider"})
      * wipes the reference.conf {@code extension-config} object, so {@code DittoExtensionPoint.ExtensionIdConfig.of}
      * hands the provider {@link ConfigFactory#empty()}. Without a well-known block-name map, plugin-ID resolution
-     * used to fall back to the {@code pluralize()} heuristic and produce non-existent blocks (e.g. {@code "policys"}).
+     * would fall back to the {@code pluralize()} heuristic and produce non-existent blocks (e.g. {@code "policys"}).
      * This test asserts the REAL shipped block names are resolved even with a completely empty extension config.
      */
     @Test
@@ -166,7 +167,7 @@ public final class MongoPersistenceBackendProviderTest {
     }
 
     /**
-     * Task 9 regression guard: an entity type with neither a well-known block name nor an explicit
+     * Regression guard: an entity type with neither a well-known block name nor an explicit
      * {@code extension-config.plugin-ids} override must fail fast with a {@link DittoConfigError} naming the
      * offending entity type, instead of silently guessing a (possibly non-existent) plugin block via
      * {@code pluralize()}.

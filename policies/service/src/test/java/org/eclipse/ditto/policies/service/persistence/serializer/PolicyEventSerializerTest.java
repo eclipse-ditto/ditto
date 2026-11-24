@@ -57,7 +57,7 @@ import scala.jdk.javaapi.CollectionConverters;
 @RunWith(Enclosed.class)
 public final class PolicyEventSerializerTest {
 
-    /** Copied from today's {@code AbstractPolicyMongoEventAdapter.LEGACY_DISCARDED_EVENT_TYPES}. */
+    /** Copied from {@code AbstractPolicyMongoEventAdapter.LEGACY_DISCARDED_EVENT_TYPES}. */
     private static final List<String> LEGACY_MANIFESTS = List.of(
             "policies:importsAliasCreated",
             "policies:importsAliasModified",

@@ -30,7 +30,7 @@ import org.junit.Test;
 
 /**
  * Golden unit tests for {@link PostgresAggregationQuery} — the operator-metrics {@code $match}+{@code $group} → SQL
- * transcription (Phase E). Two obligations are pinned here, both DB-free:
+ * transcription. Two obligations are pinned here, both DB-free:
  * <ol>
  *   <li><b>SQL + binds</b> for the group-by extraction ({@code #>>}), the namespace {@code $match} term and the sudo
  *       filter (no auth), across the multi-key / empty-filter / namespaces / no-group-key cases.</li>
@@ -96,7 +96,8 @@ public final class PostgresAggregationQueryTest {
 
     @Test
     public void filterCriteriaTranslatedInSudoFormNoAuth() {
-        // eq(attributes/color,"red") -> a D2 flat-table EXISTS probe; the aggregation adds NO auth term (sudo, Mongo:109).
+        // eq(attributes/color,"red") -> a flat-table EXISTS probe; the aggregation adds NO auth term (sudo, as
+        // MongoThingsAggregationPersistence#aggregateThings filters with CreateBsonVisitor.sudoApply).
         final Criteria criteria = cf.fieldCriteria(fef.filterByAttribute("color"), cf.eq("red"));
         final List<GroupKey> keys = List.of(new GroupKey("g0", "location", List.of("attributes", "location")));
         final RenderedSql r = PostgresAggregationQuery.assemble(criteria, List.of("org.eclipse.ditto"), keys);

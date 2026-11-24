@@ -29,27 +29,27 @@ import com.tngtech.archunit.core.importer.ImportOption;
  * Rule 1 (no <em>switchable</em> Mongo artifact outside the Mongo zone) and Rule 2 (no Postgres in service code) of
  * the pluggable-persistence boundary rules, applied to the connectivity service.
  * <p>
- * Connectivity does its persistence through the backend-neutral persistence-API. The refactor routed the
+ * Connectivity does its persistence through the backend-neutral persistence-API. The provider owns the
  * <em>switchable</em> Mongo touchpoints (the read-journal, the {@code pekko-contrib-mongodb-persistence} plugin
- * classes and the raw Mongo driver / BSON) through the provider, so service code must no longer reference them.
+ * classes and the raw Mongo driver / BSON), so service code must not reference them.
  * Rule 1 therefore bans only those switchable artifacts - NOT the whole Mongo zone:
  * <ul>
  *     <li>{@code com.mongodb..} and {@code org.bson..} (the raw Mongo driver and BSON),</li>
  *     <li>{@code pekko.contrib.persistence.mongodb..} (the legacy Mongo persistence plugin classes; note the
  *     {@code pekko.} prefix, NOT {@code org.apache.pekko.}), and</li>
- *     <li>any class named {@code MongoReadJournal} (now obtained via {@code provider.getReadJournal()}).</li>
+ *     <li>any class named {@code MongoReadJournal} (obtained via {@code provider.getReadJournal()}).</li>
  * </ul>
  * It deliberately does NOT ban {@code ...internal.utils.persistence.mongo.AbstractMongoEventAdapter} or
  * {@code ...internal.utils.persistence.mongo.config..}: those are the INTENTIONAL bundled-Mongo default (the
  * per-service Mongo event-adapter base and the Mongo connection config the service needs to actually run on
  * MongoDB, which is the bundled default backend) - symmetric to the Postgres event adapters, not a switchable leak.
  * <p>
- * There is no whitelist. The connection encryption migration ({@code EncryptionMigrationActor}), which used to read and
- * rewrite the MongoDB journal and snapshot collections with the raw driver and BSON, now reaches the persisted payloads
- * through the provider's backend-neutral {@code PersistedPayloadStore}; the MongoDB statements live in the Mongo zone
- * ({@code ...internal.utils.persistence.mongo.payload}), and the store owns the Mongo client the migration used to
- * build itself. No connectivity MAIN class may therefore depend on a switchable Mongo artifact (Rule 1) or build the
- * Mongo-zone client (Rule 1b).
+ * There is no whitelist. The connection encryption migration ({@code EncryptionMigrationActor}) does not read and
+ * rewrite the MongoDB journal and snapshot collections with the raw driver and BSON itself: it reaches the persisted
+ * payloads through the provider's backend-neutral {@code PersistedPayloadStore}; the MongoDB statements live in the
+ * Mongo zone ({@code ...internal.utils.persistence.mongo.payload}), and the store owns the Mongo client. No
+ * connectivity MAIN class may therefore depend on a switchable Mongo artifact (Rule 1) or build the Mongo-zone client
+ * (Rule 1b).
  * <p>
  * Driven via ArchUnit's core API from JUnit 4 {@code @Test} methods so the module keeps running on its existing
  * JUnit 4 / surefire setup; the imported classes are scoped to MAIN code via
@@ -60,7 +60,7 @@ import com.tngtech.archunit.core.importer.ImportOption;
 public final class PersistenceBoundaryArchTest {
 
     /**
-     * The SWITCHABLE Mongo artifacts the pluggable-persistence refactor routed through the provider. Service code
+     * The SWITCHABLE Mongo artifacts the pluggable-persistence provider owns. Service code
      * must not reference these directly. Deliberately does NOT match {@code AbstractMongoEventAdapter} or the
      * {@code ...persistence.mongo.config..} types - those are the intentional bundled-Mongo default.
      */
@@ -135,7 +135,7 @@ public final class PersistenceBoundaryArchTest {
 
     /**
      * Rule 2: no connectivity-service MAIN class may depend on a Postgres type. Connectivity is part of the
-     * "service code" that the brief forbids from coupling to Postgres directly.
+     * "service code" that the boundary rules forbid from coupling to Postgres directly.
      */
     @Test
     public void connectivityMustNotDependOnPostgres() {
@@ -178,8 +178,8 @@ public final class PersistenceBoundaryArchTest {
     /**
      * Meta-test: proves Rule 1 is NON-VACUOUS. The real legacy Mongo persistence plugin class
      * {@code pekko.contrib.persistence.mongodb.MongoReadJournal} (from {@code pekko-persistence-mongodb}, on this
-     * module's test classpath) is the canonical switchable artifact the refactor moved behind
-     * {@code provider.getReadJournal()}. It is matched by BOTH the {@code pekko.contrib.persistence.mongodb..}
+     * module's test classpath) is the canonical switchable artifact that {@code provider.getReadJournal()} stands
+     * in for. It is matched by BOTH the {@code pekko.contrib.persistence.mongodb..}
      * package branch AND the {@code MongoReadJournal} simple-name branch of {@link #IS_SWITCHABLE_MONGO}. If the
      * matcher did not actually match it, Rule 1 would silently pass on everything - so this guards against the
      * predicate being accidentally narrowed to nothing.

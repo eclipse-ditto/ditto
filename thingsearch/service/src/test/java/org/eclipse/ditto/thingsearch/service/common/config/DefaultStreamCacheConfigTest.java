@@ -85,10 +85,10 @@ public final class DefaultStreamCacheConfigTest {
     }
 
     /**
-     * Regression pin: search.conf's {@code thing-cache} block used to carry no
-     * {@code ${?THINGS_SEARCH_UPDATER_STREAM_THING_CACHE_RETRY_DELAY}} binding, so the env var the system-test
-     * workflow exports was silently discarded. Resolving the REAL search.conf against a fake environment proves the
-     * binding exists (the policy-cache binding is the pre-existing counterpart and must stay untouched).
+     * Regression pin: search.conf's {@code thing-cache} block must carry the
+     * {@code ${?THINGS_SEARCH_UPDATER_STREAM_THING_CACHE_RETRY_DELAY}} binding; without it the env var the system-test
+     * workflow exports would be silently discarded. Resolving the REAL search.conf against a fake environment proves
+     * the binding exists (the policy-cache binding is its counterpart and must stay untouched).
      */
     @Test
     public void thingCacheRetryDelayEnvOverrideIsBoundInSearchConf() {

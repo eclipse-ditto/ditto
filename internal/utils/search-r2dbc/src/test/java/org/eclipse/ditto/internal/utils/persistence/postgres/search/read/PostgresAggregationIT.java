@@ -68,7 +68,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 /**
- * Operator-aggregation-metrics integration test (Phase E) against a real PostgreSQL (PG 16) via Testcontainers. Data is
+ * Operator-aggregation-metrics integration test against a real PostgreSQL (PG 16) via Testcontainers. Data is
  * written by the REAL write path ({@link PostgresSearchUpdaterFlow}) and aggregated through
  * {@link PostgresThingsAggregationPersistence}, covering grouped counts, namespace {@code $match} scoping, a metric with
  * RQL filter criteria, the documented text-extraction type behavior of group values, and that a per-metric

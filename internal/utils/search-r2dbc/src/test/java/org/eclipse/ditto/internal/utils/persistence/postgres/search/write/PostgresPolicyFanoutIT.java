@@ -57,7 +57,7 @@ import reactor.core.publisher.Mono;
 
 /**
  * Integration test for {@link PostgresThingsSearchUpdaterPersistence} — policy fan-out and namespace purge against a
- * real PostgreSQL (PG 16) via Testcontainers. Things are written through the REAL C2 write engine
+ * real PostgreSQL (PG 16) via Testcontainers. Things are written through the REAL write engine
  * ({@link PostgresSearchUpdaterFlow}) so the {@code referenced_policies} JSONB it stores is exactly what the fan-out
  * reads (end-to-end).
  * <p>
@@ -179,7 +179,7 @@ public final class PostgresPolicyFanoutIT {
     }
 
     // ============================================================================================================
-    // round-2 Critical: same-revision, policy-only fan-out makes newer AUTH visible (end-to-end via C2's flow)
+    // same-revision, policy-only fan-out makes newer AUTH visible (end-to-end via PostgresSearchUpdaterFlow)
     // ============================================================================================================
 
     @Test
@@ -196,7 +196,7 @@ public final class PostgresPolicyFanoutIT {
         final List<PolicyReferenceTag> tags = fanout(Map.of(policy, 10L));
         assertThat(tags).containsExactly(PolicyReferenceTag.of(thingId, PolicyTag.of(policy, 10L)));
 
-        // 3. the updater re-writes the thing at the SAME thing revision 9 (only the policy/auth changed) via C2's flow.
+        // 3. the updater re-writes the thing at the SAME thing revision 9 (only the policy/auth changed) via the flow.
         writeThing(thingId, policy, 9L, Set.of(PolicyTag.of(policy, 10L)), List.of("new-subject"));
 
         // 4. the newer auth is now visible in the index — the unconditional upsert landed despite the equal revision.

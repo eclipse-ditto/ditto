@@ -56,8 +56,8 @@ public final class PostgresKeysetPidStreamsIT {
     private static final int SMALL_BATCH = 7;
 
     /**
-     * The single priority statement of the former implementation, as a reference (plus the priority as a column, and
-     * the pid order of the new tie rule).
+     * A single-statement form of the priority order, as a reference (plus the priority as a column, and the pid order
+     * of the tie rule).
      */
     private static final String REFERENCE_PRIORITY_SQL = "SELECT p.pid AS pid, COALESCE(pr.prio, 0)::text AS prio "
             + "FROM ("

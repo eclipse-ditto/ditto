@@ -28,7 +28,7 @@ import io.r2dbc.postgresql.PostgresqlConnectionFactoryProvider;
 import io.r2dbc.spi.ConnectionFactoryOptions;
 
 /**
- * Unit test proving {@code ConnectionPoolFactory.baseOptions} binds the L-11 statement / connect timeouts.
+ * Unit test proving {@code ConnectionPoolFactory.baseOptions} binds the statement / connect timeouts.
  * <p>
  * Fully offline: building {@link ConnectionFactoryOptions} never opens a connection.
  * <ul>
@@ -87,7 +87,7 @@ public final class ConnectionPoolFactoryTimeoutTest {
 
     @Test
     public void forceCustomPlanBindsPlanCacheModeStartupOption() {
-        // The plancache generic-plan-flip guard (search plan §3.5 / bench-results §8.2): when force-custom-plan is on,
+        // The plancache generic-plan-flip guard: when force-custom-plan is on,
         // plan_cache_mode=force_custom_plan must ride the OPTIONS startup-GUC map (PgBouncer-RESET-safe), alongside
         // statement_timeout.
         final Config config = ConfigFactory.parseString(

@@ -37,7 +37,7 @@ import org.eclipse.ditto.thingsearch.persistence.api.model.SearchIndexDocument;
 import org.junit.Test;
 
 /**
- * TDD spec for {@link ThingFlattener}: the shape cases of its flattening rules, the RFC-6901 escaping cases and a
+ * Unit tests for {@link ThingFlattener}: the shape cases of its flattening rules, the RFC-6901 escaping cases and a
  * {@link SearchIndexDocument}-level integration case on real {@code JsonObject} payloads.
  */
 public class ThingFlattenerTest {
@@ -652,7 +652,7 @@ public class ThingFlattenerTest {
     }
 
     @Test
-    public void escapeJsonPointerSegmentIsExposedForThePhaseDTranslatorToMirror() {
+    public void escapeJsonPointerSegmentEscapesTildeAndSlashForTheQueryTranslation() {
         assertThat(ThingFlattener.escapeJsonPointerSegment("a~b")).isEqualTo("a~0b");
         assertThat(ThingFlattener.escapeJsonPointerSegment("a/b")).isEqualTo("a~1b");
         assertThat(ThingFlattener.escapeJsonPointerSegment("plain")).isEqualTo("plain");

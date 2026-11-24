@@ -21,9 +21,9 @@ import java.util.List;
 import org.junit.Test;
 
 /**
- * Unit tests for the parameterized SQL AST + renderer + bind collector (Task D1).
+ * Unit tests for the parameterized SQL AST + renderer + bind collector.
  * <p>
- * Proves: every node type renders; the §3.3 auth-tree and §3.5 query shapes render with the exact SQL text + ordered
+ * Proves: every node type renders; the auth-tree and query-translation shapes render with the exact SQL text + ordered
  * binds; {@code $n} numbering is deterministic across arbitrary nesting; and — the security contract — hostile strings
  * can only ever reach the statement as bind VALUES, never as SQL text.
  */
@@ -109,11 +109,11 @@ public final class SqlRendererTest {
         assertThat(rendered.bindValues()).containsExactly("/attributes/temp");
     }
 
-    // ================================================================================= §3.3 auth-tree exact rendering
+    // ====================================================================================== auth-tree exact rendering
 
     @Test
     public void authTreeShapeRendersExactSqlAndBinds() {
-        // Transcription of the §3.3 per-field grant/revoke tree for path /attributes/temp, evaluated against
+        // Transcription of the per-field grant/revoke tree for path /attributes/temp, evaluated against
         // policy_auth with subjects :s. ALL jsonb path arrays and the subjects are $n::text[] binds.
         final SqlExpression tree = Sql.and(
                 revoke("attributes", "temp"),
@@ -146,7 +146,7 @@ public final class SqlRendererTest {
         assertThat((String[]) rendered.binds().get(1).value()).containsExactly("subjectA", "subjectB");
     }
 
-    // ============================================================================ §3.5 per-f_id scoped ne() rendering
+    // ================================================================================= per-f_id scoped ne() rendering
 
     @Test
     public void perFeatureScopedNeShapeRenders() {
@@ -189,7 +189,7 @@ public final class SqlRendererTest {
         assertThat(rendered.bindValues().get(5)).isEqualTo(BigDecimal.valueOf(5));
     }
 
-    // ================================================================================= §3.5 lateral sort block + CASE
+    // ====================================================================================== lateral sort block + CASE
 
     @Test
     public void lateralSortBlockRenders() {
@@ -224,7 +224,7 @@ public final class SqlRendererTest {
         assertThat(rendered.bindValues()).containsExactly("/attributes/temp", 5, 1);
     }
 
-    // ============================================================================ §3.5 materialized CTE + EXISTS chain
+    // ================================================================================= materialized CTE + EXISTS chain
 
     @Test
     public void materializedCteWithExistsChainRenders() {

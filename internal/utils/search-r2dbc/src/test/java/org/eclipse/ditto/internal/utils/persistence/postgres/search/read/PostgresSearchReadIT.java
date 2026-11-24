@@ -84,7 +84,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 /**
- * Read-path integration test (Task D4) against a real PostgreSQL (PG 16) via Testcontainers. Data is written by the
+ * Read-path integration test against a real PostgreSQL (PG 16) via Testcontainers. Data is written by the
  * REAL write path ({@link PostgresSearchUpdaterFlow}) and read back through {@link PostgresThingsSearchPersistence},
  * covering the operator/auth matrix, {@code count}/{@code sudoCount}, the namespace report,
  * {@code recoverLastWriteModel} (incl. the emptied-out tombstone and absent cases), {@code findAllUnlimited} streaming,
@@ -431,7 +431,7 @@ public final class PostgresSearchReadIT {
 
     @Test
     public void forceCustomPlanActiveOnSearchPool() {
-        // The persistence reads over this very pool; SHOW proves the wpath-plancache guard (plan §3.5) is active on it.
+        // The persistence reads over this very pool; SHOW proves the wpath-plancache guard is active on it.
         final String mode = Mono.usingWhen(client.getConnectionPool().create(),
                         connection -> Mono.from(connection.createStatement("SHOW plan_cache_mode").execute())
                                 .flatMap(result -> Mono.from(result.map((row, meta) -> row.get(0, String.class)))),
@@ -482,7 +482,8 @@ public final class PostgresSearchReadIT {
         for (final Criteria criteria : filters) {
             assertSameResults(criteria);
         }
-        // the two pairs still exercise a range leg (the lone ranges compare identical statements now)
+        // the two pairs still exercise a range leg (a lone range leg is never materialised, so the lone ranges
+        // compare identical statements)
         for (final Criteria pair : List.of(filters.get(3), filters.get(4))) {
             assertThat(SearchQueryAssembler.count(pair, null, 0L, 0L, SelectiveLegs.POINT_AND_RANGE).sql())
                     .contains("sel_pick").contains("sfc.ord = 1");

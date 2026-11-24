@@ -35,7 +35,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 /**
- * Proves the plan §3.2 shared-database coordination requirement: the event-sourcing persistence schema manager and the
+ * Proves the shared-database coordination requirement: the event-sourcing persistence schema manager and the
  * search schema manager can bootstrap CONCURRENTLY against ONE fresh database with no {@code pg_type} duplicate-key
  * race, both {@code schema_version} component rows landing, and neither component's live-catalog verification tripping
  * over the other's tables.

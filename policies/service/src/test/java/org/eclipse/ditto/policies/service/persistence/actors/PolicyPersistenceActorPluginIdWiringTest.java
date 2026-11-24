@@ -31,7 +31,7 @@ import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 
 /**
- * Directly exercises the C-3 actor seam for {@link PolicyPersistenceActor}: that the actor resolves its Pekko
+ * Directly exercises the plugin-ID actor seam for {@link PolicyPersistenceActor}: that the actor resolves its Pekko
  * journal/snapshot plugin IDs by <em>delegating</em> to the active {@link PersistenceBackendProvider} keyed by the
  * policy entity type — rather than returning the hardcoded {@code pekko-contrib-mongodb-persistence-policies-*}
  * constants.
@@ -108,11 +108,11 @@ public final class PolicyPersistenceActorPluginIdWiringTest {
         final PolicyPersistenceActor actor = ref.underlyingActor();
 
         assertThat(actor.journalPluginId())
-                .as("PolicyPersistenceActor must delegate journalPluginId() to the backend provider (C-3)")
+                .as("PolicyPersistenceActor must delegate journalPluginId() to the backend provider")
                 .isEqualTo(SENTINEL_JOURNAL_ID)
                 .isNotEqualTo("pekko-contrib-mongodb-persistence-policies-journal");
         assertThat(actor.snapshotPluginId())
-                .as("PolicyPersistenceActor must delegate snapshotPluginId() to the backend provider (C-3)")
+                .as("PolicyPersistenceActor must delegate snapshotPluginId() to the backend provider")
                 .isEqualTo(SENTINEL_SNAPSHOT_ID)
                 .isNotEqualTo("pekko-contrib-mongodb-persistence-policies-snapshots");
     }
@@ -147,7 +147,7 @@ public final class PolicyPersistenceActorPluginIdWiringTest {
         @Override
         public SnapshotCodec snapshotCodec() {
             // Minimal pass-through codec: the test never snapshots, but the AbstractPersistenceActor constructor
-            // resolves the codec eagerly (C3). Encoding/decoding are identity over JsonObject.
+            // resolves the codec eagerly. Encoding/decoding are identity over JsonObject.
             return new SnapshotCodec() {
                 @Override
                 public Object encode(final JsonObject json) {

@@ -240,8 +240,8 @@ public final class PostgresSchemaManagerCompatibilityIT {
         bootstrap(V1);
         bootstrap(V2_COMPATIBLE);
         final Row v2Row = storedRow();
-        // A role that may create in the schema and read/write schema_version (all a boot needed before the
-        // min_compatible_version column existed) but owns neither table. ALTER TABLE checks ownership before
+        // A role that may create in the schema and read/write schema_version (all a boot of schema code without the
+        // min_compatible_version column needs) but owns neither table. ALTER TABLE checks ownership before
         // IF NOT EXISTS, so it must not even be issued once the column exists.
         runSql("CREATE ROLE " + READER_ROLE + " LOGIN PASSWORD '" + READER_PASSWORD + "'");
         runSql("GRANT USAGE, CREATE ON SCHEMA public TO " + READER_ROLE);
@@ -257,7 +257,7 @@ public final class PostgresSchemaManagerCompatibilityIT {
     }
 
     // ---------------------------------------------------------------------------------------------------------------
-    // legacy (pre-min_compatible_version) schema_version table
+    // schema_version table without the min_compatible_version column
     // ---------------------------------------------------------------------------------------------------------------
 
     @Test
@@ -273,8 +273,8 @@ public final class PostgresSchemaManagerCompatibilityIT {
 
     @Test
     public void legacyNewerRowTreatsMissingMinCompatibleVersionAsTheStoredVersion() {
-        // Written by a pre-T05 v2 pod: no min_compatible_version column. NULL counts as min = version = 2 > 1
-        // -> refuse.
+        // Written by a v2 pod whose schema code has no min_compatible_version column. NULL counts as
+        // min = version = 2 > 1 -> refuse.
         createLegacySchemaVersionRow(2, PostgresSchemaManager.checksum(V2_COMPATIBLE));
 
         assertThatThrownBy(() -> bootstrap(V1))
@@ -448,7 +448,7 @@ public final class PostgresSchemaManagerCompatibilityIT {
                 + "END IF; END $$");
     }
 
-    /** The schema_version table exactly as pre-T05 code created it (no min_compatible_version column) + one row. */
+    /** The schema_version table as schema code without the min_compatible_version column creates it + one row. */
     private static void createLegacySchemaVersionRow(final int version, final String checksum) {
         runSql(PostgresSchemaManager.SCHEMA_VERSION_DDL);
         runSql("INSERT INTO schema_version (component, version, checksum) VALUES ('" + COMPONENT + "', " + version

@@ -39,10 +39,10 @@ import org.eclipse.ditto.rql.query.expression.ThingsFieldExpressionFactory;
 import org.junit.Test;
 
 /**
- * Golden-SQL unit tests for the RQL→SQL criteria translation (Task D2) — one assertion per §3.5 table row + each §3.3
- * auth exception, plus adversarial cases (revoke-below-grant chains, wildcard-ne divergence, RFC-6901 escaping parity,
- * configured simple-field-mappings, hostile strings). No database: exact rendered SQL + ordered binds via the D1
- * renderer.
+ * Golden-SQL unit tests for the RQL→SQL criteria translation — one assertion per predicate shape and per
+ * authorization exception (root-mapped fields, {@code exists(features/*)}), plus adversarial cases
+ * (revoke-below-grant chains, wildcard-ne divergence, RFC-6901 escaping parity, configured simple-field-mappings,
+ * hostile strings). No database: exact rendered SQL + ordered binds via the SQL AST renderer.
  */
 public final class RqlToSqlTranslationTest {
 
@@ -50,7 +50,7 @@ public final class RqlToSqlTranslationTest {
     private static final String R = "·r";
     private static final List<String> SUBJECTS = List.of("s1", "s2");
 
-    /** The service's default simple-field-mappings (search.conf:145-153). */
+    /** The service's default {@code ditto.search.simple-field-mappings} (search.conf). */
     private static final Map<String, String> MAPPINGS = Map.of(
             "thingId", "_id",
             "namespace", "_namespace",
@@ -63,7 +63,7 @@ public final class RqlToSqlTranslationTest {
     private final ThingsFieldExpressionFactory fef = ThingsFieldExpressionFactory.of(MAPPINGS);
     private final CriteriaFactory cf = CriteriaFactory.getInstance();
 
-    // =========================================================================================== §3.5 predicate rows
+    // ================================================================================================ predicate rows
 
     @Test
     public void eqNumberProbesValNum() {
@@ -122,10 +122,10 @@ public final class RqlToSqlTranslationTest {
     @Test
     public void neNullMatchesTypeRankNegationNotTextLiteral() {
         // Mongo parity: ne(p,null) must match ONLY a leaf that EXISTS with a NON-null value -- a JSON-null leaf,
-        // like a missing one, is excluded. Before the fix, `value == null` fell straight into the generic bind
-        // path: SqlValues.bind(null) renders the TEXT literal 'null' (String.valueOf(null)), which never equals a
-        // null-rank row's SQL-NULL val_text column, so the NOT-EXISTS probe was vacuously true and ne(p,null)
-        // silently degenerated to bare exists(p). The fix mirrors visitEq's null special-case (see
+        // like a missing one, is excluded. If `value == null` fell into the generic bind path,
+        // SqlValues.bind(null) would render the TEXT literal 'null' (String.valueOf(null)), which never equals a
+        // null-rank row's SQL-NULL val_text column, so the NOT-EXISTS probe would be vacuously true and ne(p,null)
+        // would silently degenerate to bare exists(p). The translation mirrors visitEq's null special-case (see
         // eqNullMatchesNullRankRowNotMissing above): negate the SAME type_rank = TYPE_NULL equality instead.
         final RenderedSql r = sudo(cf.fieldCriteria(fef.filterByAttribute("x"), cf.ne(null)));
         assertThat(r.sql()).isEqualTo(
@@ -139,9 +139,8 @@ public final class RqlToSqlTranslationTest {
     public void neStringLiteralNullStillUsesGenericTextBind() {
         // Guards the OTHER half of the bug: the Java String "null" (a genuine RQL string value, not the absence of
         // a value) must NOT be conflated with Java null -- it keeps using the generic val_text = 'null' bind. This
-        // is what fixes the second, string-"null"-wrongly-excluded symptom "for free": once eq/ne no longer treat
-        // Java null and the string "null" as the same thing, a leaf whose actual value IS the string "null" can be
-        // matched again.
+        // is what keeps a leaf whose actual value IS the string "null" from being wrongly excluded: eq/ne do not
+        // treat Java null and the string "null" as the same thing, so that leaf is matched.
         final RenderedSql r = sudo(cf.fieldCriteria(fef.filterByAttribute("x"), cf.ne("null")));
         assertThat(r.sql()).isEqualTo(
                 "(EXISTS (SELECT 1 FROM search_flat sf WHERE (sf.thing_id = st.thing_id AND sf.wpath = $1)) AND "
@@ -152,15 +151,15 @@ public final class RqlToSqlTranslationTest {
 
     @Test
     public void neNullOnRootColumnRendersIsNotNull() {
-        // Root-mapped columns (thingId/namespace) go through columnCondition, not flatCondition. Before the fix
-        // this rendered `<> 'null'` (the same String.valueOf(null) conflation); the fix renders IS NOT NULL,
+        // Root-mapped columns (thingId/namespace) go through columnCondition, not flatCondition. A generic bind
+        // would render `<> 'null'` (the same String.valueOf(null) conflation); the translation renders IS NOT NULL,
         // the column-leg mirror of visitEq's IS NULL for eq(null).
         final RenderedSql r = sudo(cf.fieldCriteria(fef.filterByNamespace(), cf.ne(null)));
         assertThat(r.sql()).isEqualTo("st.namespace IS NOT NULL");
         assertThat(r.bindValues()).isEmpty();
     }
 
-    // ============================================================================ null operands (SB-01, Mongo parity)
+    // ================================================================================== null operands (Mongo parity)
 
     /**
      * The flat probe of {@code in(attributes/x, …, null)}, {@code ge/le(attributes/x, null)}: null-rank row OR no row.
@@ -173,7 +172,7 @@ public final class RqlToSqlTranslationTest {
     @Test
     public void inWithNullMemberMatchesValuesNullRankAndMissing() {
         // Mongo {$in: ["a", null]} (no exists clause) matches the listed value, a BSON null AND an absent field.
-        // Before the fix the null member fell into the generic bind path as the TEXT 'null' (String.valueOf(null)).
+        // The null member must not fall into the generic bind path as the TEXT 'null' (String.valueOf(null)).
         final RenderedSql r = sudo(cf.fieldCriteria(fef.filterByAttribute("x"), cf.in(Arrays.asList("a", null))));
         assertThat(r.sql()).isEqualTo(
                 "(EXISTS (SELECT 1 FROM search_flat sf WHERE (sf.thing_id = st.thing_id AND sf.wpath = $1 AND "
@@ -185,8 +184,7 @@ public final class RqlToSqlTranslationTest {
 
     @Test
     public void inWithOnlyNullIsNullRankOrMissingWithoutAnEmptyValueGroup() {
-        // in(p, null) alone: no value group at all (Sql.or of nothing used to be the failure mode), just
-        // null-or-missing.
+        // in(p, null) alone: no value group at all (an Sql.or of nothing would fail), just null-or-missing.
         final RenderedSql r =
                 sudo(cf.fieldCriteria(fef.filterByAttribute("x"), cf.in(Collections.singletonList(null))));
         assertThat(r.sql()).isEqualTo(NULL_OR_MISSING_X);
@@ -215,7 +213,7 @@ public final class RqlToSqlTranslationTest {
     @Test
     public void inWithNoValuesRendersFalse() {
         // cf.in(List.of()) has no RQL spelling but is a valid Criteria; Mongo's {$in: []} matches nothing. A bare
-        // false, no probe, no bind — flat and column form alike (Sql.or of no operands used to throw here).
+        // false, no probe, no bind — flat and column form alike (an Sql.or of no operands would throw).
         final RenderedSql r = sudo(cf.fieldCriteria(fef.filterByAttribute("x"), cf.in(List.of())));
         assertThat(r.sql()).isEqualTo("false");
         assertThat(r.bindValues()).isEmpty();
@@ -480,7 +478,7 @@ public final class RqlToSqlTranslationTest {
         // trigram ("trigram-less" here): unanchored short runs (*ab*, ?????) yield none, so sf_trgm could only be read
         // in full (GIN_SEARCH_MODE_ALL) — a scan the planner mis-costs and picks on large paths; short runs at the
         // pattern's start or end (*47, 47?, 4?*, ab?cd, *a_b*) may yield padded, typically unselective trigrams.
-        // These keep the plain predicate and, with it, the wpath-bounded plan they had before.
+        // These keep the plain predicate and, with it, the wpath-bounded plan.
         final Map<String, String> trigramLess = new LinkedHashMap<>();
         trigramLess.put("*ab*", "%ab%");
         trigramLess.put("?????", "_____");
@@ -581,7 +579,7 @@ public final class RqlToSqlTranslationTest {
         assertThat(sudo(cf.any()).sql()).isEqualTo("true");
     }
 
-    // ============================================================================ exists() rows + §3.3 exception 2
+    // ================================================================ exists() rows + the exists(features/*) exception
 
     @Test
     public void existsConcretePathCarriesNoAuthUnderSudo() {
@@ -593,7 +591,7 @@ public final class RqlToSqlTranslationTest {
 
     @Test
     public void existsWildcardFeatureIsBareProbeWithNoAuthEvenWhenRestricted() {
-        // §3.3 exception 2: exists(features/*) — bare feature-boundary wpath probe, NO auth chain at all.
+        // Authorization exception: exists(features/*) — bare feature-boundary wpath probe, NO auth chain at all.
         final Criteria c = cf.existsCriteria(fef.existsByFeatureId("*"));
         final RenderedSql r = render(CreateSqlVisitor.apply(c, SUBJECTS).predicate());
         assertThat(r.sql()).isEqualTo(
@@ -628,7 +626,8 @@ public final class RqlToSqlTranslationTest {
 
     @Test
     public void emptyOverMatchesDirectArrayOfArrayContentDivergingFromMongoLiteralEmptyArraySemantics() {
-        // DOCUMENTED DIVERGENCE, pinned deliberately (see GetEmptySqlVisitor javadoc + plan §3.2 stub rule): a
+        // DOCUMENTED DIVERGENCE, pinned deliberately (see the GetEmptySqlVisitor javadoc and the flattener's
+        // array-stub rows; design document, Search backend, Differences from MongoDB (search)): a
         // NON-EMPTY direct array-of-arrays such as x=[[1,2],[3]] emits one valueless type_rank=5 (TYPE_ARRAY) stub
         // row per OUTER element at the exact same wpath a literal x=[] would occupy. The two are indistinguishable
         // at the flat-row level, so Postgres empty(x) spuriously matches x=[[1,2],[3]] where Mongo's
@@ -660,7 +659,7 @@ public final class RqlToSqlTranslationTest {
         assertThat(r.bindValues()).contains(5); // TYPE_ARRAY -- the divergent, over-matching branch
     }
 
-    // ------------------------------------------------------------- empty() on a wildcard feature path (SB-02)
+    // ------------------------------------------------------------- empty() on a wildcard feature path (Mongo parity)
 
     /**
      * {@code empty()} on a wildcard feature path ({@code features/*} + key) under sudo: anchor on the feature boundary
@@ -757,11 +756,11 @@ public final class RqlToSqlTranslationTest {
         assertThat(r.bindValues()).containsExactly("/features/*");
     }
 
-    // ================================================================================= simple/system fields (§3.5)
+    // ======================================================================================= simple/system fields
 
     @Test
     public void rootMappedThingIdIsDocColumnNoAuthNoExists() {
-        // §3.3 exception 1 + §3.5: thingId → _id → st.thing_id column, no auth, no flat probe.
+        // Root-mapped field exception: thingId → _id → st.thing_id column, no auth, no flat probe.
         final RenderedSql r = render(CreateSqlVisitor.apply(
                 cf.fieldCriteria(fef.filterByThingId(), cf.eq("ns:thing1")), SUBJECTS).predicate());
         assertThat(r.sql()).isEqualTo("(st.thing_id = $1 AND st.global_read && $2::text[])");
@@ -797,13 +796,13 @@ public final class RqlToSqlTranslationTest {
         assertThat(r.bindValues().get(0)).isEqualTo("/thingId");
     }
 
-    // ================================================================================= §3.3 auth-tree exact nesting
+    // ====================================================================================== auth-tree exact nesting
 
     @Test
     public void thingLevelAuthRendersExactNestedRevokeGrantTree() {
         final RenderedSql r = render(GetFilterSqlVisitor.apply(fef.filterByAttribute("temp"),
                 new CreateSqlPredicateVisitor(List.of()).visitEq(23), SUBJECTS));
-        // /attributes/temp = 2 segments → 3 auth levels (leaf, attributes, root), leaf OUTERMOST (matches §3.3 golden).
+        // /attributes/temp = 2 segments → 3 auth levels (leaf, attributes, root), leaf OUTERMOST.
         assertThat(r.sql()).isEqualTo(
                 "(EXISTS (SELECT 1 FROM search_flat sf WHERE "
                         + "(sf.thing_id = st.thing_id AND sf.wpath = $1 AND sf.val_num = $2)) AND "
@@ -835,11 +834,11 @@ public final class RqlToSqlTranslationTest {
         assertThat((String[]) r.binds().get(2).value()).containsExactly("features", "f1", "properties", "temp", R);
     }
 
-    // ============================================================= wildcard-feature scoping (§3.5 divergence example)
+    // ============================================================= wildcard-feature scoping (the ne() divergence case)
 
     @Test
     public void wildcardNeIsPerFeatureScopedWithAuthOnSameFeature() {
-        // ne(features/*/x, 5): §3.5 per-f_id shape — EXISTS a (auth over a.f_id) ∧ NOT EXISTS b within the SAME feature.
+        // ne(features/*/x, 5): the per-f_id shape — EXISTS a (auth over a.f_id) ∧ NOT EXISTS b within the SAME feature.
         final RenderedSql r = render(GetFilterSqlVisitor.apply(fef.filterByFeatureProperty("*", "x"),
                 new CreateSqlPredicateVisitor(List.of()).visitNe(5), SUBJECTS));
         assertThat(r.sql()).contains("FROM search_flat a WHERE");
@@ -871,7 +870,7 @@ public final class RqlToSqlTranslationTest {
         assertThat(binds).contains(G).contains(R);
     }
 
-    // ================================================================================= global read (§3.3) sudo split
+    // ======================================================================================== global read sudo split
 
     @Test
     public void applyAddsGlobalReadSudoOmitsIt() {
@@ -909,7 +908,7 @@ public final class RqlToSqlTranslationTest {
 
     @Test
     public void escapingUtilityIsLiterallySharedWithTheFlattener() {
-        // The relocation obligation: the flattener now DELEGATES to JsonPointerSegments, so query-path escaping and
+        // The shared-escaping contract: the flattener DELEGATES to JsonPointerSegments, so query-path escaping and
         // flat-column escaping are byte-for-byte the same code — including the slash direction and the order trap.
         for (final String raw : List.of("plain", "a~b", "a/b", "a/b~c", "~1", "~0", "a~/b")) {
             assertThat(ThingFlattener.escapeJsonPointerSegment(raw)).isEqualTo(JsonPointerSegments.escape(raw));

@@ -80,9 +80,9 @@ public final class PostgresPersistenceBackendProviderTest {
                     + "}\n";
 
     /**
-     * The full mappings PLUS an explicit {@code read-journal.entity}. There is no silent {@code "things"} default
-     * anymore (r2mlh-m4), so every fixture that materialises the read journal must declare the entity explicitly,
-     * exactly as the per-service configs now do.
+     * The full mappings PLUS an explicit {@code read-journal.entity}. There is no silent {@code "things"} default,
+     * so every fixture that materialises the read journal must declare the entity explicitly, exactly as the
+     * per-service configs do.
      */
     private static final String FULL_PLUGIN_IDS =
             PLUGIN_IDS_NO_READ_JOURNAL_ENTITY + "read-journal.entity = \"things\"\n";
@@ -181,7 +181,7 @@ public final class PostgresPersistenceBackendProviderTest {
 
     @Test
     public void missingReadJournalEntityFailsClearly() {
-        // r2mlh-m4: there is NO silent "things" default anymore. A service that activates the Postgres profile but
+        // There is NO silent "things" default. A service that activates the Postgres profile but
         // forgets to set read-journal.entity must fail fast with a DittoConfigError, not silently bind to things_*.
         final PostgresPersistenceBackendProvider provider = providerWith(PLUGIN_IDS_NO_READ_JOURNAL_ENTITY);
 
@@ -207,8 +207,8 @@ public final class PostgresPersistenceBackendProviderTest {
 
     /**
      * Loads the named service's real HOCON from the repo source tree and asserts the provider resolves the expected
-     * read-journal entity (and does not throw). This pins the per-service {@code read-journal.entity} override added in
-     * r2mlh-m4: it parses the actual {@code <service>.conf}, extracts the
+     * read-journal entity (and does not throw). This pins the per-service {@code read-journal.entity} override: it
+     * parses the actual {@code <service>.conf}, extracts the
      * {@code ditto.extensions.persistence-backend-provider.extension-config} subtree exactly as {@code PekkoClassLoader}
      * would, and runs it through the production {@code resolveReadJournalEntity()}.
      */
@@ -386,7 +386,7 @@ public final class PostgresPersistenceBackendProviderTest {
 
     @Test
     public void buildingReadJournalWiresPoolMetricsPollerAndShutdownHook() {
-        // Building the read journal creates the pool and (per the fix) starts the pool-metrics poller and registers a
+        // Building the read journal creates the pool and starts the pool-metrics poller and registers a
         // coordinated-shutdown task; both must materialise without a live DB and tear down cleanly via system.terminate().
         final PostgresPersistenceBackendProvider provider = providerWith(FULL_PLUGIN_IDS);
 

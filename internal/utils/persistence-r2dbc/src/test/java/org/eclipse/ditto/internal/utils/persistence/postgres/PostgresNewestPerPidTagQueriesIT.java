@@ -344,7 +344,7 @@ public final class PostgresNewestPerPidTagQueriesIT {
     private static void assertNewestRowStepIsABackwardPrimaryKeyScanWithoutSort(final String sql,
             final List<Object> binds, final String tag) {
         // Index ELIGIBILITY on a test-sized table: without seq scans and explicit sorts the planner must still find a
-        // sort-free plan. The former DISTINCT ON (pid) … ORDER BY pid, sn DESC shape has none: even with sorting
+        // sort-free plan. A DISTINCT ON (pid) … ORDER BY pid, sn DESC shape has none: even with sorting
         // disabled it keeps an (Incremental) Sort on (pid, sn DESC) over the whole journal. The per-pid top-1 is an
         // index-only scan when the query needs no tags from that row (empty tag, newest-event variant).
         final String plan = fixture.explain(sql, binds, "enable_seqscan = off", "enable_sort = off");

@@ -23,10 +23,10 @@ import org.junit.Test;
  * {@code healthCheck()}, {@code streaming(String)}, {@code snapshotCodec()}, {@code payloadStore(String)}).
  * <p>
  * Every new accessor has a {@code default} body that throws {@link UnsupportedOperationException}. This is the
- * "backends compile incrementally" contract from the plan: a current {@link PersistenceBackendProvider} implementation
+ * "backends compile incrementally" contract: a current {@link PersistenceBackendProvider} implementation
  * (e.g. the Mongo provider) does not need to implement any of the new methods to compile, and a caller that touches an
- * accessor a backend has not yet wired gets a loud, explicit failure rather than a silent wrong answer. The Mongo
- * (phase B) and Postgres (phase E) providers override these one by one.
+ * accessor a backend has not wired gets a loud, explicit failure rather than a silent wrong answer. The Mongo and
+ * Postgres providers override the accessors they support.
  */
 public final class PersistenceBackendProviderApiSurfaceTest {
 

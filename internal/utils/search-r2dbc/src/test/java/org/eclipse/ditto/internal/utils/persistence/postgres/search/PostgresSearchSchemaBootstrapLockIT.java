@@ -85,7 +85,8 @@ public final class PostgresSearchSchemaBootstrapLockIT {
         final ExecutorService executor = Executors.newSingleThreadExecutor();
         try (HeldLock build = HeldLock.on("search_flat", "SHARE UPDATE EXCLUSIVE")) {
             final Future<Duration> boot = executor.submit(() -> timed(PostgresSearchSchemaBootstrapLockIT::bootstrap));
-            // Old code: the boot now holds SHARE on search_things and waits for SHARE on search_flat. New code: done.
+            // A boot taking SHARE locks would hold SHARE on search_things and wait for SHARE on search_flat here;
+            // a same-version boot must complete instead.
             awaitDoneOrWaitingForALock(boot);
 
             final Duration write = timed(() -> writeThing("it:writer"));
@@ -142,7 +143,7 @@ public final class PostgresSearchSchemaBootstrapLockIT {
         return Flux.from(connection.createStatement(sql).execute()).flatMap(Result::getRowsUpdated).then();
     }
 
-    /** Returns once the boot finished, or once some backend waits for a lock in a CREATE INDEX (old code path). */
+    /** Returns once the boot finished, or once some backend waits for a lock in a CREATE INDEX. */
     private static void awaitDoneOrWaitingForALock(final Future<?> boot) throws InterruptedException {
         final long deadline = System.nanoTime() + Duration.ofSeconds(5).toNanos();
         while (!boot.isDone() && System.nanoTime() < deadline) {

@@ -60,7 +60,7 @@ import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 
 /**
- * <strong>The Mongo &lt;-&gt; Postgres parity matrix</strong> (plan Phase G, the single most important test of the
+ * <strong>The Mongo &lt;-&gt; Postgres parity matrix</strong> (the single most important test of the
  * pluggable-search effort): ONE corpus of things+policies is written to BOTH a real Mongo container and a real
  * PG16 container through their respective FULL production write paths (shared neutral enforcement front
  * {@code EnforcedThingMapper}/{@code SearchIndexDocumentFactory}; Mongo: {@code SearchIndexDocumentMongoEncoder} +
@@ -87,7 +87,7 @@ import com.typesafe.config.ConfigFactory;
  *     ({@code exists(key)} is true for an explicit null and an empty array folds into the null sort group on both
  *     backends), duplicating or live-locking the walk identically on both backends. Explicit-null/empty-array sort
  *     positions are therefore covered by the SORT battery (strict order parity) but excluded from walk corpora.</li>
- *     <li><strong>Allowlist entry #8 ({@code sudo-wildcard-value-mongo-degenerate-path}, G1 adjudication):</strong>
+ *     <li><strong>Allowlist entry #8 ({@code sudo-wildcard-value-mongo-degenerate-path}):</strong>
  *     under SUDO, Mongo's {@code GetFilterBsonVisitor.matchWildcardFeatureValue} degrades to a top-level dotted
  *     path (e.g. {@code properties.status}) that no document has. For an ordinary operand that path matches
  *     NOTHING, while Postgres answers {@code features/*} value predicates semantically — PG is a strict superset.

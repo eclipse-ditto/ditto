@@ -50,7 +50,8 @@ import reactor.core.publisher.Mono;
  * Unit tests for {@link PostgresDeleteAtReaperActor} — no real database at all, only fake/failing
  * {@link ConnectionFactory}s driving {@link PostgresDeleteAtReaper#tick()} through the actor. Covers the two pieces of
  * logic that live in the actor itself (everything else is exercised DB-free in {@link ReaperDrainLoopTest} and against
- * a real database in {@code PostgresPurgeReaperIT}): (1) the WARN-and-continue resilience contract (brief req 2), and
+ * a real database in {@code PostgresPurgeReaperIT}): (1) the WARN-and-continue resilience contract (a failed tick
+ * is logged and the next tick runs), and
  * (2) routing a successful, non-empty {@link PostgresDeleteAtReaper.TickResult} into the reaped-rows counter.
  */
 public final class PostgresDeleteAtReaperActorTest {

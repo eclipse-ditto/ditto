@@ -57,10 +57,10 @@ import org.apache.pekko.testkit.javadsl.TestKit;
 import reactor.core.publisher.Mono;
 
 /**
- * Regression unit test (no DB, no Testcontainers) for the round-2 finding that {@code fullWrite}/{@code emptiedOut}
- * used to call {@link ThingFlattener#flatten(SearchIndexDocument)} EAGERLY while building the {@code Mono} --
- * BEFORE {@link PostgresSearchUpdaterFlow}'s {@code applyModel} attached its {@code onErrorResume} -- so a throwing
- * flatten escaped the per-element error boundary entirely and would have failed {@code flatMapConcat}'s mapping
+ * Regression unit test (no DB, no Testcontainers): {@code fullWrite}/{@code emptiedOut} must not call
+ * {@link ThingFlattener#flatten(SearchIndexDocument)} EAGERLY while building the {@code Mono}. Called there, i.e.
+ * BEFORE {@link PostgresSearchUpdaterFlow}'s {@code applyModel} attached its {@code onErrorResume}, a throwing
+ * flatten would escape the per-element error boundary entirely and fail {@code flatMapConcat}'s mapping
  * function, aborting the WHOLE stream instead of just the one poisoned thing (violating the "one thing's failure
  * aborts nothing else" contract documented on the class).
  * <p>

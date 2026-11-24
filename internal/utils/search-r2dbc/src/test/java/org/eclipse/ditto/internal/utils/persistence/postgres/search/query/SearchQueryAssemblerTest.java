@@ -27,8 +27,8 @@ import org.eclipse.ditto.rql.query.expression.ThingsFieldExpressionFactory;
 import org.junit.Test;
 
 /**
- * Golden-SQL unit tests for {@link SearchQueryAssembler} (Task D4 statement assembly) — the {@code findAll}/{@code
- * count} shapes and, in particular, BOTH branches of the §3.5 selective-leg rescue CTE heuristic (present when a
+ * Golden-SQL unit tests for {@link SearchQueryAssembler} (the statement assembly) — the {@code findAll}/{@code
+ * count} shapes and, in particular, BOTH branches of the selective-leg rescue CTE heuristic (present when a
  * top-level {@code eq}/{@code in} conjunct exists; absent — plain EXISTS chain — otherwise). No database.
  */
 public final class SearchQueryAssemblerTest {
@@ -205,7 +205,7 @@ public final class SearchQueryAssemblerTest {
 
     @Test
     public void sortLateralCarriesNoAuthorization() {
-        // Sort keys are never authorization-filtered (plan §3.3 exception 3, mirrored in PostgresSortClause's javadoc;
+        // Sort keys are never authorization-filtered (stated in PostgresSortClause's javadoc;
         // Mongo sorts the unfiltered thing too): the subjects restrict WHICH things match, never their sort key.
         final PostgresSortClause sort = PostgresSortClause.of(
                 List.of(asc(fef.sortByFeatureProperty("env", "temperature")), asc(fef.sortByThingId())));

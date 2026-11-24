@@ -34,7 +34,7 @@ import org.junit.Test;
 public final class PostgresSchemaTest {
 
     // The effective DDL = the manager-owned shared schema_version table + this component's own statements, i.e. exactly
-    // what the bootstrap executes (schema_version is no longer folded into PostgresSchema.ddlStatements() itself).
+    // what the bootstrap executes (schema_version is not part of PostgresSchema.ddlStatements() itself).
     private static final List<String> DDL = PostgresSchemaManager.effectiveDdl(PostgresSchema.descriptor());
 
     @Test

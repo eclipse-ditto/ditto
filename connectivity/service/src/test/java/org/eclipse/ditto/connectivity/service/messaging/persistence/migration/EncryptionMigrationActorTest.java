@@ -724,7 +724,7 @@ public final class EncryptionMigrationActorTest {
             assertThat(counter(afterAbort, "snapshots/processed")).isEqualTo(1L);
             assertThat(store.journalStreamCalls).isEmpty();
 
-            // the progress was saved after the batch and again on the abort, with the plain phase (as before)
+            // the progress was saved after the batch and again on the abort, with the plain phase
             Awaitility.await().atMost(AWAIT).until(() -> store.savedProgressRecords.size() == 2);
             final JsonObject abortRecord = store.savedProgressRecords.get(1);
             assertThat(string(abortRecord, "phase")).isEqualTo("snapshots");

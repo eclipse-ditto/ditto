@@ -75,14 +75,14 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 /**
- * End-to-end integration test of the Task-D4 cursor seam: it drives the <em>REAL</em> package-private
+ * End-to-end integration test of the cursor seam: it drives the <em>REAL</em> package-private
  * {@link ThingsSearchCursor} (encode -&gt; decode -&gt; {@code adjust}) and feeds the resulting resume criteria into the
  * PostgreSQL read persistence, walking a filtered/sorted result set to exhaustion page by page and asserting the
  * concatenated pages equal the unpaged reference — no drops, no duplicates — including across a number-&gt;string sort
  * type boundary and rank-equal ties (the {@code eq}-dimension resume branch).
  * <p>
  * This lives in the cursor's own package (split-package test source) because {@link ThingsSearchCursor} is
- * package-private; thingsearch/service is a test-scope dependency (see the module POM). Because the cursor now feeds
+ * package-private; thingsearch/service is a test-scope dependency (see the module POM). Because the cursor feeds
  * plain-Java sort values (not BSON) into the resume predicate, the PostgreSQL translator ({@code SqlValues}) types the
  * bind correctly — the exact bug this test guards against.
  * </p>
