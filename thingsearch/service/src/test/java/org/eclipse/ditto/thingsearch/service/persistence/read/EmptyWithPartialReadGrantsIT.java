@@ -182,6 +182,21 @@ public final class EmptyWithPartialReadGrantsIT extends AbstractReadPersistenceI
     }
 
     @Test
+    public void notEmptyAttributesWithRevokedReadOnAttributes() {
+        final Criteria crit = cf.nor(cf.emptyCriteria(ef.existsBy("attributes")));
+
+        assertThat(findFor(crit, SUBJECT_REVOKED)).containsOnly(THING_ABSENT_ID, THING_EMPTY_ID, THING_SET_ID);
+    }
+
+    @Test
+    public void notEqualAbsentAttributeWithRevokedReadOnAttributes() {
+        // ne does not match a thing without attributes/foo, and the revoke hides attributes/foo of the others
+        final Criteria crit = cf.fieldCriteria(ef.filterByAttribute("foo"), cf.ne("x"));
+
+        assertThat(findFor(crit, SUBJECT_REVOKED)).isEmpty();
+    }
+
+    @Test
     public void subjectWithGrantOnlyOnAbsentPathDoesNotFindThing() {
         // the subject may read attributes/foo of THING_SET_ID, but has no grant on a path which exists in the other
         // things, so it must not find those
