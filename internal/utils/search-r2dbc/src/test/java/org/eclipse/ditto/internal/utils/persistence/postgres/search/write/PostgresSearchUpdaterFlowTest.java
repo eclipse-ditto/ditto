@@ -133,6 +133,26 @@ public final class PostgresSearchUpdaterFlowTest {
         assertThat(healthyResult.result().classify()).isEqualTo(SearchWriteResultStatus.UNACKNOWLEDGED);
     }
 
+    @Test
+    public void everyResultCarriesACorrelationId() throws Exception {
+        final PostgresSearchUpdaterFlow flow =
+                PostgresSearchUpdaterFlow.forConnectionFactory(new AlwaysFailingConnectionFactory());
+
+        final List<UpdaterResult> results = Source.from(List.of(updaterDataFor(POISON_THING_ID),
+                        updaterDataFor(HEALTHY_THING_ID)))
+                .via(flow.create())
+                .runWith(Sink.seq(), system)
+                .toCompletableFuture()
+                .get(30, TimeUnit.SECONDS);
+
+        assertThat(results).hasSize(2);
+        final List<String> correlationIds = results.stream()
+                .map(result -> result.result().getCorrelationId().orElseThrow())
+                .toList();
+        assertThat(correlationIds).allSatisfy(id -> assertThat(id).isNotBlank());
+        assertThat(correlationIds.get(0)).isNotEqualTo(correlationIds.get(1));
+    }
+
     private static UpdaterData updaterDataFor(final ThingId thingId) {
         final Metadata metadata = metadata(thingId, 1L);
         final JsonObject thing = JsonObject.newBuilder()

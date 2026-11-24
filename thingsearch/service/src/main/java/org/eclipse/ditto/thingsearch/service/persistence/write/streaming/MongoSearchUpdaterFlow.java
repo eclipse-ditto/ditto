@@ -109,9 +109,22 @@ public final class MongoSearchUpdaterFlow implements SearchUpdaterFlow {
         return Flow.<UpdaterData>create()
                 .flatMapConcat(updaterData -> toIncrementalMongo(updaterData)
                         .map(mongoWriteModel -> executeBulkWrite(List.of(mongoWriteModel))
-                                .map(resultAndErrors -> new UpdaterResult(updaterData.writeModel(),
+                                .map(resultAndErrors -> new UpdaterResult(
+                                        reportedWriteModel(updaterData, mongoWriteModel),
                                         toSearchWriteResult(resultAndErrors))))
                         .orElseGet(Source::empty));
+    }
+
+    /**
+     * Return the neutral write model to report for a MongoDB write: a patch update relative to the revision of the
+     * last write model if the MongoDB write was a patch, otherwise the write model of the update unchanged.
+     */
+    private static AbstractWriteModel reportedWriteModel(final UpdaterData updaterData,
+            final MongoWriteModel mongoWriteModel) {
+        if (mongoWriteModel.isPatchUpdate() && updaterData.writeModel() instanceof ThingWriteModel neutral) {
+            return neutral.asPatchUpdate(updaterData.lastWriteModel().getMetadata().getThingRevision());
+        }
+        return updaterData.writeModel();
     }
 
     /**
@@ -176,12 +189,15 @@ public final class MongoSearchUpdaterFlow implements SearchUpdaterFlow {
     static SearchWriteResult toSearchWriteResult(final WriteResultAndErrors writeResultAndErrors) {
         final Optional<Throwable> unexpectedError = writeResultAndErrors.getUnexpectedError();
         final int writeModelCount = writeResultAndErrors.getWriteModels().size();
+        final String correlationId = writeResultAndErrors.getBulkWriteCorrelationId();
         if (unexpectedError.isPresent()) {
-            return SearchWriteResult.unexpectedError(writeModelCount, unexpectedError.get());
+            return SearchWriteResult.unexpectedError(writeModelCount, unexpectedError.get())
+                    .withDiagnostics(correlationId, 0, 0);
         }
         final BulkWriteResult bulkWriteResult = writeResultAndErrors.getBulkWriteResult();
         if (!bulkWriteResult.wasAcknowledged()) {
-            return SearchWriteResult.unacknowledged(writeModelCount);
+            // the counts of an unacknowledged result must not be read: they throw
+            return SearchWriteResult.unacknowledged(writeModelCount).withDiagnostics(correlationId, 0, 0);
         }
         final int nonDeleteWriteModelCount = (int) writeResultAndErrors.getWriteModels().stream()
                 .filter(model -> !(model.getDitto()
@@ -196,7 +212,8 @@ public final class MongoSearchUpdaterFlow implements SearchUpdaterFlow {
                 .toList();
         return SearchWriteResult.acknowledged(writeModelCount, nonDeleteWriteModelCount,
                 bulkWriteResult.getMatchedCount(), bulkWriteResult.getModifiedCount(),
-                bulkWriteResult.getUpserts().size(), errors);
+                bulkWriteResult.getUpserts().size(), errors)
+                .withDiagnostics(correlationId, bulkWriteResult.getInsertedCount(), bulkWriteResult.getDeletedCount());
     }
 
     private Source<WriteResultAndErrors, NotUsed> executeBulkWrite(final Collection<MongoWriteModel> writeModels) {

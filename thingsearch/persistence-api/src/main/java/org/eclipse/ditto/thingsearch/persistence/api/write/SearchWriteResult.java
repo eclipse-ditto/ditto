@@ -14,6 +14,7 @@ package org.eclipse.ditto.thingsearch.persistence.api.write;
 
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
@@ -24,6 +25,11 @@ import javax.annotation.concurrent.Immutable;
  * {@link #classify()} method reproduces the Mongo flow's decision rules in a backend-agnostic way, including
  * its decision precedence (CONSISTENCY_ERROR &gt; INCORRECT_PATCH &gt; WRITE_ERROR &gt; OK) as implemented by
  * {@code BulkWriteResultAckFlow.checkForConsistencyError}.
+ * <p>
+ * A result may also carry diagnostic values (a correlation ID and the inserted and deleted counts), set through
+ * {@link #withDiagnostics(String, int, int)}. They exist only for logging and play no part in {@link #classify()}.
+ * A backend that does not report a count leaves it at 0.
+ * </p>
  *
  * @since 4.0.0
  */
@@ -38,11 +44,15 @@ public final class SearchWriteResult {
     private final int upsertedCount;
     private final List<SearchWriteError> errors;
     @Nullable private final Throwable unexpectedError;
+    @Nullable private final String correlationId;
+    private final int insertedCount;
+    private final int deletedCount;
 
     private SearchWriteResult(final boolean acknowledged, final int writeModelCount,
             final int nonDeleteWriteModelCount, final int matchedCount, final int modifiedCount,
             final int upsertedCount, final List<SearchWriteError> errors,
-            @Nullable final Throwable unexpectedError) {
+            @Nullable final Throwable unexpectedError, @Nullable final String correlationId,
+            final int insertedCount, final int deletedCount) {
         this.acknowledged = acknowledged;
         this.writeModelCount = writeModelCount;
         this.nonDeleteWriteModelCount = nonDeleteWriteModelCount;
@@ -51,6 +61,9 @@ public final class SearchWriteResult {
         this.upsertedCount = upsertedCount;
         this.errors = List.copyOf(errors);
         this.unexpectedError = unexpectedError;
+        this.correlationId = correlationId;
+        this.insertedCount = insertedCount;
+        this.deletedCount = deletedCount;
     }
 
     /**
@@ -82,7 +95,7 @@ public final class SearchWriteResult {
             final int matchedCount, final int modifiedCount, final int upsertedCount,
             final List<SearchWriteError> errors) {
         return new SearchWriteResult(true, writeModelCount, nonDeleteWriteModelCount, matchedCount, modifiedCount,
-                upsertedCount, errors, null);
+                upsertedCount, errors, null, null, 0, 0);
     }
 
     /**
@@ -92,7 +105,7 @@ public final class SearchWriteResult {
      * @return the write result.
      */
     public static SearchWriteResult unacknowledged(final int writeModelCount) {
-        return new SearchWriteResult(false, writeModelCount, writeModelCount, 0, 0, 0, List.of(), null);
+        return new SearchWriteResult(false, writeModelCount, writeModelCount, 0, 0, 0, List.of(), null, null, 0, 0);
     }
 
     /**
@@ -103,7 +116,22 @@ public final class SearchWriteResult {
      * @return the write result.
      */
     public static SearchWriteResult unexpectedError(final int writeModelCount, final Throwable unexpectedError) {
-        return new SearchWriteResult(false, writeModelCount, writeModelCount, 0, 0, 0, List.of(), unexpectedError);
+        return new SearchWriteResult(false, writeModelCount, writeModelCount, 0, 0, 0, List.of(), unexpectedError, null,
+                0, 0);
+    }
+
+    /**
+     * Return a copy of this result that carries the given diagnostic values. They are used only for logging.
+     *
+     * @param correlationId the correlation ID of the write, or {@code null} if there is none.
+     * @param insertedCount the number of documents inserted, or 0 if the backend does not report it.
+     * @param deletedCount the number of documents deleted, or 0 if the backend does not report it.
+     * @return the copy.
+     */
+    public SearchWriteResult withDiagnostics(@Nullable final String correlationId, final int insertedCount,
+            final int deletedCount) {
+        return new SearchWriteResult(acknowledged, writeModelCount, nonDeleteWriteModelCount, matchedCount,
+                modifiedCount, upsertedCount, errors, unexpectedError, correlationId, insertedCount, deletedCount);
     }
 
     /**
@@ -165,6 +193,27 @@ public final class SearchWriteResult {
     }
 
     /**
+     * @return the correlation ID of the write, if any; used only for logging.
+     */
+    public Optional<String> getCorrelationId() {
+        return Optional.ofNullable(correlationId);
+    }
+
+    /**
+     * @return the number of documents inserted, or 0 if the backend does not report it; used only for logging.
+     */
+    public int getInsertedCount() {
+        return insertedCount;
+    }
+
+    /**
+     * @return the number of documents deleted, or 0 if the backend does not report it; used only for logging.
+     */
+    public int getDeletedCount() {
+        return deletedCount;
+    }
+
+    /**
      * Classify this result into the neutral outcome vocabulary, reproducing the Mongo bulk-write
      * acknowledgement flow's rules AND its decision precedence
      * ({@code BulkWriteResultAckFlow.checkForConsistencyError}): unacknowledged wins first; then error
@@ -212,13 +261,16 @@ public final class SearchWriteResult {
                 modifiedCount == that.modifiedCount &&
                 upsertedCount == that.upsertedCount &&
                 Objects.equals(errors, that.errors) &&
-                Objects.equals(unexpectedError, that.unexpectedError);
+                Objects.equals(unexpectedError, that.unexpectedError) &&
+                Objects.equals(correlationId, that.correlationId) &&
+                insertedCount == that.insertedCount &&
+                deletedCount == that.deletedCount;
     }
 
     @Override
     public int hashCode() {
         return Objects.hash(acknowledged, writeModelCount, nonDeleteWriteModelCount, matchedCount, modifiedCount,
-                upsertedCount, errors, unexpectedError);
+                upsertedCount, errors, unexpectedError, correlationId, insertedCount, deletedCount);
     }
 
     @Override
@@ -232,6 +284,9 @@ public final class SearchWriteResult {
                 ", upsertedCount=" + upsertedCount +
                 ", errors=" + errors +
                 ", unexpectedError=" + unexpectedError +
+                ", correlationId=" + correlationId +
+                ", insertedCount=" + insertedCount +
+                ", deletedCount=" + deletedCount +
                 "]";
     }
 }

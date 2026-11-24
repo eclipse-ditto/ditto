@@ -35,15 +35,18 @@ import org.bson.BsonDocument;
 import org.bson.BsonString;
 import org.eclipse.ditto.internal.utils.metrics.instruments.timer.StartedTimer;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.thingsearch.persistence.api.model.Metadata;
 import org.eclipse.ditto.thingsearch.persistence.api.model.SearchIndexDocument;
 import org.eclipse.ditto.thingsearch.persistence.api.model.ThingDeleteModel;
 import org.eclipse.ditto.thingsearch.persistence.api.model.ThingWriteModel;
+import org.eclipse.ditto.thingsearch.persistence.api.write.SearchWriteResult;
 import org.eclipse.ditto.thingsearch.persistence.api.write.UpdaterData;
 import org.eclipse.ditto.thingsearch.persistence.api.write.UpdaterResult;
 import org.eclipse.ditto.thingsearch.service.common.config.PersistenceStreamConfig;
 import org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants;
+import org.eclipse.ditto.thingsearch.service.persistence.write.model.WriteResultAndErrors;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -54,6 +57,7 @@ import com.mongodb.bulk.BulkWriteResult;
 import com.mongodb.bulk.BulkWriteUpsert;
 import com.mongodb.client.model.BulkWriteOptions;
 import com.mongodb.client.model.ReplaceOneModel;
+import com.mongodb.client.model.UpdateOneModel;
 import com.mongodb.client.model.WriteModel;
 import com.mongodb.reactivestreams.client.MongoCollection;
 import com.mongodb.reactivestreams.client.MongoDatabase;
@@ -148,6 +152,80 @@ public final class MongoSearchUpdaterFlowTest {
         assertThat(results).hasSize(1);
     }
 
+    @Test
+    public void resultCarriesTheBulkWriteCorrelationIdAndCounts() throws Exception {
+        final BulkWriteResult bulkWriteResult = BulkWriteResult.acknowledged(2, 1, 3, 1, List.of(), List.of());
+        whenBulkWriteReturn(bulkWriteResult);
+        final var writeModel = ThingWriteModel.of(metadata(2L, null), document(2L));
+        final var lastWriteModel = ThingDeleteModel.of(Metadata.ofDeleted(THING_ID));
+
+        final List<UpdaterResult> results = runFlow(new UpdaterData(writeModel, lastWriteModel));
+
+        assertThat(results).hasSize(1);
+        final SearchWriteResult result = results.get(0).result();
+        assertThat(result.getCorrelationId()).hasValueSatisfying(id -> assertThat(id).isNotBlank());
+        assertThat(result.getInsertedCount()).isEqualTo(2);
+        assertThat(result.getDeletedCount()).isEqualTo(3);
+    }
+
+    @Test
+    public void resultOfAnUnexpectedErrorCarriesTheCorrelationId() {
+        final SearchWriteResult unexpected = MongoSearchUpdaterFlow.toSearchWriteResult(
+                WriteResultAndErrors.unexpectedError(List.of(), new IllegalStateException("boom"), "cid-1"));
+        final SearchWriteResult unacknowledged = MongoSearchUpdaterFlow.toSearchWriteResult(
+                WriteResultAndErrors.success(List.of(), BulkWriteResult.unacknowledged(), "cid-2"));
+
+        assertThat(unexpected.getCorrelationId()).contains("cid-1");
+        assertThat(unexpected.getInsertedCount()).isZero();
+        assertThat(unexpected.getDeletedCount()).isZero();
+        assertThat(unacknowledged.getCorrelationId()).contains("cid-2");
+        assertThat(unacknowledged.getInsertedCount()).isZero();
+        assertThat(unacknowledged.getDeletedCount()).isZero();
+    }
+
+    @Test
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    public void patchUpdateIsReportedWithThePatchFlagAndThePreviousRevision() throws Exception {
+        whenBulkWriteReturn(BulkWriteResult.acknowledged(0, 1, 0, 1, List.of(), List.of()));
+        final var lastWriteModel = ThingWriteModel.of(metadata(1L, null), document(1L, thingWithAttributes(1)));
+        final SearchIndexDocument currentDocument = document(2L, thingWithAttributes(2));
+        final var writeModel = ThingWriteModel.of(metadata(2L, null), currentDocument);
+
+        final List<UpdaterResult> results = runFlow(new UpdaterData(writeModel, lastWriteModel));
+
+        final ArgumentCaptor<List<? extends WriteModel<BsonDocument>>> captor =
+                (ArgumentCaptor) ArgumentCaptor.forClass(List.class);
+        verify(collection).bulkWrite(captor.capture(), any(BulkWriteOptions.class));
+        assertThat(captor.getValue()).singleElement().isInstanceOf(UpdateOneModel.class);
+        assertThat(results).singleElement().satisfies(result ->
+                assertThat(result.writeModel()).isInstanceOfSatisfying(ThingWriteModel.class, reported -> {
+                    assertThat(reported.isPatchUpdate()).isTrue();
+                    assertThat(reported.getPreviousRevision()).isEqualTo(1L);
+                    assertThat(reported.getDocument()).isEqualTo(currentDocument);
+                }));
+    }
+
+    @Test
+    public void fullReplaceIsReportedWithoutThePatchFlag() throws Exception {
+        whenBulkWriteReturn(BulkWriteResult.acknowledged(0, 0, 0, 0,
+                List.of(new BulkWriteUpsert(0, new BsonString(THING_ID.toString()))), List.of()));
+        final var writeModel = ThingWriteModel.of(metadata(2L, null), document(2L));
+        final var lastWriteModel = ThingDeleteModel.of(Metadata.ofDeleted(THING_ID));
+
+        final List<UpdaterResult> results = runFlow(new UpdaterData(writeModel, lastWriteModel));
+
+        assertThat(results).singleElement().satisfies(result -> {
+            assertThat(result.writeModel()).isSameAs(writeModel);
+            assertThat(((ThingWriteModel) result.writeModel()).isPatchUpdate()).isFalse();
+        });
+    }
+
+    private void whenBulkWriteReturn(final BulkWriteResult bulkWriteResult) {
+        when(collection.bulkWrite(anyList(), any(BulkWriteOptions.class)))
+                .thenReturn(Source.single(bulkWriteResult)
+                        .runWith(Sink.asPublisher(AsPublisher.WITHOUT_FANOUT), actorSystem));
+    }
+
     private List<UpdaterResult> runFlow(final UpdaterData updaterData) throws Exception {
         return Source.single(updaterData)
                 .via(underTest.create())
@@ -161,11 +239,30 @@ public final class MongoSearchUpdaterFlowTest {
     }
 
     private static SearchIndexDocument document(final long revision) {
+        return document(revision, JsonObject.empty());
+    }
+
+    private static SearchIndexDocument document(final long revision, final JsonObject thing) {
         return SearchIndexDocument.newBuilder(THING_ID)
                 .namespace(THING_ID.getNamespace())
                 .revision(revision)
-                .thing(JsonObject.empty())
+                .thing(thing)
                 .policyAuth(JsonObject.empty())
+                .build();
+    }
+
+    /**
+     * A thing with 20 attributes of which only {@code attr0} depends on the given value, so that the diff between
+     * two of them is smaller than the whole document.
+     */
+    private static JsonObject thingWithAttributes(final int value) {
+        final JsonObjectBuilder attributes = JsonObject.newBuilder().set("attr0", value);
+        for (int i = 1; i < 20; ++i) {
+            attributes.set("attr" + i, "a fairly long attribute value number " + i);
+        }
+        return JsonObject.newBuilder()
+                .set("thingId", THING_ID.toString())
+                .set("attributes", attributes.build())
                 .build();
     }
 

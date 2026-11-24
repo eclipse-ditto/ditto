@@ -17,6 +17,7 @@ import java.time.Instant;
 import java.time.format.DateTimeParseException;
 import java.util.List;
 import java.util.Objects;
+import java.util.UUID;
 import java.util.function.Function;
 
 import javax.annotation.concurrent.ThreadSafe;
@@ -222,7 +223,8 @@ public final class PostgresSearchUpdaterFlow implements SearchUpdaterFlow {
                 .flatMapConcat(updaterData -> {
                     final AbstractWriteModel model = updaterData.writeModel();
                     return Source.fromPublisher(applyModel(model))
-                            .map(result -> new UpdaterResult(model, result));
+                            .map(result -> new UpdaterResult(model,
+                                    result.withDiagnostics(UUID.randomUUID().toString(), 0, 0)));
                 });
     }
 

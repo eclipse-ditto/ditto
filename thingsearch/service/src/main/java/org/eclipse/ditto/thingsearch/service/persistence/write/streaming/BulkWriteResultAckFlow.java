@@ -83,7 +83,7 @@ public final class BulkWriteResultAckFlow {
                 return Pair.create(Status.CONSISTENCY_ERROR,
                         List.of(String.format("ConsistencyError[indexOutOfBound]: %s", result)));
             case INCORRECT_PATCH:
-                reportIncorrectPatch(writeModels);
+                reportIncorrectPatch(writeModels, result);
                 return Pair.create(Status.INCORRECT_PATCH,
                         acknowledgeSuccessesAndFailures(writeModels, result, true));
             case WRITE_ERROR:
@@ -96,14 +96,18 @@ public final class BulkWriteResultAckFlow {
         }
     }
 
-    private static void reportIncorrectPatch(final List<AbstractWriteModel> writeModels) {
+    private static void reportIncorrectPatch(final List<AbstractWriteModel> writeModels,
+            final SearchWriteResult result) {
+        final ThreadSafeDittoLogger logger = LOGGER.withCorrelationId(result.getCorrelationId().orElse(null));
         // Some patches are not applied due to inconsistent sequence number in the search index.
         // It is not possible to identify which patches are not applied; therefore request all patch updates to retry.
         writeModels.forEach(model -> {
             if (model instanceof ThingWriteModel thingWriteModel && thingWriteModel.isPatchUpdate()) {
-                LOGGER.warn("Encountered incorrect patch update for metadata: <{}>", model.getMetadata());
+                final Metadata metadata = model.getMetadata();
+                logger.warn("Encountered incorrect patch update for metadata: <{}> and filter: <_id={}, _revision={}>",
+                        metadata, metadata.getThingId(), thingWriteModel.getPreviousRevision());
             } else {
-                LOGGER.info("Skipping retry of full update in a batch with an incorrect patch: <{}>",
+                logger.info("Skipping retry of full update in a batch with an incorrect patch: <{}>",
                         model.getMetadata().getThingId());
             }
         });
@@ -155,6 +159,7 @@ public final class BulkWriteResultAckFlow {
     private static String logResult(final String status, final SearchWriteResult result,
             final boolean containsNoErrors, final boolean containsIncorrectPatch) {
         final var unexpectedError = result.getUnexpectedError();
+        final String correlation = result.getCorrelationId().orElse("");
         if (unexpectedError != null) {
             if (unexpectedError instanceof DittoRuntimeException dittoRuntimeException) {
                 return dittoRuntimeException.toJsonString();
@@ -162,29 +167,39 @@ public final class BulkWriteResultAckFlow {
                 final StringWriter stackTraceWriter = new StringWriter();
                 stackTraceWriter.append(String.format("%s: UnexpectedError[stacktrace=", status));
                 unexpectedError.printStackTrace(new PrintWriter(stackTraceWriter));
-                return stackTraceWriter.append("]").toString();
+                return stackTraceWriter.append("] - correlation: ")
+                        .append(correlation)
+                        .toString();
             }
         } else if (containsNoErrors) {
             return String.format(
-                    "%s: %s[ack=%b,errors=%d,matched=%d,upserts=%d,modified=%d]",
+                    "%s: %s[ack=%b,errors=%d,matched=%d,upserts=%d,inserted=%d,modified=%d,deleted=%d]" +
+                            " - correlation: %s",
                     status,
                     containsIncorrectPatch ? "IncorrectPatch" : "Success",
                     result.isAcknowledged(),
                     result.getErrors().size(),
                     result.getMatchedCount(),
                     result.getUpsertedCount(),
-                    result.getModifiedCount());
+                    result.getInsertedCount(),
+                    result.getModifiedCount(),
+                    result.getDeletedCount(),
+                    correlation);
         } else {
             // partial success or failure
             return String.format(
-                    "%s: PartialSuccess[ack=%b,errorCount=%d,matched=%d,upserts=%d,modified=%d,errors=%s]",
+                    "%s: PartialSuccess[ack=%b,errorCount=%d,matched=%d,upserts=%d,inserted=%d,modified=%d," +
+                            "deleted=%d,errors=%s] - correlation: %s",
                     status,
                     result.isAcknowledged(),
                     result.getErrors().size(),
                     result.getMatchedCount(),
                     result.getUpsertedCount(),
+                    result.getInsertedCount(),
                     result.getModifiedCount(),
-                    result.getErrors());
+                    result.getDeletedCount(),
+                    result.getErrors(),
+                    correlation);
         }
     }
 

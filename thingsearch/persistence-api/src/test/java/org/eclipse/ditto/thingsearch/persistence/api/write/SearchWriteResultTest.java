@@ -13,8 +13,11 @@
 package org.eclipse.ditto.thingsearch.persistence.api.write;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertTrue;
 
 import java.util.List;
+import java.util.Optional;
 
 import org.junit.Test;
 
@@ -111,5 +114,68 @@ public final class SearchWriteResultTest {
         final SearchWriteResult result = SearchWriteResult.unexpectedError(5, new IllegalStateException("boom"));
 
         assertEquals(SearchWriteResultStatus.UNACKNOWLEDGED, result.classify());
+    }
+
+    @Test
+    public void diagnosticsAreAbsentWithoutTheCall() {
+        final List<SearchWriteResult> results = List.of(
+                SearchWriteResult.acknowledged(5, 5, 3, 2, 2, List.of()),
+                SearchWriteResult.unacknowledged(5),
+                SearchWriteResult.unexpectedError(5, new IllegalStateException("boom")));
+
+        for (final SearchWriteResult result : results) {
+            assertEquals(Optional.empty(), result.getCorrelationId());
+            assertEquals(0, result.getInsertedCount());
+            assertEquals(0, result.getDeletedCount());
+        }
+    }
+
+    @Test
+    public void withDiagnosticsSetsTheValuesAndKeepsTheClassification() {
+        final List<SearchWriteResult> results = List.of(
+                SearchWriteResult.unacknowledged(5),
+                SearchWriteResult.acknowledged(5, 5, 1, 1, 0, List.of()),
+                SearchWriteResult.acknowledged(5, 5, 4, 4, 1,
+                        List.of(new SearchWriteError(2, SearchWriteError.Category.OTHER, "boom"))),
+                SearchWriteResult.acknowledged(5, 5, 3, 2, 2, List.of()),
+                SearchWriteResult.acknowledged(5, 5, 1, 1, 0,
+                        List.of(new SearchWriteError(5, SearchWriteError.Category.OTHER, "boom"))));
+
+        for (final SearchWriteResult original : results) {
+            final SearchWriteResult withDiagnostics = original.withDiagnostics("abc", 4, 5);
+
+            assertEquals(Optional.of("abc"), withDiagnostics.getCorrelationId());
+            assertEquals(4, withDiagnostics.getInsertedCount());
+            assertEquals(5, withDiagnostics.getDeletedCount());
+            assertEquals(original.classify(), withDiagnostics.classify());
+            assertEquals(original.isAcknowledged(), withDiagnostics.isAcknowledged());
+            assertEquals(original.getWriteModelCount(), withDiagnostics.getWriteModelCount());
+            assertEquals(original.getNonDeleteWriteModelCount(), withDiagnostics.getNonDeleteWriteModelCount());
+            assertEquals(original.getMatchedCount(), withDiagnostics.getMatchedCount());
+            assertEquals(original.getModifiedCount(), withDiagnostics.getModifiedCount());
+            assertEquals(original.getUpsertedCount(), withDiagnostics.getUpsertedCount());
+            assertEquals(original.getErrors(), withDiagnostics.getErrors());
+            assertEquals(original.getUnexpectedError(), withDiagnostics.getUnexpectedError());
+        }
+        assertEquals(List.of(SearchWriteResultStatus.UNACKNOWLEDGED, SearchWriteResultStatus.INCORRECT_PATCH,
+                        SearchWriteResultStatus.WRITE_ERROR, SearchWriteResultStatus.OK,
+                        SearchWriteResultStatus.CONSISTENCY_ERROR),
+                results.stream().map(SearchWriteResult::classify).toList());
+    }
+
+    @Test
+    public void diagnosticsTakePartInEqualsAndToString() {
+        final SearchWriteResult result = SearchWriteResult.acknowledged(5, 5, 3, 2, 2, List.of());
+        final SearchWriteResult abc = result.withDiagnostics("abc", 1, 2);
+        final SearchWriteResult xyz = result.withDiagnostics("xyz", 1, 2);
+
+        assertNotEquals(abc, xyz);
+        assertNotEquals(abc, result.withDiagnostics("abc", 3, 2));
+        assertNotEquals(abc, result.withDiagnostics("abc", 1, 3));
+        assertEquals(abc, result.withDiagnostics("abc", 1, 2));
+        assertEquals(abc.hashCode(), result.withDiagnostics("abc", 1, 2).hashCode());
+        assertTrue(abc.toString(), abc.toString().contains("correlationId=abc"));
+        assertTrue(abc.toString(), abc.toString().contains("insertedCount=1"));
+        assertTrue(abc.toString(), abc.toString().contains("deletedCount=2"));
     }
 }
