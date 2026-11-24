@@ -349,16 +349,27 @@ public final class PostgresPersistenceOperations {
     }
 
     /**
-     * Upper-bounded snapshot delete — the {@code deleteAsync(pid, criteria)} overload:
-     * {@code sn <= maxSeq AND written_at <= maxTs}, no lower bound.
+     * Deletes every snapshot row of {@code pid} whose {@code sn} and {@code written_at} both lie inside their
+     * inclusive ranges, i.e. the {@code deleteAsync(pid, criteria)} overload of the snapshot store.
+     *
+     * @param pid the persistence id.
+     * @param maxSeq inclusive upper {@code sn} bound.
+     * @param minSeq inclusive lower {@code sn} bound.
+     * @param maxTs inclusive upper {@code written_at} bound.
+     * @param minTs inclusive lower {@code written_at} bound.
+     * @return a {@code Mono} of the deleted row count.
      */
-    public Mono<Long> deleteSnapshotsUpTo(final String pid, final long maxSeq, final Instant maxTs) {
+    public Mono<Long> deleteSnapshotsInRange(final String pid, final long maxSeq, final long minSeq,
+            final Instant maxTs, final Instant minTs) {
         return Mono.from(client.executeUpdatePublisher(
-                "DELETE FROM " + tables.snapsTable() + " WHERE pid = $1 AND sn <= $2 AND written_at <= $3",
+                "DELETE FROM " + tables.snapsTable()
+                        + " WHERE pid = $1 AND sn <= $2 AND sn >= $3 AND written_at <= $4 AND written_at >= $5",
                 stmt -> {
                     stmt.bind(0, pid);
                     stmt.bind(1, maxSeq);
-                    stmt.bind(2, maxTs);
+                    stmt.bind(2, minSeq);
+                    stmt.bind(3, maxTs);
+                    stmt.bind(4, minTs);
                 }));
     }
 

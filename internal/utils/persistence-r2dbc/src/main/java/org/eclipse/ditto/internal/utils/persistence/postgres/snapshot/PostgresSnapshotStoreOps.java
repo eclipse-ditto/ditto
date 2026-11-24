@@ -116,11 +116,16 @@ public final class PostgresSnapshotStoreOps {
         return delete.<Void>then(reactor.core.publisher.Mono.empty()).toFuture();
     }
 
-    /** {@code deleteAsync(pid, criteria)}: upper-bounded {@code sn<=maxSeq AND written_at<=maxTs}. */
+    /**
+     * {@code deleteAsync(pid, criteria)}: deletes the snapshots inside all four {@link SnapshotSelectionCriteria}
+     * bounds (inclusive); the timestamp bounds are mapped as in {@link #loadAsync}.
+     */
     public CompletionStage<Void> deleteAsync(final String persistenceId, final SnapshotSelectionCriteria criteria) {
         final long maxSeq = criteria.maxSequenceNr();
+        final long minSeq = criteria.minSequenceNr();
         final Instant maxTs = toInstantUpper(criteria.maxTimestamp());
-        return operations.deleteSnapshotsUpTo(persistenceId, maxSeq, maxTs)
+        final Instant minTs = toInstantLower(criteria.minTimestamp());
+        return operations.deleteSnapshotsInRange(persistenceId, maxSeq, minSeq, maxTs, minTs)
                 .<Void>then(reactor.core.publisher.Mono.empty())
                 .toFuture();
     }

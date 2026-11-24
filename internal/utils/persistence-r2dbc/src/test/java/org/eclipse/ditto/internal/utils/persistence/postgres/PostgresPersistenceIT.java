@@ -174,7 +174,7 @@ public final class PostgresPersistenceIT {
         assertThat(await(snapshots.loadAsync(pid, SnapshotSelectionCriteria.create(10L, Long.MAX_VALUE)))
                 .map(s -> s.metadata().sequenceNr())).contains(5L);
 
-        // criteria-form delete is upper-bounded (sn<=20, ts<=3000) -> removes the remaining rows.
+        // criteria-form delete create(20, 3000) has lower bounds 0 (sn<=20, ts<=3000) -> removes the remaining rows.
         await(snapshots.deleteAsync(pid, SnapshotSelectionCriteria.create(20L, 3000L)));
         assertThat(await(snapshots.loadAsync(pid, SnapshotSelectionCriteria.latest()))).isEmpty();
     }

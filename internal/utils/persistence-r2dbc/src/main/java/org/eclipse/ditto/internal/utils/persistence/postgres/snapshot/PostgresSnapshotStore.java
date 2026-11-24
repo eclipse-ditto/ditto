@@ -48,8 +48,8 @@ import scala.jdk.javaapi.FutureConverters;
  *     <li><strong>{@code doSaveAsync}</strong> is an idempotent {@code INSERT … ON CONFLICT (pid, sn, written_at) DO
  *     UPDATE}.</li>
  *     <li><strong>Two {@code doDeleteAsync} overloads</strong> kept distinct: the metadata form deletes
- *     exactly {@code (pid, sn, written_at)}; the criteria form is upper-bounded {@code sn <= maxSeq AND written_at <=
- *     maxTs} with no lower bound.</li>
+ *     exactly {@code (pid, sn, written_at)}; the criteria form deletes every snapshot inside all four
+ *     {@link SnapshotSelectionCriteria} bounds, like {@code doLoadAsync}.</li>
  * </ul>
  * <p>
  * The loaded JSONB is surfaced as JSON text; the snapshot adapter Pekko applies to the returned {@code SelectedSnapshot}

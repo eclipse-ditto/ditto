@@ -172,16 +172,40 @@ public final class PostgresSnapshotStoreTest {
     }
 
     @Test
-    public void deleteAsyncByCriteriaIsUpperBoundedOnly() throws Exception {
+    public void deleteAsyncByCriteriaBindsAllFourBounds() throws Exception {
         final RecordingConnectionFactory factory = new RecordingConnectionFactory();
         final PostgresSnapshotStoreOps store = storeFor(factory);
 
-        await(store.deleteAsync(PID, SnapshotSelectionCriteria.create(20L, 5000L)));
+        await(store.deleteAsync(PID, SnapshotSelectionCriteria.create(20L, 5000L, 3L, 100L)));
 
-        final String sql = factory.executedSql().stream()
-                .filter(s -> s.contains("DELETE FROM things_snaps")).findFirst().orElseThrow();
-        // criteria form: upper-bounded sn<=maxSeq AND written_at<=maxTs, no lower bound.
-        assertThat(sql).contains("WHERE pid = $1 AND sn <= $2 AND written_at <= $3");
+        final RecordingConnectionFactory.Execution delete = factory.executions().stream()
+                .filter(execution -> execution.sql().contains("DELETE FROM things_snaps"))
+                .findFirst().orElseThrow();
+        // criteria form: both inclusive sn and written_at ranges, bound as pid, maxSeq, minSeq, maxTs, minTs.
+        assertThat(delete.sql())
+                .contains("WHERE pid = $1 AND sn <= $2 AND sn >= $3 AND written_at <= $4 AND written_at >= $5");
+        assertThat(delete.binds()).isEqualTo(Map.of(
+                0, PID,
+                1, 20L,
+                2, 3L,
+                3, Instant.ofEpochMilli(5000L),
+                4, Instant.ofEpochMilli(100L)));
+    }
+
+    @Test
+    public void deleteAsyncByCriteriaClampsTimestampBounds() throws Exception {
+        final RecordingConnectionFactory factory = new RecordingConnectionFactory();
+        final PostgresSnapshotStoreOps store = storeFor(factory);
+
+        await(store.deleteAsync(PID, SnapshotSelectionCriteria.create(Long.MAX_VALUE, Long.MAX_VALUE,
+                Long.MIN_VALUE, Long.MIN_VALUE)));
+
+        final RecordingConnectionFactory.Execution delete = factory.executions().stream()
+                .filter(execution -> execution.sql().contains("DELETE FROM things_snaps"))
+                .findFirst().orElseThrow();
+        // the upper timestamp bound is clamped to the largest TIMESTAMPTZ second, the lower one to the epoch.
+        assertThat(delete.binds().get(3)).isEqualTo(Instant.parse("9999-12-31T23:59:59Z"));
+        assertThat(delete.binds().get(4)).isEqualTo(Instant.EPOCH);
     }
 
     @Test
