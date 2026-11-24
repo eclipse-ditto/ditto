@@ -17,6 +17,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import org.eclipse.ditto.internal.utils.config.DittoConfigError;
 import org.eclipse.ditto.internal.utils.persistence.api.PersistencePluginConfig;
@@ -284,7 +285,7 @@ public final class PostgresPluginWiringCheckTest {
         }
 
         @Override
-        public RememberStorePluginIds getRememberStorePluginIds(final String entityType) {
+        public Optional<RememberStorePluginIds> getRememberStorePluginIds(final String entityType) {
             throw new UnsupportedOperationException("not used by the wiring check");
         }
     }

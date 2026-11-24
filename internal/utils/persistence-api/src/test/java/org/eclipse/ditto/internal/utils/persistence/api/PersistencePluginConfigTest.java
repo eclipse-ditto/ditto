@@ -16,6 +16,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.List;
+import java.util.Optional;
 
 import org.eclipse.ditto.internal.utils.persistence.api.PersistencePluginConfig.RememberStorePluginIds;
 import org.junit.Test;
@@ -65,7 +66,7 @@ public final class PersistencePluginConfigTest {
         assertThat(config.getJournalPluginId("thing")).isEqualTo("thing-journal");
         assertThat(config.getSnapshotPluginId("thing")).isEqualTo("thing-snapshots");
         assertThat(config.getAutoStartPluginIds("things")).containsExactly("auto-journal", "auto-snapshots");
-        assertThat(config.getRememberStorePluginIds("connection")).isEqualTo(connectionRemember);
+        assertThat(config.getRememberStorePluginIds("connection")).contains(connectionRemember);
     }
 
     /** Minimal stand-in proving {@link PersistencePluginConfig} is implementable by a backend with plain strings. */
@@ -89,8 +90,8 @@ public final class PersistencePluginConfigTest {
         }
 
         @Override
-        public RememberStorePluginIds getRememberStorePluginIds(final String entityType) {
-            return rememberStoreIds;
+        public Optional<RememberStorePluginIds> getRememberStorePluginIds(final String entityType) {
+            return Optional.of(rememberStoreIds);
         }
     }
 }

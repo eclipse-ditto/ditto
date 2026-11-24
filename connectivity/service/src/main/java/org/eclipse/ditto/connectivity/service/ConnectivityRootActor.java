@@ -13,6 +13,7 @@
 package org.eclipse.ditto.connectivity.service;
 
 import jakarta.jms.JMSRuntimeException;
+import javax.annotation.Nullable;
 import javax.naming.NamingException;
 
 import org.apache.pekko.actor.ActorRef;
@@ -236,7 +237,8 @@ public final class ConnectivityRootActor extends DittoRootActor {
             final PersistenceBackendProvider backendProvider) {
 
         final ClusterShardingSettings shardingSettings = rememberEntitiesShardingSettings(actorSystem,
-                backendProvider.pluginConfig().getRememberStorePluginIds(ConnectivityMessagingConstants.SHARD_REGION));
+                backendProvider.pluginConfig().getRememberStorePluginIds(ConnectivityMessagingConstants.SHARD_REGION)
+                        .orElse(null));
 
         return ClusterSharding.get(actorSystem)
                 .start(ConnectivityMessagingConstants.SHARD_REGION,
@@ -246,26 +248,31 @@ public final class ConnectivityRootActor extends DittoRootActor {
     }
 
     /**
-     * Builds the {@link ClusterShardingSettings} for the connection shard region, programmatically setting the
-     * cluster-sharding {@code remember-entities} event-sourced store's journal/snapshot plugin IDs from the active
-     * persistence backend's provider (the single source of truth — never hardcoded here).
+     * Builds the {@link ClusterShardingSettings} for the connection shard region with the connectivity cluster role
+     * and the journal/snapshot plugin IDs of the cluster-sharding {@code remember-entities} event-sourced store.
      * <p>
-     * On MongoDB they are the dedicated {@code pekko-contrib-mongodb-persistence-connection-remember-*} plugins
-     * (behaviour-identical to the previously HOCON-only configuration); on PostgreSQL the dedicated
-     * {@code ditto-postgres-connection-remember-*} plugins. Both feed Pekko's
+     * When the persistence provider names remember-store plugin IDs (the PostgreSQL backend:
+     * {@code ditto-postgres-connection-remember-*}), the settings carry them, whatever the configuration says. When it
+     * names none (MongoDB), the settings keep {@code pekko.cluster.sharding.journal-plugin-id} /
+     * {@code snapshot-plugin-id} of the configuration, where connectivity ships the
+     * {@code pekko-contrib-mongodb-persistence-connection-remember-*} plugins. Both feed Pekko's
      * {@code EventSourcedRememberEntitiesShardStore}, since {@code remember-entities-store} stays {@code eventsourced}
      * on either backend.
      *
      * @param actorSystem the actor system.
-     * @param rememberStorePluginIds the remember-store journal/snapshot plugin IDs from the persistence provider.
-     * @return the sharding settings carrying the provider's remember-store plugin IDs.
+     * @param rememberStorePluginIds the remember-store journal/snapshot plugin IDs from the persistence provider, or
+     * {@code null} to keep those of the configuration.
+     * @return the sharding settings for the connection shard region.
      */
     static ClusterShardingSettings rememberEntitiesShardingSettings(final ActorSystem actorSystem,
-            final PersistencePluginConfig.RememberStorePluginIds rememberStorePluginIds) {
+            @Nullable final PersistencePluginConfig.RememberStorePluginIds rememberStorePluginIds) {
 
-        return ClusterShardingSettings.create(actorSystem)
-                .withRole(ConnectivityMessagingConstants.CLUSTER_ROLE)
-                .withJournalPluginId(rememberStorePluginIds.journalPluginId())
+        final ClusterShardingSettings settings = ClusterShardingSettings.create(actorSystem)
+                .withRole(ConnectivityMessagingConstants.CLUSTER_ROLE);
+        if (rememberStorePluginIds == null) {
+            return settings;
+        }
+        return settings.withJournalPluginId(rememberStorePluginIds.journalPluginId())
                 .withSnapshotPluginId(rememberStorePluginIds.snapshotPluginId());
     }
 

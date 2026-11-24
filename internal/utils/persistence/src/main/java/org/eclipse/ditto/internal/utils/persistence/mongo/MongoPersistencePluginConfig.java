@@ -15,18 +15,20 @@ package org.eclipse.ditto.internal.utils.persistence.mongo;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.internal.utils.persistence.api.PersistencePluginConfig;
 
 /**
- * MongoDB implementation of {@link PersistencePluginConfig}: yields the per-entity journal/snapshot plugin IDs,
- * the per-service {@code pekko.persistence.*.auto-start-*} plugin IDs, and the per-entity cluster-sharding
- * remember-store plugin IDs for the MongoDB backend.
+ * MongoDB implementation of {@link PersistencePluginConfig}: yields the per-entity journal/snapshot plugin IDs and
+ * the per-service {@code pekko.persistence.*.auto-start-*} plugin IDs for the MongoDB backend. It names no
+ * remember-store plugin IDs, so the shard region keeps {@code pekko.cluster.sharding.journal-plugin-id} /
+ * {@code snapshot-plugin-id} of the configuration.
  *
  * <h2>ID-sourcing approach — constants matching the shipped HOCON</h2>
- * The auto-start and remember-store IDs are hardcoded as named constants whose values are verified verbatim
+ * The auto-start IDs are hardcoded as named constants whose values are verified verbatim
  * against the shipped service HOCON (things.conf, policies.conf, connectivity.conf). Hardcoding — rather than
  * reading from the conf at runtime — keeps these values available to the HOCON drift test without a fully-loaded
  * service config; it also turns a value mismatch into a failing unit test rather than a runtime mystery. Any change
@@ -47,7 +49,6 @@ public final class MongoPersistencePluginConfig implements PersistencePluginConf
     //   things.conf:609-614  (auto-start — things journal + snapshots; WoT intentionally absent)
     //   policies.conf:291-296 (auto-start — policies journal + snapshots)
     //   connectivity.conf:1227-1232 (auto-start — connection journal + snapshots)
-    //   connectivity.conf:1175-1176 (remember-store — connection-remember journal + snapshots)
 
     // things — auto-start (things.conf:610, 613)
     static final String THINGS_JOURNAL = "pekko-contrib-mongodb-persistence-things-journal";
@@ -61,12 +62,6 @@ public final class MongoPersistencePluginConfig implements PersistencePluginConf
     static final String CONNECTION_JOURNAL = "pekko-contrib-mongodb-persistence-connection-journal";
     static final String CONNECTION_SNAPSHOTS = "pekko-contrib-mongodb-persistence-connection-snapshots";
 
-    // connectivity — remember-store (connectivity.conf:1175, 1176)
-    static final String CONNECTION_REMEMBER_JOURNAL =
-            "pekko-contrib-mongodb-persistence-connection-remember-journal";
-    static final String CONNECTION_REMEMBER_SNAPSHOTS =
-            "pekko-contrib-mongodb-persistence-connection-remember-snapshots";
-
     // ── static maps built once at class-load time ─────────────────────────────
 
     /**
@@ -77,13 +72,6 @@ public final class MongoPersistencePluginConfig implements PersistencePluginConf
             "things",       List.of(THINGS_JOURNAL, THINGS_SNAPSHOTS),
             "policies",     List.of(POLICIES_JOURNAL, POLICIES_SNAPSHOTS),
             "connectivity", List.of(CONNECTION_JOURNAL, CONNECTION_SNAPSHOTS)
-    );
-
-    /**
-     * Per-entity remember-store plugin ID pairs.
-     */
-    private static final Map<String, RememberStorePluginIds> REMEMBER_STORE_IDS_BY_ENTITY = Map.of(
-            "connection", RememberStorePluginIds.of(CONNECTION_REMEMBER_JOURNAL, CONNECTION_REMEMBER_SNAPSHOTS)
     );
 
     /**
@@ -126,14 +114,8 @@ public final class MongoPersistencePluginConfig implements PersistencePluginConf
     }
 
     @Override
-    public RememberStorePluginIds getRememberStorePluginIds(final String entityType) {
+    public Optional<RememberStorePluginIds> getRememberStorePluginIds(final String entityType) {
         Objects.requireNonNull(entityType, "entityType");
-        final RememberStorePluginIds ids = REMEMBER_STORE_IDS_BY_ENTITY.get(entityType);
-        if (ids == null) {
-            throw new IllegalArgumentException(
-                    "No remember-store plugin IDs configured for entity type '" + entityType +
-                            "'. Known entities: " + REMEMBER_STORE_IDS_BY_ENTITY.keySet());
-        }
-        return ids;
+        return Optional.empty();
     }
 }

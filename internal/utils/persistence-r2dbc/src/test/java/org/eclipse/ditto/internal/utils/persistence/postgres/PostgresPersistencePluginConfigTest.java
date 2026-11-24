@@ -88,7 +88,7 @@ public final class PostgresPersistencePluginConfigTest {
         // Like MongoDB's connection-remember collections: the remember-entities store gets plugins and tables of its
         // own, so the persistence ping and cleanup never see Pekko's /sharding/... persistence ids.
         final PersistencePluginConfig.RememberStorePluginIds ids =
-                pluginConfig.getRememberStorePluginIds("connection");
+                pluginConfig.getRememberStorePluginIds("connection").orElseThrow();
 
         assertThat(ids.journalPluginId()).isEqualTo("ditto-postgres-connection-remember-journal");
         assertThat(ids.snapshotPluginId()).isEqualTo("ditto-postgres-connection-remember-snapshots");
@@ -100,7 +100,7 @@ public final class PostgresPersistencePluginConfigTest {
         // hands to the shard region exist in the profile, and connectivity does not auto-start them (as on MongoDB)
         final Config profile = ConfigFactory.parseResources("ditto-postgres-persistence.conf").resolve();
         final PersistencePluginConfig.RememberStorePluginIds ids =
-                pluginConfig.getRememberStorePluginIds("connection");
+                pluginConfig.getRememberStorePluginIds("connection").orElseThrow();
 
         for (final String block : List.of(ids.journalPluginId(), ids.snapshotPluginId())) {
             assertThat(profile.hasPath(block + ".class")).as(block + " is a plugin block of the profile").isTrue();

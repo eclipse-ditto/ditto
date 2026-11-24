@@ -14,85 +14,111 @@ package org.eclipse.ditto.connectivity.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+
 import org.apache.pekko.actor.ActorSystem;
 import org.apache.pekko.cluster.sharding.ClusterShardingSettings;
 import org.apache.pekko.testkit.javadsl.TestKit;
 import org.eclipse.ditto.connectivity.api.ConnectivityMessagingConstants;
+import org.eclipse.ditto.internal.utils.config.raw.RawConfigSupplier;
 import org.eclipse.ditto.internal.utils.persistence.api.PersistenceBackendProvider;
-import org.eclipse.ditto.internal.utils.persistence.api.PersistencePluginConfig.RememberStorePluginIds;
 import org.eclipse.ditto.internal.utils.persistence.mongo.MongoPersistenceBackendProvider;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
+import org.eclipse.ditto.internal.utils.persistence.postgres.PostgresPersistenceBackendProvider;
+import org.junit.After;
 import org.junit.Test;
 
 import com.typesafe.config.ConfigFactory;
 
 /**
- * Verifies that {@link ConnectivityRootActor} builds the connection shard-region {@link ClusterShardingSettings}
- * with the cluster-sharding {@code remember-entities} store's journal/snapshot plugin IDs sourced from the active
- * persistence backend's provider rather than relying solely on HOCON.
- * <p>
- * On the default (Mongo) backend the provider returns the dedicated {@code *-remember-*} plugin IDs, so the resulting
- * sharding settings must carry exactly those — keeping the effective Mongo remember-entities behaviour identical.
+ * Verifies the remember-entities store plugin IDs of the connection shard region's {@link ClusterShardingSettings}
+ * built by {@link ConnectivityRootActor}, on the shipped connectivity configuration:
+ * <ul>
+ *     <li>on MongoDB the plugin config names no remember-store plugins, so the settings carry the
+ *     {@code pekko.cluster.sharding.journal-plugin-id} / {@code snapshot-plugin-id} of the configuration, both the
+ *     shipped {@code pekko-contrib-mongodb-persistence-connection-remember-*} ones and an operator's override;</li>
+ *     <li>on PostgreSQL the plugin config names the dedicated {@code ditto-postgres-connection-remember-*} plugins,
+ *     which the settings carry whatever the configuration says.</li>
+ * </ul>
  */
 public final class ConnectivityRootActorShardingSettingsTest {
 
-    private static ActorSystem actorSystem;
+    private static final String OVERRIDDEN_PLUGIN_IDS = """
+            pekko.cluster.sharding.journal-plugin-id = "custom-journal"
+            pekko.cluster.sharding.snapshot-plugin-id = "custom-snapshots"
+            """;
 
-    @BeforeClass
-    public static void setUp() {
-        // A plain local actor system is enough: ClusterShardingSettings.create reads its defaults from reference.conf,
-        // and the test only asserts the programmatic remember-store plugin-id overrides — no clustering/remoting needed.
-        actorSystem = ActorSystem.create("ConnectivityRootActorShardingSettingsTest");
-    }
+    private final List<ActorSystem> actorSystems = new ArrayList<>();
 
-    @AfterClass
-    public static void tearDown() {
-        if (actorSystem != null) {
-            TestKit.shutdownActorSystem(actorSystem);
-            actorSystem = null;
-        }
+    @After
+    public void tearDown() {
+        actorSystems.forEach(TestKit::shutdownActorSystem);
+        actorSystems.clear();
     }
 
     @Test
-    public void shardingSettingsCarryTheProvidersRememberStorePluginIds() {
-        final RememberStorePluginIds providerIds =
-                RememberStorePluginIds.of("custom-journal-plugin-id", "custom-snapshot-plugin-id");
+    public void mongoDbKeepsThePluginIdsOfTheConfiguration() {
+        final ActorSystem system = newSystem("");
+        final PersistenceBackendProvider provider = new MongoPersistenceBackendProvider(system, ConfigFactory.empty());
 
-        final ClusterShardingSettings shardingSettings =
-                ConnectivityRootActor.rememberEntitiesShardingSettings(actorSystem, providerIds);
+        final ClusterShardingSettings shardingSettings = shardingSettings(system, provider);
 
         assertThat(shardingSettings.journalPluginId())
-                .as("remember-store journal plugin ID must come from the provider")
-                .isEqualTo(providerIds.journalPluginId());
+                .isEqualTo("pekko-contrib-mongodb-persistence-connection-remember-journal");
         assertThat(shardingSettings.snapshotPluginId())
-                .as("remember-store snapshot plugin ID must come from the provider")
-                .isEqualTo(providerIds.snapshotPluginId());
-        assertThat(shardingSettings.role().isDefined())
-                .as("connection shard region keeps a cluster role")
-                .isTrue();
-        assertThat(shardingSettings.role().get())
-                .as("connection shard region keeps the connectivity cluster role")
-                .isEqualTo(ConnectivityMessagingConstants.CLUSTER_ROLE);
+                .isEqualTo("pekko-contrib-mongodb-persistence-connection-remember-snapshots");
+        assertConnectivityRole(shardingSettings);
     }
 
     @Test
-    public void mongoBackendKeepsTheDedicatedRememberPluginIds() {
-        final PersistenceBackendProvider mongoProvider =
-                new MongoPersistenceBackendProvider(actorSystem, ConfigFactory.empty());
-        final RememberStorePluginIds mongoIds =
-                mongoProvider.pluginConfig().getRememberStorePluginIds(ConnectivityMessagingConstants.SHARD_REGION);
+    public void mongoDbHonoursOverriddenPluginIds() {
+        final ActorSystem system = newSystem(OVERRIDDEN_PLUGIN_IDS);
+        final PersistenceBackendProvider provider = new MongoPersistenceBackendProvider(system, ConfigFactory.empty());
 
-        // behaviour-identical assertion: these are exactly the *-remember-* IDs that connectivity.conf:1175-1176 ship.
-        assertThat(mongoIds.journalPluginId())
-                .isEqualTo("pekko-contrib-mongodb-persistence-connection-remember-journal");
-        assertThat(mongoIds.snapshotPluginId())
-                .isEqualTo("pekko-contrib-mongodb-persistence-connection-remember-snapshots");
+        final ClusterShardingSettings shardingSettings = shardingSettings(system, provider);
 
-        final ClusterShardingSettings shardingSettings =
-                ConnectivityRootActor.rememberEntitiesShardingSettings(actorSystem, mongoIds);
+        assertThat(shardingSettings.journalPluginId()).isEqualTo("custom-journal");
+        assertThat(shardingSettings.snapshotPluginId()).isEqualTo("custom-snapshots");
+        assertConnectivityRole(shardingSettings);
+    }
 
-        assertThat(shardingSettings.journalPluginId()).isEqualTo(mongoIds.journalPluginId());
-        assertThat(shardingSettings.snapshotPluginId()).isEqualTo(mongoIds.snapshotPluginId());
+    @Test
+    public void postgresSetsItsPluginIdsWhateverTheConfigurationSays() {
+        final ActorSystem system = newSystem(OVERRIDDEN_PLUGIN_IDS + "ditto.postgresql.ssl.mode = \"disable\"\n");
+        final PersistenceBackendProvider provider = new PostgresPersistenceBackendProvider(system,
+                ConfigFactory.parseResources("ditto-postgres-persistence.conf")
+                        .getConfig("ditto.extensions.persistence-backend-provider.extension-config"));
+
+        final ClusterShardingSettings shardingSettings = shardingSettings(system, provider);
+
+        assertThat(shardingSettings.journalPluginId()).isEqualTo("ditto-postgres-connection-remember-journal");
+        assertThat(shardingSettings.snapshotPluginId()).isEqualTo("ditto-postgres-connection-remember-snapshots");
+        assertConnectivityRole(shardingSettings);
+    }
+
+    private ActorSystem newSystem(final String overrideHocon) {
+        final ActorSystem system = ActorSystem.create(getClass().getSimpleName(),
+                ConfigFactory.parseString(overrideHocon)
+                        .withFallback(ConfigFactory.parseMap(Map.of(
+                                "pekko.remote.artery.canonical.port", 0,
+                                "pekko.cluster.seed-nodes", List.of(),
+                                "pekko.coordinated-shutdown.exit-jvm", "off")))
+                        .withFallback(RawConfigSupplier.of("connectivity").get()));
+        actorSystems.add(system);
+        return system;
+    }
+
+    private static ClusterShardingSettings shardingSettings(final ActorSystem system,
+            final PersistenceBackendProvider provider) {
+
+        return ConnectivityRootActor.rememberEntitiesShardingSettings(system,
+                provider.pluginConfig().getRememberStorePluginIds(ConnectivityMessagingConstants.SHARD_REGION)
+                        .orElse(null));
+    }
+
+    private static void assertConnectivityRole(final ClusterShardingSettings shardingSettings) {
+        assertThat(shardingSettings.role().isDefined()).as("connection shard region has a cluster role").isTrue();
+        assertThat(shardingSettings.role().get()).isEqualTo(ConnectivityMessagingConstants.CLUSTER_ROLE);
     }
 }

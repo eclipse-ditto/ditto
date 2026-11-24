@@ -14,6 +14,7 @@ package org.eclipse.ditto.internal.utils.persistence.api;
 
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 
 /**
  * The active persistence backend's Pekko plugin-ID surface, in a single backend-neutral value abstraction.
@@ -29,7 +30,7 @@ import java.util.Objects;
  *     overrides and by the PostgreSQL provider's boot-time plugin-wiring check; and</li>
  *     <li>the dedicated journal + snapshot plugin IDs of the cluster-sharding {@code remember-entities} event-sourced
  *     store for an entity ({@link #getRememberStorePluginIds(String)}) — consumed by connectivity's sharding
- *     settings.</li>
+ *     settings. A backend may name none, and the shard region then keeps the plugin IDs of the configuration.</li>
  * </ul>
  * <p>
  * Service and entity keys are plain {@link String}s, matching the rest of this module
@@ -67,13 +68,20 @@ public interface PersistencePluginConfig {
 
     /**
      * Returns the dedicated journal + snapshot plugin IDs that back the cluster-sharding {@code remember-entities}
-     * event-sourced store for the given entity (Pekko's {@code pekko.cluster.sharding.journal-plugin-id} /
-     * {@code snapshot-plugin-id} for that entity's shard region).
+     * event-sourced store for the given entity's shard region.
+     * <p>
+     * A present value is set on the shard region's {@code ClusterShardingSettings} and wins over the configuration.
+     * {@code Optional.empty()} means the backend names no dedicated plugins: the shard region then keeps
+     * {@code pekko.cluster.sharding.journal-plugin-id} / {@code snapshot-plugin-id} of the configuration, which is
+     * what {@code ClusterShardingSettings.create(ActorSystem)} reads.
+     * </p>
      *
      * @param entityType the lower-case entity name whose remember-entities store is requested, e.g. {@code "connection"}
-     * @return the journal + snapshot plugin IDs of the remember-entities store
+     * @return the journal + snapshot plugin IDs of the remember-entities store, or an empty {@code Optional} if the
+     * backend leaves them to the configuration
+     * @throws IllegalArgumentException if the backend does not know the entity type
      */
-    RememberStorePluginIds getRememberStorePluginIds(String entityType);
+    Optional<RememberStorePluginIds> getRememberStorePluginIds(String entityType);
 
     /**
      * The journal + snapshot plugin-ID pair backing a cluster-sharding {@code remember-entities} event-sourced store.

@@ -15,6 +15,7 @@ package org.eclipse.ditto.internal.utils.persistence.postgres;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 
 import javax.annotation.concurrent.Immutable;
 
@@ -134,7 +135,7 @@ public final class PostgresPersistencePluginConfig implements PersistencePluginC
     }
 
     @Override
-    public RememberStorePluginIds getRememberStorePluginIds(final String entityType) {
+    public Optional<RememberStorePluginIds> getRememberStorePluginIds(final String entityType) {
         Objects.requireNonNull(entityType, "entityType");
         final RememberStorePluginIds ids = REMEMBER_STORE_IDS_BY_ENTITY.get(entityType);
         if (ids == null) {
@@ -142,6 +143,6 @@ public final class PostgresPersistencePluginConfig implements PersistencePluginC
                     "No remember-store plugin IDs configured for entity type '" + entityType +
                             "'. Known entities: " + REMEMBER_STORE_IDS_BY_ENTITY.keySet());
         }
-        return ids;
+        return Optional.of(ids);
     }
 }

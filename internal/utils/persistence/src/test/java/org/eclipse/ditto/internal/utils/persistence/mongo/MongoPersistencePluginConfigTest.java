@@ -13,14 +13,12 @@
 package org.eclipse.ditto.internal.utils.persistence.mongo;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.List;
 
 import org.apache.pekko.actor.ActorSystem;
 import org.apache.pekko.testkit.javadsl.TestKit;
 import org.eclipse.ditto.internal.utils.config.ScopedConfig;
-import org.eclipse.ditto.internal.utils.persistence.api.PersistencePluginConfig;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -170,31 +168,20 @@ public final class MongoPersistencePluginConfigTest {
                 .isEmpty();
     }
 
-    // ── remember-store plugin IDs (regression guard) ─────────────────────────
+    // ── remember-store plugin IDs ─────────────────────────────────────────────
 
     @Test
-    public void connectionRememberStoreJournalMatchesShippedHocon() {
-        // connectivity.conf:1175
-        final PersistencePluginConfig.RememberStorePluginIds ids = underTest.getRememberStorePluginIds("connection");
-        assertThat(ids.journalPluginId())
-                .as("connection remember-store journal must match connectivity.conf line 1175")
-                .isEqualTo("pekko-contrib-mongodb-persistence-connection-remember-journal");
+    public void rememberStoreForConnectionIsEmpty() {
+        assertThat(underTest.getRememberStorePluginIds("connection"))
+                .as("MongoDB leaves the connection remember-store plugin IDs to the configuration")
+                .isEmpty();
     }
 
     @Test
-    public void connectionRememberStoreSnapshotMatchesShippedHocon() {
-        // connectivity.conf:1176
-        final PersistencePluginConfig.RememberStorePluginIds ids = underTest.getRememberStorePluginIds("connection");
-        assertThat(ids.snapshotPluginId())
-                .as("connection remember-store snapshot must match connectivity.conf line 1176")
-                .isEqualTo("pekko-contrib-mongodb-persistence-connection-remember-snapshots");
-    }
-
-    @Test
-    public void rememberStoreForUnknownEntityThrows() {
-        assertThatThrownBy(() -> underTest.getRememberStorePluginIds("unknown-entity"))
-                .as("getRememberStorePluginIds for an unknown entity must throw IllegalArgumentException")
-                .isInstanceOf(IllegalArgumentException.class);
+    public void rememberStoreForUnknownEntityIsEmpty() {
+        assertThat(underTest.getRememberStorePluginIds("unknown-entity"))
+                .as("MongoDB leaves every entity's remember-store plugin IDs to the configuration")
+                .isEmpty();
     }
 
     // ── pluginConfig() wiring on the provider ────────────────────────────────

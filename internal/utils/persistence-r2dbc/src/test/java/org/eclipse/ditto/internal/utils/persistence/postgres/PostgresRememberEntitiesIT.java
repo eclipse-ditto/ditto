@@ -213,7 +213,7 @@ public final class PostgresRememberEntitiesIT {
     private static ActorRef startConnectionRegion(final ActorSystem system, final ActorRef reporter) {
         final PostgresPersistenceBackendProvider provider = new PostgresPersistenceBackendProvider(system,
                 system.settings().config().getConfig("ditto.extensions.persistence-backend-provider.extension-config"));
-        final RememberStorePluginIds ids = provider.pluginConfig().getRememberStorePluginIds(TYPE_NAME);
+        final RememberStorePluginIds ids = provider.pluginConfig().getRememberStorePluginIds(TYPE_NAME).orElseThrow();
         final ClusterShardingSettings settings = ClusterShardingSettings.create(system)
                 .withRole(CLUSTER_ROLE)
                 .withJournalPluginId(ids.journalPluginId())
