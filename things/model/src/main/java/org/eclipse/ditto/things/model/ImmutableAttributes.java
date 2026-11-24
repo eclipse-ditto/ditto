@@ -304,7 +304,8 @@ final class ImmutableAttributes implements Attributes {
 
     @Override
     public int hashCode() {
-        return Objects.hash(wrapped);
+        // same hash code as the wrapped JsonObject, which equal JsonObjects containing this wrapper rely on
+        return Objects.hashCode(wrapped);
     }
 
     @Override

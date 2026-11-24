@@ -293,7 +293,8 @@ final class NullFeatureProperties implements FeatureProperties {
 
     @Override
     public int hashCode() {
-        return Objects.hash(wrapped);
+        // same hash code as the wrapped JsonObject, which equal JsonObjects containing this wrapper rely on
+        return Objects.hashCode(wrapped);
     }
 
     @SuppressWarnings("squid:MethodCyclomaticComplexity")
