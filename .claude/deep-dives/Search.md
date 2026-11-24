@@ -46,7 +46,7 @@ The backend is chosen by the `ditto.extensions.search-persistence-provider` exte
 
 **PostgreSQL tables**:
 - `search_things` - One row per Thing: the enforced Thing document as JSONB, `global_read`, policy ids, `delete_at`
-- `search_flat` - One row per JSON node of each Thing, two under `features` (the flattened side table queries run on)
+- `search_flat` - One row per JSON node of each Thing, two under `features` except in a feature named `*`, whose exact and wildcard rows coincide (the flattened side table queries run on)
 - `search_sync` - Background sync bookmark
 
 ### Index Document Structure (MongoDB)
@@ -107,6 +107,8 @@ Three mechanisms trigger search index updates:
 - One sharded actor instance per Thing
 - Maintains current DB view (ThingWriteModel) of search document
 - State recovered when actor starts
+- On MongoDB, a stored search document that cannot be decoded is recovered as deleted, so the Thing's next update
+  writes the document in full (`MongoThingsSearchPersistence.documentToWriteModel`)
 - Converts Thing JSON to DB model
 - Performs DB write operations
 
@@ -212,7 +214,8 @@ bookmark, the health check and the `QueryBuilderFactory`; `ThingUpdater`, `Enfor
 
 **Data model** (`PostgresSearchSchema`): PostgreSQL's GIN index on `jsonb` cannot serve ranges, `like` or typed sorting on
 arbitrary paths, so each Thing is stored twice. `search_things` holds the enforced document (results, authorization via
-`global_read`, sorting); `search_flat` holds one row per JSON node (two under `features`) — `(thing_id, path, wpath,
+`global_read`, sorting); `search_flat` holds one row per JSON node (two under `features`, one in a feature named
+`*`, whose exact and wildcard rows coincide) — `(thing_id, path, wpath,
 f_id, ord, type_rank, val_bool, val_num, val_text)`, built by `ThingFlattener`. `wpath` is the path with feature ids
 replaced by `*`, so `features/*/properties/x` hits one index key; objects, empty containers and `null` get rows too (they
 serve `exists()`). `search_sync` is the background-sync bookmark. `delete_at` plus a reaper (`PostgresDeleteAtReaper`) replaces MongoDB's TTL index for
