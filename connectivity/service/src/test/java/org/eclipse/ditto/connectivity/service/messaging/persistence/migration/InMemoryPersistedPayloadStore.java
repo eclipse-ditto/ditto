@@ -19,7 +19,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -34,11 +33,13 @@ import org.eclipse.ditto.json.JsonObject;
 
 /**
  * An in-memory {@link PersistedPayloadStore} for the encryption-migration tests: serves the configured snapshot and
- * journal sources, records every call (streams opened, entries written back, progress saved and deleted, close) and
- * can be told to fail its rewrites or its progress operations, or to hold {@link #deleteProgress()} until a gate
- * completes so a test can prove what happens before the first store I/O completes. The cursor and the required-field
- * pointers are recorded, not applied: the configured source is returned as is, so a test on this fake proves what the
- * actor asks the store for, not that the store skips entries (that is the real store's job and is tested there).
+ * journal sources, records every call (streams opened, entries written back, progress saved and deleted) and counts
+ * the {@link #close()} calls. It can be told to fail its rewrites or its progress operations, or to hold its rewrites,
+ * its progress saves or {@link #deleteProgress()} until a gate completes, so a test can prove what happens while store
+ * I/O is still pending. A held progress save records the progress only when its gate completes. The cursor and the
+ * required-field
+ * pointers are recorded, not applied: the configured source is returned as is, so a test on this fake proves what
+ * the actor asks the store for, not that the store skips entries (that is the real store's job and is tested there).
  */
 final class InMemoryPersistedPayloadStore implements PersistedPayloadStore {
 
@@ -74,7 +75,7 @@ final class InMemoryPersistedPayloadStore implements PersistedPayloadStore {
     final List<JsonObject> savedProgressRecords = Collections.synchronizedList(new ArrayList<>());
     final AtomicInteger saveProgressAttempts = new AtomicInteger();
     final AtomicInteger deleteProgressCalls = new AtomicInteger();
-    final AtomicBoolean closed = new AtomicBoolean();
+    final AtomicInteger closeCalls = new AtomicInteger();
 
     private final AtomicReference<JsonObject> progress = new AtomicReference<>();
     private volatile Source<PersistedSnapshot, NotUsed> snapshots = Source.empty();
@@ -83,6 +84,10 @@ final class InMemoryPersistedPayloadStore implements PersistedPayloadStore {
     private volatile boolean failProgressOperations;
     @Nullable
     private volatile CompletableFuture<Void> deleteProgressGate;
+    @Nullable
+    private volatile CompletableFuture<Void> rewriteGate;
+    @Nullable
+    private volatile CompletableFuture<Void> saveProgressGate;
 
     InMemoryPersistedPayloadStore withSnapshots(final PersistedSnapshot... theSnapshots) {
         return withSnapshotSource(Source.from(Arrays.asList(theSnapshots)));
@@ -118,6 +123,17 @@ final class InMemoryPersistedPayloadStore implements PersistedPayloadStore {
         return this;
     }
 
+    InMemoryPersistedPayloadStore holdingRewritesUntil(final CompletableFuture<Void> gate) {
+        rewriteGate = gate;
+        return this;
+    }
+
+    /** Holds every progress save from now on until the gate completes; can be called while a run is going. */
+    InMemoryPersistedPayloadStore holdingSaveProgressUntil(final CompletableFuture<Void> gate) {
+        saveProgressGate = gate;
+        return this;
+    }
+
     Optional<JsonObject> savedProgress() {
         return Optional.ofNullable(progress.get());
     }
@@ -139,13 +155,13 @@ final class InMemoryPersistedPayloadStore implements PersistedPayloadStore {
     @Override
     public CompletionStage<Long> rewriteSnapshots(final List<PersistedSnapshot> theSnapshots) {
         rewrittenSnapshots.add(List.copyOf(theSnapshots));
-        return rewriteResult(theSnapshots.size());
+        return heldRewriteResult(theSnapshots.size());
     }
 
     @Override
     public CompletionStage<Long> rewriteJournalEntries(final List<PersistedJournalEntry> entries) {
         rewrittenJournalEntries.add(List.copyOf(entries));
-        return rewriteResult(entries.size());
+        return heldRewriteResult(entries.size());
     }
 
     @Override
@@ -162,8 +178,14 @@ final class InMemoryPersistedPayloadStore implements PersistedPayloadStore {
         if (failProgressOperations) {
             return CompletableFuture.failedFuture(new IllegalStateException("progress unavailable"));
         }
-        progress.set(theProgress);
-        savedProgressRecords.add(theProgress);
+        final CompletableFuture<Void> gate = saveProgressGate;
+        if (gate != null) {
+            return gate.thenApply(v -> {
+                recordSavedProgress(theProgress);
+                return null;
+            });
+        }
+        recordSavedProgress(theProgress);
         return CompletableFuture.completedFuture(null);
     }
 
@@ -180,7 +202,17 @@ final class InMemoryPersistedPayloadStore implements PersistedPayloadStore {
 
     @Override
     public void close() {
-        closed.set(true);
+        closeCalls.incrementAndGet();
+    }
+
+    private void recordSavedProgress(final JsonObject theProgress) {
+        progress.set(theProgress);
+        savedProgressRecords.add(theProgress);
+    }
+
+    private CompletionStage<Long> heldRewriteResult(final int written) {
+        final CompletableFuture<Void> gate = rewriteGate;
+        return gate != null ? gate.thenCompose(v -> rewriteResult(written)) : rewriteResult(written);
     }
 
     private CompletionStage<Long> rewriteResult(final int written) {

@@ -60,7 +60,8 @@ import com.typesafe.config.ConfigFactory;
  * <p>
  * Tests the core re-encryption logic (snapshot and journal field re-encryption), command/response serialization,
  * validation behavior, and the actor's behaviour on an in-memory {@link PersistedPayloadStore}: the 202 before any
- * store I/O, dry run, fresh start, resume, abort, status and the handling of a failed write.
+ * store I/O, dry run, fresh start, resume, abort, status, the handling of a failed write and the closing of the store
+ * when the actor stops while store work is still pending.
  */
 public final class EncryptionMigrationActorTest {
 
@@ -808,12 +809,146 @@ public final class EncryptionMigrationActorTest {
             // make sure the actor has started (and so obtained the store) before stopping it
             underTest.tell(MigrateConnectionEncryptionStatus.of(DittoHeaders.empty()), getRef());
             expectMsgClass(MigrateConnectionEncryptionStatusResponse.class);
-            assertThat(store.closed).isFalse();
+            assertThat(store.closeCalls.get()).isZero();
 
             actorSystem.stop(underTest);
 
             expectTerminated(underTest);
-            assertThat(store.closed).isTrue();
+            // nothing is pending, so the store is closed within postStop, before the actor is reported terminated
+            assertThat(store.closeCalls.get()).isEqualTo(1);
+        }};
+    }
+
+    @Test
+    public void storeIsClosedOnlyAfterTheBatchInFlightIsWritten() {
+        new TestKit(actorSystem) {{
+            final CompletableFuture<Void> rewriteGate = new CompletableFuture<>();
+            final InMemoryPersistedPayloadStore store = new InMemoryPersistedPayloadStore()
+                    .withSnapshotSource(Source.<PersistedSnapshot>single(plainSnapshot("s-1"))
+                            .concat(Source.never()))
+                    .holdingRewritesUntil(rewriteGate);
+            final ActorRef underTest = startMigrationAndAwaitTheFirstRewrite(this, store);
+
+            watch(underTest);
+            actorSystem.stop(underTest);
+            expectTerminated(underTest);
+
+            sleepMillis(500);
+            assertThat(store.closeCalls.get()).as("closed while the batch write is still pending").isZero();
+
+            rewriteGate.complete(null);
+            Awaitility.await().atMost(AWAIT).until(() -> store.closeCalls.get() == 1);
+            final JsonObject lastRecord = store.savedProgressRecords.get(store.savedProgressRecords.size() - 1);
+            assertThat(string(lastRecord, "phase")).isEqualTo("snapshots");
+            assertThat(string(lastRecord, "lastProcessedSnapshotId")).isEqualTo("s-1");
+
+            sleepMillis(300);
+            assertThat(store.closeCalls.get()).as("close calls").isEqualTo(1);
+        }};
+    }
+
+    @Test
+    public void stoppedMigrationStartsNoJournalPhaseAndSavesNoCompletedProgress() {
+        new TestKit(actorSystem) {{
+            final CompletableFuture<Void> rewriteGate = new CompletableFuture<>();
+            final InMemoryPersistedPayloadStore store = new InMemoryPersistedPayloadStore()
+                    .withSnapshotSource(Source.<PersistedSnapshot>single(plainSnapshot("s-1"))
+                            .concat(Source.never()))
+                    .withJournalEntries(plainJournalEntry("j-1"))
+                    .holdingRewritesUntil(rewriteGate);
+            final ActorRef underTest = startMigrationAndAwaitTheFirstRewrite(this, store);
+
+            watch(underTest);
+            actorSystem.stop(underTest);
+            expectTerminated(underTest);
+            rewriteGate.complete(null);
+
+            Awaitility.await().atMost(AWAIT).until(() -> store.closeCalls.get() == 1);
+            assertThat(store.journalStreamCalls).isEmpty();
+            assertThat(store.rewrittenJournalEntries).isEmpty();
+            assertThat(store.savedProgressRecords.stream().map(record -> string(record, "phase")).toList())
+                    .doesNotContain("completed");
+        }};
+    }
+
+    @Test
+    public void storeIsClosedOnlyAfterTheAbortProgressIsSaved() {
+        new TestKit(actorSystem) {{
+            final CompletableFuture<Void> saveGate = new CompletableFuture<>();
+            final InMemoryPersistedPayloadStore store = new InMemoryPersistedPayloadStore()
+                    .withSnapshotSource(Source.<PersistedSnapshot>single(plainSnapshot("s-1"))
+                            .concat(Source.never()));
+            final ActorRef underTest = newActor(store);
+
+            underTest.tell(MigrateConnectionEncryption.of(false, false, DittoHeaders.empty()), getRef());
+            expectMsgClass(MigrateConnectionEncryptionResponse.class);
+            final MigrateConnectionEncryptionStatusResponse running = awaitStatus(this, underTest,
+                    status -> status.isMigrationActive() && "in_progress:snapshots".equals(status.getPhase()));
+            assertThat(counter(running, "snapshots/processed")).isEqualTo(1L);
+
+            store.holdingSaveProgressUntil(saveGate);
+            underTest.tell(MigrateConnectionEncryptionAbort.of(DittoHeaders.empty()), getRef());
+            expectMsgClass(MigrateConnectionEncryptionAbortResponse.class);
+            // the abort save has started and is held
+            Awaitility.await().atMost(AWAIT).until(() -> store.saveProgressAttempts.get() == 2);
+
+            watch(underTest);
+            actorSystem.stop(underTest);
+            expectTerminated(underTest);
+
+            sleepMillis(500);
+            assertThat(store.closeCalls.get()).as("closed while the abort save is still pending").isZero();
+
+            saveGate.complete(null);
+            Awaitility.await().atMost(AWAIT).until(() -> store.closeCalls.get() == 1);
+            assertThat(store.savedProgressRecords).hasSize(2);
+            assertThat(string(store.savedProgressRecords.get(1), "lastProcessedSnapshotId")).isEqualTo("s-1");
+        }};
+    }
+
+    @Test
+    public void storeIsClosedAfterTheTimeoutWhenTheWriteNeverEnds() {
+        new TestKit(actorSystem) {{
+            final CompletableFuture<Void> rewriteGate = new CompletableFuture<>();
+            try {
+                final InMemoryPersistedPayloadStore store = new InMemoryPersistedPayloadStore()
+                        .withSnapshotSource(Source.<PersistedSnapshot>single(plainSnapshot("s-1"))
+                                .concat(Source.never()))
+                        .holdingRewritesUntil(rewriteGate);
+                final ActorRef underTest = newActor(store, Duration.ofSeconds(1));
+                underTest.tell(MigrateConnectionEncryption.of(false, false, DittoHeaders.empty()), getRef());
+                expectMsgClass(MigrateConnectionEncryptionResponse.class);
+                Awaitility.await().atMost(AWAIT).until(() -> store.rewrittenSnapshots.size() == 1);
+
+                watch(underTest);
+                actorSystem.stop(underTest);
+                expectTerminated(underTest);
+                assertThat(store.closeCalls.get()).as("closed before the timeout").isZero();
+
+                Awaitility.await().atMost(Duration.ofSeconds(5)).until(() -> store.closeCalls.get() == 1);
+            } finally {
+                rewriteGate.complete(null);
+            }
+        }};
+    }
+
+    @Test
+    public void storeIsClosedOnceWhenTheMigrationEndedBeforeTheStop() {
+        new TestKit(actorSystem) {{
+            final InMemoryPersistedPayloadStore store = new InMemoryPersistedPayloadStore()
+                    .withSnapshots(plainSnapshot("s-1"));
+            final ActorRef underTest = newActor(store);
+            underTest.tell(MigrateConnectionEncryption.of(false, false, DittoHeaders.empty()), getRef());
+            expectMsgClass(MigrateConnectionEncryptionResponse.class);
+            awaitCompleted(this, underTest);
+
+            watch(underTest);
+            actorSystem.stop(underTest);
+            expectTerminated(underTest);
+
+            Awaitility.await().atMost(AWAIT).until(() -> store.closeCalls.get() == 1);
+            sleepMillis(300);
+            assertThat(store.closeCalls.get()).as("close calls").isEqualTo(1);
         }};
     }
 
@@ -822,6 +957,30 @@ public final class EncryptionMigrationActorTest {
     private static ActorRef newActor(final PersistedPayloadStore store) {
         return actorSystem.actorOf(
                 EncryptionMigrationActor.props(connectivityConfig, providerOf(store, new AtomicReference<>())));
+    }
+
+    private static ActorRef newActor(final PersistedPayloadStore store, final Duration closeTimeout) {
+        return actorSystem.actorOf(EncryptionMigrationActor.propsForTests(connectivityConfig,
+                providerOf(store, new AtomicReference<>()), closeTimeout));
+    }
+
+    /** Starts a fresh migration and waits until the write of its first batch has been handed to the store. */
+    private static ActorRef startMigrationAndAwaitTheFirstRewrite(final TestKit testKit,
+            final InMemoryPersistedPayloadStore store) {
+        final ActorRef underTest = newActor(store);
+        underTest.tell(MigrateConnectionEncryption.of(false, false, DittoHeaders.empty()), testKit.getRef());
+        testKit.expectMsgClass(MigrateConnectionEncryptionResponse.class);
+        Awaitility.await().atMost(AWAIT).until(() -> store.rewrittenSnapshots.size() == 1);
+        return underTest;
+    }
+
+    private static void sleepMillis(final long millis) {
+        try {
+            Thread.sleep(millis);
+        } catch (final InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new AssertionError("interrupted while waiting", e);
+        }
     }
 
     /** A provider that implements only what the actor needs: {@code payloadStore(entityType)}. */

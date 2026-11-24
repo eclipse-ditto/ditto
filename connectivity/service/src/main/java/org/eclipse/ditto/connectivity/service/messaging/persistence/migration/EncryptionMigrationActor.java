@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.connectivity.service.messaging.persistence.migration;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
@@ -19,6 +20,9 @@ import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.CompletionStage;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 
 import javax.annotation.Nullable;
@@ -32,6 +36,7 @@ import org.apache.pekko.japi.pf.ReceiveBuilder;
 import org.apache.pekko.stream.KillSwitches;
 import org.apache.pekko.stream.Materializer;
 import org.apache.pekko.stream.SharedKillSwitch;
+import org.apache.pekko.stream.SystemMaterializer;
 import org.apache.pekko.stream.javadsl.Sink;
 import org.apache.pekko.stream.javadsl.Source;
 import org.eclipse.ditto.connectivity.model.ConnectivityConstants;
@@ -39,6 +44,7 @@ import org.eclipse.ditto.connectivity.service.config.ConnectivityConfig;
 import org.eclipse.ditto.connectivity.service.config.FieldsEncryptionConfig;
 import org.eclipse.ditto.internal.utils.pekko.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
+import org.eclipse.ditto.internal.utils.pekko.logging.ThreadSafeDittoLogger;
 import org.eclipse.ditto.internal.utils.persistence.api.PersistenceBackendProvider;
 import org.eclipse.ditto.internal.utils.persistence.api.payload.PersistedJournalEntry;
 import org.eclipse.ditto.internal.utils.persistence.api.payload.PersistedPayloadStore;
@@ -56,9 +62,10 @@ import org.eclipse.ditto.internal.utils.persistence.api.payload.PersistedSnapsho
  * </ul>
  * <p>
  * The actor reaches the persisted data through the active persistence backend's {@link PersistedPayloadStore}, which
- * it obtains from the {@link PersistenceBackendProvider} in {@link #preStart()} and closes in {@link #postStop()}, so
- * only the node that runs the singleton holds the backend client the store owns. The actor itself sees the payloads as
- * JSON only and never names a backend.
+ * it obtains from the {@link PersistenceBackendProvider} in {@link #preStart()}, so only the node that runs the
+ * singleton holds the backend client the store owns. When the actor stops, {@link #postStop()} lets the batch in flight
+ * be written and its progress be saved, starts no further phase, and closes the store once that work has ended or a
+ * bounded wait has passed. The actor itself sees the payloads as JSON only and never names a backend.
  * <p>
  * The actor delegates to helper classes for focused responsibilities:
  * <ul>
@@ -98,6 +105,11 @@ public final class EncryptionMigrationActor extends AbstractActor {
      */
     public static final String ACTOR_NAME = "encryptionMigration";
 
+    private static final ThreadSafeDittoLogger LOGGER =
+            DittoLoggerFactory.getThreadSafeLogger(EncryptionMigrationActor.class);
+
+    private static final Duration CLOSE_TIMEOUT = Duration.ofSeconds(30);
+
     private final DittoDiagnosticLoggingAdapter log = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
 
     private final FieldsEncryptionConfig encryptionConfig;
@@ -105,9 +117,11 @@ public final class EncryptionMigrationActor extends AbstractActor {
     private final Materializer materializer;
     private final int batchSize;
     private final int maxDocumentsPerMinute;
+    private final Duration closeTimeout;
 
-    // Obtained in preStart and closed in postStop: the store (and the backend client it owns) exists only while this
-    // singleton runs, on one node.
+    // Obtained in preStart and closed once the store work that a stop lets finish has ended (or after the close
+    // timeout): the store (and the backend client it owns) exists only while this singleton runs, on one node. The
+    // field stays set after postStop, so that a batch the stream emits after the stop can still reach the store.
     @Nullable
     private PersistedPayloadStore payloadStore;
     private MigrationProgressTracker progressTracker;
@@ -116,16 +130,24 @@ public final class EncryptionMigrationActor extends AbstractActor {
     private boolean currentDryRun = false;
     private boolean abortRequested = false;
     private SharedKillSwitch activeKillSwitch;
+    // the stop flag of the current run; stream callbacks read the reference passed to runMigration, not this field
+    @Nullable
+    private AtomicBoolean stopped;
+    // the last store stage this actor started: the migration result, then the save of an aborted run's progress
+    @Nullable
+    private CompletionStage<?> pendingStoreWork;
     @Nullable
     private MigrationProgress currentProgress;
 
     private EncryptionMigrationActor(final ConnectivityConfig connectivityConfig,
-            final PersistenceBackendProvider backendProvider) {
+            final PersistenceBackendProvider backendProvider, final Duration closeTimeout) {
         this.encryptionConfig = connectivityConfig.getConnectionConfig().getFieldsEncryptionConfig();
         this.backendProvider = backendProvider;
-        this.materializer = Materializer.createMaterializer(this::getContext);
+        // the system materializer, so that stopping this actor does not abort the stream of the batch in flight
+        this.materializer = SystemMaterializer.get(getContext().getSystem()).materializer();
         this.batchSize = encryptionConfig.getMigrationBatchSize();
         this.maxDocumentsPerMinute = encryptionConfig.getMigrationMaxDocumentsPerMinute();
+        this.closeTimeout = closeTimeout;
     }
 
     /**
@@ -138,7 +160,21 @@ public final class EncryptionMigrationActor extends AbstractActor {
      */
     public static Props props(final ConnectivityConfig connectivityConfig,
             final PersistenceBackendProvider backendProvider) {
-        return Props.create(EncryptionMigrationActor.class, connectivityConfig, backendProvider);
+        return Props.create(EncryptionMigrationActor.class, connectivityConfig, backendProvider, CLOSE_TIMEOUT);
+    }
+
+    /**
+     * Creates Props for this actor as {@link #props(ConnectivityConfig, PersistenceBackendProvider)} does, with the
+     * given bound on how long {@link #postStop()} waits before it closes the store.
+     *
+     * @param connectivityConfig the connectivity configuration.
+     * @param backendProvider the active persistence backend's provider.
+     * @param closeTimeout how long {@code postStop} waits for the work in flight before it closes the store.
+     * @return the Props.
+     */
+    static Props propsForTests(final ConnectivityConfig connectivityConfig,
+            final PersistenceBackendProvider backendProvider, final Duration closeTimeout) {
+        return Props.create(EncryptionMigrationActor.class, connectivityConfig, backendProvider, closeTimeout);
     }
 
     @Override
@@ -151,15 +187,43 @@ public final class EncryptionMigrationActor extends AbstractActor {
 
     @Override
     public void postStop() throws Exception {
+        if (stopped != null) {
+            stopped.set(true);
+        }
         if (activeKillSwitch != null) {
             activeKillSwitch.shutdown();
         }
         final PersistedPayloadStore store = payloadStore;
-        payloadStore = null;
         if (store != null) {
-            store.close();
+            final CompletionStage<?> pending = pendingStoreWork;
+            if (pending != null) {
+                // a bounded copy, so that the timeout never completes the migration's own stage
+                pending.toCompletableFuture()
+                        .copy()
+                        .orTimeout(closeTimeout.toMillis(), TimeUnit.MILLISECONDS)
+                        .whenComplete((result, error) -> closeQuietly(store, error));
+            } else {
+                closeQuietly(store, null);
+            }
         }
         super.postStop();
+    }
+
+    private static void closeQuietly(final PersistedPayloadStore store, @Nullable final Throwable waitError) {
+        if (waitError != null) {
+            if (unwrapCompletionException(waitError) instanceof TimeoutException) {
+                LOGGER.warn("The encryption migration did not finish its store work within the close timeout; " +
+                        "closing the payload store anyway.");
+            } else {
+                LOGGER.debug("The encryption migration's store work ended with a failure before the payload store " +
+                        "is closed: {}", String.valueOf(waitError));
+            }
+        }
+        try {
+            store.close();
+        } catch (final RuntimeException e) {
+            LOGGER.warn("Failed to close the payload store of the encryption migration.", e);
+        }
     }
 
     @Override
@@ -216,7 +280,7 @@ public final class EncryptionMigrationActor extends AbstractActor {
             if (progress != null) {
                 currentProgress = progress;
                 if (wasAborted && !dryRun) {
-                    progressTracker.saveProgressWithRetry(progress, 2)
+                    pendingStoreWork = progressTracker.saveProgressWithRetry(progress, 2)
                             .whenComplete((v, saveErr) -> {
                                 if (saveErr != null) {
                                     log.error(unwrapCompletionException(saveErr),
@@ -324,6 +388,8 @@ public final class EncryptionMigrationActor extends AbstractActor {
         abortRequested = false;
         currentProgress = null;
         activeKillSwitch = KillSwitches.shared("encryption-migration");
+        final AtomicBoolean runStopped = new AtomicBoolean();
+        stopped = runStopped;
         final String mode = isDisableWorkflow ? "disable" : isInitialEncryption ? "initial-encryption" : "key-rotation";
         log.info("Starting encryption migration (mode={}, dryRun={}, resume={})", mode, dryRun, resume);
 
@@ -347,15 +413,17 @@ public final class EncryptionMigrationActor extends AbstractActor {
                         progress.lastProcessedSnapshotId(), progress.lastProcessedJournalId());
                 sender.tell(MigrateConnectionEncryptionResponse.accepted(
                         true, Instant.now().toString(), dryRun, command.getDittoHeaders()), getSelf());
-                return runMigration(progress, oldKey, newKey, pointers, dryRun);
+                return runMigration(progress, oldKey, newKey, pointers, dryRun, runStopped);
             });
         } else {
             migrationResult = progressTracker.deleteProgress().thenCompose(v ->
-                    runMigration(new MigrationProgress(), oldKey, newKey, pointers, dryRun));
+                    runMigration(new MigrationProgress(), oldKey, newKey, pointers, dryRun, runStopped));
             // Reply immediately with 202 Accepted
             sender.tell(MigrateConnectionEncryptionResponse.accepted(
                     false, Instant.now().toString(), dryRun, command.getDittoHeaders()), getSelf());
         }
+
+        pendingStoreWork = migrationResult;
 
         final ActorRef self = getSelf();
         migrationResult.whenComplete((progress, error) -> {
@@ -379,10 +447,12 @@ public final class EncryptionMigrationActor extends AbstractActor {
      * @param newKey the new encryption key (null for disable workflow)
      * @param pointers the JSON pointers to encrypt/decrypt
      * @param dryRun if true, validate without writing changes
+     * @param stopped the stop flag of this run: once set, no further phase starts
      * @return completion stage with final migration progress
      */
     private CompletionStage<MigrationProgress> runMigration(final MigrationProgress initialProgress,
-            @Nullable final String oldKey, @Nullable final String newKey, final List<String> pointers, final boolean dryRun) {
+            @Nullable final String oldKey, @Nullable final String newKey, final List<String> pointers,
+            final boolean dryRun, final AtomicBoolean stopped) {
 
         log.info("runMigration: loaded progress phase={}, lastSnapshotId={}, lastJournalId={}, " +
                         "snapshots(p={}/s={}/f={}), journal(p={}/s={}/f={})",
@@ -407,13 +477,13 @@ public final class EncryptionMigrationActor extends AbstractActor {
         }
 
         return afterSnapshots.thenCompose(progress -> {
-            if (abortRequested) {
+            if (abortRequested || stopped.get()) {
                 return CompletableFuture.completedFuture(progress);
             }
             final MigrationProgress journalProgress = progress.withPhase(MigrationPhase.JOURNAL);
             return migrateJournal(journalProgress, oldKey, newKey, pointers, dryRun);
         }).thenCompose(progress -> {
-            if (abortRequested) {
+            if (abortRequested || stopped.get()) {
                 return CompletableFuture.completedFuture(progress);
             }
             final MigrationProgress completed = progress.withPhase(MigrationPhase.COMPLETED);
