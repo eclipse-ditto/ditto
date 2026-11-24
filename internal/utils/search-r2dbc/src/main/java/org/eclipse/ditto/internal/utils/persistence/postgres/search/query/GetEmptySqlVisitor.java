@@ -29,8 +29,8 @@ import org.eclipse.ditto.rql.query.expression.visitors.ExistsFieldExpressionVisi
  * The SQL counterpart of {@code GetEmptyBsonVisitor} (thingsearch/service, 3.9.0): {@code empty(path)} matches when the
  * value is absent, {@code null}, an empty array, an empty object or an empty string.
  * <p>
- * <b>Transcription of {@code createEmptyBson:191-198}</b> ({@code or(eq(null), eq([]), eq({}), eq(""))}) onto the flat
- * table, using the flattener's null-rank / empty-array-stub / empty-object rows (§3.2, §3.5):
+ * <b>Transcription of {@code createEmptyBson}</b> ({@code or(eq(null), eq([]), eq({}), eq(""))}) onto the flat
+ * table, using the flattener's null-rank / empty-array-stub / empty-object rows:
  * <ul>
  *   <li>absent → {@code NOT EXISTS(wpath)};</li>
  *   <li>null → a {@code type_rank = 1} row;</li>
@@ -39,8 +39,8 @@ import org.eclipse.ditto.rql.query.expression.visitors.ExistsFieldExpressionVisi
  *   <li>empty object → a {@code type_rank = 4} row with NO deeper {@code path} (a non-empty object also has a rank-4
  *       row, so the deeper-{@code path} anti-probe via {@code starts_with} is required to avoid a false positive).</li>
  * </ul>
- * Concrete paths carry the thing-level auth recheck ({@code matchEmptyKey}); root-mapped columns do not (§3.3
- * exception 1). The wildcard-feature forms ({@code matchWildcardFeatureEmptyKey}, Mongo
+ * Concrete paths carry the thing-level auth recheck ({@code matchEmptyKey}); root-mapped columns do not (they
+ * carry no per-field authorization check). The wildcard-feature forms ({@code matchWildcardFeatureEmptyKey}, Mongo
  * {@code elemMatch(f, and(createEmptyBson(path), auth))}) anchor on the feature boundary row {@code a}
  * ({@code wpath = '/features/*'}, exactly one per feature, auth on {@code a.f_id}) and probe the rows {@code b} of the
  * SAME feature at the wildcard wpath: an empty marker — the deeper-{@code path} anti-probe scoped to that feature via
@@ -51,15 +51,15 @@ import org.eclipse.ditto.rql.query.expression.visitors.ExistsFieldExpressionVisi
  * <b>Divergence (documented): {@code empty()} over-matches on direct array-of-array content, even for concrete
  * paths.</b> The {@code emptyArray} branch of {@link #emptyCore(String)} matches on the mere EXISTENCE of any
  * {@code type_rank = 5} ({@link ThingFlattener#TYPE_ARRAY}) row at {@code wpath} — but per the flattener's
- * array-of-array stub rule (plan §3.2: "the ONLY stub: direct array-of-array inner content … store the inner array
- * as a {@code type_rank=5} row without value"; see {@code ThingFlattener#walk}), a NON-empty direct array-of-arrays
+ * array-of-array stub rule (the only stub it writes: a direct array-of-array inner array is stored as a
+ * {@code type_rank=5} row without value; see {@code ThingFlattener#walk}), a NON-empty direct array-of-arrays
  * such as {@code x=[[1,2],[3]]} ALSO emits one valueless rank-5 stub row per outer element at the very same
  * {@code wpath} as a literal {@code x=[]} would. The two cases are indistinguishable at the flat-row level: both
  * present as "a rank-5 row exists at this wpath, with no deeper path". Consequently {@code empty(x)} spuriously
  * matches {@code x=[[1,2],[3]]} on Postgres, where Mongo's {@code GetEmptyBsonVisitor} matches ONLY the literal empty
  * array {@code []}. Rationale for accepting the divergence: disambiguating would require either (a) a distinct type
  * rank for "array-of-array stub" vs. "genuinely empty array" (a schema change affecting every rank-5 consumer,
- * incl. sort's empty-array-to-null-rank exception, §3.2), or (b) an additional per-row marker column — both out of
+ * incl. sort's empty-array-to-null-rank exception), or (b) an additional per-row marker column — both out of
  * scope for the flat-model transcription; allow-listed as {@code empty-overmatch-array-of-array}.
  * </p>
  */

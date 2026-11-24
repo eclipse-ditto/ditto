@@ -31,30 +31,31 @@ import org.eclipse.ditto.rql.query.criteria.visitors.PredicateVisitor;
 /**
  * The SQL counterpart of {@code CreateBsonPredicateVisitor} (thingsearch/service): turns an RQL {@code Predicate} into a
  * {@link SqlPredicate}. Value resolution mirrors {@code CreateBsonPredicateVisitor.resolveValue} exactly (the
- * {@code TimePlaceholder} chain, §3.4/§3.5) — a {@code ParsedPlaceholder} is resolved to its concrete value BEFORE it
+ * {@code TimePlaceholder} chain) — a {@code ParsedPlaceholder} is resolved to its concrete value BEFORE it
  * ever becomes a bind. The collation used by string comparisons is the flat column's default {@code COLLATE "C"};
  * {@code ilike} and a trigram-bearing {@code like} match under {@code C.utf8}, the collation of the {@code sf_trgm}
  * index (see {@link #visitLikeWithWildcards}).
  * <p>
- * <b>Side-by-side comment map (Mongo class:line → this method):</b>
+ * <b>Side-by-side comment map (Mongo method → this method):</b>
  * <ul>
- *   <li>{@code visitEq:101-108} (incl. the {@code eq(null)} = {@code and(eq(null), exists)} special) →
+ *   <li>{@code visitEq} (incl. the {@code eq(null)} = {@code and(eq(null), exists)} special) →
  *       {@link #visitEq}; a placeholder that resolves to null is NOT that special case on Mongo (it resolves after
  *       the null check and yields a bare {@code {f: null}}: null OR missing) → the
  *       {@link SqlPredicate#matchingMissing} form</li>
- *   <li>{@code visitGe/Gt/Le/Lt:110-171} → {@link #visitGe}/{@link #visitGt}/{@link #visitLe}/{@link #visitLt}; a null
+ *   <li>{@code visitGe/Gt/Le/Lt} → {@link #visitGe}/{@link #visitGt}/{@link #visitLe}/{@link #visitLt}; a null
  *       operand: {@code $gte/$lte: null} is {@code {f: null}} (null OR missing, no {@code exists}) →
  *       {@link SqlPredicate#matchingMissing}; {@code $gt/$lt: null} matches nothing → {@link SqlPredicate#never}</li>
- *   <li>{@code visitNe:173-176} ({@code and(ne, exists)}, incl. the {@code ne(null)} null special-case mirroring
+ *   <li>{@code visitNe} ({@code and(ne, exists)}, incl. the {@code ne(null)} null special-case mirroring
  *       {@code visitEq}'s — also for a placeholder resolved to null) → {@link #visitNe}</li>
- *   <li>{@code visitIn:120-123} → {@link #visitIn}; a null member ({@code $in: […, null]}, no {@code exists}) matches
+ *   <li>{@code visitIn} → {@link #visitIn}; a null member ({@code $in: […, null]}, no {@code exists}) matches
  *       the listed values, a BSON null AND a missing field → the null is stripped from the value groups, a
  *       {@code type_rank = TYPE_NULL} group is added and the predicate takes the {@link SqlPredicate#matchingMissing}
  *       form; on a root-mapped column (never null) only the values remain; an {@code in} with no values at all
  *       ({@code $in: []} matches nothing; the RQL grammar cannot spell it) → {@link SqlPredicate#never}</li>
- *   <li>{@code visitLike/visitILike:130-151} — regex path bypassed; the wildcard overrides build native LIKE
- *       (A6 {@code visitLikeWithWildcards}) → {@link #visitLikeWithWildcards}/{@link #visitILikeWithWildcards}</li>
- *   <li>{@code resolveValue:178-191} → {@link #resolveValue}, called BEFORE every null dispatch here (Mongo's
+ *   <li>{@code visitLike/visitILike} — regex path bypassed; the wildcard overrides build native LIKE
+ *       (the {@code PredicateVisitor} default method {@code visitLikeWithWildcards}) →
+ *       {@link #visitLikeWithWildcards}/{@link #visitILikeWithWildcards}</li>
+ *   <li>{@code resolveValue} → {@link #resolveValue}, called BEFORE every null dispatch here (Mongo's
  *       {@code visitEq} checks the raw value first — see the first bullet)</li>
  * </ul>
  * A null operand never reaches {@link SqlValues#bind} / {@link SqlValues#valueColumn} (both reject it).

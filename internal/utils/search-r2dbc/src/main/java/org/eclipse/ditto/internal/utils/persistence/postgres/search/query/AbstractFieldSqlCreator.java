@@ -32,7 +32,7 @@ import org.eclipse.ditto.json.JsonPointer;
  * subclasses supply the per-operator core condition.
  * <p>
  * <b>Side-by-side comment map (Mongo → here):</b>
- * {@code visitSimple:88-92} → {@link #visitSimple(String)}; {@code toDottedPath(FIELD_THING, pointer)} (the value key)
+ * {@code visitSimple} → {@link #visitSimple(String)}; {@code toDottedPath(FIELD_THING, pointer)} (the value key)
  * → {@link #wpathOf(JsonPointer)} (RFC-6901 flat {@code wpath}); {@code getAuthorizationBson} → {@link #thingLevelAuth};
  * {@code getFeatureWildcardAuthorizationBson}/{@code elemMatch(FIELD_F_ARRAY, …)} → {@link #wildcardFeatureAuth} +
  * {@link #wildcardWpath}; the per-feature coupling of {@code elemMatch} (value or emptiness and auth on the SAME
@@ -49,7 +49,7 @@ abstract class AbstractFieldSqlCreator {
     static final String F_ID = "f_id";
     static final String TYPE_RANK = "type_rank";
 
-    /** The wpath prefix the flattener emits for every {@code /features/<id>/…} row's wildcard variant (Task C1). */
+    /** The wpath prefix the flattener emits for every {@code /features/<id>/…} row's wildcard variant. */
     static final String FEATURES_WILDCARD_PREFIX = "/features/*";
 
     /** The alias of the wildcard-feature row ({@code a}) the {@code features/*} forms anchor on. */
@@ -58,7 +58,7 @@ abstract class AbstractFieldSqlCreator {
     static final String SAME_FEATURE_ALIAS = "b";
 
     /**
-     * The two ROOT-mapped system fields → doc-row columns (§3.5, §3.3 exception 1): no flat probe, no per-field auth.
+     * The two ROOT-mapped system fields → doc-row columns: no flat probe, no per-field auth.
      * The user-facing RQL→internal mapping ({@code simple-field-mappings}) is applied upstream by the
      * {@code ThingsFieldExpressionFactory}; these are the two internal names that resolve to columns.
      */
@@ -76,7 +76,7 @@ abstract class AbstractFieldSqlCreator {
 
     /**
      * @param fieldName the resolved simple field name — slash-prefixed ⇒ slash-mapped flat probe with auth;
-     * otherwise root-mapped doc-row column with NO auth (§3.3 exception 1).
+     * otherwise root-mapped doc-row column with NO auth (root-mapped columns carry no per-field authorization check).
      * @return the field condition.
      */
     public final SqlExpression visitSimple(final String fieldName) {

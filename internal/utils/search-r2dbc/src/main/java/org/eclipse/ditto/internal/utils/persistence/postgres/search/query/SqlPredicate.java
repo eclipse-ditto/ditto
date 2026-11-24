@@ -27,7 +27,7 @@ import org.eclipse.ditto.internal.utils.persistence.postgres.search.query.ast.Sq
  *       used inside an {@code EXISTS} probe over a {@code wpath};</li>
  *   <li>{@link #columnCondition(SqlExpression)} — the condition on a doc-row column, used for the two ROOT-mapped
  *       system fields ({@code _id}/{@code thing_id}, {@code _namespace}/{@code namespace}) which have no flat probe and
- *       no per-field auth (§3.3 exception 1). Those columns are never null and never missing, so this rendering is
+ *       no per-field auth. Those columns are never null and never missing, so this rendering is
  *       complete on its own; the flags below shape only the flat probe.</li>
  * </ul>
  * Three flags tell the flat/wildcard field visitors how to wrap {@link #flatCondition(String)}:

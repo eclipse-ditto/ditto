@@ -18,7 +18,8 @@ import javax.annotation.Nullable;
  * A minimal, backend-neutral column reader over a single result row — the seam {@link PostgresSortClause#toSortValues}
  * uses to project the last hit's sort values for cursor encoding, WITHOUT this query module depending on the r2dbc
  * {@code Row} type. Its single method is signature-compatible with {@code io.r2dbc.spi.Row#get(String, Class)}, so the
- * D4 read persistence adapts a row with a method reference ({@code row::get}); a unit test adapts a plain map.
+ * read persistence ({@code PostgresThingsSearchPersistence}) adapts a row with a method reference ({@code row::get});
+ * a unit test adapts a plain map.
  */
 @FunctionalInterface
 public interface SortValueAccessor {

@@ -18,7 +18,7 @@ import javax.annotation.Nullable;
 
 /**
  * A searched {@code CASE WHEN … THEN … [ELSE …] END} expression. Needed by the sort layer's empty-array→null-rank
- * mapping (§3.2/§3.5 sort parity requirement (d)).
+ * mapping (empty arrays sort like null).
  */
 final class Case implements SqlExpression {
 

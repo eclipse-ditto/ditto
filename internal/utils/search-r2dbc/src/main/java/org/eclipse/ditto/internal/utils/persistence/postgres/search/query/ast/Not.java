@@ -14,8 +14,8 @@ package org.eclipse.ditto.internal.utils.persistence.postgres.search.query.ast;
 
 /**
  * Boolean negation, rendered {@code NOT <operand>}. {@code NOT} binds tighter than {@code AND}/{@code OR} but looser
- * than a comparison, so {@code NOT COALESCE(...)} and {@code NOT EXISTS (...)} render exactly as §3.3/§3.5 require; a
- * compound operand ({@link And}/{@link Or}) parenthesizes itself.
+ * than a comparison, so {@code NOT COALESCE(...)} and {@code NOT EXISTS (...)} render correctly without extra
+ * parentheses; a compound operand ({@link And}/{@link Or}) parenthesizes itself.
  */
 final class Not implements SqlExpression {
 

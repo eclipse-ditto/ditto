@@ -18,7 +18,7 @@ import org.eclipse.ditto.internal.utils.persistence.postgres.search.query.ast.Sq
 import org.eclipse.ditto.internal.utils.persistence.postgres.search.query.ast.SqlExpression;
 
 /**
- * RQL-value → typed flat-column routing (plan §3.5 type coercion): numbers probe {@code val_num} (BSON int/long/double
+ * RQL-value → typed flat-column routing (type coercion): numbers probe {@code val_num} (BSON int/long/double
  * unify onto {@code numeric}), booleans {@code val_bool}, everything else (strings, resolved time placeholders)
  * {@code val_text} (compared under the column's default {@code COLLATE "C"}). Cross-type comparisons are therefore
  * type-bracketed exactly like Mongo — a numeric predicate can only match a numeric leaf, never a string leaf.

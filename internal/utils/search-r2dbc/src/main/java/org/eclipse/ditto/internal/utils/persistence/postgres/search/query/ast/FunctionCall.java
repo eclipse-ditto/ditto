@@ -18,7 +18,7 @@ import java.util.List;
  * A SQL function call {@code name(arg1, arg2, …)}. The function name is a fixed identifier from the AST grammar; the
  * arguments are arbitrary expressions.
  * <p>
- * This is the primitive for the wildcard-feature auth chain (§3.3): {@code jsonb_extract_path(st.features_auth, sf.f_id,
+ * This is the primitive for the wildcard-feature auth chain: {@code jsonb_extract_path(st.features_auth, sf.f_id,
  * $k1, …)} threads the DYNAMIC {@code sf.f_id} column into a jsonb path alongside bound property-path key segments —
  * inexpressible with a static {@code #> '{…}'} array, so a function call is required.
  */

@@ -26,7 +26,7 @@ import org.eclipse.ditto.json.JsonPointer;
 /**
  * Builds the per-field grant/revoke authorization SQL — the 1:1 transcription of
  * {@code AbstractFieldBsonCreator.getAuthFilter}/{@code getFeatureWildcardAuthorizationBson} (thingsearch/service)
- * onto PostgreSQL JSONB auth-tree rechecks (plan §3.3).
+ * onto PostgreSQL JSONB auth-tree rechecks.
  * <p>
  * <b>Nesting (Mongo {@code getAuthFilter}, revoke-wins / grant-inherits-down):</b> for the statically known ancestor
  * chain of a queried path, the <em>leaf</em> level is the OUTERMOST filter and the <em>root</em> level the innermost:
@@ -83,7 +83,7 @@ final class AuthFilterSqlBuilder {
     }
 
     /**
-     * The global-read term {@code st.global_read && $subjects::text[]} (§3.3). Only meaningful when restricted.
+     * The global-read term {@code st.global_read && $subjects::text[]}. Only meaningful when restricted.
      *
      * @return the array-overlap expression.
      */

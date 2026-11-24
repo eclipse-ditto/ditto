@@ -26,9 +26,9 @@ import org.eclipse.ditto.rql.query.criteria.Criteria;
 /**
  * The PostgreSQL implementation of the neutral {@link Query} — a plain data holder (criteria + sort options + limit +
  * skip), the structural twin of {@code MongoQuery} with the BSON coupling removed. Where {@code MongoQuery} exposes
- * {@code getSortOptionsAsBson()}, this exposes {@link #getSortClause()} — the backend-specific extra D4's read
- * persistence obtains via a {@code Query → PostgresQuery} downcast (mirroring {@code MongoThingsSearchPersistence}'s
- * downcast to {@code MongoQuery}).
+ * {@code getSortOptionsAsBson()}, this exposes {@link #getSortClause()} — the backend-specific extra the read
+ * persistence ({@code PostgresThingsSearchPersistence}) obtains via a {@code Query → PostgresQuery} downcast
+ * (mirroring {@code MongoThingsSearchPersistence}'s downcast to {@code MongoQuery}).
  */
 @Immutable
 public final class PostgresQuery implements Query {
@@ -77,8 +77,8 @@ public final class PostgresQuery implements Query {
     }
 
     /**
-     * @return the §3.5 sort/paging translation of this query's sort options — the sort laterals, {@code ORDER BY}
-     * assembly, and cursor-value projection D4's {@code findAll} SELECT uses.
+     * @return the sort/paging translation of this query's sort options — the sort laterals, {@code ORDER BY}
+     * assembly, and cursor-value projection the read persistence's {@code findAll} SELECT uses.
      */
     public PostgresSortClause getSortClause() {
         return PostgresSortClause.of(sortOptions);

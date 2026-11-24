@@ -29,14 +29,14 @@ import org.eclipse.ditto.rql.query.expression.visitors.ExistsFieldExpressionVisi
  * <p>
  * <b>Side-by-side comment map (Mongo → here):</b>
  * <ul>
- *   <li>{@code visitFeature:75-82} — {@code exists(features/*)} is a BARE {@code Filters.exists("f.id")} with NO auth
- *       (§3.3 exception 2); mapped to the flattener's feature-boundary row {@code wpath = /features/*} →
- *       {@link #visitFeature}</li>
- *   <li>{@code matchKey:139-145} ({@code and(exists(t.path), authBson)}, concrete paths DO carry auth) →
+ *   <li>{@code visitFeature} — {@code exists(features/*)} is a BARE {@code Filters.exists("f.id")} with NO auth
+ *       (any-feature existence is a bare probe without authorization); mapped to the flattener's feature-boundary
+ *       row {@code wpath = /features/*} → {@link #visitFeature}</li>
+ *   <li>{@code matchKey} ({@code and(exists(t.path), authBson)}, concrete paths DO carry auth) →
  *       {@link #matchKey}</li>
- *   <li>{@code matchWildcardFeatureKey:147-154} ({@code elemMatch(f, and(exists, auth))}) →
+ *   <li>{@code matchWildcardFeatureKey} ({@code elemMatch(f, and(exists, auth))}) →
  *       {@link #matchWildcardFeatureKey}</li>
- *   <li>{@code visitRootLevelField:135-137} ({@code Filters.exists(fieldName)}, NO auth) → {@link #visitRootLevelField}</li>
+ *   <li>{@code visitRootLevelField} ({@code Filters.exists(fieldName)}, NO auth) → {@link #visitRootLevelField}</li>
  * </ul>
  */
 final class GetExistsSqlVisitor extends AbstractFieldSqlCreator implements ExistsFieldExpressionVisitor<SqlExpression> {
@@ -61,7 +61,7 @@ final class GetExistsSqlVisitor extends AbstractFieldSqlCreator implements Exist
     @Override
     public SqlExpression visitFeature(final String featureId) {
         if (isWildcard(featureId)) {
-            // "any feature exists": bare probe on the feature-boundary wpath the flattener emits, NO auth (exception 2).
+            // "any feature exists": bare probe on the feature-boundary wpath the flattener emits, NO auth.
             return Sql.exists(flatProbe(THING_ALIAS, FEATURES_WILDCARD_PREFIX));
         }
         return matchKey(JsonPointer.of("/features/" + featureId));
@@ -119,7 +119,7 @@ final class GetExistsSqlVisitor extends AbstractFieldSqlCreator implements Exist
 
     @Override
     public SqlExpression visitRootLevelField(final String fieldName) {
-        // §3.3 exception 1: Filters.exists on a doc-row column, NO auth.
+        // Filters.exists on a doc-row column, NO auth: root-mapped columns carry no per-field authorization check.
         final SqlExpression column = rootColumn(fieldName)
                 .orElseThrow(() -> new IllegalArgumentException("Unknown root-level search field: " + fieldName));
         return Sql.isNotNull(column);

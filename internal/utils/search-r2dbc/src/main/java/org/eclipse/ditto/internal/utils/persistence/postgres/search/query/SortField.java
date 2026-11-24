@@ -20,7 +20,7 @@ import org.eclipse.ditto.internal.utils.persistence.postgres.search.query.ast.Sq
 
 /**
  * The resolved SQL target of a single RQL sort key ({@code GetSortBsonVisitor}'s {@code path(...)} counterpart) — one of
- * two disjoint shapes, mirroring the two Postgres field worlds of §3.5:
+ * two disjoint shapes, mirroring the two Postgres field worlds (doc-row columns and flat rows):
  * <ul>
  *   <li>a ROOT-mapped doc-row column ({@code st.thing_id} / {@code st.namespace}) that is sorted directly, with NO
  *       lateral and NO auth (the two system columns are {@code NOT NULL} scalars — never arrays, never missing); or</li>

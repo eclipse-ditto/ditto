@@ -13,7 +13,7 @@
 package org.eclipse.ditto.internal.utils.persistence.postgres.search.query.ast;
 
 /**
- * The array-overlap test {@code <array> && <textArray>} (§3.3 global read): true when the two arrays share ANY
+ * The array-overlap test {@code <array> && <textArray>} (the global-read check): true when the two arrays share ANY
  * element. Used for {@code st.global_read && $subjects::text[]} — the GIN-served replacement for Mongo's
  * {@code Filters.in("gr", subjects)}. The subject array is a {@code $n::text[]} bind, so subjects never reach SQL text.
  */

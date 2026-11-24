@@ -19,16 +19,16 @@ import org.eclipse.ditto.internal.utils.persistence.postgres.search.query.ast.Se
 import org.eclipse.ditto.internal.utils.persistence.postgres.search.query.ast.SqlExpression;
 
 /**
- * The D2 output contract consumed by D3 (sort/cursor) and D4 (persistence): the translated RQL criteria as an AST
- * boolean {@link #predicate() expression} over {@code search_things st} (with {@code EXISTS} probes on
+ * The output of the RQL→SQL criteria translation ({@link CreateSqlVisitor}), consumed by the sort/paging translation
+ * ({@link PostgresSortClause}) and the statement assembly ({@link SearchQueryAssembler}): the translated RQL criteria
+ * as an AST boolean {@link #predicate() expression} over {@code search_things st} (with {@code EXISTS} probes on
  * {@code search_flat} and auth rechecks on the doc-row JSONB columns), plus a {@link #materializedCtePrelude() CTE
  * prelude} seam.
  * <p>
- * <b>Kept deliberately minimal — D3/D4 will extend it.</b> The 0.2b materialized selective-leg "rescue" CTE strategy
- * applies to the TOP-LEVEL query assembly (D4), NOT inside D2's per-predicate translation; the prelude list is the seam
- * where that assembly can hoist a selective leg into a {@code WITH … AS MATERIALIZED} CTE and reference it from
- * {@link #predicate()}. D2 itself always produces an empty prelude (no CTEs); the selectivity-ordering decision is a D4
- * concern.
+ * <b>Kept deliberately minimal.</b> The prelude is an empty seam: the criteria translation never fills it, so it is
+ * always empty. The selective-leg CTE ({@code WITH … AS MATERIALIZED}) belongs to the top-level statement, not to the
+ * per-predicate translation: {@link SearchQueryAssembler} adds it at statement assembly through
+ * {@link SelectiveLegCte}, which also decides which conjunct to materialise.
  * </p>
  */
 public final class TranslatedCriteria {
@@ -54,8 +54,8 @@ public final class TranslatedCriteria {
     }
 
     /**
-     * @return the (currently always empty) list of materialized CTEs to prepend to the query — the D4 selective-leg
-     * "rescue" seam (§3.5).
+     * @return the list of materialized CTEs to prepend to the query; always empty, because the criteria translation
+     * never fills it (the selective-leg CTE is added by {@link SearchQueryAssembler} through {@link SelectiveLegCte}).
      */
     public List<Select> materializedCtePrelude() {
         return materializedCtePrelude;

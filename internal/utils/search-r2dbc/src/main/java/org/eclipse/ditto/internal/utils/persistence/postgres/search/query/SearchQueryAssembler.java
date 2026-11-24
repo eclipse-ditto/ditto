@@ -23,11 +23,12 @@ import org.eclipse.ditto.internal.utils.persistence.postgres.search.query.ast.Sq
 import org.eclipse.ditto.rql.query.criteria.Criteria;
 
 /**
- * Assembles the Task&nbsp;D4 read statements — the {@code findAll} / {@code findAllUnlimited} row queries and the
- * {@code count} — from a translated {@link Criteria}, a {@link PostgresSortClause} (D3) and the
- * {@link SelectiveLegCte selective-leg CTE} (§3.5; which conjunct it materialises: see {@link SelectiveLegCte} and
- * {@link SelectiveLegs}). Pure and DB-free: it returns rendered, fully-parameterized {@link RenderedSql} so the exact
- * SQL and bind order are unit-testable without a database.
+ * Assembles the read statements of {@code PostgresThingsSearchPersistence} — the {@code findAll} /
+ * {@code findAllUnlimited} row queries and the {@code count} — from a translated {@link Criteria}, a
+ * {@link PostgresSortClause} (the sort/paging translation) and the {@link SelectiveLegCte selective-leg CTE} (which
+ * conjunct it materialises: see {@link SelectiveLegCte} and {@link SelectiveLegs}). Pure and DB-free: it returns
+ * rendered, fully-parameterized {@link RenderedSql} so the exact SQL and bind order are unit-testable without a
+ * database.
  * <p>
  * <b>Statement shape ({@code findAll}).</b>
  * <pre>{@code
@@ -35,14 +36,14 @@ import org.eclipse.ditto.rql.query.criteria.Criteria;
  * [WITH sel_pick AS MATERIALIZED (…), sel_leg AS MATERIALIZED (SELECT sli.thing_id FROM (…) sli GROUP BY sli.thing_id)]
  * SELECT st.thing_id, st.t_modified, <cursor-projection cols>
  * FROM search_things st
- * [LEFT JOIN LATERAL (…) k0 ON true …]                              -- one per flat sort key (D3)
+ * [LEFT JOIN LATERAL (…) k0 ON true …]                              -- one per flat sort key
  * WHERE [EXISTS (SELECT 1 FROM sel_leg sl WHERE sl.thing_id = st.thing_id) AND] <full translated predicate>
  * ORDER BY … LIMIT $ OFFSET $
  * }</pre>
  * The selective-leg semi-join is an <em>additional</em> conjunct; the full predicate (auth rechecks included) is always
  * applied, so the CTE only ever changes the plan, never the result (see {@link SelectiveLegCte}). A two-sided range
  * alone gets no CTE (see {@link SelectiveLegCte}). Reads do NOT filter
- * {@code delete_at} (plan §3.6): a purge-marked row stays visible until the reaper removes it, matching Mongo (whose
+ * {@code delete_at}: a purge-marked row stays visible until the reaper removes it, matching Mongo (whose
  * TTL-marked docs likewise remain queryable until physically deleted).
  */
 public final class SearchQueryAssembler {
@@ -68,7 +69,7 @@ public final class SearchQueryAssembler {
      *
      * @param criteria the query criteria.
      * @param authorizationSubjectIds the visibility subjects, or {@code null} for the sudo (no-auth) form.
-     * @param sortClause the D3 sort/paging translation (the SAME instance the persistence uses for cursor extraction).
+     * @param sortClause the sort/paging translation (the SAME instance the persistence uses for cursor extraction).
      * @param limit the row limit ({@code pageLimit + 1}).
      * @param offset the skip.
      * @return the rendered, parameterized statement.
@@ -79,13 +80,13 @@ public final class SearchQueryAssembler {
     }
 
     /**
-     * The {@code findAll} row query — thing-id + modified timestamp + the D3 cursor-projection columns, ordered and
-     * paged. The caller passes {@code limit} as {@code pageLimit + 1} (the extra row is the "has-next-page" probe,
-     * mirroring Mongo's {@code limit + 1}).
+     * The {@code findAll} row query — thing-id + modified timestamp + the sort clause's cursor-projection columns,
+     * ordered and paged. The caller passes {@code limit} as {@code pageLimit + 1} (the extra row is the
+     * "has-next-page" probe, mirroring Mongo's {@code limit + 1}).
      *
      * @param criteria the query criteria.
      * @param authorizationSubjectIds the visibility subjects, or {@code null} for the sudo (no-auth) form.
-     * @param sortClause the D3 sort/paging translation (the SAME instance the persistence uses for cursor extraction).
+     * @param sortClause the sort/paging translation (the SAME instance the persistence uses for cursor extraction).
      * @param limit the row limit ({@code pageLimit + 1}).
      * @param offset the skip.
      * @param selectiveLegs which legs the selective-leg CTE may materialise.
@@ -111,7 +112,7 @@ public final class SearchQueryAssembler {
      *
      * @param criteria the query criteria.
      * @param authorizationSubjectIds the visibility subjects (never {@code null} on this path — parity with Mongo).
-     * @param sortClause the D3 sort/paging translation.
+     * @param sortClause the sort/paging translation.
      * @param limit the row limit, or {@code null} for unbounded.
      * @param offset the skip.
      * @return the rendered, parameterized statement.
@@ -132,7 +133,7 @@ public final class SearchQueryAssembler {
      *
      * @param criteria the query criteria.
      * @param authorizationSubjectIds the visibility subjects (never {@code null} on this path — parity with Mongo).
-     * @param sortClause the D3 sort/paging translation.
+     * @param sortClause the sort/paging translation.
      * @param limit the row limit, or {@code null} for unbounded.
      * @param offset the skip.
      * @param selectiveLegs which legs the selective-leg CTE may materialise.
@@ -212,7 +213,7 @@ public final class SearchQueryAssembler {
      *
      * @param criteria the query criteria.
      * @param authorizationSubjectIds the visibility subjects, or {@code null} for sudo.
-     * @param sortClause the D3 sort/paging translation.
+     * @param sortClause the sort/paging translation.
      * @return the rendered {@code findAll} statement for a representative single page.
      */
     public static RenderedSql renderForDiagnostics(final Criteria criteria,
@@ -223,7 +224,7 @@ public final class SearchQueryAssembler {
     /**
      * @param criteria the query criteria.
      * @param authorizationSubjectIds the visibility subjects, or {@code null} for sudo.
-     * @param sortClause the D3 sort/paging translation.
+     * @param sortClause the sort/paging translation.
      * @param selectiveLegs which legs the selective-leg CTE may materialise.
      * @return the rendered {@code findAll} statement for a representative single page (limit 1, no skip) — the slow-query
      * diagnostics form ({@code $n} placeholders shown, sudo form when subjects are {@code null}).
@@ -262,7 +263,7 @@ public final class SearchQueryAssembler {
     /** Non-parameterized fixed statements (no binds) used by the persistence directly. */
     public static final class Fixed {
 
-        /** The namespace count report (plan §3.5): {@code SELECT namespace, count(*) … GROUP BY namespace}. */
+        /** The namespace count report: {@code SELECT namespace, count(*) … GROUP BY namespace}. */
         public static final String NAMESPACE_REPORT_SQL =
                 "SELECT namespace, count(*) AS count FROM search_things GROUP BY namespace";
 

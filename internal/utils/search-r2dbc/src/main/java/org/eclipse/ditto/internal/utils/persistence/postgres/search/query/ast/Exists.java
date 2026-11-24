@@ -13,7 +13,7 @@
 package org.eclipse.ditto.internal.utils.persistence.postgres.search.query.ast;
 
 /**
- * An {@code EXISTS (subquery)} / {@code NOT EXISTS (subquery)} predicate — the core value-probe shape (§3.5): every RQL
+ * An {@code EXISTS (subquery)} / {@code NOT EXISTS (subquery)} predicate — the core value-probe shape: every RQL
  * predicate becomes an {@code EXISTS} over {@code search_flat} correlated to {@code st.thing_id} (and, for wildcard
  * features, to an outer flat alias for per-{@code f_id} scoping). {@code NOT EXISTS} preserves Mongo {@code nor}
  * semantics.

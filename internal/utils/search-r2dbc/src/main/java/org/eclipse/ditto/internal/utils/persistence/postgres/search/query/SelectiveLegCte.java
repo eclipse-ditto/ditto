@@ -37,7 +37,7 @@ import org.eclipse.ditto.rql.query.expression.FilterFieldExpression;
 import org.eclipse.ditto.rql.query.expression.visitors.FilterFieldExpressionVisitor;
 
 /**
- * The selective-leg CTE (plan §3.5). A search {@code WHERE} is a chain of correlated {@code EXISTS} probes over
+ * The selective-leg CTE. A search {@code WHERE} is a chain of correlated {@code EXISTS} probes over
  * {@code search_flat}, and PostgreSQL keeps statistics per column, not per JSON path, so its estimates for a path are
  * often far off. Staging one selective conjunct as a {@code WITH … AS MATERIALIZED} thing-id set and semi-joining
  * {@code search_things} to it pins the drive order to that leg's index scan.

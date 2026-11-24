@@ -20,8 +20,9 @@ import java.util.List;
 import javax.annotation.Nullable;
 
 /**
- * The public factory facade of the parameterized SQL AST — the single entry point the RQL→SQL visitors (Phases D2/D3)
- * and the read persistence (D4) use to build query trees, keeping the concrete node classes package-internal.
+ * The public factory facade of the parameterized SQL AST — the single entry point the RQL→SQL visitors (criteria and
+ * sort translation) and the read persistence use to build query trees, keeping the concrete node classes
+ * package-internal.
  * <p>
  * <strong>Injection discipline (the reason this facade exists):</strong> the only ways text enters a statement are (a)
  * the fixed grammar baked into the nodes, (b) validated bare identifiers passed to {@link #col}/{@link #func}/the
@@ -297,7 +298,7 @@ public final class Sql {
         return new JsonbExtractPath(jsonb, path);
     }
 
-    /** @return {@code (jsonb #>> path)} — text extraction (§3.5 group-by); {@code path} must be a {@code text[]} bind. */
+    /** @return {@code (jsonb #>> path)} — text extraction (group-by); {@code path} must be a {@code text[]} bind. */
     public static SqlExpression jsonbExtractText(final SqlExpression jsonb, final SqlExpression path) {
         return new JsonbExtractText(jsonb, path);
     }
@@ -312,7 +313,7 @@ public final class Sql {
         return new JsonbKeyExists(jsonb, key);
     }
 
-    /** @return {@code left && right} — array overlap ({@code st.global_read && $subjects::text[]}, §3.3). */
+    /** @return {@code left && right} — array overlap ({@code st.global_read && $subjects::text[]}). */
     public static SqlExpression arrayOverlap(final SqlExpression left, final SqlExpression right) {
         return new ArrayOverlap(left, right);
     }

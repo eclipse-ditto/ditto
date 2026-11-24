@@ -18,11 +18,11 @@ import javax.annotation.Nullable;
 
 /**
  * A {@code LIKE}/{@code ILIKE} pattern match with an explicit {@code ESCAPE '\'} and an optional {@code COLLATE}
- * override on the left operand (§3.5): {@code val_text LIKE $p ESCAPE '\'} for a {@code like} that is prefix-only or
+ * override on the left operand: {@code val_text LIKE $p ESCAPE '\'} for a {@code like} that is prefix-only or
  * has no run of three consecutive literal letters/digits, {@code val_text COLLATE "C.utf8" LIKE $p ESCAPE '\'} for
  * every other {@code like}, and
  * {@code val_text COLLATE "C.utf8" ILIKE $p ESCAPE '\'} for {@code ilike} (the collation matches the {@code sf_trgm}
- * expression index — the only form it can serve — and, for {@code ilike}, restores non-ASCII case folding, §3.2). The
+ * expression index — the only form it can serve — and, for {@code ilike}, restores non-ASCII case folding). The
  * pattern is ALWAYS a bind — user wildcard text never reaches SQL.
  */
 final class Like implements SqlExpression {

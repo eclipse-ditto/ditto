@@ -13,7 +13,7 @@
 package org.eclipse.ditto.internal.utils.persistence.postgres.search.query.ast;
 
 /**
- * A {@code LEFT JOIN LATERAL (subquery) alias ON true} block — the §3.5 sort strategy: one lateral per sort key selects
+ * A {@code LEFT JOIN LATERAL (subquery) alias ON true} block — the sort strategy: one lateral per sort key selects
  * the boundary sort element row-wise ({@code ORDER BY … LIMIT 1}), and its columns feed the outer {@code ORDER BY}. The
  * {@code LEFT}/{@code ON true} keeps rows whose key is missing (they sort as the null rank via the outer coalescing).
  */

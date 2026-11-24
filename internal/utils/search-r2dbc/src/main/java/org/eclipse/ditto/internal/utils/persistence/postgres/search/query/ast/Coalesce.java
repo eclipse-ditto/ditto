@@ -15,8 +15,8 @@ package org.eclipse.ditto.internal.utils.persistence.postgres.search.query.ast;
 import java.util.List;
 
 /**
- * {@code COALESCE(a, b, …)}. Used by the auth rechecks ({@code COALESCE((policy_auth #> $p) ?| $s, false)}, §3.3) and by
- * the sort-key null coalescing ({@code COALESCE(k0.type_rank, 1)}, §3.5 sort parity requirement (a)).
+ * {@code COALESCE(a, b, …)}. Used by the auth rechecks ({@code COALESCE((policy_auth #> $p) ?| $s, false)}) and by
+ * the sort-key null coalescing ({@code COALESCE(k0.type_rank, 1)}: missing sorts like null).
  */
 final class Coalesce implements SqlExpression {
 

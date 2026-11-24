@@ -32,12 +32,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * The Postgres sort/paging translation (Task D3): turns a query's ordered {@link SortOption}s into the §3.5 sort lateral
- * blocks, the outer {@code ORDER BY} assembly, and the cursor-value projection — the pieces D4's {@code findAll} SELECT
- * bolts onto its {@code SELECT … FROM search_things st WHERE …} skeleton. It carries NO auth (sort keys are never
- * authorization-filtered — §3.3 exception 3).
+ * The Postgres sort/paging translation: turns a query's ordered {@link SortOption}s into the sort lateral blocks (one
+ * {@code LEFT JOIN LATERAL} per flat sort key), the outer {@code ORDER BY} assembly, and the cursor-value projection —
+ * the pieces the read persistence's {@code findAll} SELECT bolts onto its
+ * {@code SELECT … FROM search_things st WHERE …} skeleton. It carries NO auth (sort keys are never
+ * authorization-filtered).
  * <p>
- * <b>The four §3.5 sort-parity requirements, and where each lives:</b>
+ * <b>The four sort-parity requirements, and where each lives:</b>
  * <ul>
  *   <li><b>(a) missing == null.</b> A {@code LEFT JOIN LATERAL … ON true} keeps things whose sort key is absent (all
  *       lateral columns come back {@code NULL}); the outer rank expression {@code COALESCE(…, 1)} folds that {@code
@@ -72,7 +73,7 @@ import org.slf4j.LoggerFactory;
  * <p>
  * <b>Documented divergences vs MongoDB sort</b> (verified against this class's CASE/COALESCE logic, {@link
  * GetSortSqlVisitor}'s wildcard rejection and {@link ThingFlattener}'s rank emissions — these are NOT bugs, they are
- * known, intentional gaps the parity IT (plan Phase G) must allow-list rather than chase):
+ * known, intentional gaps the search parity tests must allow-list rather than chase):
  * <ul>
  *   <li><b>Object-valued sort keys tie with EACH OTHER, not with null.</b> An object row's {@code type_rank} is
  *       {@link ThingFlattener#TYPE_OBJECT} (4) with {@code val_num}/{@code val_text}/{@code val_bool} all {@code
@@ -86,7 +87,7 @@ import org.slf4j.LoggerFactory;
  *       the boundary is encoded as {@code {"typeRank":4}} ({@link SortRankBoundary}), not as the object.</li>
  *   <li><b>Direct array-of-array sort keys are ASC/DESC-asymmetric when a scalar sibling shares the same path.</b>
  *       {@link ThingFlattener} emits a direct array-of-array element as a single valueless {@code type_rank = 5} stub
- *       (see its class javadoc, "Arrays") instead of descending into it — the §3.2 array-of-array stub rule this
+ *       (see its class javadoc, "Arrays") instead of descending into it — the array-of-array stub rule this
  *       class's cursor-value divergence (see {@link #toSortValues}) already documents on the READ side. If the same
  *       wpath ALSO has a scalar sibling row at some other array index (e.g. {@code x: [[1, 2], "z"]} — the {@code
  *       "z"} element walks normally to a {@code type_rank = }{@link ThingFlattener#TYPE_STRING} row), the lateral's
@@ -107,8 +108,9 @@ import org.slf4j.LoggerFactory;
  *       {@code MongoSortKeyMappingFunction}, which pass the feature id through uninspected). On Postgres the
  *       wildcarded {@code /features/*} wpath is a REAL {@code search_flat} row family the flattener emits for
  *       cross-feature auth fan-out (see {@code ThingFlattener}'s "Dual-wpath" note), so silently sorting by it would
- *       aggregate across every feature on the thing — a worse divergence than failing loudly. This
- *       stricter-than-Mongo behavior is sanctioned by plan §3.5's "needn't support" note on wildcard sort.</li>
+ *       aggregate across every feature on the thing — a worse divergence than failing loudly. The query translation
+ *       need not support a wildcard sort, so failing loudly is the accepted stricter-than-Mongo behavior (design
+ *       document, Search backend, Differences from MongoDB (search)).</li>
  * </ul>
  */
 public final class PostgresSortClause {
@@ -210,10 +212,10 @@ public final class PostgresSortClause {
     }
 
     /**
-     * Adds the projected columns D4 must read back to compute the last hit's cursor sort values (see {@link
-     * #toSortValues}). One aliased column per root key ({@code s<i>_val}); four per flat key ({@code s<i>_rank},
-     * {@code s<i>_num}, {@code s<i>_text}, {@code s<i>_bool}). Call on the same builder {@link #applyOrdering} extended,
-     * so the {@code k<i>} lateral aliases the flat columns reference exist.
+     * Adds the projected columns the read persistence must read back to compute the last hit's cursor sort values
+     * (see {@link #toSortValues}). One aliased column per root key ({@code s<i>_val}); four per flat key
+     * ({@code s<i>_rank}, {@code s<i>_num}, {@code s<i>_text}, {@code s<i>_bool}). Call on the same builder
+     * {@link #applyOrdering} extended, so the {@code k<i>} lateral aliases the flat columns reference exist.
      *
      * @param builder the query builder to extend.
      */
@@ -239,10 +241,10 @@ public final class PostgresSortClause {
      * rank-6, the rank marker {@code {"typeRank":4}} ({@link SortRankBoundary}) for an object (rank-4) boundary, and
      * {@code null} for a missing key, an explicit null (rank-1) or an empty-array / array-of-array (rank-5) boundary
      * (rank 4 and rank 5 have no scalar value on the flat table — a documented divergence from Mongo's
-     * whole-container cursor value, §3.5). Objects tie with each other, so the cursor resumes an object boundary by
+     * whole-container cursor value). Objects tie with each other, so the cursor resumes an object boundary by
      * rank, then by thing id. Root-mapped keys yield their text column value.
      *
-     * @param row the result-row accessor (the D4 read persistence adapts an r2dbc {@code Row} with {@code row::get}).
+     * @param row the result-row accessor (the read persistence adapts an r2dbc {@code Row} with {@code row::get}).
      * @return the sort values, in sort-key order.
      */
     public JsonArray toSortValues(final SortValueAccessor row) {
@@ -280,7 +282,7 @@ public final class PostgresSortClause {
         final String wpath = requireConcreteWpath(key.field.wpath());
         // SELECT s.type_rank, s.val_num, s.val_text, s.val_bool FROM search_flat s
         //   WHERE s.thing_id = st.thing_id AND s.path = $sortpath AND s.wpath = $sortpath
-        //   ORDER BY type_rank[…], val_num[…], val_text[…], val_bool[…] LIMIT 1  -- boundary element, row-wise (§3.5b)
+        //   ORDER BY type_rank[…], val_num[…], val_text[…], val_bool[…] LIMIT 1  -- boundary element, row-wise
         final Select.Builder builder = Sql.select()
                 .column(Sql.col(FLAT_ALIAS, TYPE_RANK))
                 .column(Sql.col(FLAT_ALIAS, SqlValues.VAL_NUM))
@@ -356,7 +358,7 @@ public final class PostgresSortClause {
             case ThingFlattener.TYPE_BOOLEAN -> valBool == null ? JsonFactory.nullLiteral() : JsonValue.of(valBool);
             // objects tie with each other: the cursor resumes an object boundary by rank, then by thing id
             case ThingFlattener.TYPE_OBJECT -> SortRankBoundary.object().toCursorValue();
-            // TYPE_NULL(1), TYPE_ARRAY(5): no scalar cursor value (§3.5 documented divergence).
+            // TYPE_NULL(1), TYPE_ARRAY(5): no scalar cursor value (a documented divergence from Mongo).
             default -> JsonFactory.nullLiteral();
         };
     }
@@ -366,7 +368,7 @@ public final class PostgresSortClause {
             return JsonFactory.nullLiteral();
         }
         // int/long preserved when the value is integral and fits a long (matches ThingFlattener.toBigDecimal); else
-        // double. Ditto numbers are int/long/double only, so numeric round-trip is exact (plan §3.5 cursor row).
+        // double. Ditto numbers are int/long/double only, so numeric round-trip is exact.
         final BigDecimal stripped = value.stripTrailingZeros();
         if (stripped.scale() <= 0) {
             try {

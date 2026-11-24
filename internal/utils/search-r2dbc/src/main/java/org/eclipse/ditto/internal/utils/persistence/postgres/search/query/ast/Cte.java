@@ -14,8 +14,8 @@ package org.eclipse.ditto.internal.utils.persistence.postgres.search.query.ast;
 
 /**
  * One common-table-expression of a {@code WITH} clause: {@code name AS [MATERIALIZED] (subquery)}. The
- * {@code MATERIALIZED} form is the §3.5 "rescue" strategy — forcing the selective leg to materialize first so an
- * auth-heavy EXISTS-chain does not nested-loop from an unselective leg (bench-results doc §5).
+ * {@code MATERIALIZED} form stages the selective leg — forcing it to materialize first so an auth-heavy EXISTS-chain
+ * does not nested-loop from an unselective leg.
  */
 final class Cte implements SqlNode {
 

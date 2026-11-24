@@ -13,7 +13,7 @@
 package org.eclipse.ditto.internal.utils.persistence.postgres.search.query.ast;
 
 /**
- * An {@code left = ANY(<array>)} membership test — the {@code in(path, v1..vn)} shape (§3.5). The array is a single bind
+ * An {@code left = ANY(<array>)} membership test — the {@code in(path, v1..vn)} shape. The array is a single bind
  * ({@code $n::text[]} / {@code ::int[]}), so an arbitrary-length {@code in} list is one parameter, not n inlined values.
  */
 final class EqAny implements SqlExpression {

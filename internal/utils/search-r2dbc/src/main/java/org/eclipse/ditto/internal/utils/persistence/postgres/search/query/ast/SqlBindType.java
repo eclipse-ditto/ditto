@@ -23,7 +23,7 @@ import io.r2dbc.spi.Statement;
  * The type does two jobs:
  * <ol>
  *     <li>drives the SQL-text cast suffix appended after the {@code $n} placeholder where PostgreSQL needs it to resolve
- *     an operator — {@code ::text[]} for the {@code #>} / {@code ?|} path/subject arrays (§3.3), {@code ::jsonb} for the
+ *     an operator — {@code ::text[]} for the {@code #>} / {@code ?|} path/subject arrays, {@code ::jsonb} for the
  *     {@code @>} containment operand, {@code ::int[]} for numeric-position arrays;</li>
  *     <li>selects the r2dbc {@link Statement} bind call (typed {@code bindNull} for a {@code null} value so the driver
  *     still sends the correct column type).</li>
@@ -35,17 +35,17 @@ public enum SqlBindType {
 
     /** UTF-8 text. */
     TEXT(String.class, ""),
-    /** A {@code text[]} array — jsonb {@code #>} paths and {@code ?|} subject arrays (§3.3) bind here. */
+    /** A {@code text[]} array — jsonb {@code #>} paths and {@code ?|} subject arrays bind here. */
     TEXT_ARRAY(String[].class, "::text[]"),
     /** A jsonb document, bound as its String form with a {@code ::jsonb} cast — the {@code @>} operand. */
     JSONB(String.class, "::jsonb"),
-    /** An arbitrary-precision number (BSON int/long/double unify onto {@code numeric}, §3.5). */
+    /** An arbitrary-precision number (BSON int/long/double unify onto {@code numeric}). */
     NUMERIC(BigDecimal.class, ""),
-    /** A {@code numeric[]} array — homogeneous numeric {@code in(path, …)} lists (§3.5). */
+    /** A {@code numeric[]} array — homogeneous numeric {@code in(path, …)} lists. */
     NUMERIC_ARRAY(BigDecimal[].class, "::numeric[]"),
     /** A boolean. */
     BOOLEAN(Boolean.class, ""),
-    /** A {@code boolean[]} array — homogeneous boolean {@code in(path, …)} lists (§3.5). */
+    /** A {@code boolean[]} array — homogeneous boolean {@code in(path, …)} lists. */
     BOOLEAN_ARRAY(Boolean[].class, "::boolean[]"),
     /** A 64-bit integer ({@code bigint}) — revisions, {@code LIMIT}/{@code OFFSET}. */
     BIGINT(Long.class, ""),

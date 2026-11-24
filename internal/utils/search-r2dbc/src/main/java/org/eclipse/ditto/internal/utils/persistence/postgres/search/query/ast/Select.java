@@ -290,7 +290,7 @@ public final class Select implements SqlNode {
         }
 
         /**
-         * Appends a {@code MATERIALIZED} common-table-expression to the {@code WITH} clause (§3.5 rescue form; CTEs
+         * Appends a {@code MATERIALIZED} common-table-expression to the {@code WITH} clause (the selective leg; CTEs
          * render in call order; a CTE that reads another must be added after it).
          *
          * @param name the CTE name (validated identifier).

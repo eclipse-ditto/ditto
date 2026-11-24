@@ -20,19 +20,19 @@ import org.eclipse.ditto.rql.query.expression.visitors.SortFieldExpressionVisito
 /**
  * The SQL counterpart of {@code GetSortBsonVisitor} (thingsearch/service): resolves a {@code SortFieldExpression} into
  * the {@link SortField} the {@link PostgresSortClause} turns into a lateral + {@code ORDER BY}. Like the Mongo sort
- * visitor it carries <b>NO auth</b> at all (plan §3.3 exception 3 — sort keys are never authorization-filtered) and it
+ * visitor it carries <b>NO auth</b> at all (sort keys are never authorization-filtered) and it
  * resolves the same paths {@code GetSortBsonVisitor} does.
  * <p>
  * <b>Side-by-side comment map (Mongo → here):</b>
  * <ul>
- *   <li>{@code visitAttribute:99-102} → {@link #visitAttribute}</li>
- *   <li>{@code visitFeatureDefinition:105-108}/{@code visitFeatureIdProperty:111-115}/
- *       {@code visitFeatureIdDesiredProperty:118-123} → the three feature methods (wildcard {@code *} REJECTED — see
+ *   <li>{@code visitAttribute} → {@link #visitAttribute}</li>
+ *   <li>{@code visitFeatureDefinition}/{@code visitFeatureIdProperty}/
+ *       {@code visitFeatureIdDesiredProperty} → the three feature methods (wildcard {@code *} REJECTED — see
  *       below)</li>
- *   <li>{@code visitSimple:126-130} (slash-prefixed ⇒ flat probe, else the raw internal name ⇒ doc column) →
+ *   <li>{@code visitSimple} (slash-prefixed ⇒ flat probe, else the raw internal name ⇒ doc column) →
  *       {@link #visitSimple}</li>
  * </ul>
- * <b>Wildcard rejection (plan §3.5):</b> Mongo cannot sort on {@code features/*} wildcard paths — {@code
+ * <b>Wildcard rejection:</b> Mongo cannot sort on {@code features/*} wildcard paths — {@code
  * GetSortBsonVisitor} has no wildcard branch, so a wildcard feature id becomes a literal {@code *} path segment that
  * matches no document (a degenerate, order-less "sort"). On the Postgres flat table the {@code /features/*} wpath is a
  * REAL row family (the flattener emits it), so silently building a lateral over it would sort by an aggregate across
@@ -102,7 +102,7 @@ final class GetSortSqlVisitor implements SortFieldExpressionVisitor<SortField> {
     private static void rejectWildcard(final CharSequence featureId) {
         if (FEATURE_ID_WILDCARD.contentEquals(featureId)) {
             throw new IllegalArgumentException("Sorting on wildcard feature paths (features/*/...) is not supported "
-                    + "— parity with MongoDB, whose sort visitor has no wildcard branch (plan §3.5).");
+                    + "— parity with MongoDB, whose sort visitor has no wildcard branch.");
         }
     }
 }

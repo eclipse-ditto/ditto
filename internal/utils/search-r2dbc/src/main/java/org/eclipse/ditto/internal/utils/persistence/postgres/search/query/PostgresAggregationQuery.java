@@ -29,11 +29,11 @@ import org.eclipse.ditto.rql.query.criteria.Criteria;
 
 /**
  * The SQL counterpart of {@code MongoThingsAggregationPersistence}'s {@code $match}+{@code $group} pipeline (operator
- * "custom aggregation metrics", plan §3.5). Pure and DB-free: it renders a fully-parameterized {@link RenderedSql}
+ * "custom aggregation metrics"). Pure and DB-free: it renders a fully-parameterized {@link RenderedSql}
  * (unit-testable without a database) and, symmetrically, maps a result row back into the exact backend-neutral
  * {@link JsonObject} the consumer ({@code AggregateThingsMetricsResponse}) expects.
  * <p>
- * <b>Pipeline → SQL transcription (Mongo {@code aggregateThings} line refs):</b>
+ * <b>Pipeline → SQL transcription (the stages {@code MongoThingsAggregationPersistence#aggregateThings} builds):</b>
  * <pre>{@code
  *   SELECT (st.thing #>> $g0::text[]) AS g0, …, count(*) AS count
  *   FROM search_things st
@@ -41,16 +41,17 @@ import org.eclipse.ditto.rql.query.criteria.Criteria;
  *   GROUP BY 1, 2, …
  * }</pre>
  * <ul>
- *   <li>{@code $match} namespace {@code in(FIELD_NAMESPACE, namespaces)} (Mongo:104-106) → {@code st.namespace = ANY(…)}
+ *   <li>{@code $match} namespace {@code in(FIELD_NAMESPACE, namespaces)} → {@code st.namespace = ANY(…)}
  *       — omitted when the command carries no namespaces, exactly like Mongo's {@code ifPresentOrElse}.</li>
- *   <li>{@code $match} filter {@code CreateBsonVisitor.sudoApply(filterCriteria)} (Mongo:109-111) → the D2
+ *   <li>{@code $match} filter {@code CreateBsonVisitor.sudoApply(filterCriteria)} → the
  *       {@link CreateSqlVisitor#sudoApply(Criteria) sudo} predicate — <b>NO auth</b>, no global-read, no {@code delete_at}
- *       (operator metrics are system-level; Mongo uses {@code sudoApply}). The namespace term is AND-ed onto it (Mongo:114).</li>
- *   <li>{@code $group} {@code _id: {k: "$t." + path.replace('/','.')}} (Mongo:118-121) → each key is
+ *       (operator metrics are system-level; Mongo uses {@code sudoApply}). The namespace term is AND-ed onto it, as in
+ *       Mongo's {@code $match}.</li>
+ *   <li>{@code $group} {@code _id: {k: "$t." + path.replace('/','.')}} → each key is
  *       {@code (st.thing #>> <raw-segments>::text[])} projected as {@code g<i>}; the RAW (un-escaped) config segments
  *       address the {@code thing} JSONB exactly as Mongo's dotted {@code $t.attributes.x} does (jsonb {@code #>>} uses
  *       raw keys, NOT the flat-table RFC-6901 {@code wpath} encoding — see {@code AuthFilterSqlBuilder}).</li>
- *   <li>{@code Accumulators.sum("count", 1)} (Mongo:121) → {@code count(*) AS count}.</li>
+ *   <li>{@code Accumulators.sum("count", 1)} → {@code count(*) AS count}.</li>
  * </ul>
  * <p>
  * <b>Mongo {@code $group} zero-input parity (no-grouping metrics).</b> Mongo's {@code $group} emits ZERO documents
@@ -69,7 +70,7 @@ import org.eclipse.ditto.rql.query.criteria.Criteria;
  * <b>Group-value type fidelity (verified from the sole consumer).</b> {@code AggregateThingsMetricsResponse.getGroupedBy}
  * reads the {@code _id} sub-object and calls {@code JsonValue.formatAsString()} on every value ({@code isString() ?
  * asString() : toString()}) — i.e. it stringifies, never type-discriminates; {@code getResult} reads {@code count} via
- * {@code asLong()}. Text extraction ({@code #>>}) is therefore correct (the brief's own criterion): a group key is
+ * {@code asLong()}. Text extraction ({@code #>>}) is therefore correct (it is what the consumer reads): a group key is
  * emitted as a JSON string, byte-identical to Mongo's {@code _id} sub-document for the (configured) string-valued keys,
  * and {@code count} is emitted as a JSON number (satisfying {@code asLong}). A missing key (SQL {@code NULL}) is emitted
  * as JSON {@code null}, mirroring Mongo's absent-field-&gt;{@code null} grouping. The only observable divergence — a

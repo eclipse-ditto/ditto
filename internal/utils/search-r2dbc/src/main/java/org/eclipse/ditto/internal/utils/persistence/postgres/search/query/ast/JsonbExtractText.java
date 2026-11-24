@@ -13,7 +13,7 @@
 package org.eclipse.ditto.internal.utils.persistence.postgres.search.query.ast;
 
 /**
- * The jsonb {@code #>>} path text-extraction {@code (<jsonb> #>> <path>)} (§3.5, operator-metrics {@code $group}). Unlike
+ * The jsonb {@code #>>} path text-extraction {@code (<jsonb> #>> <path>)} (operator-metrics {@code $group}). Unlike
  * {@link JsonbExtractPath} ({@code #>}, which yields a typed {@code jsonb} sub-document), {@code #>>} yields the
  * addressed leaf as native {@code text} (a missing path yields SQL {@code NULL}). Used to project the operator-metrics
  * group-by keys out of the {@code search_things.thing} JSONB. The path is a {@code text[]} bind ({@code $n::text[]}) — a

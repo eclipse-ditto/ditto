@@ -17,8 +17,8 @@ package org.eclipse.ditto.internal.utils.persistence.postgres.search.query.ast;
  * (fixed SQL text via {@link SqlRenderContext#sql}, values via {@link SqlRenderContext#bind}); the tree renders
  * depth-first, left-to-right, which is what makes the {@code $n} numbering deterministic.
  * <p>
- * The AST is the RQL-visitor target for Phases D2/D3: the visitors build a tree, and {@link #render(SqlNode)} turns it
- * into {@link RenderedSql}. It is a package-internal API of the search-r2dbc module.
+ * The AST is the RQL-visitor target of the criteria and sort translation: the visitors build a tree, and
+ * {@link #render(SqlNode)} turns it into {@link RenderedSql}. It is a package-internal API of the search-r2dbc module.
  */
 public interface SqlNode {
 

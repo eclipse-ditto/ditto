@@ -29,18 +29,18 @@ import org.eclipse.ditto.rql.query.expression.visitors.FilterFieldExpressionVisi
  * <p>
  * <b>Side-by-side comment map (Mongo → here):</b>
  * <ul>
- *   <li>{@code visitAttribute:79-81} → {@link #visitAttribute}</li>
- *   <li>{@code visitFeatureDefinition:84-90}/{@code visitFeatureIdProperty:93-99}/
- *       {@code visitFeatureIdDesiredProperty:102-108} (wildcard {@code *} → {@code matchWildcardFeatureValue}) →
+ *   <li>{@code visitAttribute} → {@link #visitAttribute}</li>
+ *   <li>{@code visitFeatureDefinition}/{@code visitFeatureIdProperty}/
+ *       {@code visitFeatureIdDesiredProperty} (wildcard {@code *} → {@code matchWildcardFeatureValue}) →
  *       {@link #visitFeatureDefinition}/{@link #visitFeatureIdProperty}/{@link #visitFeatureIdDesiredProperty}</li>
- *   <li>{@code visitMetadata:111-113} → {@link #visitMetadata}; {@code visitPointer:116-118} → {@link #visitPointer}</li>
- *   <li>{@code visitRootLevelField:121-123} (predicate on the field, NO auth — §3.3 exception 1) →
- *       {@link #visitRootLevelField}</li>
- *   <li>{@code matchValue:125-131} ({@code and(keyValueFilter, authBson)}) → {@link #matchValue}; a
+ *   <li>{@code visitMetadata} → {@link #visitMetadata}; {@code visitPointer} → {@link #visitPointer}</li>
+ *   <li>{@code visitRootLevelField} (predicate on the field, NO auth: root-mapped document-row columns carry no
+ *       per-field authorization check) → {@link #visitRootLevelField}</li>
+ *   <li>{@code matchValue} ({@code and(keyValueFilter, authBson)}) → {@link #matchValue}; a
  *       {@link SqlPredicate#matchesMissing() null-operand} predicate ORs {@code NOT EXISTS(wpath)} onto the probe
  *       (Mongo's {@code {f: null}} matches an absent field), a {@link SqlPredicate#neverMatches() never} predicate
  *       renders {@code false}</li>
- *   <li>{@code matchWildcardFeatureValue:133-139} ({@code elemMatch(f, and(keyValueFilter, authBson))}, per-f_id) →
+ *   <li>{@code matchWildcardFeatureValue} ({@code elemMatch(f, and(keyValueFilter, authBson))}, per-f_id) →
  *       {@link #matchWildcardFeatureValue}; the null-operand form anchors on the feature boundary row
  *       ({@code wpath = '/features/*'}, one per feature, auth on its {@code f_id}) and accepts a feature whose property
  *       rows match OR do not exist at all</li>
@@ -104,7 +104,7 @@ final class GetFilterSqlVisitor extends AbstractFieldSqlCreator implements Filte
 
     @Override
     public SqlExpression visitRootLevelField(final String fieldName) {
-        // §3.3 exception 1: root-mapped columns carry NO per-field auth; the predicate is applied straight to the column.
+        // Root-mapped columns carry NO per-field auth; the predicate is applied straight to the column.
         final SqlExpression column = rootColumn(fieldName)
                 .orElseThrow(() -> new IllegalArgumentException("Unknown root-level search field: " + fieldName));
         return predicate.columnCondition(column);
@@ -134,7 +134,7 @@ final class GetFilterSqlVisitor extends AbstractFieldSqlCreator implements Filte
         return thingLevelAuth(pointer).map(authFilter -> Sql.and(core, authFilter)).orElse(core);
     }
 
-    // ---- wildcard feature (Mongo matchWildcardFeatureValue → elemMatch, per-f_id scoped §3.5) ----------------------
+    // ---- wildcard feature (Mongo matchWildcardFeatureValue → elemMatch, scoped per f_id) ---------------------------
 
     private SqlExpression matchWildcardFeatureValue(final JsonPointer propertyPointer) {
         if (predicate.neverMatches()) {
@@ -142,7 +142,7 @@ final class GetFilterSqlVisitor extends AbstractFieldSqlCreator implements Filte
         }
         final String wpath = wildcardWpath(propertyPointer);
         if (predicate.scopedNegation()) {
-            // Per-f_id scoped ne (§3.5): EXISTS a (auth on a.f_id) ∧ NOT EXISTS b within the SAME feature (b.f_id=a.f_id).
+            // Per-f_id scoped ne: EXISTS a (auth on a.f_id) ∧ NOT EXISTS b within the SAME feature (b.f_id=a.f_id).
             final List<SqlExpression> outerConds = new ArrayList<>();
             outerConds.add(Sql.eq(Sql.col(WILDCARD_ALIAS, THING_ID), Sql.col(DOC_ALIAS, THING_ID)));
             outerConds.add(Sql.eq(Sql.col(WILDCARD_ALIAS, WPATH), Sql.text(wpath)));

@@ -32,11 +32,11 @@ import org.eclipse.ditto.rql.query.expression.FilterFieldExpression;
  * <p>
  * <b>Side-by-side comment map (Mongo → here):</b>
  * <ul>
- *   <li>{@code apply:63-80} ({@code and(baseFilter, globalReadableFilter)}, global read AND-ed onto every non-sudo
- *       query) → {@link #apply}; {@code sudoApply:52-61} (no global-read, no deleteAt) → {@link #sudoApply}</li>
- *   <li>{@code visitField:92-100} (TimePlaceholder resolver at predicate creation) → {@link #visitField}</li>
- *   <li>{@code visitExists:82-85}/{@code visitEmpty:87-90} → {@link #visitExists}/{@link #visitEmpty}</li>
- *   <li>{@code visitAny:102-105} (match-all)/{@code visitAnd}/{@code visitOr}/{@code visitNor:107-120} → the boolean
+ *   <li>{@code apply} ({@code and(baseFilter, globalReadableFilter)}, global read AND-ed onto every non-sudo
+ *       query) → {@link #apply}; {@code sudoApply} (no global-read, no deleteAt) → {@link #sudoApply}</li>
+ *   <li>{@code visitField} (TimePlaceholder resolver at predicate creation) → {@link #visitField}</li>
+ *   <li>{@code visitExists}/{@code visitEmpty} → {@link #visitExists}/{@link #visitEmpty}</li>
+ *   <li>{@code visitAny} (match-all)/{@code visitAnd}/{@code visitOr}/{@code visitNor} → the boolean
  *       tree ({@code nor} = {@code NOT OR}, preserving Mongo nor semantics)</li>
  * </ul>
  */

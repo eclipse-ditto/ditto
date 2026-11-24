@@ -13,7 +13,7 @@
 package org.eclipse.ditto.internal.utils.persistence.postgres.search.query.ast;
 
 /**
- * The jsonb {@code ?|} "any key matches" test {@code <jsonb> ?| <textArray>} (§3.3): checks whether the left jsonb value
+ * The jsonb {@code ?|} "any key matches" test {@code <jsonb> ?| <textArray>}: checks whether the left jsonb value
  * (an array of subject strings) contains ANY element of the right {@code text[]} bind (the authorization subjects). The
  * {@code ?|} operator is safe with r2dbc {@code $n} placeholders — no JDBC-style {@code ?} clash, no escaping. The
  * subject array is a {@code $n::text[]} bind.

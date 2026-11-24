@@ -15,7 +15,7 @@ package org.eclipse.ditto.internal.utils.persistence.postgres.search.query.ast;
 /**
  * A fixed SQL keyword literal from the AST's own grammar — {@code TRUE}, {@code FALSE} or {@code NULL}. These are the
  * only value-shaped tokens rendered inline, and they carry NO caller data (e.g. the {@code false} fallback of the
- * {@code COALESCE(... , false)} auth rechecks in §3.3). Actual data values are always {@link Param} binds.
+ * {@code COALESCE(... , false)} auth rechecks). Actual data values are always {@link Param} binds.
  */
 enum Literal implements SqlExpression {
 

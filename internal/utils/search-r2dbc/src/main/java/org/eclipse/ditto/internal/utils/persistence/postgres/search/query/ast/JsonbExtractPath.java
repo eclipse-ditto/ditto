@@ -13,7 +13,7 @@
 package org.eclipse.ditto.internal.utils.persistence.postgres.search.query.ast;
 
 /**
- * The jsonb {@code #>} path extraction {@code (<jsonb> #> <path>)} (§3.3). The path is a {@code text[]} bind
+ * The jsonb {@code #>} path extraction {@code (<jsonb> #> <path>)}. The path is a {@code text[]} bind
  * ({@code $n::text[]}) — a queried/auth path (whose user-key segments may contain {@code , } &#123; &#125; " ;}) is NEVER
  * inlined as a {@code '{...}'} literal. Rendered parenthesized so a following {@code ?|}/{@code @>} binds to the whole
  * extraction.
