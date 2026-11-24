@@ -77,6 +77,7 @@ import org.eclipse.ditto.thingsearch.service.persistence.read.expression.visitor
 import org.eclipse.ditto.thingsearch.service.persistence.read.query.MongoQuery;
 import org.eclipse.ditto.thingsearch.persistence.api.model.AbstractWriteModel;
 import org.eclipse.ditto.thingsearch.persistence.api.model.Metadata;
+import org.eclipse.ditto.thingsearch.persistence.api.model.SearchIndexDocument;
 import org.eclipse.ditto.thingsearch.persistence.api.model.ThingDeleteModel;
 import org.eclipse.ditto.thingsearch.persistence.api.model.ThingWriteModel;
 import org.eclipse.ditto.thingsearch.service.persistence.write.mapping.SearchIndexDocumentMongoEncoder;
@@ -568,13 +569,29 @@ public final class MongoThingsSearchPersistence implements ThingsSearchPersisten
         return Metadata.of(thingId, thingRevision, thingPolicyTag, null, referencedPolicies, modified, null);
     }
 
-    private static AbstractWriteModel documentToWriteModel(final Document document) {
+    /**
+     * Maps a stored search index document to the write model it represents. A document that the decoder rejects
+     * yields a {@code ThingDeleteModel}, so that the next update of the thing is written in full.
+     *
+     * @param document the stored search index document.
+     * @return the write model of the stored document.
+     */
+    static AbstractWriteModel documentToWriteModel(final Document document) {
         final BsonDocument stored = document.toBsonDocument(Document.class, MongoClient.DEFAULT_CODEC_REGISTRY());
         final Metadata actualMetadata = readAsMetadata(document);
         if (!stored.containsKey(PersistenceConstants.FIELD_REFERENCED_POLICIES)) {
             // historical "emptied out" shape, which omits the __referencedPolicies field
             return ThingWriteModel.ofEmptiedOut(actualMetadata);
         }
-        return ThingWriteModel.of(actualMetadata, SearchIndexDocumentMongoEncoder.decode(stored));
+        final SearchIndexDocument decoded;
+        try {
+            decoded = SearchIndexDocumentMongoEncoder.decode(stored);
+        } catch (final RuntimeException e) {
+            final ThingId thingId = actualMetadata.getThingId();
+            LOGGER.warn("Search index document of thing <{}> cannot be decoded; its next update is written in full." +
+                    " Cause: {}", thingId, e.toString());
+            return ThingDeleteModel.of(Metadata.ofDeleted(thingId));
+        }
+        return ThingWriteModel.of(actualMetadata, decoded);
     }
 }

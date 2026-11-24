@@ -27,10 +27,12 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.stream.javadsl.AsPublisher;
 import org.apache.pekko.stream.javadsl.Sink;
 import org.apache.pekko.stream.javadsl.Source;
 import org.apache.pekko.testkit.javadsl.TestKit;
 import org.bson.BsonDocument;
+import org.bson.BsonString;
 import org.eclipse.ditto.internal.utils.metrics.instruments.timer.StartedTimer;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.things.model.ThingId;
@@ -45,9 +47,14 @@ import org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.ArgumentCaptor;
 
 import com.mongodb.WriteConcern;
+import com.mongodb.bulk.BulkWriteResult;
+import com.mongodb.bulk.BulkWriteUpsert;
 import com.mongodb.client.model.BulkWriteOptions;
+import com.mongodb.client.model.ReplaceOneModel;
+import com.mongodb.client.model.WriteModel;
 import com.mongodb.reactivestreams.client.MongoCollection;
 import com.mongodb.reactivestreams.client.MongoDatabase;
 
@@ -117,6 +124,28 @@ public final class MongoSearchUpdaterFlowTest {
         final List<UpdaterResult> results = runFlow(new UpdaterData(writeModel, lastWriteModel));
 
         assertThat(results).isEmpty();
+    }
+
+    @Test
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    public void updateAgainstANotIndexedLastModelIsAFullReplaceWithUpsert() throws Exception {
+        final BulkWriteResult bulkWriteResult = BulkWriteResult.acknowledged(0, 0, 0, 0,
+                List.of(new BulkWriteUpsert(0, new BsonString(THING_ID.toString()))), List.of());
+        when(collection.bulkWrite(anyList(), any(BulkWriteOptions.class)))
+                .thenReturn(Source.single(bulkWriteResult)
+                        .runWith(Sink.asPublisher(AsPublisher.WITHOUT_FANOUT), actorSystem));
+        final var writeModel = ThingWriteModel.of(metadata(2L, null), document(2L));
+        final var lastWriteModel = ThingDeleteModel.of(Metadata.ofDeleted(THING_ID));
+
+        final List<UpdaterResult> results = runFlow(new UpdaterData(writeModel, lastWriteModel));
+
+        final ArgumentCaptor<List<? extends WriteModel<BsonDocument>>> captor =
+                (ArgumentCaptor) ArgumentCaptor.forClass(List.class);
+        verify(collection).bulkWrite(captor.capture(), any(BulkWriteOptions.class));
+        assertThat(captor.getValue()).singleElement()
+                .isInstanceOfSatisfying(ReplaceOneModel.class,
+                        replace -> assertThat(replace.getReplaceOptions().isUpsert()).isTrue());
+        assertThat(results).hasSize(1);
     }
 
     private List<UpdaterResult> runFlow(final UpdaterData updaterData) throws Exception {
