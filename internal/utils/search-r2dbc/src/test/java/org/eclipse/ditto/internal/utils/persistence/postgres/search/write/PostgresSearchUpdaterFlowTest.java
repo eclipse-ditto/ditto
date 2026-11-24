@@ -14,9 +14,12 @@ package org.eclipse.ditto.internal.utils.persistence.postgres.search.write;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.lang.reflect.Proxy;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 
 import org.eclipse.ditto.internal.utils.persistence.postgres.search.flatten.FlatRow;
@@ -35,10 +38,16 @@ import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.reactivestreams.Publisher;
+import org.slf4j.LoggerFactory;
 
+import ch.qos.logback.classic.Level;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.read.ListAppender;
 import io.r2dbc.spi.Connection;
 import io.r2dbc.spi.ConnectionFactory;
 import io.r2dbc.spi.ConnectionFactoryMetadata;
+import io.r2dbc.spi.R2dbcException;
+import io.r2dbc.spi.Statement;
 
 import org.apache.pekko.actor.ActorSystem;
 import org.apache.pekko.stream.javadsl.Sink;
@@ -153,6 +162,73 @@ public final class PostgresSearchUpdaterFlowTest {
         assertThat(correlationIds.get(0)).isNotEqualTo(correlationIds.get(1));
     }
 
+    @Test
+    public void uniqueViolationIsLoggedAtErrorAndReportedAsWriteError() throws Exception {
+        final StatementFailingConnectionFactory connectionFactory =
+                new StatementFailingConnectionFactory(PostgresSearchWriteResults.SQLSTATE_UNIQUE_VIOLATION);
+        final ListAppender<ILoggingEvent> appender = attachAppender();
+        try {
+            final UpdaterResult result = runOne(connectionFactory, updaterDataFor(HEALTHY_THING_ID));
+
+            assertThat(result.result().classify()).isEqualTo(SearchWriteResultStatus.WRITE_ERROR);
+            assertThat(appender.list).filteredOn(event -> event.getLevel() == Level.ERROR)
+                    .singleElement()
+                    .satisfies(event -> {
+                        assertThat(event.getFormattedMessage()).isEqualTo(
+                                "Unique violation while writing the search index of thing <" + HEALTHY_THING_ID
+                                        + ">; the write was rolled back and is retried: "
+                                        + StatementFailingConnectionFactory.MESSAGE);
+                        assertThat(event.getThrowableProxy()).isNull();
+                    });
+            assertThat(connectionFactory.calls).contains("rollbackTransaction").doesNotContain("commitTransaction");
+        } finally {
+            detachAppender(appender);
+        }
+    }
+
+    @Test
+    public void otherIntegrityViolationIsAWriteErrorWithoutTheUniqueViolationLine() throws Exception {
+        final StatementFailingConnectionFactory connectionFactory =
+                new StatementFailingConnectionFactory(PostgresSearchWriteResults.SQLSTATE_FK_VIOLATION);
+        final ListAppender<ILoggingEvent> appender = attachAppender();
+        try {
+            final UpdaterResult result = runOne(connectionFactory, updaterDataFor(HEALTHY_THING_ID));
+
+            assertThat(result.result().classify()).isEqualTo(SearchWriteResultStatus.WRITE_ERROR);
+            assertThat(appender.list).noneSatisfy(
+                    event -> assertThat(event.getFormattedMessage()).startsWith("Unique violation"));
+        } finally {
+            detachAppender(appender);
+        }
+    }
+
+    private static UpdaterResult runOne(final ConnectionFactory connectionFactory, final UpdaterData data)
+            throws Exception {
+        final List<UpdaterResult> results = Source.single(data)
+                .via(PostgresSearchUpdaterFlow.forConnectionFactory(connectionFactory).create())
+                .runWith(Sink.seq(), system)
+                .toCompletableFuture()
+                .get(30, TimeUnit.SECONDS);
+        assertThat(results).hasSize(1);
+        return results.get(0);
+    }
+
+    private static ListAppender<ILoggingEvent> attachAppender() {
+        final ch.qos.logback.classic.Logger logbackLogger =
+                (ch.qos.logback.classic.Logger) LoggerFactory.getLogger(PostgresSearchUpdaterFlow.class);
+        final ListAppender<ILoggingEvent> appender = new ListAppender<>();
+        appender.start();
+        logbackLogger.addAppender(appender);
+        return appender;
+    }
+
+    private static void detachAppender(final ListAppender<ILoggingEvent> appender) {
+        final ch.qos.logback.classic.Logger logbackLogger =
+                (ch.qos.logback.classic.Logger) LoggerFactory.getLogger(PostgresSearchUpdaterFlow.class);
+        logbackLogger.detachAppender(appender);
+        appender.stop();
+    }
+
     private static UpdaterData updaterDataFor(final ThingId thingId) {
         final Metadata metadata = metadata(thingId, 1L);
         final JsonObject thing = JsonObject.newBuilder()
@@ -189,6 +265,79 @@ public final class PostgresSearchUpdaterFlowTest {
         @Override
         public ConnectionFactoryMetadata getMetadata() {
             return () -> "always-failing-test-fake";
+        }
+    }
+
+    /**
+     * A {@link ConnectionFactory} whose connections run the transaction calls successfully but whose every statement
+     * fails on {@code execute()} with an {@link R2dbcException} carrying the given SQLSTATE. Built from
+     * {@link Proxy}s because the module has no Mockito. Records the names of the transaction calls it receives.
+     */
+    private static final class StatementFailingConnectionFactory implements ConnectionFactory {
+
+        static final String MESSAGE = "duplicate key value violates unique constraint";
+
+        final List<String> calls = new CopyOnWriteArrayList<>();
+        private final String sqlState;
+
+        StatementFailingConnectionFactory(final String sqlState) {
+            this.sqlState = sqlState;
+        }
+
+        @Override
+        public Publisher<? extends Connection> create() {
+            return Mono.just(connection());
+        }
+
+        @Override
+        public ConnectionFactoryMetadata getMetadata() {
+            return () -> "statement-failing-test-fake";
+        }
+
+        private Connection connection() {
+            final Statement statement = proxy(Statement.class, (self, name) -> "execute".equals(name)
+                    ? Mono.error(new R2dbcException(MESSAGE, sqlState) {})
+                    : null);
+            return proxy(Connection.class, (self, name) -> {
+                if ("createStatement".equals(name)) {
+                    return statement;
+                }
+                if (Set.of("beginTransaction", "commitTransaction", "rollbackTransaction", "close").contains(name)) {
+                    calls.add(name);
+                }
+                return null;
+            });
+        }
+
+        /**
+         * A proxy of {@code type}: {@code answer} decides first (a non-null answer wins); otherwise a method returning
+         * {@code type} returns the proxy itself, a {@link Publisher} completes empty, a {@code boolean} is false and
+         * the {@link Object} methods behave as for an identity object.
+         */
+        private static <T> T proxy(final Class<T> type, final BiFunction<Object, String, Object> answer) {
+            return type.cast(Proxy.newProxyInstance(type.getClassLoader(), new Class<?>[]{type},
+                    (self, method, args) -> {
+                        final String name = method.getName();
+                        final Object answered = answer.apply(self, name);
+                        if (answered != null) {
+                            return answered;
+                        }
+                        final Class<?> returnType = method.getReturnType();
+                        if ("toString".equals(name)) {
+                            return type.getSimpleName() + "-test-fake";
+                        } else if ("hashCode".equals(name)) {
+                            return System.identityHashCode(self);
+                        } else if ("equals".equals(name)) {
+                            return self == args[0];
+                        } else if (returnType == type) {
+                            return self;
+                        } else if (Publisher.class.isAssignableFrom(returnType)) {
+                            return Mono.empty();
+                        } else if (returnType == boolean.class) {
+                            return false;
+                        }
+                        return null;
+                    }));
         }
     }
 

@@ -605,6 +605,53 @@ public class ThingFlattenerTest {
     }
 
     @Test
+    public void featureNamedAsteriskEmitsEachPrimaryKeyOnce() {
+        final JsonObject thing = JsonFactory.newObject("""
+                {
+                  "features": {
+                    "*": { "properties": { "on": true } },
+                    "lamp": { "properties": { "on": true } }
+                  }
+                }
+                """);
+
+        final List<FlatRow> rows = ThingFlattener.flatten(THING_ID, thing);
+
+        assertThat(duplicatePrimaryKeys(rows)).isEmpty();
+        assertThat(rowsAtPath(rows, "/features/lamp/properties/on"))
+                .allSatisfy(row -> assertThat(row.fId()).isEqualTo("lamp"))
+                .extracting(FlatRow::wpath)
+                .containsExactlyInAnyOrder("/features/lamp/properties/on", "/features/*/properties/on");
+        for (final String path : List.of("/features/*", "/features/*/properties", "/features/*/properties/on")) {
+            final FlatRow row = onlyRowAtPath(rows, path);
+            assertThat(row.wpath()).isEqualTo(path);
+            assertThat(row.fId()).isEqualTo("*");
+        }
+    }
+
+    @Test
+    public void featureIdThatNeedsEscapingKeepsItsWildcardRow() {
+        final JsonObject thing = JsonFactory.newObjectBuilder()
+                .set("features", JsonFactory.newObjectBuilder()
+                        .set("a~b", JsonFactory.newObjectBuilder()
+                                .set("properties", JsonFactory.newObjectBuilder()
+                                        .set("on", JsonFactory.newValue(true))
+                                        .build())
+                                .build())
+                        .build())
+                .build();
+
+        final List<FlatRow> rows = ThingFlattener.flatten(THING_ID, thing);
+
+        assertThat(duplicatePrimaryKeys(rows)).isEmpty();
+        final String escapedPath = "/features/a~0b/properties/on";
+        assertThat(rowsAtPath(rows, escapedPath))
+                .allSatisfy(row -> assertThat(row.fId()).isEqualTo("a~b"))
+                .extracting(FlatRow::wpath)
+                .containsExactlyInAnyOrder(escapedPath, "/features/*/properties/on");
+    }
+
+    @Test
     public void escapeJsonPointerSegmentIsExposedForThePhaseDTranslatorToMirror() {
         assertThat(ThingFlattener.escapeJsonPointerSegment("a~b")).isEqualTo("a~0b");
         assertThat(ThingFlattener.escapeJsonPointerSegment("a/b")).isEqualTo("a~1b");
@@ -709,6 +756,17 @@ public class ThingFlattenerTest {
         final List<FlatRow> matching = rowsAtPath(rows, path);
         assertThat(matching).as("rows at path %s", path).hasSize(1);
         return matching.get(0);
+    }
+
+    /** The {@code (path, wpath, ord)} keys that more than one row carries (the table's primary key minus thing_id). */
+    private static List<String> duplicatePrimaryKeys(final List<FlatRow> rows) {
+        return rows.stream()
+                .collect(Collectors.groupingBy(r -> r.path() + " | " + r.wpath() + " | " + r.ord(),
+                        Collectors.counting()))
+                .entrySet().stream()
+                .filter(entry -> entry.getValue() > 1)
+                .map(Map.Entry::getKey)
+                .toList();
     }
 
 }

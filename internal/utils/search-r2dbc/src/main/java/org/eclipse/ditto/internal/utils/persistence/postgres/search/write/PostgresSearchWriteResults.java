@@ -29,30 +29,33 @@ import io.r2dbc.spi.R2dbcException;
  * <p>
  * The counts are shaped to reproduce the Mongo bulk-write acknowledgement rules exactly, honouring
  * {@link SearchWriteResult#classify()}'s fixed decision precedence
- * (UNACKNOWLEDGED &gt; CONSISTENCY_ERROR &gt; INCORRECT_PATCH &gt; WRITE_ERROR &gt; OK — the A4 contract):
+ * (UNACKNOWLEDGED &gt; CONSISTENCY_ERROR &gt; INCORRECT_PATCH &gt; WRITE_ERROR &gt; OK):
  * </p>
  * <ul>
- *     <li><strong>Unique violation ({@value #SQLSTATE_UNIQUE_VIOLATION}) ⇒ SUCCESS</strong> — the Mongo duplicate-key
- *     rule ({@code BulkWriteResultAckFlow} treats a {@code DUPLICATE_KEY} error as success). Emitted as a
- *     {@link SearchWriteError.Category#DUPLICATE_KEY} error so it exercises the same classify() path;
- *     {@code classify() == OK}.</li>
- *     <li><strong>FK violation ({@value #SQLSTATE_FK_VIOLATION}) and every other SQLSTATE ⇒ per-thing WRITE_ERROR</strong>
- *     — a {@link SearchWriteError.Category#OTHER} error; {@code classify() == WRITE_ERROR}; the thing is NAcked and
- *     retried (an FK violation is a delete racing a flat insert, which a retry resolves).</li>
+ *     <li><strong>Any SQLSTATE ⇒ per-thing WRITE_ERROR</strong> — a {@link SearchWriteError.Category#OTHER} error;
+ *     {@code classify() == WRITE_ERROR}; the thing is NAcked and retried. An FK violation
+ *     ({@value #SQLSTATE_FK_VIOLATION}) is a delete racing a flat insert, which a retry resolves. A unique violation
+ *     ({@value #SQLSTATE_UNIQUE_VIOLATION}) is no success either: the doc-row upsert
+ *     {@code INSERT … ON CONFLICT (thing_id) DO UPDATE} serializes the writers of one thing, so a unique violation can
+ *     only come from the {@code search_flat} rows and means the whole per-thing transaction, doc row included, was
+ *     rolled back; reporting it as success would leave the thing stale or missing in the index.</li>
  *     <li><strong>Any non-SQL failure ⇒ unexpected error</strong> — pool acquire timeout, connection reset, etc.: mirrors
  *     the Mongo non-{@code BulkWriteException} path ({@code classify() == UNACKNOWLEDGED}). Never a stream failure.</li>
  * </ul>
  * <p>
  * For every ERROR result the {@code matchedCount} is set to {@code nonDeleteWriteModelCount} so the
  * INCORRECT_PATCH count-check (which classify() evaluates BEFORE the write-error check) is satisfied and the error
- * surfaces as a WRITE_ERROR (or, for a duplicate key, as OK) rather than being masked as an incorrect patch. The
+ * surfaces as a WRITE_ERROR rather than being masked as an incorrect patch. The
  * matched/upserted counts are consumed only by classify() and the log line — the per-thing transaction has already
  * rolled back on any error.
  * </p>
  */
 final class PostgresSearchWriteResults {
 
-    /** PostgreSQL SQLSTATE {@code 23505} = {@code unique_violation} — the Mongo duplicate-key ⇒ success rule. */
+    /**
+     * PostgreSQL SQLSTATE {@code 23505} = {@code unique_violation}; mapped like every other SQLSTATE: a write error
+     * that the updater logs at ERROR and retries.
+     */
     static final String SQLSTATE_UNIQUE_VIOLATION = "23505";
 
     /**
@@ -102,20 +105,23 @@ final class PostgresSearchWriteResults {
      *
      * @param throwable the failure that rolled the transaction back.
      * @param delete whether the failed write model was a delete (drives {@code nonDeleteWriteModelCount}).
-     * @return the neutral result (duplicate-key ⇒ OK, other SQLSTATE ⇒ WRITE_ERROR, non-SQL ⇒ UNACKNOWLEDGED).
+     * @return the neutral result (any SQLSTATE ⇒ WRITE_ERROR, non-SQL ⇒ UNACKNOWLEDGED).
      */
     static SearchWriteResult fromThrowable(final Throwable throwable, final boolean delete) {
         final int nonDeleteWriteModelCount = delete ? 0 : 1;
-        final String sqlState = extractSqlState(throwable);
-        if (SQLSTATE_UNIQUE_VIOLATION.equals(sqlState)) {
-            return SearchWriteResult.acknowledged(1, nonDeleteWriteModelCount, nonDeleteWriteModelCount, 0, 0,
-                    List.of(new SearchWriteError(0, SearchWriteError.Category.DUPLICATE_KEY, message(throwable))));
-        }
-        if (sqlState != null) {
+        if (extractSqlState(throwable) != null) {
             return SearchWriteResult.acknowledged(1, nonDeleteWriteModelCount, nonDeleteWriteModelCount, 0, 0,
                     List.of(new SearchWriteError(0, SearchWriteError.Category.OTHER, message(throwable))));
         }
         return SearchWriteResult.unexpectedError(1, throwable);
+    }
+
+    /**
+     * @param throwable a failure.
+     * @return whether the failure carries SQLSTATE {@value #SQLSTATE_UNIQUE_VIOLATION} in its cause chain.
+     */
+    static boolean isUniqueViolation(final Throwable throwable) {
+        return SQLSTATE_UNIQUE_VIOLATION.equals(extractSqlState(throwable));
     }
 
     /**

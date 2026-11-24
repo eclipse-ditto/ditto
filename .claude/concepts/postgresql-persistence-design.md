@@ -41,8 +41,9 @@ nothing changes for API users or existing deployments, apart from four bug fixes
   ping, streaming, diagnostics). The known consequence is JSON normalisation (key order, number rendering).
 - **Flattened side table for search.** PostgreSQL has no counterpart of MongoDB's wildcard index, so the search
   index is "what a wildcard index is internally, as rows": `search_things` (document) + `search_flat` (one row per
-  JSON node, containers included, and two per node under `/features/<id>/…` — exact path and `/features/*/…` form;
-  typed value columns, B-tree indexes per type and a trigram GIN).
+  JSON node, containers included, and two per node under `/features/<id>/…` — exact path and `/features/*/…` form,
+  except for a feature named `*`, whose exact and wildcard paths coincide and are stored once; typed value columns,
+  B-tree indexes per type and a trigram GIN).
 - **Schema owned by the service, bounded by design.** DDL is idempotent, checksummed and runs under an advisory
   lock; a start with an up-to-date schema runs no DDL; each DDL statement waits at most 500 ms for a table lock;
   the search index builds use `CREATE INDEX CONCURRENTLY` outside the bootstrap transaction.
@@ -464,7 +465,8 @@ equality-only and cannot serve ranges, `like`, or per-type sorting on arbitrary 
 each thing twice: the document (for results, authorization and sorting) and one row per JSON node with typed value
 columns, which is what a wildcard index holds internally. Object, array and null containers get a row too (they
 serve `exists()`), and every node under `/features/<id>/…` is stored twice — under its exact path and under
-`/features/*/…` — so the side table holds about twice the node count of the feature subtrees. A two-predicate `and`
+`/features/*/…`, except for a feature named `*`, whose exact and wildcard paths coincide and are stored once — so the
+side table holds about twice the node count of the feature subtrees. A two-predicate `and`
 then uses an index on *both* legs, which a MongoDB wildcard index cannot do.
 
 ### 4.2 Data model (search schema v3, `MIN_COMPATIBLE_VERSION = 1`)
@@ -476,7 +478,8 @@ then uses an index on *both* legs, which a MongoDB wildcard index cannot do.
 | `search_sync`   | `id`, `ts`, `tag`                                                                                                                                                                                   | PK `id` — the background-sync bookmark (MongoDB: capped collection)                                                                                                                                                           |
 
 - `wpath` is the path with feature ids replaced by `*`. Feature-subtree nodes are stored as two physical rows (exact
-  path and starred `wpath`), so `features/*/properties/x` queries hit one index key; `ord` is a per-path occurrence
+  path and starred `wpath`), except for a feature named `*`, whose exact and wildcard paths coincide and are stored
+  once, so `features/*/properties/x` queries hit one index key; `ord` is a per-path occurrence
   counter for exploded arrays, not an array index.
 - `sf_trgm` uses `COLLATE "C.utf8"` to restore non-ASCII case folding for `ilike` while eq/range/sort stay on the
   plain `C` column. Hence the start-up guard: UTF8 database, UTF-8 `LC_CTYPE`, `C.utf8` collation present —
@@ -551,7 +554,9 @@ then uses an index on *both* legs, which a MongoDB wildcard index cannot do.
 `SearchUpdaterFlow` (neutral) — the PostgreSQL implementation re-flattens the whole document per update in one
 transaction: an unconditional `search_things` upsert, then an anti-join diff of `search_flat` in one statement
 (`ANTIJOIN_FLAT_SQL`) that deletes and re-inserts only the changed leaves and never rewrites an unchanged row; all
-flat rows go only for an emptied-out thing. Sustained 179 upd/s with 0 errors in the 10-minute laptop bench. A 3 h
+flat rows go only for an emptied-out thing. A unique violation (SQLSTATE `23505`) on this path is a write error: the
+per-thing transaction was rolled back, the flow logs it at ERROR, and `ThingUpdater` retries the thing with a full
+write at its next tick (a recurring violation is logged at every tick, like any recurring write error). Sustained 179 upd/s with 0 errors in the 10-minute laptop bench. A 3 h
 soak against RDS (db.m7g.2xlarge, PostgreSQL 16, 10 M things) averaged 215 upd/s with no failed update; 17 of its 360
 thirty-second windows fell below 200/s while autovacuum ran on `search_flat` (IO-bound cycles of 43–54 min), so the
 design claims no sustained plateau at that size. Background sync, `ThingUpdater`, `EnforcementFlow` and all

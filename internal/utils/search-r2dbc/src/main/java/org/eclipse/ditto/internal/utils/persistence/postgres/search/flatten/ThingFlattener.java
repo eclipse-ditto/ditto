@@ -42,23 +42,25 @@ import org.eclipse.ditto.thingsearch.persistence.api.model.SearchIndexDocument;
  * {@code features()[].auth()}/{@code content()} at all.
  * </p>
  * <p>
- * <b>RFC-6901 path escaping (binding, closes a plan gap):</b> every JSON object key is escaped per RFC 6901 before
+ * <b>RFC-6901 path escaping:</b> every JSON object key is escaped per RFC 6901 before
  * being joined into {@link FlatRow#path()}/{@link FlatRow#wpath()} with {@code '/'}: a literal {@code '~'} becomes
  * {@code "~0"} and a literal {@code '/'} becomes {@code "~1"}, escaping {@code '~'} FIRST so a {@code '/'} escape
  * never gets re-processed into a spurious tilde-escape. This is necessary because {@code path}/{@code wpath} are
  * flat SQL {@code TEXT} columns with {@code '/'} as the only segment separator — unlike Ditto's own
  * {@link org.eclipse.ditto.json.JsonPointer} Java API, which sidesteps the slash ambiguity via the
  * {@link org.eclipse.ditto.json.JsonKey} type distinction and therefore only documents tilde-escaping. The escaping
- * is exposed as {@link #escapeJsonPointerSegment(String)} so that the future Phase-D RQL→SQL translator can (and
- * MUST) apply the byte-for-byte identical transform to query-path segments before comparing against these columns —
- * see plan Phase H.
+ * is exposed as {@link #escapeJsonPointerSegment(String)}; the query translation ({@code AbstractFieldSqlCreator})
+ * escapes query-path segments with {@link JsonPointerSegments}, byte-for-byte as this class does, before comparing
+ * them against these columns.
  * </p>
  * <p>
- * <b>Dual-wpath on every feature-subtree row:</b> every row rooted anywhere under {@code /features/<id>/...}
- * (Task-0.1 adjudication) — scalar leaves AND object/empty-container exists-rows alike — is emitted TWICE: once
- * with {@code wpath = path} (the exact, feature-scoped address) and once with {@code wpath} rewritten to the
- * {@code /features/*}-wildcarded form (the cross-feature address), both carrying {@code fId = <id>}. Rows outside a
- * feature subtree carry {@code fId = null} and a single row with {@code wpath = path}.
+ * <b>Dual-wpath on every feature-subtree row:</b> every row rooted anywhere under {@code /features/<id>/...} —
+ * scalar leaves AND object/empty-container exists-rows alike — is emitted with {@code wpath = path} (the exact,
+ * feature-scoped address) and, when the wildcarded form differs, once more with {@code wpath} rewritten to the
+ * {@code /features/*}-wildcarded form (the cross-feature address), both carrying {@code fId = <id>}. For a feature
+ * whose ID is {@code *} the two forms are equal and the row is emitted once, so the primary key
+ * {@code (thing_id, path, wpath, ord)} stays unique. Rows outside a feature subtree carry {@code fId = null} and a
+ * single row with {@code wpath = path}.
  * </p>
  * <p>
  * <b>{@code ord}:</b> a row-enumeration counter per {@code (path, wpath)} within one thing — NOT an array index. It
@@ -148,8 +150,9 @@ public final class ThingFlattener {
      * (checked first) and {@code '/'} to {@code "~1"} (checked second), in one left-to-right pass so a slash's
      * escape sequence is never subsequently re-escaped.
      * <p>
-     * Exposed so the Phase-D RQL→SQL translator can apply the identical transform to query-path segments — the two
-     * MUST stay in lockstep, since {@code path}/{@code wpath} in {@code search_flat} are produced by this method.
+     * The query translation applies the identical transform ({@link JsonPointerSegments}) to query-path segments;
+     * the two MUST stay in lockstep, since {@code path}/{@code wpath} in {@code search_flat} are produced by this
+     * method.
      * </p>
      *
      * @param rawKey the raw (unescaped) JSON object key.
@@ -217,8 +220,11 @@ public final class ThingFlattener {
             rows.add(new FlatRow(thingId, path, path, feature.featureId(), ord, typeRank, valBool, valNum, valText));
             final String starWpath =
                     FEATURES_ROOT + "/*" + path.substring(feature.featureSubtreeRootPath().length());
-            rows.add(new FlatRow(thingId, path, starWpath, feature.featureId(), ord, typeRank, valBool, valNum,
-                    valText));
+            // Equal for a feature named `*`: a second row would repeat the primary key.
+            if (!starWpath.equals(path)) {
+                rows.add(new FlatRow(thingId, path, starWpath, feature.featureId(), ord, typeRank, valBool, valNum,
+                        valText));
+            }
         }
     }
 

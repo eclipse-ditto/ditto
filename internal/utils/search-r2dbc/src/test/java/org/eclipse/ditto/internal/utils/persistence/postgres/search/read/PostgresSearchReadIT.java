@@ -58,7 +58,9 @@ import org.eclipse.ditto.thingsearch.persistence.api.model.SearchIndexDocument;
 import org.eclipse.ditto.thingsearch.persistence.api.model.ThingDeleteModel;
 import org.eclipse.ditto.thingsearch.persistence.api.model.ThingWriteModel;
 import org.eclipse.ditto.thingsearch.persistence.api.model.TimestampedThingId;
+import org.eclipse.ditto.thingsearch.persistence.api.write.SearchWriteResultStatus;
 import org.eclipse.ditto.thingsearch.persistence.api.write.UpdaterData;
+import org.eclipse.ditto.thingsearch.persistence.api.write.UpdaterResult;
 import org.eclipse.ditto.things.model.ThingId;
 import org.junit.After;
 import org.junit.AfterClass;
@@ -199,6 +201,21 @@ public final class PostgresSearchReadIT {
         // wildcard feature path (/features/*/properties/temp)
         assertThat(sudoFind(cf.fieldCriteria(fef.filterByFeatureProperty("*", "temp"), cf.eq(99))))
                 .containsExactlyInAnyOrder("dev-2");
+    }
+
+    @Test
+    public void featureNamedAsteriskIsIndexedAndFoundByTheWildcard() {
+        final JsonObject on = JsonObject.newBuilder()
+                .set("properties", JsonObject.newBuilder().set("on", true).build())
+                .build();
+        final SearchIndexDocument document =
+                featuresDoc("star", JsonObject.newBuilder().set("*", on).set("lamp", on).build());
+
+        assertThat(write(document, 1L).result().classify()).isEqualTo(SearchWriteResultStatus.OK);
+        assertThat(sudoFind(cf.fieldCriteria(fef.filterByFeatureProperty("*", "on"), cf.eq(true))))
+                .containsExactly("star");
+        assertThat(sudoFind(cf.fieldCriteria(fef.filterByFeatureProperty("lamp", "on"), cf.eq(true))))
+                .containsExactly("star");
     }
 
     // ============================================================================================ auth granted/revoked
@@ -803,11 +820,14 @@ public final class PostgresSearchReadIT {
     }
 
     private SearchIndexDocument featureDoc(final String name, final String featureId, final int temp) {
-        final ThingId thingId = ThingId.of(NS, name);
-        final JsonObject features = JsonObject.newBuilder()
+        return featuresDoc(name, JsonObject.newBuilder()
                 .set(featureId, JsonObject.newBuilder()
                         .set("properties", JsonObject.newBuilder().set("temp", temp).build()).build())
-                .build();
+                .build());
+    }
+
+    private SearchIndexDocument featuresDoc(final String name, final JsonObject features) {
+        final ThingId thingId = ThingId.of(NS, name);
         final JsonObject thing = JsonObject.newBuilder()
                 .set("thingId", thingId.toString())
                 .set("_namespace", thingId.getNamespace())
@@ -839,13 +859,13 @@ public final class PostgresSearchReadIT {
         return Metadata.of(thingId, revision, policyTag, null, Set.of(policyTag), null);
     }
 
-    private void write(final SearchIndexDocument document, final long revision) {
-        run(ThingWriteModel.of(metadata(document.thingId(), revision), document));
+    private UpdaterResult write(final SearchIndexDocument document, final long revision) {
+        return run(ThingWriteModel.of(metadata(document.thingId(), revision), document));
     }
 
-    private void run(final AbstractWriteModel model) {
+    private UpdaterResult run(final AbstractWriteModel model) {
         try {
-            Source.single(new UpdaterData(model, model))
+            return Source.single(new UpdaterData(model, model))
                     .via(flow.create())
                     .runWith(Sink.head(), system)
                     .toCompletableFuture()

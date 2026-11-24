@@ -78,9 +78,9 @@ import reactor.core.publisher.Mono;
  * </ul>
  * <p>
  * Results feed {@link SearchWriteResult#classify()} through {@link PostgresSearchWriteResults}: a unique violation
- * (23505) is a success (Mongo duplicate-key rule), an FK violation (23503) or any other SQLSTATE is a per-thing
- * WRITE_ERROR (retry resolves), and every failure is caught per element so one thing's failure never aborts the stream
- * (unordered-bulk parity). The transaction is rolled back on any error.
+ * (23505), an FK violation (23503) or any other SQLSTATE is a per-thing WRITE_ERROR that the next full write retries;
+ * a unique violation is logged at ERROR; every failure is caught per element so one thing's failure never aborts the
+ * stream (unordered-bulk parity). The transaction is rolled back on any error.
  * </p>
  *
  * @since 4.0.0
@@ -94,9 +94,10 @@ public final class PostgresSearchUpdaterFlow implements SearchUpdaterFlow {
     private static final String MODIFIED_FIELD = "_modified";
 
     /**
-     * Unconditional doc-row upsert (plan §3.4 step 1). NO revision predicate anywhere. {@code updated_at} is set by the
-     * writer via {@code now()}; {@code delete_at} is written NULL (tombstone TTL / reaper is a later phase). The
-     * {@code RETURNING (xmax = 0) AS inserted} idiom reports whether the row was inserted ({@code xmax = 0}) or updated.
+     * The doc-row upsert, unconditional. NO revision predicate anywhere. {@code updated_at} is set by the writer via
+     * {@code now()}; {@code delete_at} is written NULL ({@code PostgresDeleteAtReaper} removes the rows a namespace
+     * purge marks with {@code delete_at}). The {@code RETURNING (xmax = 0) AS inserted} idiom reports whether the row
+     * was inserted ({@code xmax = 0}) or updated.
      * Binds: 1 thing_id, 2 namespace, 3 revision, 4 policy_id, 5 policy_rev, 6 referenced_policies(jsonb),
      * 7 global_read(text[]), 8 thing(jsonb), 9 policy_auth(jsonb), 10 features_auth(jsonb), 11 t_modified,
      * 12 delete_at.
@@ -232,7 +233,7 @@ public final class PostgresSearchUpdaterFlow implements SearchUpdaterFlow {
         if (model instanceof ThingDeleteModel) {
             final String thingId = model.getMetadata().getThingId().toString();
             return deleteThing(thingId)
-                    .onErrorResume(error -> Mono.just(PostgresSearchWriteResults.fromThrowable(error, true)));
+                    .onErrorResume(error -> Mono.just(failureResult(model, error, true)));
         } else if (model instanceof ThingWriteModel writeModel) {
             if (writeModel.isNoop()) {
                 return Mono.just(PostgresSearchWriteResults.noopSuccess());
@@ -240,13 +241,21 @@ public final class PostgresSearchUpdaterFlow implements SearchUpdaterFlow {
             final Mono<SearchWriteResult> write = writeModel.isEmptiedOut()
                     ? emptiedOut(writeModel.getDocument())
                     : fullWrite(writeModel.getDocument());
-            return write.onErrorResume(
-                    error -> Mono.just(PostgresSearchWriteResults.fromThrowable(error, false)));
+            return write.onErrorResume(error -> Mono.just(failureResult(model, error, false)));
         } else {
             // No other neutral write-model type exists; never fail the stream if one is ever introduced.
             return Mono.just(SearchWriteResult.unexpectedError(1,
                     new IllegalArgumentException("Unsupported neutral write model: " + model)));
         }
+    }
+
+    private static SearchWriteResult failureResult(final AbstractWriteModel model, final Throwable error,
+            final boolean delete) {
+        if (PostgresSearchWriteResults.isUniqueViolation(error)) {
+            LOGGER.error("Unique violation while writing the search index of thing <{}>; the write was rolled back "
+                    + "and is retried: {}", model.getMetadata().getThingId(), String.valueOf(error.getMessage()));
+        }
+        return PostgresSearchWriteResults.fromThrowable(error, delete);
     }
 
     private Mono<SearchWriteResult> fullWrite(final SearchIndexDocument document) {
@@ -368,7 +377,7 @@ public final class PostgresSearchUpdaterFlow implements SearchUpdaterFlow {
         } else {
             statement.bindNull(10, Instant.class);
         }
-        // delete_at: written NULL by the writer; tombstone-TTL / reaper is a later phase (C3/C4).
+        // delete_at: written NULL; PostgresDeleteAtReaper removes the rows a purge marks.
         statement.bindNull(11, Instant.class);
     }
 

@@ -25,9 +25,8 @@ import io.r2dbc.spi.R2dbcException;
 
 /**
  * Unit tests for the pure result-mapping matrix ({@link PostgresSearchWriteResults}) — constructible without a
- * database. Every row asserts the neutral {@link SearchWriteResult#classify()} outcome the A4 contract requires:
- * duplicate-key (23505) ⇒ OK, FK (23503) / other SQLSTATE ⇒ WRITE_ERROR, non-SQL ⇒ UNACKNOWLEDGED, and the
- * success/delete/noop shapes.
+ * database. Every row asserts the neutral {@link SearchWriteResult#classify()} outcome: unique (23505), FK (23503)
+ * and other SQLSTATE ⇒ WRITE_ERROR, non-SQL ⇒ UNACKNOWLEDGED, and the success/delete/noop shapes.
  */
 public final class PostgresSearchWriteResultsTest {
 
@@ -66,20 +65,33 @@ public final class PostgresSearchWriteResultsTest {
     }
 
     @Test
-    public void uniqueViolationOnWriteIsSuccessViaDuplicateKeyRule() {
+    public void uniqueViolationOnWriteIsAWriteError() {
         final SearchWriteResult result = PostgresSearchWriteResults.fromThrowable(
                 sqlException(PostgresSearchWriteResults.SQLSTATE_UNIQUE_VIOLATION), false);
-        assertThat(result.classify()).isEqualTo(SearchWriteResultStatus.OK);
+        assertThat(result.classify()).isEqualTo(SearchWriteResultStatus.WRITE_ERROR);
         assertThat(result.getErrors()).singleElement()
                 .extracting(SearchWriteError::category)
-                .isEqualTo(SearchWriteError.Category.DUPLICATE_KEY);
+                .isEqualTo(SearchWriteError.Category.OTHER);
     }
 
     @Test
-    public void uniqueViolationOnDeleteIsSuccess() {
+    public void uniqueViolationOnDeleteIsAWriteError() {
         final SearchWriteResult result = PostgresSearchWriteResults.fromThrowable(
                 sqlException(PostgresSearchWriteResults.SQLSTATE_UNIQUE_VIOLATION), true);
-        assertThat(result.classify()).isEqualTo(SearchWriteResultStatus.OK);
+        assertThat(result.classify()).isEqualTo(SearchWriteResultStatus.WRITE_ERROR);
+        assertThat(result.getNonDeleteWriteModelCount()).isEqualTo(0);
+        assertThat(result.getErrors()).singleElement()
+                .extracting(SearchWriteError::category)
+                .isEqualTo(SearchWriteError.Category.OTHER);
+    }
+
+    @Test
+    public void isUniqueViolationDetectsTheStateInTheCauseChain() {
+        assertThat(PostgresSearchWriteResults.isUniqueViolation(
+                new RuntimeException(sqlException(PostgresSearchWriteResults.SQLSTATE_UNIQUE_VIOLATION)))).isTrue();
+        assertThat(PostgresSearchWriteResults.isUniqueViolation(
+                sqlException(PostgresSearchWriteResults.SQLSTATE_FK_VIOLATION))).isFalse();
+        assertThat(PostgresSearchWriteResults.isUniqueViolation(new RuntimeException("boom"))).isFalse();
     }
 
     @Test

@@ -58,8 +58,9 @@ import reactor.core.publisher.Mono;
  *     with the same {@link ThrottlingConfig} the Mongo impl consumes.</li>
  *     <li>{@link #purge(CharSequence)} — the namespace purge. An {@code UPDATE … SET delete_at = to_timestamp(0)} marks
  *     every row of the namespace with EPOCH 0 (mirroring the Mongo {@code BsonDateTime(0)} marker — NOT {@code now()}).
- *     Reads never filter {@code delete_at}, so marked rows stay visible to plain SELECTs; only the in-service reaper
- *     (a later phase) and {@code sudoStreamMetadata} observe the marker.</li>
+ *     Reads never filter {@code delete_at}, so marked rows stay visible to plain SELECTs; only
+ *     {@code PostgresDeleteAtReaper}, which deletes the marked rows, and {@code sudoStreamMetadata} observe the
+ *     marker.</li>
  * </ul>
  * <p>
  * <strong>referenced_policies storage (C2 review adjudication):</strong> the {@code referenced_policies} JSONB column
