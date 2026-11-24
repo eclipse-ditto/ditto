@@ -91,6 +91,8 @@ public final class WotValidationConfigPersistenceActor
      */
     static final String SNAPSHOT_PLUGIN_ID = "pekko-contrib-mongodb-persistence-wot-validation-config-snapshots";
 
+    private static final String WOT_VALIDATION_CONFIG_PATH = "things.wot-validation-config";
+
     private final ActorRef pubSubMediator;
     private final DefaultActivityCheckConfig activityCheckConfig;
     private final DefaultSnapshotConfig snapshotConfig;
@@ -106,12 +108,24 @@ public final class WotValidationConfigPersistenceActor
         this.pubSubMediator = pubSubMediator;
 
         final var actorSystem = getContext().getSystem();
-        final var config = DefaultScopedConfig.dittoScoped(actorSystem.settings().config());
-        this.activityCheckConfig = DefaultActivityCheckConfig.of(config);
-        this.snapshotConfig = DefaultSnapshotConfig.of(config);
+        final var wotValidationConfigBlock = wotValidationConfigBlock(actorSystem.settings().config());
+        this.activityCheckConfig = DefaultActivityCheckConfig.of(wotValidationConfigBlock);
+        this.snapshotConfig = DefaultSnapshotConfig.of(wotValidationConfigBlock);
         this.ddata = WotValidationConfigDData.of(actorSystem);
         this.eventStrategy = WotValidationConfigEventStrategies.getInstance();
         this.commandStrategies = WotValidationConfigCommandStrategies.getInstance(actorSystem);
+    }
+
+    /**
+     * Reads the {@code ditto.things.wot-validation-config} block holding this actor's activity-check and snapshot
+     * settings; when the block is absent, an empty config is returned so that the code defaults apply.
+     */
+    private static ScopedConfig wotValidationConfigBlock(final Config rawConfig) {
+        final var dittoScoped = DefaultScopedConfig.dittoScoped(rawConfig);
+        if (dittoScoped.hasPath(WOT_VALIDATION_CONFIG_PATH)) {
+            return DefaultScopedConfig.newInstance(dittoScoped, WOT_VALIDATION_CONFIG_PATH);
+        }
+        return DefaultScopedConfig.empty(dittoScoped.getConfigPath() + "." + WOT_VALIDATION_CONFIG_PATH);
     }
 
     public static Props props(final WotValidationConfigId entityId, final DittoReadJournal readJournal,
