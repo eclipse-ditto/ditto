@@ -107,22 +107,42 @@ public final class MongoSearchUpdaterFlow implements SearchUpdaterFlow {
     @Override
     public Flow<UpdaterData, UpdaterResult, NotUsed> create() {
         return Flow.<UpdaterData>create()
-                .flatMapConcat(updaterData -> {
-                    final var currentMongo = toMongoModel(updaterData.writeModel());
-                    final var lastMongo = toMongoModel(updaterData.lastWriteModel());
-                    final Optional<MongoWriteModel> mongoWriteModelOpt =
-                            currentMongo.toIncrementalMongo(lastMongo, maxWireVersion);
-                    if (mongoWriteModelOpt.isEmpty()) {
-                        // reproduce the historical mapper skip: emit nothing and dispatch a weak acknowledgement
-                        updaterData.writeModel().getMetadata().sendWeakAck(null);
-                        return Source.<UpdaterResult>empty();
-                    }
-                    ConsistencyLag.startS5MongoBulkWrite(updaterData.writeModel().getMetadata());
-                    final MongoWriteModel mongoWriteModel = mongoWriteModelOpt.orElseThrow();
-                    return executeBulkWrite(List.of(mongoWriteModel))
-                            .map(resultAndErrors -> new UpdaterResult(updaterData.writeModel(),
-                                    toSearchWriteResult(resultAndErrors)));
-                });
+                .flatMapConcat(updaterData -> toIncrementalMongo(updaterData)
+                        .map(mongoWriteModel -> executeBulkWrite(List.of(mongoWriteModel))
+                                .map(resultAndErrors -> new UpdaterResult(updaterData.writeModel(),
+                                        toSearchWriteResult(resultAndErrors))))
+                        .orElseGet(Source::empty));
+    }
+
+    /**
+     * Convert the write model of an update to an incremental MongoDB write model.
+     *
+     * @param updaterData the write model together with the last write model to compute the incremental update from.
+     * @return the MongoDB write model, or an empty optional if there is no change or the write model could not be
+     * computed. A failure is logged and skips the update; it does not fail the stream.
+     */
+    private Optional<MongoWriteModel> toIncrementalMongo(final UpdaterData updaterData) {
+        final AbstractWriteModel model = updaterData.writeModel();
+        try {
+            final var mongoWriteModelOpt = toMongoModel(model)
+                    .toIncrementalMongo(toMongoModel(updaterData.lastWriteModel()), maxWireVersion);
+            if (mongoWriteModelOpt.isEmpty()) {
+                LOGGER.debug("Write model is unchanged, skipping update: <{}>", model);
+                model.getMetadata().sendWeakAck(null);
+            } else {
+                ConsistencyLag.startS5MongoBulkWrite(model.getMetadata());
+                LOGGER.debug("MongoWriteModel={}", mongoWriteModelOpt.get());
+            }
+            return mongoWriteModelOpt;
+        } catch (final Exception error) {
+            LOGGER.error("Failed to compute write model " + model, error);
+            try {
+                model.getMetadata().getTimers().forEach(StartedTimer::stop);
+            } catch (final Exception e) {
+                // tolerate stopping stopped timers
+            }
+            return Optional.empty();
+        }
     }
 
     /**
