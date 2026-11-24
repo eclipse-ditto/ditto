@@ -144,6 +144,46 @@ public final class PostgresKeysetPidStreamsIT {
                         prefix + "ärger");
     }
 
+    @Test
+    public void aboveWithTagStartsStrictlyAfterTheBoundAcrossWindowsWithRetries() {
+        final String entity = "things";
+        final String prefix = "thing:above:";
+        final String tag = "above";
+        // eight pids, every other one tagged; upper case 'K' sorts before 'Z' and 'a' bytewise, but not ignoring case.
+        IntStream.rangeClosed(1, 8).forEach(i -> {
+            final String pid = prefix + String.format("K%02d", i);
+            if (i % 2 == 0) {
+                event(entity, pid, 1L, tag);
+            } else {
+                event(entity, pid, 1L);
+            }
+        });
+        event(entity, prefix + "Zulu", 1L, tag);
+        event(entity, prefix + "alpha", 1L, tag);
+        final String bound = prefix + "K04";
+        final PostgresReadJournal readJournal = fixture.readJournal(entity);
+
+        for (final String walkTag : List.of(tag, "")) {
+            final List<String> full = run(readJournal.getJournalPidsWithTag(walkTag, 2, TIMEOUT, mat, false));
+            final List<String> above = run(readJournal.getJournalPidsAboveWithTag(bound, walkTag, 2, TIMEOUT, mat));
+
+            assertThat(full).as("tag <%s>: the bound is in the walk from the beginning", walkTag).contains(bound);
+            assertThat(above)
+                    .as("tag <%s>: the tail of the walk from the beginning after the bound", walkTag)
+                    .isEqualTo(full.subList(full.indexOf(bound) + 1, full.size()))
+                    .doesNotContain(bound);
+        }
+        assertThat(run(readJournal.getJournalPidsAboveWithTag(bound, tag, 2, TIMEOUT, mat)).stream()
+                .filter(pid -> pid.startsWith(prefix)))
+                .as("tagged, strictly above the bound, in bytewise order")
+                .containsExactly(prefix + "K06", prefix + "K08", prefix + "Zulu", prefix + "alpha");
+        assertThat(run(readJournal.getJournalPidsAboveWithTag(bound, "", 2, TIMEOUT, mat)).stream()
+                .filter(pid -> pid.startsWith(prefix)))
+                .as("every pid strictly above the bound, in bytewise order")
+                .containsExactly(prefix + "K05", prefix + "K06", prefix + "K07", prefix + "K08", prefix + "Zulu",
+                        prefix + "alpha");
+    }
+
     // =================================================================================================
     // priority order: windows, then a sort in memory
     // =================================================================================================

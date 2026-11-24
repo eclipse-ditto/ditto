@@ -16,7 +16,6 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionException;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ThreadLocalRandom;
@@ -83,6 +82,7 @@ import org.eclipse.ditto.internal.utils.namespaces.BlockedNamespaces;
 import org.eclipse.ditto.internal.utils.pekko.actors.AbstractActorWithStashWithTimers;
 import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.pekko.logging.ThreadSafeDittoLoggingAdapter;
+import org.eclipse.ditto.internal.utils.persistence.api.CompletionExceptions;
 import org.eclipse.ditto.internal.utils.persistence.api.DittoReadJournal;
 import org.eclipse.ditto.internal.utils.persistence.api.serializer.EventSerializer;
 import org.eclipse.ditto.internal.utils.tracing.DittoTracing;
@@ -963,10 +963,7 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
     }
 
     static Throwable unwrapCompletionException(final Throwable throwable) {
-        if (throwable instanceof CompletionException && throwable.getCause() != null) {
-            return unwrapCompletionException(throwable.getCause());
-        }
-        return throwable;
+        return CompletionExceptions.unwrap(throwable);
     }
 
     /**

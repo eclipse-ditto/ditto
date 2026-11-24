@@ -12,14 +12,11 @@
  */
 package org.eclipse.ditto.internal.utils.persistentactors;
 
-import java.nio.charset.StandardCharsets;
 import java.time.Duration;
-import java.util.Arrays;
 import java.util.Optional;
-import java.util.concurrent.CompletionException;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.Supplier;
+import java.util.function.Function;
 
 import javax.annotation.Nullable;
 
@@ -30,6 +27,7 @@ import org.eclipse.ditto.internal.utils.pekko.PingCommand;
 import org.eclipse.ditto.internal.utils.pekko.PingCommandResponse;
 import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.pekko.logging.ThreadSafeDittoLoggingAdapter;
+import org.eclipse.ditto.internal.utils.persistence.api.CompletionExceptions;
 import org.eclipse.ditto.internal.utils.persistence.api.DittoReadJournal;
 import org.eclipse.ditto.internal.utils.persistentactors.config.PingConfig;
 import org.eclipse.ditto.internal.utils.persistentactors.config.RateConfig;
@@ -63,7 +61,11 @@ public final class PersistencePingActor extends AbstractActor {
     private final ThreadSafeDittoLoggingAdapter log = DittoLoggerFactory.getThreadSafeDittoLoggingAdapter(this);
 
     private final ActorRef persistenceActorShardRegion;
-    private final Supplier<Source<String, NotUsed>> persistenceIdsSourceSupplier;
+    /**
+     * The source of a walk. The argument is the persistence id the walk continues after, {@code null} for a walk from
+     * the beginning.
+     */
+    private final Function<String, Source<String, NotUsed>> persistenceIdsSource;
     private final PingConfig pingConfig;
     private final Materializer materializer;
 
@@ -77,10 +79,10 @@ public final class PersistencePingActor extends AbstractActor {
 
     @SuppressWarnings("unused")
     private PersistencePingActor(final ActorRef persistenceActorShardRegion, final PingConfig pingConfig,
-            final Supplier<Source<String, NotUsed>> persistenceIdsSourceSupplier) {
+            final Function<String, Source<String, NotUsed>> persistenceIdsSource) {
 
         this.persistenceActorShardRegion = persistenceActorShardRegion;
-        this.persistenceIdsSourceSupplier = persistenceIdsSourceSupplier;
+        this.persistenceIdsSource = persistenceIdsSource;
         this.pingConfig = pingConfig;
         materializer = Materializer.createMaterializer(this::getContext);
     }
@@ -95,17 +97,24 @@ public final class PersistencePingActor extends AbstractActor {
         final PingConfig.StreamingOrder streamingOrder = pingConfig.getStreamingOrder();
         switch (streamingOrder) {
             case TAGS:
-                persistenceIdsSourceSupplier = () ->
+                // a walk in this order always starts from the beginning: the argument is always null.
+                persistenceIdsSource = resumeAfter ->
                         readJournal.getJournalPidsWithTagOrderedByPriorityTag(pingConfig.getJournalTag(),
                                 pingConfig.getInterval());
                 break;
             case ID:
             default:
-                persistenceIdsSourceSupplier = () -> readJournal.getJournalPidsWithTag(pingConfig.getJournalTag(),
-                        pingConfig.getReadJournalBatchSize(),
-                        pingConfig.getInterval(),
-                        materializer,
-                        false);
+                persistenceIdsSource = resumeAfter -> resumeAfter == null
+                        ? readJournal.getJournalPidsWithTag(pingConfig.getJournalTag(),
+                                pingConfig.getReadJournalBatchSize(),
+                                pingConfig.getInterval(),
+                                materializer,
+                                false)
+                        : readJournal.getJournalPidsAboveWithTag(resumeAfter,
+                                pingConfig.getJournalTag(),
+                                pingConfig.getReadJournalBatchSize(),
+                                pingConfig.getInterval(),
+                                materializer);
         }
         readJournal.ensureTagPidIndex().exceptionally(e -> {
             log.error(e, "Failed to create TagPidIndex");
@@ -132,14 +141,15 @@ public final class PersistencePingActor extends AbstractActor {
      *
      * @param persistenceActorShardRegion the shard region of the target PersistenceActor.
      * @param pingConfig the Configuration to apply for this ping actor.
-     * @param persistenceIdsSourceSupplier supplier of persistence id sources.
+     * @param persistenceIdsSource the source of a walk, given the persistence id the walk continues after, or
+     * {@code null} for a walk from the beginning.
      * @return the Pekko configuration Props object.
      */
     static Props propsForTests(final ActorRef persistenceActorShardRegion, final PingConfig pingConfig,
-            final Supplier<Source<String, NotUsed>> persistenceIdsSourceSupplier) {
+            final Function<String, Source<String, NotUsed>> persistenceIdsSource) {
 
         return Props.create(PersistencePingActor.class, persistenceActorShardRegion, pingConfig,
-                persistenceIdsSourceSupplier);
+                persistenceIdsSource);
     }
 
     private Cancellable schedulePing() {
@@ -195,8 +205,9 @@ public final class PersistencePingActor extends AbstractActor {
         } else {
             log.info("Sending ping for PersistenceActors. Will be sent again after the configured interval of <{}>.",
                     pingConfig.getInterval());
-            final Source<String, NotUsed> currentPersistenceIdsSource = persistenceIdsSourceSupplier.get();
-            if (currentPersistenceIdsSource != null) {
+            @Nullable final String continueAfter = resumeAfter;
+            final Source<String, NotUsed> walk = persistenceIdsSource.apply(continueAfter);
+            if (walk != null) {
                 pingInProgress = true;
                 final RateConfig rateConfig = pingConfig.getRateConfig();
                 final ActorRef self = getSelf();
@@ -204,15 +215,9 @@ public final class PersistencePingActor extends AbstractActor {
                 final AtomicLong skipped = new AtomicLong();
                 final AtomicReference<String> lastReached = new AtomicReference<>();
                 final long startNanos = System.nanoTime();
-                @Nullable final String continueAfter = resumeAfter;
-                final Source<String, NotUsed> walk;
                 if (continueAfter != null) {
                     log.info("Continuing after <{}>, the last PersistenceActor the previous, failed iteration reached.",
                             continueAfter);
-                    // drop before the throttle: the skipped pids cost no ping slot.
-                    walk = currentPersistenceIdsSource.dropWhile(pid -> isInPidOrderNotAfter(pid, continueAfter));
-                } else {
-                    walk = currentPersistenceIdsSource;
                 }
                 walk.throttle(rateConfig.getEntityAmount(), rateConfig.getFrequency())
                         .runForeach(persistenceId -> {
@@ -265,20 +270,8 @@ public final class PersistencePingActor extends AbstractActor {
         }
     }
 
-    /**
-     * Whether {@code pid} comes at or before {@code bound} in the order of an ID-order walk: unsigned byte order of
-     * UTF-8, the order of the pid column ({@code COLLATE "C"}) on PostgreSQL and of strings on MongoDB.
-     */
-    private static boolean isInPidOrderNotAfter(final String pid, final String bound) {
-        return Arrays.compareUnsigned(pid.getBytes(StandardCharsets.UTF_8), bound.getBytes(StandardCharsets.UTF_8))
-                <= 0;
-    }
-
     private static String describe(final Throwable failure) {
-        final Throwable cause = failure instanceof CompletionException && failure.getCause() != null
-                ? failure.getCause()
-                : failure;
-        return cause.toString();
+        return CompletionExceptions.unwrap(failure).toString();
     }
 
     /**

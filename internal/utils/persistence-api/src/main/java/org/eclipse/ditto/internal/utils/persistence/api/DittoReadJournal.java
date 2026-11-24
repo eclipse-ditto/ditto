@@ -119,6 +119,26 @@ public interface DittoReadJournal extends
             int batchSize,
             Materializer mat);
 
+    /**
+     * Returns the persistence IDs strictly above {@code lowerBoundPid} that have a journal entry with {@code tag}, in
+     * the order of {@link #getJournalPidsWithTag} with {@code considerOnlyLatest = false}. The bound need not exist.
+     * {@code maxIdleTime} bounds the retries of a failed page, as in {@link #getJournalPidsWithTag}; the variant
+     * without it runs its page queries without retries.
+     *
+     * @param lowerBoundPid the persistence ID the returned ones come after.
+     * @param tag the tag a journal entry of a returned persistence ID carries, or an empty string for every
+     * persistence ID.
+     * @param batchSize how many entries or persistence IDs to read in one page query.
+     * @param maxIdleTime bounds the retries of a failed page.
+     * @param mat the materializer to run the page queries with, where the backend needs one.
+     * @return the source of the persistence IDs.
+     */
+    Source<String, NotUsed> getJournalPidsAboveWithTag(String lowerBoundPid,
+            String tag,
+            int batchSize,
+            Duration maxIdleTime,
+            Materializer mat);
+
     // ---------------------------------------------------------------------------------------
     // Snapshot retrieval
     // ---------------------------------------------------------------------------------------

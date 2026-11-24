@@ -15,6 +15,7 @@ package org.eclipse.ditto.internal.utils.persistentactors;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.concurrent.CompletionException;
+import java.util.concurrent.ExecutionException;
 
 import org.apache.pekko.pattern.AskTimeoutException;
 import org.eclipse.ditto.base.model.exceptions.DittoInternalErrorException;
@@ -52,6 +53,14 @@ public final class EnforcementExceptionConversionTest {
         final Throwable unwrapped = AbstractPersistenceSupervisor.unwrapCompletionException(outer);
         assertThat(unwrapped).isSameAs(cause);
         assertThat(unwrapped).isInstanceOf(AskTimeoutException.class);
+    }
+
+    @Test
+    public void unwrapCompletionAroundExecutionExceptionReachesTheAskTimeout() {
+        final AskTimeoutException cause = new AskTimeoutException("enforcer timed out");
+        final CompletionException wrapped = new CompletionException(new ExecutionException(cause));
+        final Throwable unwrapped = AbstractPersistenceSupervisor.unwrapCompletionException(wrapped);
+        assertThat(unwrapped).isSameAs(cause);
     }
 
     @Test

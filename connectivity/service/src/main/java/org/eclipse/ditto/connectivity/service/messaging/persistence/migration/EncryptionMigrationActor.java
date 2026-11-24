@@ -18,7 +18,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionException;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -45,6 +44,7 @@ import org.eclipse.ditto.connectivity.service.config.FieldsEncryptionConfig;
 import org.eclipse.ditto.internal.utils.pekko.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.pekko.logging.ThreadSafeDittoLogger;
+import org.eclipse.ditto.internal.utils.persistence.api.CompletionExceptions;
 import org.eclipse.ditto.internal.utils.persistence.api.PersistenceBackendProvider;
 import org.eclipse.ditto.internal.utils.persistence.api.payload.PersistedJournalEntry;
 import org.eclipse.ditto.internal.utils.persistence.api.payload.PersistedPayloadStore;
@@ -211,7 +211,7 @@ public final class EncryptionMigrationActor extends AbstractActor {
 
     private static void closeQuietly(final PersistedPayloadStore store, @Nullable final Throwable waitError) {
         if (waitError != null) {
-            if (unwrapCompletionException(waitError) instanceof TimeoutException) {
+            if (CompletionExceptions.unwrap(waitError) instanceof TimeoutException) {
                 LOGGER.warn("The encryption migration did not finish its store work within the close timeout; " +
                         "closing the payload store anyway.");
             } else {
@@ -242,13 +242,6 @@ public final class EncryptionMigrationActor extends AbstractActor {
         migrationInProgress = update.progress.phase() != MigrationPhase.COMPLETED;
     }
 
-    private static Throwable unwrapCompletionException(final Throwable error) {
-        if (error instanceof CompletionException && error.getCause() != null) {
-            return error.getCause();
-        }
-        return error;
-    }
-
     private void handleMigrationCompleted(final MigrationCompleted completed) {
         migrationInProgress = false;
         activeKillSwitch = null;
@@ -256,7 +249,7 @@ public final class EncryptionMigrationActor extends AbstractActor {
         abortRequested = false;
         final MigrationProgress progress = completed.progress;
         final boolean dryRun = completed.dryRun;
-        final Throwable error = completed.error != null ? unwrapCompletionException(completed.error) : null;
+        final Throwable error = completed.error != null ? CompletionExceptions.unwrap(completed.error) : null;
 
         if (error != null && !wasAborted) {
             log.error(error, "Encryption migration failed");
@@ -283,7 +276,7 @@ public final class EncryptionMigrationActor extends AbstractActor {
                     pendingStoreWork = progressTracker.saveProgressWithRetry(progress, 2)
                             .whenComplete((v, saveErr) -> {
                                 if (saveErr != null) {
-                                    log.error(unwrapCompletionException(saveErr),
+                                    log.error(CompletionExceptions.unwrap(saveErr),
                                             "Failed to save abort progress after retries");
                                 } else {
                                     log.info("Abort progress saved successfully: phase={}",

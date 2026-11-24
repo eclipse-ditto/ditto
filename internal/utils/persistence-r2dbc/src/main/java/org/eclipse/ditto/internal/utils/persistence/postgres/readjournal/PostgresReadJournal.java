@@ -344,6 +344,18 @@ public final class PostgresReadJournal implements DittoReadJournal {
                 batchSize, PageRetry.NONE);
     }
 
+    /**
+     * Like {@link #getJournalPidsWithTag} (any tagged event, windows of {@code batchSize} pids), starting after
+     * {@code lowerBoundPid}, with the retries of {@link #getJournalPidsWithTag}: {@code maxIdleTime} bounds the
+     * retries of a window. {@code mat} is not used.
+     */
+    @Override
+    public Source<String, NotUsed> getJournalPidsAboveWithTag(final String lowerBoundPid, final String tag,
+            final int batchSize, final Duration maxIdleTime, final Materializer mat) {
+        return pidWindows("pids with tag <" + tag + "> above <" + lowerBoundPid + ">", lowerBoundPid, tag, false,
+                batchSize, PageRetry.forMaxIdleTime(maxIdleTime));
+    }
+
     // -------------------------------------------------------------------------------------------------
     // Snapshot retrieval
     // -------------------------------------------------------------------------------------------------

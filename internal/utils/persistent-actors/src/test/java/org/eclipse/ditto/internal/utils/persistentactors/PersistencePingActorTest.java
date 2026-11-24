@@ -13,17 +13,31 @@
 package org.eclipse.ditto.internal.utils.persistentactors;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.timeout;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
 
+import javax.annotation.Nullable;
+
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.internal.utils.pekko.PingCommand;
+import org.eclipse.ditto.internal.utils.persistence.api.DittoReadJournal;
 import org.eclipse.ditto.internal.utils.persistentactors.config.DefaultPingConfig;
 import org.eclipse.ditto.internal.utils.persistentactors.config.PingConfig;
 import org.junit.AfterClass;
@@ -33,10 +47,13 @@ import org.junit.Test;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 
+import org.apache.pekko.Done;
+import org.apache.pekko.NotUsed;
 import org.apache.pekko.actor.ActorRef;
 import org.apache.pekko.actor.ActorSystem;
 import org.apache.pekko.actor.Props;
 import org.apache.pekko.event.Logging;
+import org.apache.pekko.stream.Materializer;
 import org.apache.pekko.stream.javadsl.Source;
 import org.apache.pekko.testkit.TestProbe;
 import org.apache.pekko.testkit.javadsl.TestKit;
@@ -84,7 +101,7 @@ public final class PersistencePingActorTest {
             final PolicyId persistenceId2 = PolicyId.of("some:pid-2");
             final PolicyId persistenceId3 = PolicyId.of("some:pid-3");
             final Props props = PersistencePingActor.propsForTests(probe.ref(), pingConfig,
-                    () -> Source.from(Arrays.asList(
+                    resumeAfter -> Source.from(Arrays.asList(
                             persistenceId1.getEntityType() + ":" + persistenceId1,
                             persistenceId1.getEntityType() + ":" + persistenceId2,
                             persistenceId1.getEntityType() + ":" + persistenceId3)));
@@ -114,7 +131,7 @@ public final class PersistencePingActorTest {
             final String persistenceId2 = "some:pid-2";
             final String persistenceId3 = "some:pid-3";
             final Props props = PersistencePingActor.propsForTests(probe.ref(), pingConfig,
-                    () -> Source.from(Arrays.asList(persistenceId1, persistenceId2, persistenceId3)));
+                    resumeAfter -> Source.from(Arrays.asList(persistenceId1, persistenceId2, persistenceId3)));
 
             final ActorRef reconnectActor = actorSystem.actorOf(props);
             reconnectActor.tell(PersistencePingActor.InternalMessages.START_PINGING, getRef());
@@ -138,7 +155,8 @@ public final class PersistencePingActorTest {
             final TestKit logEvents = new TestKit(actorSystem);
             actorSystem.getEventStream().subscribe(logEvents.getRef(), Logging.Warning.class);
             final AtomicInteger iterations = new AtomicInteger();
-            final Props props = PersistencePingActor.propsForTests(shardRegion.getRef(), fastPingConfig(), () -> {
+            final Props props = PersistencePingActor.propsForTests(shardRegion.getRef(), fastPingConfig(),
+                    resumeAfter -> {
                 if (iterations.getAndIncrement() == 0) {
                     // one pid, then the stream fails.
                     return Source.from(List.of("policy:ns:first", "policy:ns:failing")).map(pid -> {
@@ -184,7 +202,7 @@ public final class PersistencePingActorTest {
             final TestKit logEvents = new TestKit(actorSystem);
             actorSystem.getEventStream().subscribe(logEvents.getRef(), Logging.Info.class);
             final Props props = PersistencePingActor.propsForTests(shardRegion.getRef(), fastPingConfig(),
-                    () -> Source.from(List.of("policy:ns:a", "policy:ns:b")));
+                    resumeAfter -> Source.from(List.of("policy:ns:a", "policy:ns:b")));
             final ActorRef underTest = actorSystem.actorOf(props);
             try {
                 shardRegion.expectMsgClass(PingCommand.class);
@@ -203,37 +221,137 @@ public final class PersistencePingActorTest {
     }
 
     /**
-     * In ID order, the walk after a failed one continues after the last pid the failed walk pinged instead of starting
-     * over, so a failure that recurs within the (possibly days long) walk cannot starve its tail. Once a walk
-     * completes, the next one starts from the beginning again.
+     * In ID order, the walk after a failed one asks its source for the pids above the last pid the failed walk reached
+     * instead of starting over, so a failure that recurs within the (possibly days long) walk cannot starve its tail.
+     * Once a walk completes, the next one starts from the beginning again.
      */
     @Test
-    public void walkAfterAFailedIdOrderWalkResumesAfterTheLastPingedPid() {
+    public void walkAfterAFailedIdOrderWalkAsksTheSourceForThePidsAboveTheLastOne() {
         new TestKit(actorSystem) {{
             final TestKit shardRegion = new TestKit(actorSystem);
-            final AtomicInteger iterations = new AtomicInteger();
+            final List<String> arguments = new CopyOnWriteArrayList<>();
             final List<String> all = List.of("policy:ns:a", "policy:ns:b", "policy:ns:c", "policy:ns:d");
-            final Props props = PersistencePingActor.propsForTests(shardRegion.getRef(), fastPingConfig(), () -> {
-                if (iterations.getAndIncrement() == 0) {
-                    // pings a and b, then fails.
-                    return Source.from(all).map(pid -> {
-                        if (pid.endsWith(":c")) {
-                            throw new IllegalStateException("[57014] canceling statement due to statement timeout");
+            final Props props = PersistencePingActor.propsForTests(shardRegion.getRef(), fastPingConfig(),
+                    resumeAfter -> {
+                        final boolean first = arguments.isEmpty();
+                        arguments.add(resumeAfter);
+                        if (first) {
+                            // pings a and b, then fails.
+                            return Source.from(all).map(pid -> {
+                                if (pid.endsWith(":c")) {
+                                    throw new IllegalStateException(
+                                            "[57014] canceling statement due to statement timeout");
+                                }
+                                return pid;
+                            });
                         }
-                        return pid;
+                        return Source.from(above(all, resumeAfter));
                     });
-                }
-                return Source.from(all);
-            });
             final ActorRef underTest = actorSystem.actorOf(props);
             try {
                 assertThat(entityIds(shardRegion, 2)).containsExactly("ns:a", "ns:b");
                 assertThat(entityIds(shardRegion, 2))
-                        .as("the walk after the failed one resumes after the last pinged pid")
+                        .as("the walk after the failed one pings the pids above the last one reached")
                         .containsExactly("ns:c", "ns:d");
                 assertThat(entityIds(shardRegion, 4))
                         .as("after a complete walk, the next one starts from the beginning")
                         .containsExactly("ns:a", "ns:b", "ns:c", "ns:d");
+                assertThat(arguments).startsWith(null, "policy:ns:b", null);
+            } finally {
+                actorSystem.stop(underTest);
+            }
+        }};
+    }
+
+    /**
+     * The resume point is the last pid the failed walk reached, also when the actor skipped it because it is no
+     * entity id: the next walk asks for the pids above it.
+     */
+    @Test
+    public void resumePointIsTheLastPidReachedEvenWhenItWasSkipped() {
+        new TestKit(actorSystem) {{
+            final TestKit shardRegion = new TestKit(actorSystem);
+            final List<String> arguments = new CopyOnWriteArrayList<>();
+            final List<String> all = List.of("policy:ns:a", "policy:ns:a/x", "policy:ns:b", "policy:ns:c");
+            final Props props = PersistencePingActor.propsForTests(shardRegion.getRef(), fastPingConfig(),
+                    resumeAfter -> {
+                        final boolean first = arguments.isEmpty();
+                        arguments.add(resumeAfter);
+                        if (first) {
+                            // pings a, skips a/x (the policy id rejects '/'), then fails.
+                            return thenFailing(List.of("policy:ns:a", "policy:ns:a/x"));
+                        }
+                        return Source.from(above(all, resumeAfter));
+                    });
+            final ActorRef underTest = actorSystem.actorOf(props);
+            try {
+                assertThat(entityIds(shardRegion, 1)).containsExactly("ns:a");
+                assertThat(entityIds(shardRegion, 2))
+                        .as("the walk after the failed one pings the pids above the skipped one")
+                        .containsExactly("ns:b", "ns:c");
+                assertThat(arguments).startsWith(null, "policy:ns:a/x");
+            } finally {
+                actorSystem.stop(underTest);
+            }
+        }};
+    }
+
+    /**
+     * In TAGS order the walk after a failed one starts from the beginning: the source is never asked to continue
+     * after a pid.
+     */
+    @Test
+    public void failedTagsOrderWalkStartsAgainFromTheBeginning() {
+        new TestKit(actorSystem) {{
+            final TestKit shardRegion = new TestKit(actorSystem);
+            final List<String> arguments = new CopyOnWriteArrayList<>();
+            final Props props = PersistencePingActor.propsForTests(shardRegion.getRef(), fastPingConfig("TAGS"),
+                    resumeAfter -> {
+                        final boolean first = arguments.isEmpty();
+                        arguments.add(resumeAfter);
+                        if (first) {
+                            return thenFailing(List.of("policy:ns:a"));
+                        }
+                        return Source.from(List.of("policy:ns:a", "policy:ns:b"));
+                    });
+            final ActorRef underTest = actorSystem.actorOf(props);
+            try {
+                assertThat(entityIds(shardRegion, 1)).containsExactly("ns:a");
+                assertThat(entityIds(shardRegion, 2))
+                        .as("the walk after the failed one starts from the beginning")
+                        .containsExactly("ns:a", "ns:b");
+                assertThat(arguments).startsWith(null, null);
+            } finally {
+                actorSystem.stop(underTest);
+            }
+        }};
+    }
+
+    /**
+     * With a read journal, the ID-order walk after a failed one is the read journal's query for the pids above the
+     * last one reached, with the tag, batch size and page retries of a walk from the beginning.
+     */
+    @Test
+    public void idOrderResumeUsesTheReadJournalsAboveQuery() {
+        new TestKit(actorSystem) {{
+            final TestKit shardRegion = new TestKit(actorSystem);
+            final DittoReadJournal readJournal = mock(DittoReadJournal.class);
+            when(readJournal.ensureTagPidIndex()).thenReturn(CompletableFuture.completedFuture(Done.getInstance()));
+            when(readJournal.getJournalPidsWithTag(eq(""), eq(10), eq(Duration.ofSeconds(1)), any(), eq(false)))
+                    .thenReturn(thenFailing(List.of("policy:ns:a", "policy:ns:b")));
+            when(readJournal.getJournalPidsAboveWithTag(eq("policy:ns:b"), eq(""), eq(10), eq(Duration.ofSeconds(1)),
+                    any())).thenReturn(Source.single("policy:ns:c"));
+            final ActorRef underTest = actorSystem.actorOf(
+                    PersistencePingActor.props(shardRegion.getRef(), fastPingConfig(), readJournal));
+            try {
+                assertThat(entityIds(shardRegion, 2)).containsExactly("ns:a", "ns:b");
+                assertThat(entityIds(shardRegion, 1))
+                        .as("the walk after the failed one is the read journal's above query")
+                        .containsExactly("ns:c");
+                verify(readJournal, timeout(10_000)).getJournalPidsAboveWithTag(eq("policy:ns:b"), eq(""), eq(10),
+                        eq(Duration.ofSeconds(1)), any(Materializer.class));
+                verify(readJournal, never()).getJournalPidsAboveWithTag(anyString(), anyString(), anyInt(),
+                        any(Materializer.class));
             } finally {
                 actorSystem.stop(underTest);
             }
@@ -253,7 +371,7 @@ public final class PersistencePingActorTest {
                 final TestKit logEvents = new TestKit(actorSystem);
                 actorSystem.getEventStream().subscribe(logEvents.getRef(), Logging.Warning.class);
                 final Props props = PersistencePingActor.propsForTests(shardRegion.getRef(), fastPingConfig(order),
-                        () -> Source.from(List.of("nocolon", "policy:ns:a", "policy:ns:a/x", "policy:ns:b")));
+                        resumeAfter -> Source.from(List.of("nocolon", "policy:ns:a", "policy:ns:a/x", "policy:ns:b")));
                 final ActorRef underTest = actorSystem.actorOf(props);
                 try {
                     assertThat(entityIds(shardRegion, 2)).as("order %s", order).containsExactly("ns:a", "ns:b");
@@ -298,14 +416,19 @@ public final class PersistencePingActorTest {
             final TestKit shardRegion = new TestKit(actorSystem);
             final TestKit logEvents = new TestKit(actorSystem);
             actorSystem.getEventStream().subscribe(logEvents.getRef(), Logging.Warning.class);
-            // every walk: a and b, then the same failure.
-            final Props props = PersistencePingActor.propsForTests(shardRegion.getRef(), fastPingConfig(), () ->
-                    Source.from(List.of("policy:ns:a", "policy:ns:b", "policy:ns:c")).map(pid -> {
-                        if (pid.endsWith(":c")) {
-                            throw failure.get();
-                        }
-                        return pid;
-                    }));
+            final List<String> arguments = new CopyOnWriteArrayList<>();
+            // every walk fails at c: from the beginning after a and b, resumed after b at once.
+            final Props props = PersistencePingActor.propsForTests(shardRegion.getRef(), fastPingConfig(),
+                    resumeAfter -> {
+                        arguments.add(resumeAfter);
+                        return Source.from(above(List.of("policy:ns:a", "policy:ns:b", "policy:ns:c"), resumeAfter))
+                                .map(pid -> {
+                                    if (pid.endsWith(":c")) {
+                                        throw failure.get();
+                                    }
+                                    return pid;
+                                });
+                    });
             final ActorRef underTest = actorSystem.actorOf(props);
             try {
                 assertThat(entityIds(shardRegion, 2)).containsExactly("ns:a", "ns:b");
@@ -317,11 +440,29 @@ public final class PersistencePingActorTest {
                 assertThat(entityIds(shardRegion, 2))
                         .as("the walk after that starts from the beginning: the head keeps being pinged")
                         .containsExactly("ns:a", "ns:b");
+                assertThat(arguments).startsWith(null, "policy:ns:b", null);
             } finally {
                 actorSystem.getEventStream().unsubscribe(logEvents.getRef());
                 actorSystem.stop(underTest);
             }
         }};
+    }
+
+    /** Emits {@code pids}, then fails. */
+    private static Source<String, NotUsed> thenFailing(final List<String> pids) {
+        final String failing = "policy:ns:failing";
+        return Source.from(java.util.stream.Stream.concat(pids.stream(), java.util.stream.Stream.of(failing)).toList())
+                .map(pid -> {
+                    if (failing.equals(pid)) {
+                        throw new IllegalStateException("walk failed");
+                    }
+                    return pid;
+                });
+    }
+
+    /** The elements of {@code all} after {@code bound}, or all of them for {@code null}, as a read journal does. */
+    private static List<String> above(final List<String> all, @Nullable final String bound) {
+        return all.stream().filter(pid -> bound == null || pid.compareTo(bound) > 0).toList();
     }
 
     private static List<String> entityIds(final TestKit shardRegion, final int count) {

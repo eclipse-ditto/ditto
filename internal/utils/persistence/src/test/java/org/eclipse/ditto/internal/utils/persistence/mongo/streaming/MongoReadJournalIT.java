@@ -677,6 +677,38 @@ public final class MongoReadJournalIT {
     }
 
     @Test
+    public void extractJournalPidsAboveALowerBoundWithTagAcrossPagesWithRetryBound() {
+        final Set<String> tagged = Set.of("always-live");
+        insert("test_journal", new JournalEntry("pid1").withSn(1L).withTags(tagged).getDocument());
+        insert("test_journal", new JournalEntry("pid2").withSn(1L).getDocument());
+        insert("test_journal", new JournalEntry("pid3").withSn(2L).withTags(tagged).getDocument());
+        insert("test_journal", new JournalEntry("pid4").withSn(2L).withTags(tagged).getDocument());
+        insert("test_journal", new JournalEntry("pid5").withSn(3L).getDocument());
+        insert("test_journal", new JournalEntry("pid6").withSn(3L).withTags(tagged).getDocument());
+        final Duration maxIdleTime = Duration.ofSeconds(5);
+
+        assertThat(pidsAbove("pid3", "always-live", maxIdleTime)).containsExactly("pid4", "pid6");
+        assertThat(pidsAbove("pid3", "", maxIdleTime)).containsExactly("pid4", "pid5", "pid6");
+        for (final String tag : List.of("always-live", "")) {
+            final List<String> full = readJournal.getJournalPidsWithTag(tag, 2, maxIdleTime, materializer, false)
+                    .runWith(Sink.seq(), materializer)
+                    .toCompletableFuture().join();
+            assertThat(pidsAbove("pid3", tag, maxIdleTime))
+                    .as("tag <%s>: the tail of the walk from the beginning", tag)
+                    .isEqualTo(full.subList(full.indexOf("pid3") + 1, full.size()));
+            assertThat(pidsAbove("pid3a", tag, maxIdleTime))
+                    .as("tag <%s>: a bound that does not exist", tag)
+                    .isEqualTo(pidsAbove("pid3", tag, maxIdleTime));
+        }
+    }
+
+    private List<String> pidsAbove(final String lowerBoundPid, final String tag, final Duration maxIdleTime) {
+        return readJournal.getJournalPidsAboveWithTag(lowerBoundPid, tag, 2, maxIdleTime, materializer)
+                .runWith(Sink.seq(), materializer)
+                .toCompletableFuture().join();
+    }
+
+    @Test
     public void toEventJsonConvertsBsonPayloadToNeutralJsonObject() {
         // GIVEN: an EventEnvelope whose BSON event payload is the Mongo-backed shape returned by the read journal
         final BsonDocument bsonEvent = BsonDocument.parse("{\"_revision\": 5, \"name\": \"event\"}");

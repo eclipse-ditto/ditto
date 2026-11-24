@@ -563,6 +563,36 @@ public final class MongoReadJournal implements DittoReadJournal {
     }
 
     /**
+     * Retrieve all unique PIDs strictly above a lower bound in journals selected by a provided {@code tag}, in the
+     * order of {@link #getJournalPidsWithTag} without {@code considerOnlyLatest}. The lower bound need not exist.
+     * Does its best not to create long-living cursors on the database by reading {@code batchSize} events per query.
+     *
+     * @param lowerBoundPid the lower-bound PID.
+     * @param tag the Tag name the journal entries have to contain in order to be selected, or an empty string to select
+     * all journal entries.
+     * @param batchSize how many events to read in one query.
+     * @param maxIdleTime how long the stream is allowed to idle without sending any element. Bounds the number of
+     * retries with exponential back-off.
+     * @param mat the actor materializer to run the query streams.
+     * @return Source of all persistence IDs above {@code lowerBoundPid} such that each element contains the persistence
+     * IDs in {@code batchSize} events that do not occur in prior buckets.
+     */
+    @Override
+    public Source<String, NotUsed> getJournalPidsAboveWithTag(final String lowerBoundPid,
+            final String tag,
+            final int batchSize,
+            final Duration maxIdleTime,
+            final Materializer mat) {
+
+        final int maxRestarts = computeMaxRestarts(maxIdleTime);
+        return getJournal().withAttributes(Attributes.inputBuffer(1, 1))
+                .flatMapConcat(journal ->
+                        listPidsInJournal(journal, lowerBoundPid, tag, batchSize, mat, maxRestarts)
+                )
+                .mapConcat(pids -> pids);
+    }
+
+    /**
      * A Source retrieving a single revision/sequence number of type {@code long} for the last snapshot sequence number
      * available for the passed {@code pid} and before the passed {@code timestamp}.
      *

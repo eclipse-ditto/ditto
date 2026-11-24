@@ -122,6 +122,7 @@ public final class PostgresReadJournalContractTest {
         drain(journal.getJournalPidsAbove("", 10, mat));
         drain(journal.getMostRecentJournalTagsForPid("thing:ns:id"));
         drain(journal.getJournalPidsAboveWithTag("", "always-alive", 10, mat));
+        drain(journal.getJournalPidsAboveWithTag("", "always-alive", 10, Duration.ofSeconds(1), mat));
 
         // Snapshot retrieval.
         drain(journal.getLastSnapshotSequenceNumberBeforeTimestamp("thing:ns:id", Instant.now()));

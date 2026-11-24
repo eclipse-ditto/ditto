@@ -14,7 +14,6 @@ package org.eclipse.ditto.things.service.enforcement;
 
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionException;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiPredicate;
@@ -30,6 +29,7 @@ import org.eclipse.ditto.internal.utils.cacheloaders.config.AskWithRetryConfig;
 import org.eclipse.ditto.internal.utils.cacheloaders.config.RetryStrategy;
 import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.pekko.logging.ThreadSafeDittoLogger;
+import org.eclipse.ditto.internal.utils.persistence.api.CompletionExceptions;
 import org.eclipse.ditto.policies.model.signals.commands.exceptions.PolicyNotAccessibleException;
 import org.eclipse.ditto.policies.model.signals.commands.modify.DeletePolicy;
 import org.eclipse.ditto.policies.model.signals.commands.modify.DeletePolicyResponse;
@@ -113,7 +113,7 @@ public final class CreatedPolicyRollback {
             attempts.incrementAndGet();
             // a failed or unanswered ask is an answer as well: the retry predicate decides on it
             return Patterns.ask(policiesShardRegion, deletePolicy, config.getAskTimeout())
-                    .handle((answer, error) -> null != error ? unwrap(error) : answer);
+                    .handle((answer, error) -> null != error ? CompletionExceptions.unwrap(error) : answer);
         };
         CompletionStage<Object> lastAnswer;
         try {
@@ -122,7 +122,8 @@ public final class CreatedPolicyRollback {
             lastAnswer = CompletableFuture.failedFuture(e);
         }
         return lastAnswer
-                .handle((answer, error) -> toResult(null != error ? unwrap(error) : answer, attempts.get()))
+                .handle((answer, error) ->
+                        toResult(null != error ? CompletionExceptions.unwrap(error) : answer, attempts.get()))
                 .thenApply(result -> logged(result, deletePolicy, thingId));
     }
 
@@ -145,7 +146,7 @@ public final class CreatedPolicyRollback {
             final ActorSystem actorSystem) {
 
         final BiPredicate<Object, Throwable> shouldRetry =
-                (answer, error) -> isWorthRetrying(null != error ? unwrap(error) : answer);
+                (answer, error) -> isWorthRetrying(null != error ? CompletionExceptions.unwrap(error) : answer);
         final int retries = config.getRetryAttempts();
         final ExecutionContext executionContext =
                 actorSystem.dispatchers().lookup(AskWithRetry.ASK_WITH_RETRY_DISPATCHER);
@@ -195,10 +196,6 @@ public final class CreatedPolicyRollback {
                     thingId, deletePolicy.getEntityId(), result.attempts(), result.lastAnswer());
         }
         return result;
-    }
-
-    private static Throwable unwrap(final Throwable error) {
-        return error instanceof CompletionException && null != error.getCause() ? unwrap(error.getCause()) : error;
     }
 
 }

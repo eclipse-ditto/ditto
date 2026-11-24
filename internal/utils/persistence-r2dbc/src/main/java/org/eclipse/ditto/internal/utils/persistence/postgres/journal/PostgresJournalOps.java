@@ -28,6 +28,7 @@ import java.util.function.Consumer;
 
 import javax.annotation.concurrent.ThreadSafe;
 
+import org.eclipse.ditto.internal.utils.persistence.api.CompletionExceptions;
 import org.eclipse.ditto.internal.utils.persistence.postgres.ops.JournalRow;
 import org.eclipse.ditto.internal.utils.persistence.postgres.ops.PostgresPersistenceOperations;
 import org.eclipse.ditto.internal.utils.persistence.postgres.payload.JsonTextPayloadCodec;
@@ -202,7 +203,7 @@ public final class PostgresJournalOps {
 
     private CompletionStage<Optional<Exception>> recoverWrite(final AtomicWrite atomicWrite,
             final Throwable throwable) {
-        final Throwable cause = unwrap(throwable);
+        final Throwable cause = CompletionExceptions.unwrap(throwable);
         if (cause instanceof R2dbcDataIntegrityViolationException integrityViolation) {
             if (SQLSTATE_UNIQUE_VIOLATION.equals(integrityViolation.getSqlState())) {
                 // Genuine (pid, sn) PK/unique collision: the only case that may be an idempotent commit-then-retry.
@@ -362,16 +363,6 @@ public final class PostgresJournalOps {
         return PersistentRepr.apply(codec.decode(row.eventJson()), row.sequenceNr(), row.pid(),
                 row.manifest() == null ? PersistentRepr.Undefined() : row.manifest(),
                 false, org.apache.pekko.actor.ActorRef.noSender(), PersistentRepr.Undefined());
-    }
-
-    private static Throwable unwrap(final Throwable throwable) {
-        Throwable current = throwable;
-        while ((current instanceof java.util.concurrent.CompletionException
-                || current instanceof java.util.concurrent.ExecutionException)
-                && current.getCause() != null) {
-            current = current.getCause();
-        }
-        return current;
     }
 
     private static Exception asException(final Throwable throwable) {
