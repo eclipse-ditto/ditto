@@ -14,13 +14,16 @@ package org.eclipse.ditto.internal.utils.persistence.postgres.journal;
 
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
+import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
+import java.util.concurrent.TimeoutException;
 import java.util.function.Consumer;
 
 import javax.annotation.concurrent.ThreadSafe;
@@ -53,6 +56,10 @@ import scala.jdk.javaapi.CollectionConverters;
  * {@link PostgresPayloadCodec} turns each event into the JSON text of the {@code event} column and back: JSON text
  * as it is for the entity journals, the Pekko-serialization envelope for the remember-entities store.
  * </p>
+ * <p>
+ * The atomic writes of one {@code writeMessages} call run one after the other, and a later one is not started once
+ * the call timeout has passed since the call began.
+ * </p>
  */
 @ThreadSafe
 public final class PostgresJournalOps {
@@ -78,41 +85,99 @@ public final class PostgresJournalOps {
      */
     private static final String SQLSTATE_DATA_EXCEPTION_CLASS_PREFIX = "22";
 
+    /**
+     * The circuit-breaker {@code call-timeout} the shipped PostgreSQL journal blocks declare; used by the factories
+     * that take no call timeout.
+     */
+    static final Duration DEFAULT_CALL_TIMEOUT = Duration.ofSeconds(5);
+
     private final PostgresPersistenceOperations operations;
     private final PostgresPayloadCodec codec;
+    private final Duration callTimeout;
 
-    private PostgresJournalOps(final PostgresPersistenceOperations operations, final PostgresPayloadCodec codec) {
+    private PostgresJournalOps(final PostgresPersistenceOperations operations, final PostgresPayloadCodec codec,
+            final Duration callTimeout) {
         this.operations = operations;
         this.codec = codec;
+        this.callTimeout = callTimeout;
     }
 
     /**
      * @param operations the shared persistence operations bound to the journal's entity tables.
-     * @return journal ops storing the events as the JSON text they already are ({@link JsonTextPayloadCodec}).
+     * @return journal ops storing the events as the JSON text they already are ({@link JsonTextPayloadCodec}), with
+     * the default call timeout of 5 seconds.
      */
     public static PostgresJournalOps of(final PostgresPersistenceOperations operations) {
-        return of(operations, JsonTextPayloadCodec.INSTANCE);
+        return of(operations, JsonTextPayloadCodec.INSTANCE, DEFAULT_CALL_TIMEOUT);
     }
 
     /**
      * @param operations the shared persistence operations bound to the journal's entity tables.
      * @param codec turns each event into the stored JSON text and back.
-     * @return journal ops storing the events through {@code codec}.
+     * @return journal ops storing the events through {@code codec}, with the default call timeout of 5 seconds.
      */
     public static PostgresJournalOps of(final PostgresPersistenceOperations operations,
             final PostgresPayloadCodec codec) {
-        return new PostgresJournalOps(checkNotNull(operations, "operations"), checkNotNull(codec, "codec"));
+        return of(operations, codec, DEFAULT_CALL_TIMEOUT);
     }
 
     /**
-     * Writes each {@code AtomicWrite} in its own transaction, returning one {@code Optional<Exception>} slot per write.
+     * @param operations the shared persistence operations bound to the journal's entity tables.
+     * @param codec turns each event into the stored JSON text and back.
+     * @param callTimeout the circuit-breaker call timeout Pekko applies to {@code asyncWriteMessages} of this plugin.
+     * A later write of a batch is not started once it has passed.
+     * @return journal ops storing the events through {@code codec}.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @throws IllegalArgumentException if {@code callTimeout} is zero or negative.
+     */
+    public static PostgresJournalOps of(final PostgresPersistenceOperations operations,
+            final PostgresPayloadCodec codec, final Duration callTimeout) {
+        checkNotNull(operations, "operations");
+        checkNotNull(codec, "codec");
+        checkNotNull(callTimeout, "callTimeout");
+        if (callTimeout.isZero() || callTimeout.isNegative()) {
+            throw new IllegalArgumentException("The callTimeout must be positive but was <" + callTimeout + ">.");
+        }
+        return new PostgresJournalOps(operations, codec, callTimeout);
+    }
+
+    /**
+     * Writes each {@code AtomicWrite} in its own transaction, returning one {@code Optional<Exception>} slot per write
+     * in input order. The writes run one after the other: a write starts only when the previous one has completed
+     * (succeeded or been rejected). A failed write fails the returned stage and no later write starts. Once the call
+     * timeout has passed since this call began, no later write starts either, and the returned stage fails with a
+     * {@link TimeoutException}.
      */
     public CompletionStage<Iterable<Optional<Exception>>> writeMessages(final Iterable<AtomicWrite> messages) {
-        final List<CompletionStage<Optional<Exception>>> perAtomicWrite = new ArrayList<>();
-        for (final AtomicWrite atomicWrite : messages) {
-            perAtomicWrite.add(writeAtomic(atomicWrite));
+        final long start = System.nanoTime();
+        final List<AtomicWrite> writes = new ArrayList<>();
+        messages.forEach(writes::add);
+        CompletionStage<List<Optional<Exception>>> acc =
+                CompletableFuture.completedFuture(new ArrayList<>(writes.size()));
+        for (int i = 0; i < writes.size(); i++) {
+            final int index = i;
+            final AtomicWrite atomicWrite = writes.get(i);
+            acc = acc.thenCompose(slots -> {
+                if (index > 0 && System.nanoTime() - start >= callTimeout.toNanos()) {
+                    return CompletableFuture.failedFuture(notStarted(atomicWrite, writes.size() - index));
+                }
+                return writeAtomic(atomicWrite).thenApply(slot -> {
+                    slots.add(slot);
+                    return slots;
+                });
+            });
         }
-        return sequence(perAtomicWrite);
+        return acc.<Iterable<Optional<Exception>>>thenApply(Collections::unmodifiableList);
+    }
+
+    private TimeoutException notStarted(final AtomicWrite atomicWrite, final int notStartedCount) {
+        final String pid = atomicWrite.persistenceId();
+        final long sequenceNr = atomicWrite.lowestSequenceNr();
+        // Pekko has already reported the batch as failed: this line is the only sign these events were never written.
+        LOGGER.warn("Not starting {} journal write(s) of the batch, the first of pid <{}> at sequence number <{}>: the "
+                + "call timeout of <{}> passed since the batch began.", notStartedCount, pid, sequenceNr, callTimeout);
+        return new TimeoutException("Not starting the journal write of pid <" + pid + "> at sequence number "
+                + sequenceNr + ": the call timeout of " + callTimeout + " passed since the batch began.");
     }
 
     private CompletionStage<Optional<Exception>> writeAtomic(final AtomicWrite atomicWrite) {
@@ -297,17 +362,6 @@ public final class PostgresJournalOps {
         return PersistentRepr.apply(codec.decode(row.eventJson()), row.sequenceNr(), row.pid(),
                 row.manifest() == null ? PersistentRepr.Undefined() : row.manifest(),
                 false, org.apache.pekko.actor.ActorRef.noSender(), PersistentRepr.Undefined());
-    }
-
-    private static <T> CompletionStage<Iterable<T>> sequence(final List<CompletionStage<T>> stages) {
-        CompletionStage<List<T>> acc = CompletableFuture.completedFuture(new ArrayList<>());
-        for (final CompletionStage<T> stage : stages) {
-            acc = acc.thenCombine(stage, (list, value) -> {
-                list.add(value);
-                return list;
-            });
-        }
-        return acc.thenApply(list -> (Iterable<T>) list);
     }
 
     private static Throwable unwrap(final Throwable throwable) {

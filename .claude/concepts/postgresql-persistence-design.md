@@ -396,6 +396,9 @@ Per entity (`things`, `policies`, `connections`, `wot`) and for connectivity's r
   (U+0000, oversized values) rejects that single write and the actor continues; a pool acquire timeout and every
   other failure are lost writes that stop the actor. A rejected write leaves the caller without a reply until its
   ask timeout.
+- The atomic writes of a batch are written one after the other in their order; a failed write stops the later ones,
+  and a later write is not started once the plugin's circuit-breaker `call-timeout` has passed since the batch
+  began, because Pekko has then already reported the batch as failed.
 
 ### 3.4 Read journal and streams
 

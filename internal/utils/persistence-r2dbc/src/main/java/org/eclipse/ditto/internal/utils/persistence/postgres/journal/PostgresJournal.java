@@ -14,6 +14,7 @@ package org.eclipse.ditto.internal.utils.persistence.postgres.journal;
 
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
+import java.time.Duration;
 import java.util.Optional;
 import java.util.function.Consumer;
 
@@ -58,12 +59,19 @@ import scala.jdk.javaapi.FutureConverters;
  *     stops the persistent actor rather than applying backpressure; so does a pool overload (pending-acquire queue
  *     full), classified as {@link PostgresPoolOverloadException}. A bad-grammar error (schema drift) surfaces
  *     unchanged.</li>
+ *     <li><strong>Write order.</strong> The {@code AtomicWrite}s of a batch run one after the other in their order;
+ *     a failed write stops the later ones, and a later write is not started once the plugin's
+ *     {@code circuit-breaker.call-timeout} has passed since the batch began. Pekko has then already reported the
+ *     batch as failed, and its circuit breaker does not cancel the work.</li>
  * </ul>
  */
 @NotThreadSafe
 public final class PostgresJournal extends AsyncWriteJournal {
 
     private static final String ENTITY_KEY = "entity";
+    private static final String CALL_TIMEOUT_KEY = "circuit-breaker.call-timeout";
+    private static final String FALLBACK_CALL_TIMEOUT_PATH =
+            "pekko.persistence.journal-plugin-fallback." + CALL_TIMEOUT_KEY;
 
     private final PostgresJournalOps ops;
 
@@ -79,7 +87,9 @@ public final class PostgresJournal extends AsyncWriteJournal {
      * {@link PostgresClientExtension}. The journal, snapshot-store and read-journal of a service therefore share ONE
      * connection pool instead of opening three (the {@code 3 × max-size} over-allocation the conf documents
      * {@code max-size} as the per-service total). The shared client's lifecycle is owned by the extension, which
-     * disposes it once via {@code CoordinatedShutdown}; this plugin never builds or disposes a client.
+     * disposes it once via {@code CoordinatedShutdown}; this plugin never builds or disposes a client. The write call
+     * timeout comes from the block's {@code circuit-breaker.call-timeout}, falling back to
+     * {@code pekko.persistence.journal-plugin-fallback}.
      * </p>
      *
      * @param config this journal plugin's own config block (must contain the {@code entity} key).
@@ -89,7 +99,8 @@ public final class PostgresJournal extends AsyncWriteJournal {
         final DittoPostgresClient client = PostgresClientExtension.get(context().system()).getClient();
         final PostgresPayloadCodec codec =
                 PostgresPayloadCodec.fromConfig(config, () -> SerializationExtension.get(context().system()));
-        this.ops = PostgresJournalOps.of(PostgresPersistenceOperations.of(client, entity), codec);
+        this.ops = PostgresJournalOps.of(PostgresPersistenceOperations.of(client, entity), codec,
+                callTimeout(config, context().system().settings().config()));
     }
 
     /**
@@ -119,6 +130,20 @@ public final class PostgresJournal extends AsyncWriteJournal {
             final long toSequenceNr, final long max, final Consumer<PersistentRepr> replayCallback) {
         return FutureConverters.asScala(ops.replayMessages(persistenceId, fromSequenceNr, toSequenceNr, max,
                 replayCallback));
+    }
+
+    /**
+     * Resolves the circuit-breaker call timeout Pekko applies to {@code asyncWriteMessages} of this plugin.
+     *
+     * @param pluginConfig this journal plugin's own config block.
+     * @param systemConfig the actor system's config, holding {@code pekko.persistence.journal-plugin-fallback}.
+     * @return the block's {@code circuit-breaker.call-timeout}, else the journal-plugin-fallback's.
+     */
+    static Duration callTimeout(final Config pluginConfig, final Config systemConfig) {
+        if (pluginConfig.hasPath(CALL_TIMEOUT_KEY)) {
+            return pluginConfig.getDuration(CALL_TIMEOUT_KEY);
+        }
+        return systemConfig.getDuration(FALLBACK_CALL_TIMEOUT_PATH);
     }
 
     // No postStop() pool disposal: the connection pool is the single shared client owned by PostgresClientExtension,

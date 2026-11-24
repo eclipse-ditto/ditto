@@ -15,6 +15,7 @@ package org.eclipse.ditto.internal.utils.persistence.postgres.journal;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -376,6 +377,24 @@ public final class PostgresJournalTest {
                     .hasMessageContaining("Unable to Pekko-serialize");
         });
         assertThat(factory.executedContaining("INSERT INTO")).as("nothing reaches the database").isFalse();
+    }
+
+    @Test
+    public void callTimeoutIsReadFromThePluginBlock() {
+        final Duration callTimeout = PostgresJournal.callTimeout(
+                ConfigFactory.parseString("circuit-breaker.call-timeout = 7s"), ConfigFactory.empty());
+
+        assertThat(callTimeout).isEqualTo(Duration.ofSeconds(7));
+    }
+
+    @Test
+    public void callTimeoutFallsBackToTheJournalPluginFallback() {
+        final Duration fromFallback = PostgresJournal.callTimeout(ConfigFactory.empty(), ConfigFactory.parseString(
+                "pekko.persistence.journal-plugin-fallback.circuit-breaker.call-timeout = 13s"));
+        final Duration fromPekkoDefault = PostgresJournal.callTimeout(ConfigFactory.empty(), ConfigFactory.load());
+
+        assertThat(fromFallback).isEqualTo(Duration.ofSeconds(13));
+        assertThat(fromPekkoDefault).as("Pekko's reference.conf").isEqualTo(Duration.ofSeconds(10));
     }
 
     @Test
