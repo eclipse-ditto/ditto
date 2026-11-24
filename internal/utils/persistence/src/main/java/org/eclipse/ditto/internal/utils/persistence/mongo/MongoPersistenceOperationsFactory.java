@@ -36,8 +36,8 @@ import com.typesafe.config.Config;
 /**
  * MongoDB implementation of {@link PersistenceOperationsFactory}.
  * <p>
- * For each entity type it builds the persistence-operations collaborators a service's ops actor used to build inline,
- * preserving the historical per-service wiring exactly:
+ * For each entity type it builds the persistence-operations collaborators of that service's ops actor, with the same
+ * wiring as the per-service ops actors:
  * <ul>
  *     <li>{@code thing} &rarr; {@link MongoNamespacePersistenceOperations} only — mirrors
  *     {@code ThingPersistenceOperationsActor.props} (persistence-id prefix {@code "thing:"}, supports namespaces),</li>
@@ -151,7 +151,7 @@ public final class MongoPersistenceOperationsFactory implements PersistenceOpera
     }
 
     /**
-     * Per-entity wiring, kept identical to the historical per-service ops actors.
+     * Per-entity wiring, identical to the per-service ops actors.
      */
     private enum EntityWiring {
 

@@ -26,7 +26,8 @@
     <name>Eclipse Ditto :: Postgres :: Search Extension (thin)</name>
 
     <!--
-        THIN things-search extension jar (§6 D2 — three-JAR layered packaging). OPTIONAL: only a deployment that runs
+        THIN things-search extension jar (three-JAR layered packaging; see the design document, Architecture,
+        Packaging and activation). OPTIONAL: only a deployment that runs
         things-search on PostgreSQL mounts it; Mongo-search deployments mount nothing on the search service.
 
         Carries ONLY the ditto-internal-utils-search-r2dbc implementation classes (the Postgres search schema/flattener/

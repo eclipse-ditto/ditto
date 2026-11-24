@@ -103,7 +103,7 @@ import reactor.core.publisher.Mono;
  * table statement followed by the descriptor's own statements ({@link #effectiveDdl(PostgresSchemaDescriptor)}), i.e.
  * exactly the DDL the bootstrap executes — so the checksum can never drift away from what is actually run. The one
  * deliberate exception is the manager-owned {@link #SCHEMA_VERSION_COMPATIBILITY_DDL}: it is bookkeeping for the
- * {@code schema_version} table itself and is kept <strong>out</strong> of the checksum, so adding it moved no deployed
+ * {@code schema_version} table itself and is kept <strong>out</strong> of the checksum, so it changes no deployed
  * component's checksum.
  */
 public final class PostgresSchemaManager {
@@ -253,9 +253,9 @@ public final class PostgresSchemaManager {
 
     /**
      * The effective DDL executed by (and checksummed for) a component: the shared {@code schema_version} table followed
-     * by the descriptor's own statements. This is exactly the pre-extraction statement list (the {@code schema_version}
-     * statement was historically element 0 of each descriptor's own list), so the persisted checksum is preserved
-     * across the postgres-client extraction. {@link #SCHEMA_VERSION_COMPATIBILITY_DDL} is deliberately not part of it.
+     * by the descriptor's own statements. With the {@code schema_version} statement as element 0 this is the statement
+     * list that already deployed checksums were computed over, so a persisted checksum keeps matching.
+     * {@link #SCHEMA_VERSION_COMPATIBILITY_DDL} is deliberately not part of it.
      *
      * @param descriptor the component schema.
      * @return the ordered effective DDL statements.

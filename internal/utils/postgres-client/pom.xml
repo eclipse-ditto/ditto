@@ -62,7 +62,7 @@
             <artifactId>pekko-stream_${scala.version}</artifactId>
         </dependency>
 
-        <!-- R2DBC SPI + pooling + driver: pure SPI libraries, NO upstream pekko-persistence-r2dbc plugin [M10] -->
+        <!-- R2DBC SPI + pooling + driver: pure SPI libraries, NO upstream pekko-persistence-r2dbc plugin -->
         <dependency>
             <groupId>io.r2dbc</groupId>
             <artifactId>r2dbc-spi</artifactId>
@@ -118,7 +118,7 @@
             <scope>test</scope>
         </dependency>
         <!-- Testcontainers: drives the schema-manager bootstrap IT (*IT runs under failsafe, skipped offline).
-             The PostgresDbResource fixture is published as a test-jar so persistence-r2dbc (and later search-r2dbc)
+             The PostgresDbResource fixture is published as a test-jar so persistence-r2dbc and search-r2dbc
              reuse the identical container fixture without depending on each other's test tree. -->
         <dependency>
             <groupId>org.testcontainers</groupId>

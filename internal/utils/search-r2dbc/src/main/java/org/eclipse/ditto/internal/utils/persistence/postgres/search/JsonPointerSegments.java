@@ -20,13 +20,13 @@ import org.eclipse.ditto.json.JsonPointer;
 /**
  * The single source of truth for turning JSON object keys / pointers into the {@code search_flat} {@code path}/
  * {@code wpath} TEXT columns' segment encoding (RFC 6901), shared by BOTH the write side ({@code ThingFlattener},
- * which escapes each raw JSON key as it walks the tree) and the read side (the Phase-D RQL→SQL translator, which
- * escapes each queried path segment before comparing against those columns).
+ * which escapes each raw JSON key as it walks the tree) and the read side (the RQL-to-SQL query translation, whose
+ * {@code AbstractFieldSqlCreator} escapes each queried path segment before comparing against those columns).
  * <p>
  * Keeping this in one place is a correctness obligation, not a convenience: if the two sides ever diverged by one
- * character, a query would silently probe a wpath the writer never emitted and return no rows. Task D2 relocated the
- * escaping here from {@code ThingFlattener} (which now delegates) so the translator and the flattener are literally
- * the same code.
+ * character, a query would silently probe a wpath the writer never emitted and return no rows. The escaping lives
+ * here, and both {@code ThingFlattener} and the query translation call it, so both produce the same {@code wpath}
+ * from literally the same code.
  * </p>
  * <p>
  * <b>Escaping vs. auth paths:</b> this encoding applies ONLY to the flat-table {@code path}/{@code wpath} columns,

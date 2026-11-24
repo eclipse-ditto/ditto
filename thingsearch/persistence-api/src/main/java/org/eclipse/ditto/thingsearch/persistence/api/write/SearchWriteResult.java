@@ -81,10 +81,10 @@ public final class SearchWriteResult {
      *
      * @param writeModelCount the total number of write models in the submitted batch, delete models included;
      * used only to bounds-check reported error indices.
-     * @param nonDeleteWriteModelCount the number of write models in the submitted batch EXCLUDING delete
-     * models (i.e. the count an A4 adapter must obtain by filtering out delete/removal write models before
-     * calling this factory, mirroring {@code BulkWriteResultAckFlow.areUpdatesMissing}); used only to detect
-     * missing patch updates.
+     * @param nonDeleteWriteModelCount the number of write models in the submitted batch EXCLUDING delete models (i.e.
+     * the count a backend's write-result adapter must obtain by filtering out delete/removal write models before
+     * calling this factory, mirroring {@code BulkWriteResultAckFlow.areUpdatesMissing}); used only to detect missing
+     * patch updates.
      * @param matchedCount the number of documents matched.
      * @param modifiedCount the number of documents modified.
      * @param upsertedCount the number of documents upserted.

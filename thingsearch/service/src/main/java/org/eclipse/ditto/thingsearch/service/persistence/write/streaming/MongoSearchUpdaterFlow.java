@@ -59,7 +59,7 @@ import org.apache.pekko.stream.javadsl.Source;
 
 /**
  * Mongo implementation of the backend-neutral {@link SearchUpdaterFlow} seam. Bridges the neutral write models
- * into the historical Mongo write machinery (BSON write models, {@code BsonDiff}-based incremental updates and
+ * into the Mongo write machinery (BSON write models, {@code BsonDiff}-based incremental updates and
  * the ordered/unordered bulk write) and adapts the Mongo bulk-write result back into the neutral
  * {@link SearchWriteResult}.
  */

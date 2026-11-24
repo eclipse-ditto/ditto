@@ -27,7 +27,7 @@ import org.apache.pekko.persistence.SnapshotOffer;
  * {@link SnapshotSerializer} (selected via {@code ditto.extensions.snapshot-adapter}) with the active backend's
  * {@link org.eclipse.ditto.internal.utils.persistence.api.SnapshotCodec} (BSON for Mongo, JSONB for Postgres). It is
  * resolved once, single-per-JVM, by {@code AbstractPersistenceActor}; there is no per-backend snapshot-adapter
- * selection any more.
+ * selection.
  *
  * @param <T> the domain model type to do a Snapshot for.
  */

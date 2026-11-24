@@ -60,7 +60,7 @@ import com.typesafe.config.ConfigFactory;
  * lazily-materialised {@link PostgresReadJournal}.
  * </p>
  * <h2>Explicit plugin-ID resolution — NO {@code pluralize()} heuristic</h2>
- * Unlike the Mongo provider's old {@code thing → things} guess (which returned the wrong default for {@code connection}),
+ * Unlike a {@code thing → things} pluralisation guess (which would return the wrong default for {@code connection}),
  * this provider requires an <strong>explicit</strong> HOCON mapping per entity:
  * <pre>
  * ditto.extensions.persistence-backend-provider = {

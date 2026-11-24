@@ -45,20 +45,19 @@ import org.eclipse.ditto.internal.utils.persistence.api.PersistencePluginConfig;
 public final class MongoPersistencePluginConfig implements PersistencePluginConfig {
 
     // ── shipped pekko-contrib-mongodb-persistence-* block names ──────────────
-    // Verified against:
-    //   things.conf:609-614  (auto-start — things journal + snapshots; WoT intentionally absent)
-    //   policies.conf:291-296 (auto-start — policies journal + snapshots)
-    //   connectivity.conf:1227-1232 (auto-start — connection journal + snapshots)
+    // The IDs are the ones listed in pekko.persistence.journal.auto-start-journals and
+    // pekko.persistence.snapshot-store.auto-start-snapshot-stores of things.conf, policies.conf and connectivity.conf.
+    // The WoT validation config journal is not auto-started: things.conf lists only the things journal + snapshots.
 
-    // things — auto-start (things.conf:610, 613)
+    // things — auto-start (things.conf)
     static final String THINGS_JOURNAL = "pekko-contrib-mongodb-persistence-things-journal";
     static final String THINGS_SNAPSHOTS = "pekko-contrib-mongodb-persistence-things-snapshots";
 
-    // policies — auto-start (policies.conf:292, 295)
+    // policies — auto-start (policies.conf)
     static final String POLICIES_JOURNAL = "pekko-contrib-mongodb-persistence-policies-journal";
     static final String POLICIES_SNAPSHOTS = "pekko-contrib-mongodb-persistence-policies-snapshots";
 
-    // connectivity — auto-start (connectivity.conf:1228, 1231)
+    // connectivity — auto-start (connectivity.conf)
     static final String CONNECTION_JOURNAL = "pekko-contrib-mongodb-persistence-connection-journal";
     static final String CONNECTION_SNAPSHOTS = "pekko-contrib-mongodb-persistence-connection-snapshots";
 
@@ -66,7 +65,8 @@ public final class MongoPersistencePluginConfig implements PersistencePluginConf
 
     /**
      * Per-service auto-start sets (service name → immutable list of journal + snapshot IDs, in the order they
-     * appear in the service HOCON). WoT is intentionally absent from the things set — see things.conf:609-615.
+     * appear in the service HOCON). WoT is intentionally absent from the things set — the auto-start lists of
+     * things.conf name only the things journal and snapshot store.
      */
     private static final Map<String, List<String>> AUTO_START_IDS_BY_SERVICE = Map.of(
             "things",       List.of(THINGS_JOURNAL, THINGS_SNAPSHOTS),

@@ -32,8 +32,8 @@ import org.eclipse.ditto.internal.utils.persistence.postgres.ops.PostgresPersist
 /**
  * PostgreSQL implementation of {@link PersistenceOperationsFactory}.
  * <p>
- * For each entity type it builds the persistence-operations collaborators a service's ops actor purges with, preserving
- * the historical per-service wiring exactly (same shape as {@code MongoPersistenceOperationsFactory}):
+ * For each entity type it builds the persistence-operations collaborators a service's ops actor purges with, with the
+ * same wiring as the per-service ops actors (same shape as {@code MongoPersistenceOperationsFactory}):
  * <ul>
  *     <li>{@code thing} &rarr; {@link PostgresNamespacePersistenceOperations} only — mirrors
  *     {@code ThingPersistenceOperationsActor} (pid prefix {@code "thing:"}, supports namespaces),</li>
@@ -118,7 +118,7 @@ public final class PostgresPersistenceOperationsFactory implements PersistenceOp
     }
 
     /**
-     * Per-entity wiring, kept identical to the historical per-service ops actors (and to the Mongo factory's
+     * Per-entity wiring, identical to the per-service ops actors (and to the Mongo factory's
      * {@code EntityWiring}). {@code tablePrefix} is the plural table prefix ({@code things}/{@code policies}/
      * {@code connections}); {@code pidPrefix} is the singular persistence-id prefix ({@code thing:}/{@code policy:}/
      * {@code connection:}) — the same split the rest of the Postgres backend uses.

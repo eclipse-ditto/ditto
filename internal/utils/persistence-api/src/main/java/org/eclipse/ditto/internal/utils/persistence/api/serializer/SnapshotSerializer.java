@@ -165,7 +165,7 @@ public abstract class SnapshotSerializer<T extends Jsonifiable.WithFieldSelector
 
     /**
      * Loads the per-service {@code SnapshotSerializer} configured for the {@code ActorSystem} at the
-     * {@code ditto.extensions.snapshot-adapter} config key (the key MongoDB deployments have always used; it now selects
+     * {@code ditto.extensions.snapshot-adapter} config key (the key MongoDB deployments have always used; it selects
      * only the backend-neutral serializer, the storage envelope comes from the persistence backend provider).
      *
      * @param actorSystem the actor system in which the serializer should be loaded.

@@ -141,7 +141,7 @@ public final class PostgresPersistenceOperations {
                             // transaction-start instant): every event of one AtomicWrite is inserted in THIS single
                             // transaction (see inTransaction), so now() would collapse all rows of a future
                             // multi-event AtomicWrite to one identical written_at. clock_timestamp() re-evaluates per
-                            // INSERT so each event keeps its own ingest instant (r2mlh-l15a). The _journal_seq upsert
+                            // INSERT so each event keeps its own ingest instant. The _journal_seq upsert
                             // below carries no timestamp, so there is no watermark/row ordering inconsistency.
                             "INSERT INTO " + tables.journalTable()
                                     + " (pid, sn, manifest, tags, event, written_at) "
@@ -548,13 +548,13 @@ public final class PostgresPersistenceOperations {
 
     /**
      * The newest journal event per pid, as one streaming loose-index-scan query (the pattern also used by
-     * {@link #getNewestSnapshotsAbove}). Replaces the former N+1 — one bounded replay query per pid
-     * — with a single unbounded streaming query backed by a server-side portal for backpressure.
+     * {@link #getNewestSnapshotsAbove}): a single unbounded streaming query backed by a server-side portal for
+     * backpressure, instead of an N+1 of one bounded replay query per pid.
      * <p>
      * Two-phase loose index scan: a distinct-pid phase (index-only PK scan — no payload detoast, no
      * sort) feeds a per-pid top-1 {@code CROSS JOIN LATERAL} backward PK scan, so exactly one event
-     * per pid is ever detoasted. The former {@code DISTINCT ON (pid) … ORDER BY pid, sn DESC} shape
-     * ordered by a mixed direction no ASC-PK index can satisfy — it externally sorted the ENTIRE
+     * per pid is ever detoasted. A {@code DISTINCT ON (pid) … ORDER BY pid, sn DESC} shape would
+     * order by a mixed direction no ASC-PK index can satisfy — it would externally sort the ENTIRE
      * journal including event payloads. Still one statement, NOT an N+1 per-pid replay.
      */
     public Source<JournalRow, NotUsed> getLatestJournalEntries() {
@@ -574,9 +574,9 @@ public final class PostgresPersistenceOperations {
      * fetches exactly one row per winner via a backward PK scan ({@code ORDER BY sn DESC,
      * written_at DESC LIMIT 1}), so only the page's winning snapshot payloads are ever detoasted.
      * Callers that need no payload use {@link #getNewestSnapshotHeadsAbove}, the same statement without it.
-     * The former single-query {@code DISTINCT ON (pid)} shape seq-scanned and externally sorted
+     * A single-query {@code DISTINCT ON (pid)} shape would seq-scan and externally sort
      * every payload above the lower bound per page (21× slower than MongoDB at 250k pids; see the
-     * cleanup-page row of §8 in {@code .claude/concepts/postgresql-persistence-design.md}).
+     * design document, Performance summary, in {@code .claude/concepts/postgresql-persistence-design.md}).
      * <p>
      * Semantics mirror {@code MongoReadJournal.listNewestActiveSnapshotsByBatch} STAGE ORDER exactly:
      * the pid lower bound, the optional pid regex and the optional min-age filter apply to the ROWS
@@ -804,8 +804,8 @@ public final class PostgresPersistenceOperations {
     private <T> Mono<T> inTransactionOnce(final java.util.function.Function<Connection, Mono<T>> work) {
         // 5-arg usingWhen so the cleanup is signal-specific: completion commits then closes, while BOTH the error
         // and the cancel arms roll back (best-effort) before closing. The 3-arg form closes on cancel WITHOUT rolling
-        // back, returning an "idle in transaction" connection to the pool (r2mlh-m1). No inline onErrorResume rollback
-        // here — that would double-rollback on the error path now that asyncError owns it.
+        // back, returning an "idle in transaction" connection to the pool. No inline onErrorResume rollback here —
+        // the asyncError arm already rolls back, so it would roll back twice on the error path.
         return Mono.usingWhen(
                 Mono.from(client.getConnectionPool().create()),
                 connection -> Mono.from(connection.beginTransaction())

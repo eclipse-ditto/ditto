@@ -26,7 +26,7 @@
 
     <dependencies>
         <!-- Shared backend-agnostic Postgres client/schema infrastructure (pool, DDL, health, metrics,
-             descriptor-parameterised schema manager) extracted from this module. -->
+             descriptor-parameterised schema manager). -->
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-internal-utils-postgres-client</artifactId>
@@ -35,18 +35,18 @@
             <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-internal-utils-config</artifactId>
         </dependency>
-        <!-- Metrics facade (DittoMetrics/Timer/Histogram/Gauge) for the R2DBC -> Kamon observability, WU11.
+        <!-- Metrics facade (DittoMetrics/Timer/Histogram/Gauge) for the R2DBC -> Kamon observability.
              Brings io.kamon:kamon-core transitively (kamon.version managed in bom). -->
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-internal-utils-metrics</artifactId>
         </dependency>
-        <!-- The backend-agnostic persistence SPI implemented by the read journal (WU9). -->
+        <!-- The backend-agnostic persistence SPI implemented by the read journal. -->
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-internal-utils-persistence-api</artifactId>
         </dependency>
-        <!-- Health subsystem base (AbstractHealthCheckingActor + StatusInfo) for the SELECT 1 health-check actor (E2),
+        <!-- Health subsystem base (AbstractHealthCheckingActor + StatusInfo) for the SELECT 1 health-check actor,
              mirroring the Mongo backend's MongoHealthChecker. A leaf util (json/base-model/pekko/config) — no cycle. -->
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
@@ -62,18 +62,18 @@
             <groupId>org.apache.pekko</groupId>
             <artifactId>pekko-stream_${scala.version}</artifactId>
         </dependency>
-        <!-- Pekko persistence: AsyncWriteJournal (WU7) + SnapshotStore (WU8) japi base classes. -->
+        <!-- Pekko persistence: AsyncWriteJournal + SnapshotStore japi base classes. -->
         <dependency>
             <groupId>org.apache.pekko</groupId>
             <artifactId>pekko-persistence_${scala.version}</artifactId>
         </dependency>
-        <!-- Pekko persistence query: EventEnvelope/Offset + the query SPIs DittoReadJournal extends (WU9). -->
+        <!-- Pekko persistence query: EventEnvelope/Offset + the query SPIs DittoReadJournal extends. -->
         <dependency>
             <groupId>org.apache.pekko</groupId>
             <artifactId>pekko-persistence-query_${scala.version}</artifactId>
         </dependency>
 
-        <!-- R2DBC SPI + pooling + driver: pure SPI libraries, NO upstream pekko-persistence-r2dbc plugin [M10] -->
+        <!-- R2DBC SPI + pooling + driver: pure SPI libraries, NO upstream pekko-persistence-r2dbc plugin -->
         <dependency>
             <groupId>io.r2dbc</groupId>
             <artifactId>r2dbc-spi</artifactId>
@@ -92,7 +92,7 @@
             <groupId>org.postgresql</groupId>
             <artifactId>r2dbc-postgresql</artifactId>
         </dependency>
-        <!-- r2dbc-proxy: observability hooks (command timer + acquire-latency), WU11 -->
+        <!-- r2dbc-proxy: observability hooks (command timer + acquire-latency) -->
         <dependency>
             <groupId>io.r2dbc</groupId>
             <artifactId>r2dbc-proxy</artifactId>

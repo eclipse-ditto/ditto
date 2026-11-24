@@ -19,7 +19,7 @@ import javax.annotation.concurrent.Immutable;
 import org.eclipse.ditto.internal.utils.config.KnownConfigValue;
 
 /**
- * Configuration of the PostgreSQL search {@code delete_at} reaper (plan §3.6) — the in-service replacement for Mongo's
+ * Configuration of the PostgreSQL search {@code delete_at} reaper — the in-service replacement for Mongo's
  * TTL index on {@code deleteAt}. Lives under the HOCON namespace {@code ditto.postgresql.search.reaper.*}.
  */
 @Immutable

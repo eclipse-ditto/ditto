@@ -45,7 +45,7 @@ public final class PostgresTableNames {
      * its tables use the compact prefix {@code "wot"} (per {@link PostgresSchema#ENTITIES} and the
      * {@code ditto-postgres-wot-*} plugin blocks). Without this alias, resolving the tables by the entity-type spelling
      * — as happens when {@code WotValidationConfigPersistenceActor} or the read journal carries that type — would throw
-     * {@code IllegalArgumentException}. See round-2 review finding M-6.
+     * {@code IllegalArgumentException}.
      */
     private static final Map<String, String> ENTITY_TYPE_ALIASES = Map.of(
             "wot-validation-config", "wot");
@@ -64,7 +64,7 @@ public final class PostgresTableNames {
 
     /**
      * @param entityPrefixOrType the entity table prefix (e.g. {@code things}, one of {@link PostgresSchema#ENTITIES}) or
-     * a known entity-type alias (e.g. {@code wot-validation-config}, which resolves to the {@code wot} tables — M-6).
+     * a known entity-type alias (e.g. {@code wot-validation-config}, which resolves to the {@code wot} tables).
      * @return the resolved table names.
      * @throws IllegalArgumentException if the value is neither a known entity prefix nor a known alias.
      */

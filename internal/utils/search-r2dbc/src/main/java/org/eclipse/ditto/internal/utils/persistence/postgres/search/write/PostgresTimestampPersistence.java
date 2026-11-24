@@ -37,7 +37,7 @@ import reactor.core.publisher.Mono;
 
 /**
  * PostgreSQL implementation of {@link TimestampPersistence} backing the background-sync bookmark — the Postgres
- * replacement for {@code MongoTimestampPersistence} (plan §3.4 "Bookmark via {@code search_sync} upsert").
+ * replacement for {@code MongoTimestampPersistence}, kept as an upsert of the single {@code search_sync} row.
  * <p>
  * Where the Mongo impl keeps the single latest timestamp in a capped, {@code maxDocuments(1)} collection (each write
  * inserts a fresh document; reads take {@code sort(_id desc).limit(1)}), this impl keeps ONE row in {@code search_sync}

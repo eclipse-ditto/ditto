@@ -24,12 +24,13 @@ import org.eclipse.ditto.internal.utils.persistence.postgres.client.schema.Postg
 import org.eclipse.ditto.internal.utils.persistence.postgres.client.schema.TableContract;
 
 /**
- * The canonical, programmatic DDL definition of the PostgreSQL <em>things-search</em> schema (plan §3.2). It is the
+ * The canonical, programmatic DDL definition of the PostgreSQL <em>things-search</em> schema. It is the
  * single source of truth for both the bootstrap (executed verbatim by the generic {@code PostgresSchemaManager}) and the
  * {@code SchemaChecksum} (computed over the concatenated, whitespace-normalised statement text), so the checksum can
  * never drift away from what is actually executed.
  * <p>
- * The schema is a <strong>hybrid JSONB document + flattened side-table</strong> design (plan D1/D3):
+ * The schema is a <strong>hybrid JSONB document + flattened side-table</strong> design (design document, Search
+ * backend, Why a flattened side table):
  * </p>
  * <ul>
  *     <li>{@code search_things} — one row per thing: the enforced {@code thing} JSONB payload (the truth used for
@@ -55,9 +56,8 @@ import org.eclipse.ditto.internal.utils.persistence.postgres.client.schema.Table
  * actionable error naming the prerequisite.
  * </p>
  * <p>
- * <strong>Idempotency deviation from the plan §3.2 illustrative SQL:</strong> every {@code CREATE TABLE}/{@code CREATE
- * INDEX} here additionally carries {@code IF NOT EXISTS} (the plan sketch omits it, as it targets a fresh
- * database). This matches the event-sourcing {@code PostgresSchema} pattern and is required so a re-bootstrap of
+ * <strong>Idempotency:</strong> every {@code CREATE TABLE}/{@code CREATE INDEX} here carries {@code IF NOT EXISTS}.
+ * This matches the event-sourcing {@code PostgresSchema} pattern and is required so a re-bootstrap of
  * an already-provisioned database is a no-op rather than an error; the live-catalog verifier still catches a divergent
  * pre-existing table that {@code IF NOT EXISTS} would silently keep.
  * </p>
@@ -222,7 +222,7 @@ public final class PostgresSearchSchema {
         statements.add("CREATE INDEX IF NOT EXISTS sf_bool ON search_flat (wpath, val_bool) WHERE val_bool IS NOT NULL");
         statements.add("CREATE INDEX IF NOT EXISTS sf_exists ON search_flat (wpath)");
         // Trigram GIN on (val_text COLLATE "C.utf8"): the collation override restores non-ASCII case folding for ILIKE
-        // (Mongo $options:"i" parity) while eq/range/sort keep the plain COLLATE "C" column + sf_text (plan §3.2).
+        // (Mongo $options:"i" parity) while eq/range/sort keep the plain COLLATE "C" column + sf_text.
         statements.add("CREATE INDEX IF NOT EXISTS sf_trgm ON search_flat "
                 + "USING gin ((val_text COLLATE \"" + TRIGRAM_INDEX_COLLATION + "\") gin_trgm_ops) "
                 + "WHERE val_text IS NOT NULL");

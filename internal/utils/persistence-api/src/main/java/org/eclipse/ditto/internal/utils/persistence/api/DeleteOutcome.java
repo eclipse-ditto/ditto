@@ -19,7 +19,7 @@ import javax.annotation.concurrent.Immutable;
 /**
  * Backend-neutral outcome of a delete operation on the read journal (event or snapshot deletion).
  * <p>
- * Replaces the previously leaked {@code com.mongodb.client.result.DeleteResult} so that no
+ * It is used instead of the driver's {@code com.mongodb.client.result.DeleteResult} so that no
  * MongoDB type crosses the {@link DittoReadJournal} interface boundary. Backends populate it from
  * their respective driver result (e.g. MongoDB's {@code DeleteResult}, a SQL {@code rowsUpdated}).
  *

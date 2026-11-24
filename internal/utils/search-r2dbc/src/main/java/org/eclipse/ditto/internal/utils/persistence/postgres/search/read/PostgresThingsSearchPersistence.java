@@ -67,22 +67,21 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 /**
- * PostgreSQL implementation of the backend-neutral {@link ThingsSearchPersistence} read persistence — the Task&nbsp;D4
- * completion of the Phase-C skeleton. Every neutral read method (count / find / namespace report / recovery) is now
- * assembled from the D2 criteria translation, the D3 sort/cursor pieces and the {@link SearchQueryAssembler} (which owns
- * the §3.5 selective-leg rescue CTE), and executed over the shared connection pool with r2dbc. {@code sudoStreamMetadata}
- * (the C3 background-sync source) is unchanged.
+ * PostgreSQL implementation of the backend-neutral {@link ThingsSearchPersistence} read persistence. Every neutral read
+ * method (count / find / namespace report / recovery) is assembled from the criteria translation
+ * ({@code CreateSqlVisitor}), the sort and cursor translation ({@link PostgresSortClause}) and the
+ * {@link SearchQueryAssembler} (which owns the selective-leg rescue CTE), and executed over the shared connection pool
+ * with r2dbc. {@code sudoStreamMetadata} is the background-sync source.
  * <p>
  * <b>findAll / cursor.</b> Mirroring {@code MongoThingsSearchPersistence}, {@code findAll} fetches {@code pageLimit + 1}
  * rows (the extra row is the has-next-page probe), projecting {@code thing_id}, {@code t_modified} (for
- * {@link TimestampedThingId}) and the D3 cursor-projection columns. {@link #toResultList} then trims to the page and, on
+ * {@link TimestampedThingId}) and the cursor-projection columns. {@link #toResultList} then trims to the page and, on
  * a full page, extracts the last row's sort values (via {@link PostgresSortClause#toSortValues}) into the
  * {@link ResultListImpl} the backend-neutral {@code ThingsSearchCursor} encodes. The resume side is Mongo-parity because
- * the cursor now feeds plain-Java sort values (not BSON) into the resume criteria — see the D4 report's cursor-seam
- * section.
+ * the cursor feeds plain-Java sort values (not BSON) into the resume criteria.
  * </p>
  * <p>
- * <b>Reads never filter {@code delete_at}</b> (plan §3.6): a namespace-purge-marked row stays visible until the reaper
+ * <b>Reads never filter {@code delete_at}</b>: a namespace-purge-marked row stays visible until the reaper
  * physically removes it, matching Mongo (its TTL-marked docs remain queryable until deleted).
  * </p>
  *
@@ -109,10 +108,11 @@ public final class PostgresThingsSearchPersistence implements ThingsSearchPersis
                     + "t_modified FROM search_things WHERE delete_at IS NULL AND thing_id > $1 ORDER BY thing_id";
 
     /**
-     * Recovery projection (inverse of the C2 upsert). {@code emptied_out} is derived from {@code referenced_policies IS
-     * NULL} — the Postgres counterpart of the Mongo "missing {@code __referencedPolicies} field" tombstone discriminator
-     * (the write path stores {@code NULL} for an emptied-out row and {@code []} for a normal one). JSONB columns are cast
-     * to text so they are read back as plain JSON strings.
+     * Recovery projection (inverse of the upsert of {@code PostgresSearchUpdaterFlow}). {@code emptied_out} is derived
+     * from {@code referenced_policies IS NULL} — the Postgres counterpart of the Mongo "missing
+     * {@code __referencedPolicies} field" tombstone discriminator (the write path stores {@code NULL} for an
+     * emptied-out row and {@code []} for a normal one). JSONB columns are cast to text so they are read back as plain
+     * JSON strings.
      */
     private static final String RECOVER_SQL =
             "SELECT namespace, revision, policy_id, policy_rev, "
@@ -188,7 +188,7 @@ public final class PostgresThingsSearchPersistence implements ThingsSearchPersis
     }
 
     // =================================================================================================================
-    // count / find (Phase D read path)
+    // count / find
     // =================================================================================================================
 
     @Override
@@ -312,7 +312,7 @@ public final class PostgresThingsSearchPersistence implements ThingsSearchPersis
     }
 
     // =================================================================================================================
-    // recoverLastWriteModel — inverse of the C2 upsert
+    // recoverLastWriteModel — inverse of the upsert of PostgresSearchUpdaterFlow
     // =================================================================================================================
 
     @Override
@@ -411,7 +411,7 @@ public final class PostgresThingsSearchPersistence implements ThingsSearchPersis
     }
 
     // =================================================================================================================
-    // background-sync metadata stream (C3 — unchanged)
+    // background-sync metadata stream
     // =================================================================================================================
 
     @Override

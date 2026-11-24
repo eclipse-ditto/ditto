@@ -54,21 +54,22 @@ import reactor.core.publisher.Mono;
 
 /**
  * PostgreSQL implementation of the backend-neutral {@link SearchUpdaterFlow} seam — the write engine of the Postgres
- * things-search backend (plan §3.4 as amended). Each incoming {@link UpdaterData} carries exactly ONE write model
- * (today's "bulk" is one thing — the same per-thing framing {@code MongoSearchUpdaterFlow} keeps); this flow applies it
- * in ONE transaction on a pooled connection and emits exactly one {@link UpdaterResult}. Per-thing ordering is
- * guaranteed upstream by {@code ThingUpdater} serialization, so cross-thing parallelism (independent actor streams) is
- * safe; within a single stream the writes stay ordered ({@code flatMapConcat}), mirroring the Mongo flow's shape.
+ * things-search backend (design document, Search backend, Write path). Each incoming {@link UpdaterData} carries
+ * exactly ONE write model (today's "bulk" is one thing — the same per-thing framing {@code MongoSearchUpdaterFlow}
+ * keeps); this flow applies it in ONE transaction on a pooled connection and emits exactly one {@link UpdaterResult}.
+ * Per-thing ordering is guaranteed upstream by {@code ThingUpdater} serialization, so cross-thing parallelism
+ * (independent actor streams) is safe; within a single stream the writes stay ordered ({@code flatMapConcat}),
+ * mirroring the Mongo flow's shape.
  * <p>
- * <strong>Transaction semantics per model type (plan §3.4):</strong>
+ * <strong>Transaction semantics per model type:</strong>
  * </p>
  * <ul>
  *     <li><strong>Full write</strong> ({@link ThingWriteModel}, not emptied-out, not no-op): an
  *     <em>UNCONDITIONAL</em> {@code INSERT … ON CONFLICT (thing_id) DO UPDATE SET &lt;every column&gt;} of the doc row
  *     (NO revision predicate — a policy fan-out writes the same thing revision with newer auth data and MUST land;
- *     ordering safety comes from {@code ThingUpdater} + {@code isNextWriteModelOutDated}, not the DB — round-2
- *     Critical), followed IN THE SAME TRANSACTION by the v1.5 anti-join flat maintenance (delete-changed /
- *     insert-changed against the freshly flattened row set staged via {@code unnest}, one bind per COLUMN).</li>
+ *     ordering safety comes from {@code ThingUpdater} + {@code isNextWriteModelOutDated}, not the DB),
+ *     followed IN THE SAME TRANSACTION by the flat maintenance (delete-changed / insert-changed in one statement,
+ *     against the freshly flattened row set staged via {@code unnest}, one bind per COLUMN).</li>
  *     <li><strong>Emptied-out</strong> ({@link ThingWriteModel#isEmptiedOut()}): upsert the (emptied) doc row exactly
  *     like a full write but with {@code referenced_policies = NULL} (mirroring the Mongo tombstone, which omits
  *     {@code __referencedPolicies}), and delete ALL flat rows of the thing.</li>
@@ -117,7 +118,7 @@ public final class PostgresSearchUpdaterFlow implements SearchUpdaterFlow {
                     + "RETURNING (xmax = 0) AS inserted";
 
     /**
-     * v1.5 delete-changed / insert-changed flat maintenance (plan §3.4 step 2, adopted in Task 0.3): ONE statement,
+     * Delete-changed / insert-changed flat maintenance: ONE statement,
      * two writable CTEs sharing one {@code MATERIALIZED} unnest of the freshly flattened rows. PostgreSQL evaluates all
      * data-modifying CTEs in a statement against the SAME pre-statement snapshot (verified on PG 16), so the
      * {@code inserted} CTE's {@code NOT EXISTS} is unaffected by the {@code deleted} CTE's concurrent removals: an
@@ -262,8 +263,8 @@ public final class PostgresSearchUpdaterFlow implements SearchUpdaterFlow {
         // The whole branch body is deferred (incl. thingId() and, in particular, the flattener call) so that ANY
         // synchronous throw -- not only a failure inside the lazily-built SQL/bind stages -- surfaces as a Mono error
         // reaching applyModel's onErrorResume, rather than escaping eagerly from the Mono-construction call site
-        // (which would fail flatMapConcat's mapping function and abort the WHOLE stream instead of just this thing;
-        // round-2 review's per-element resilience contract).
+        // (which would fail flatMapConcat's mapping function and abort the WHOLE stream instead of just this thing:
+        // one failing element must never take down the stream).
         return Mono.defer(() -> {
             final String thingId = document.thingId().toString();
             final List<FlatRow> rows = flattener.apply(document);
@@ -362,7 +363,7 @@ public final class PostgresSearchUpdaterFlow implements SearchUpdaterFlow {
                 () -> statement.bindNull(3, String.class));
         statement.bind(4, document.policyRevision());
         if (emptiedOut) {
-            // Mongo tombstone omits __referencedPolicies -> store NULL (plan §3.4 step 3 / A4 report §3-D3).
+            // Mongo tombstone omits __referencedPolicies -> store NULL.
             statement.bindNull(5, String.class);
         } else {
             statement.bind(5, referencedPoliciesJson(document));

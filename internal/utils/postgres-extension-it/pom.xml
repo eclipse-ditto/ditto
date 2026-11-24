@@ -25,7 +25,8 @@
     <name>Eclipse Ditto :: Postgres :: Extension Classloading IT</name>
 
     <!--
-        Classloading integration test for the three-JAR layered Postgres extension packaging (§6 D2). It resolves the
+        Classloading integration test for the three-JAR layered Postgres extension packaging (design document,
+        Architecture, Packaging and activation). It resolves the
         REAL shaded extension jars (base / thin persistence / thin search) and, in isolated child class loaders that
         mimic the /opt/ditto/extensions/ drop-in on top of a service-allinone-like parent classpath, verifies:
           (a) base + persistence resolves the Postgres persistence provider (and its base + third-party classes),

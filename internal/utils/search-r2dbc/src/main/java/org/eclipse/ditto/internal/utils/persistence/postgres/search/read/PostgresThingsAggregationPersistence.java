@@ -48,7 +48,7 @@ import reactor.core.publisher.Mono;
 
 /**
  * PostgreSQL implementation of the backend-neutral {@link ThingsAggregationPersistence} — the operator "custom
- * aggregation metrics" path (plan §3.5), the Postgres counterpart of {@code MongoThingsAggregationPersistence}. It
+ * aggregation metrics" path, the Postgres counterpart of {@code MongoThingsAggregationPersistence}. It
  * translates each metric's {@code $match}+{@code $group} pipeline into a single {@code SELECT … GROUP BY} over
  * {@code search_things} (see {@link PostgresAggregationQuery} for the transcription) and emits, per group, the exact
  * backend-neutral {@link JsonObject} the consumer ({@code AggregateThingsMetricsResponse}) parses.
@@ -58,7 +58,7 @@ import reactor.core.publisher.Mono;
  * (no-auth) form, because operator metrics are system-level.
  * </p>
  * <p>
- * <b>Ignored Mongo-only per-metric {@code index-hint} (plan §3.6, req 2).</b> A metric may carry an {@code indexHint}
+ * <b>Ignored Mongo-only per-metric {@code index-hint}.</b> A metric may carry an {@code indexHint}
  * (Mongo {@code hint}); PostgreSQL chooses its own plan, so it is ignored — WARNed once per metric name (the provider
  * additionally WARNs any {@code index-hint} it finds in config at boot).
  * </p>
@@ -83,7 +83,7 @@ public final class PostgresThingsAggregationPersistence implements ThingsAggrega
 
     private final ConnectionFactory connectionFactory;
     private final QueryFilterCriteriaFactory queryFilterCriteriaFactory;
-    /** Metric names whose ignored per-metric index-hint has already been WARNed (req 2: once per metric). */
+    /** Metric names whose ignored per-metric index-hint has already been WARNed (once per metric). */
     private final Set<String> indexHintWarned = ConcurrentHashMap.newKeySet();
 
     private PostgresThingsAggregationPersistence(final ConnectionFactory connectionFactory,
@@ -166,7 +166,7 @@ public final class PostgresThingsAggregationPersistence implements ThingsAggrega
         if (aggregateCommand.getIndexHint().isPresent()
                 && indexHintWarned.add(aggregateCommand.getMetricName())) {
             LOGGER.warn("Ignoring per-metric 'index-hint' <{}> for operator aggregation metric <{}>: PostgreSQL chooses "
-                            + "its own query plan; there is no per-query index hint (plan §3.6).",
+                            + "its own query plan; there is no per-query index hint.",
                     aggregateCommand.getIndexHint().get(), aggregateCommand.getMetricName());
         }
     }

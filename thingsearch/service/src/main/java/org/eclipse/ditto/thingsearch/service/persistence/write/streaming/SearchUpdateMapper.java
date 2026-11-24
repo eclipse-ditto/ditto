@@ -28,9 +28,9 @@ import com.typesafe.config.Config;
  * Can be used as an extension point to use custom map search updates.
  * Implementations MUST have a public constructor taking an actorSystem as argument.
  * <p>
- * The mapper operates on backend-neutral write models only. The Mongo incremental-diff computation that used
- * to live here (and its weak-ack-on-empty-diff behavior) moved into the per-backend write-execution seam
- * ({@code MongoSearchUpdaterFlow}), so this extension point no longer references any storage driver types.
+ * The mapper operates on backend-neutral write models only. The Mongo incremental-diff computation (and its
+ * weak-ack-on-empty-diff behavior) lives in the per-backend write-execution seam ({@code MongoSearchUpdaterFlow}),
+ * so this extension point references no storage driver types.
  *
  * @since 2.1.0
  */

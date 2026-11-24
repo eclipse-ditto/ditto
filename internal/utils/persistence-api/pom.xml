@@ -33,7 +33,7 @@
             <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-internal-utils-config</artifactId>
         </dependency>
-        <!-- Hosts the backend-neutral streaming actors moved here in task B4:
+        <!-- Hosts the backend-neutral streaming actors:
              provides AbstractActorWithShutdownBehavior / AbstractStreamingActor / logging and,
              transitively, ditto-internal-models-streaming (SudoStreamSnapshots, StreamedSnapshot, ...). -->
         <dependency>

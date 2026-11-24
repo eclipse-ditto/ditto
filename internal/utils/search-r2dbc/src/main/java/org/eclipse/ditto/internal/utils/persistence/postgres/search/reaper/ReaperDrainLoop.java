@@ -19,7 +19,7 @@ import javax.annotation.concurrent.Immutable;
 import reactor.core.publisher.Mono;
 
 /**
- * The pure, backend-agnostic batched-drain loop at the heart of the {@code delete_at} reaper (plan §3.6). Knows nothing
+ * The pure, backend-agnostic batched-drain loop at the heart of the {@code delete_at} reaper. Knows nothing
  * about PostgreSQL, r2dbc, connections or advisory locks — it only repeats a caller-supplied "delete one batch, tell me
  * how many rows it deleted" function until either:
  * <ul>

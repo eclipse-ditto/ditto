@@ -47,7 +47,7 @@ import reactor.core.publisher.Mono;
 
 /**
  * PostgreSQL implementation of the backend-neutral {@link ThingsSearchUpdaterPersistence} — the updater-side persistence
- * operations of the Postgres things-search backend (plan §3.4 policy fan-out; §3.6 namespace purge). It mirrors
+ * operations of the Postgres things-search backend (policy fan-out and namespace purge). It mirrors
  * {@code MongoThingsSearchUpdaterPersistence} method-by-method:
  * <ul>
  *     <li>{@link #getPolicyReferenceTags(Map)} — the policy fan-out lookup. A single containment query over
@@ -63,17 +63,18 @@ import reactor.core.publisher.Mono;
  *     marker.</li>
  * </ul>
  * <p>
- * <strong>referenced_policies storage (C2 review adjudication):</strong> the {@code referenced_policies} JSONB column
+ * <strong>referenced_policies storage:</strong> the {@code referenced_policies} JSONB column
  * stores the FULL policy tag json ({@code {"type":"policy","id":…,"revision":N}}), Mongo-faithfully. The fan-out
  * containment probe therefore uses an array-wrapped partial object {@code [{"id":…}]} (GIN-served by the
- * {@code st_referenced_pols jsonb_path_ops} index — verified in Phase 0 and in {@code PostgresPolicyFanoutIT}).
+ * {@code st_referenced_pols jsonb_path_ops} index — verified in {@code PostgresPolicyFanoutIT}).
  * </p>
  * <p>
- * <strong>Plancache note (plan §3.5 / brief req 5):</strong> the fan-out query is a single constant-text named prepared
+ * <strong>Plancache note:</strong> the fan-out query is a single constant-text named prepared
  * statement reused across calls; only the two bind arrays ({@code $1} policy-id {@code text[]}, {@code $2} probe
  * {@code jsonb[]}) vary. Unlike the read path there is no per-value {@code wpath} literal, so the wpath-parameterized
- * generic-plan flip measured in Task 0.2b does not apply here. The probe-array contents do change selectivity between
- * calls, which is recorded for Phase D's plancache-guard decision — no new mechanism is introduced in C3.
+ * generic-plan flip that {@code force-custom-plan} guards the read path against does not apply here. The probe-array
+ * contents do change selectivity between calls; the query runs on the same shared pool, so that pool-wide setting
+ * covers it too, and it needs no guard of its own.
  * </p>
  *
  * @since 4.0.0
@@ -85,7 +86,7 @@ public final class PostgresThingsSearchUpdaterPersistence implements ThingsSearc
     private static final String POLICY_ID_FIELD = "id";
 
     /**
-     * Policy fan-out (plan §3.4 corrected projection). Finds every search-index entry affected by a set of changed
+     * Policy fan-out. Finds every search-index entry affected by a set of changed
      * policies: a thing is affected if its OWN {@code policy_id} is one of them (kept for backwards compatibility with
      * entries written before the {@code referenced_policies} field existed) OR its {@code referenced_policies} array
      * contains any of them. {@code referenced_policies} is cast to {@code text} so the value is read back as a plain
@@ -98,7 +99,7 @@ public final class PostgresThingsSearchUpdaterPersistence implements ThingsSearc
                     + "WHERE policy_id = ANY($1) OR referenced_policies @> ANY($2::jsonb[])";
 
     /**
-     * Namespace purge (plan §3.6). Marks every row of the namespace with EPOCH 0 — {@code to_timestamp(0)} =
+     * Namespace purge. Marks every row of the namespace with EPOCH 0 — {@code to_timestamp(0)} =
      * {@code 1970-01-01T00:00:00Z}, mirroring the Mongo {@code BsonDateTime(0)} marker (NOT {@code now()}). Binds:
      * {@code $1} the namespace.
      */

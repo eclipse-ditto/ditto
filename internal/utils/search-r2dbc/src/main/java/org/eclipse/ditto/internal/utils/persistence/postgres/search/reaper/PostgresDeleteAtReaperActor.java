@@ -26,7 +26,7 @@ import org.apache.pekko.actor.ActorRef;
 import org.apache.pekko.actor.Props;
 
 /**
- * Thin scheduling/logging/metrics wrapper around {@link PostgresDeleteAtReaper} (plan §3.6). All actual SQL/lock/drain
+ * Thin scheduling/logging/metrics wrapper around {@link PostgresDeleteAtReaper}. All actual SQL/lock/drain
  * logic lives in {@link PostgresDeleteAtReaper} and {@link ReaperDrainLoop} (unit-testable without an actor system);
  * this actor only owns the tick-scheduling loop and turns a {@link TickResult} (or a failure) into logs and a metric.
  * <p>
@@ -37,7 +37,7 @@ import org.apache.pekko.actor.Props;
  * pointlessly racing its own advisory-lock attempt (harmlessly rejected, but wasted work) against itself.
  * </p>
  * <p>
- * <strong>Resilience (brief req 2).</strong> A tick that errors (a lost connection, a transient DB error, …) is caught
+ * <strong>Resilience.</strong> A tick that errors (a lost connection, a transient DB error, …) is caught
  * here — never rethrown, never handed to Pekko's supervision — and logged at WARN; the next tick is scheduled exactly
  * as if the tick had succeeded with zero rows reaped. A crash-looping reaper is worse than a reaper that quietly skips
  * a tick and tries again on the next interval.

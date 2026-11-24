@@ -398,8 +398,8 @@ public final class PostgresReadJournal implements DittoReadJournal {
      * {@link PostgresPersistenceOperations#getNewestSnapshotHeadsAbove}, which selects no payload, and its entries
      * carry {@link JsonObject#empty()} as payload, where MongoDB returns {@code {sn, __lifecycle}}; no caller in this
      * repository reads the payload of a stream without fields. Known limitation: with fields requested, the
-     * projection is still not pushed into SQL: the whole payload is fetched and parsed (efficiency follow-up, out of
-     * scope). The pid regex uses POSIX ERE ({@code ~}), which covers the {@code ^…(a|b)…} patterns
+     * projection is still not pushed into SQL: the whole payload is fetched and parsed (an efficiency cost, not a
+     * correctness one). The pid regex uses POSIX ERE ({@code ~}), which covers the {@code ^…(a|b)…} patterns
      * {@code SnapshotStreamingActor.getSnapshotFilterFromCommand} generates.
      */
     private Source<SnapshotEntry, NotUsed> newestSnapshots(final String lowerBoundPid, final String pidFilterRegex,

@@ -140,7 +140,7 @@ public final class MongoPersistenceBackendProvider implements PersistenceBackend
      * fresh {@code MongoClientWrapper}. The factory itself holds no client, so it is created once and reused; the
      * client is built per {@code operations(entityType)} call (one per ops actor) and handed back as the bundle's
      * {@code closeable}. As documented on {@link PersistenceOperationsFactory}, this MUST be invoked lazily at
-     * ops-actor instantiation time so exactly one client is created per ops actor (matching the historical behaviour).
+     * ops-actor instantiation time so exactly one client is created per ops actor.
      */
     @Override
     public PersistenceOperationsCollaborators operations(final String entityType) {
@@ -162,16 +162,15 @@ public final class MongoPersistenceBackendProvider implements PersistenceBackend
     /**
      * {@inheritDoc}
      * <p>
-     * Builds a dedicated {@link MongoReadJournal} and {@link DittoMongoClient} for the streaming actor using exactly the
-     * same arguments the actor used to construct internally before this refactoring
+     * Builds a dedicated {@link MongoReadJournal} and {@link DittoMongoClient} for the streaming actor from the
+     * actor-system config and its {@code MongoDbConfig}
      * ({@code MongoReadJournal.newInstance(config, mongoClient, readJournalConfig, system)}), and returns the
      * backend-neutral {@link SnapshotStreamingActor} props with the Mongo client as the {@link java.io.Closeable} the
      * actor closes on stop. The resources are rebuilt inside the supplier passed to the per-incarnation
      * {@link SnapshotStreamingActor#props(Function, Function, java.util.function.Supplier)} overload — NOT captured
      * once here — so that every actor incarnation (including supervised restarts) gets its own client: Pekko's
      * default {@code preRestart} runs {@code postStop}, which closes the client, so a captured instance would be
-     * permanently closed after the first restart. This matches the historical behaviour of the previously
-     * self-constructing actor.
+     * permanently closed after the first restart.
      */
     @Override
     public Props streaming(final String entityType,

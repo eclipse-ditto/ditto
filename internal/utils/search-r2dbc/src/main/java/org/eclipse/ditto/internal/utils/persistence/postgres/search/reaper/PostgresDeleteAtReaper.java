@@ -28,8 +28,8 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 /**
- * The PostgreSQL {@code delete_at} reaper (plan §3.6) — the in-service replacement for Mongo's TTL index on
- * {@code deleteAt}. C3's namespace {@code purge} only MARKS rows ({@code delete_at = to_timestamp(0)}); reads never
+ * The PostgreSQL {@code delete_at} reaper — the in-service replacement for Mongo's TTL index on
+ * {@code deleteAt}. The namespace {@code purge} only MARKS rows ({@code delete_at = to_timestamp(0)}); reads never
  * filter {@code delete_at} (Mongo parity — only {@code sudoStreamMetadata} does), so marked rows accumulate until
  * something actually deletes them. This class is that something.
  * <p>
@@ -42,7 +42,7 @@ import reactor.core.publisher.Mono;
  *     not acquired, another reaper instance (this JVM or another replica) is mid-tick: skip, commit the (no-op)
  *     transaction, release the connection — {@link TickResult#lockAcquired()} is {@code false};</li>
  *     <li>otherwise, run {@link ReaperDrainLoop#run} with a batch-deleter bound to this connection executing the
- *     plan-mandated SQL ({@link #DELETE_BATCH_SQL}) until drained or the safety valve trips;</li>
+ *     batched-delete SQL ({@link #DELETE_BATCH_SQL}) until drained or the safety valve trips;</li>
  *     <li>commit (releasing the advisory lock) and close the connection.</li>
  * </ol>
  * <p>
@@ -79,7 +79,7 @@ public final class PostgresDeleteAtReaper {
     static final String TRY_LOCK_SQL = "SELECT pg_try_advisory_xact_lock($1)";
 
     /**
-     * The plan-mandated batched-delete SQL shape (plan §3.6): PostgreSQL's {@code DELETE} has no {@code LIMIT} clause,
+     * The batched-delete SQL shape: PostgreSQL's {@code DELETE} has no {@code LIMIT} clause,
      * so the subselect form is required. {@code FOR UPDATE SKIP LOCKED} means a reap batch never stalls behind (or is
      * blocked by) an in-flight {@code ThingUpdater} transaction holding a row lock on a marked thing — that row is
      * simply skipped this batch and picked up once it is unlocked (this tick's later batch, or the next tick). The

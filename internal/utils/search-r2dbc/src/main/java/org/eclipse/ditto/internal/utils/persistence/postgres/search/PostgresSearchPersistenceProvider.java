@@ -85,15 +85,15 @@ import reactor.core.Disposable;
  * Constructed reflectively by {@code DittoExtensionPoint} with {@code (ActorSystem, Config)} — exactly like
  * {@code MongoSearchPersistenceProvider}. The constructor is intentionally lightweight: it opens NO PostgreSQL
  * connection; it only reads the actor-system config to warn about Mongo-only operational knobs that have no effect on
- * PostgreSQL (plan §3.6). The DDL connection is opened lazily inside {@link #bootstrapSchema()}.
+ * PostgreSQL. The DDL connection is opened lazily inside {@link #bootstrapSchema()}.
  * </p>
  * <p>
- * <strong>Status: feature-complete (Phase F).</strong> {@link #bootstrapSchema()} landed in Phase B; the write path
- * ({@link #createUpdaterFlow()}, {@link #createUpdaterPersistence()}, {@link #createBackgroundSyncBookmarkPersistence()})
- * in Phase C; the read path ({@link #createSearchPersistence()}, {@link #queryBuilderFactory(LimitsConfig)},
- * {@link #renderForDiagnostics(Query, List)}) in Phase D; {@link #createAggregationPersistence()} in Phase E; and
- * {@link #healthCheckProps()} in Phase F, which closes out every SPI method — none throws
- * {@link UnsupportedOperationException} any more.
+ * The provider implements every SPI method: {@link #bootstrapSchema()} creates or verifies the search schema; the
+ * write path is {@link #createUpdaterFlow()}, {@link #createUpdaterPersistence()} and
+ * {@link #createBackgroundSyncBookmarkPersistence()}; the read path is {@link #createSearchPersistence()},
+ * {@link #queryBuilderFactory(LimitsConfig)} and {@link #renderForDiagnostics(Query, List)};
+ * {@link #createAggregationPersistence()} serves the operator aggregation metrics; and {@link #healthCheckProps()}
+ * supplies the health check. None of them throws {@link UnsupportedOperationException}.
  * </p>
  *
  * @since 4.0.0
@@ -105,7 +105,7 @@ public final class PostgresSearchPersistenceProvider implements SearchPersistenc
     /** The search cursor's own invalid-cursor message (its builder is private to the thing-search service). */
     private static final String INVALID_CURSOR_MESSAGE = "The option 'cursor' is not valid for the search request.";
 
-    /** The Mongo-only operational knobs that are silently ignored on PostgreSQL (plan §3.6); each is WARNed if set. */
+    /** The Mongo-only operational knobs that are silently ignored on PostgreSQL; each is WARNed if set. */
     private static final String SEARCH_CONFIG_PATH = "ditto.search";
     private static final String MONGO_HINTS_BY_NAMESPACE = "mongo-hints-by-namespace";
     private static final String MONGO_COUNT_HINT_INDEX_NAME = "mongo-count-hint-index-name";
@@ -140,8 +140,8 @@ public final class PostgresSearchPersistenceProvider implements SearchPersistenc
     private final ActorSystem actorSystem;
 
     /**
-     * Guards the {@code delete_at} reaper actor start: {@code createUpdaterPersistence()} is — per the Phase F final
-     * decision, see {@link #startDeleteAtReaperOnce(DittoPostgresClient)}'s javadoc — the provider's ONE, permanent
+     * Guards the {@code delete_at} reaper actor start: {@code createUpdaterPersistence()} is — see
+     * {@link #startDeleteAtReaperOnce(DittoPostgresClient)}'s javadoc for why — the provider's ONE
      * signal that the write path is actually being materialized, and it may in principle be called more than once on
      * the same (per-actor-system-cached, see {@code SearchPersistenceProvider.get}) provider instance; this flag makes
      * the actor start idempotent so a second call never races {@link ActorSystem#actorOf} into an
@@ -258,7 +258,7 @@ public final class PostgresSearchPersistenceProvider implements SearchPersistenc
     public ThingsSearchPersistence createSearchPersistence() {
         // The full read path (count/find/namespace/recover + background-sync metadata source) over the single shared
         // connection pool. The pool carries plan_cache_mode=force_custom_plan (ditto-postgres-search.conf) so the
-        // wpath-parameterized read statements never latch onto a generic plan (plan §3.5 / bench-results §8.2). Range
+        // wpath-parameterized read statements never latch onto a generic plan. Range
         // legs follow this instance's view of the system index sf_multi, read per statement.
         return PostgresThingsSearchPersistence.of(PostgresClientExtension.get(actorSystem).getClient(),
                 multiValuedIndex);
@@ -266,7 +266,7 @@ public final class PostgresSearchPersistenceProvider implements SearchPersistenc
 
     @Override
     public ThingsSearchUpdaterPersistence createUpdaterPersistence() {
-        // Policy fan-out + namespace purge over the single shared connection pool (plan §3.4/§3.6). The fan-out stream
+        // Policy fan-out + namespace purge over the single shared connection pool. The fan-out stream
         // is throttled with the same ThrottlingConfig the Mongo impl consumes, resolved neutrally from the actor-system
         // config below.
         final DittoPostgresClient client = PostgresClientExtension.get(actorSystem).getClient();
@@ -278,14 +278,12 @@ public final class PostgresSearchPersistenceProvider implements SearchPersistenc
      * Starts the {@code delete_at} reaper actor, exactly once per provider instance (and therefore, since the
      * provider is cached one-per-{@link ActorSystem}, at most once per JVM).
      * <p>
-     * <strong>Phase F final decision: {@code createUpdaterPersistence()} stays the hook.</strong> Task C4 flagged this
-     * call site for a Phase F revisit once the provider's full lifecycle/health wiring existed to compare it against.
-     * Phase F now supplies both remaining candidates — {@link #createUpdaterFlow()} and {@link #healthCheckProps()} —
-     * and neither displaces this hook:
+     * <strong>Why {@code createUpdaterPersistence()} is the hook.</strong> The two other candidates,
+     * {@link #createUpdaterFlow()} and {@link #healthCheckProps()}, are both unsuitable:
      * <ul>
      *     <li>{@code createUpdaterFlow()} is called by {@code SearchUpdaterRootActor} BEFORE
-     *     {@code createUpdaterPersistence()} ({@code thingsearch/service/.../updater/actors/SearchUpdaterRootActor.java:96}
-     *     then {@code :109}), so it fires strictly earlier — but the search-updater flow is also constructed on
+     *     {@code createUpdaterPersistence()} (both calls are in the {@code SearchUpdaterRootActor} constructor), so it
+     *     fires strictly earlier — but the search-updater flow is also constructed on
      *     Mongo-parity write paths that are exercised in isolation by tests without ever standing up the full
      *     updater-persistence/namespace-purge machinery the reaper protects (namespace purge, precisely, is what
      *     writes the {@code delete_at} marker in the first place — {@code PostgresThingsSearchUpdaterPersistence}).
@@ -293,16 +291,16 @@ public final class PostgresSearchPersistenceProvider implements SearchPersistenc
      *     situations than necessary, including some that never mark a row for deletion.
      *     <li>{@code healthCheckProps()} is called by {@code SearchRootActor} AFTER the {@code SearchUpdaterRootActor}
      *     (and therefore after {@code createUpdaterPersistence()}) has already been started
-     *     ({@code SearchRootActor.java:73-77}: {@code startChildActor(SearchUpdaterRootActor...)} precedes
+     *     (the {@code SearchRootActor} constructor calls {@code startChildActor(SearchUpdaterRootActor...)} before
      *     {@code initializeHealthCheckActor(...)}). Health-check wiring is also the wrong PLACE for an operational
      *     side effect like starting a background actor: {@code healthCheckProps()} must stay a pure "give me your
      *     health-check {@link Props}" query — a caller resolving health check {@link Props} for introspection/testing
      *     must never accidentally start a reaper as a side effect.
      * </ul>
-     * {@code createUpdaterPersistence()} therefore remains — now FINALLY, not provisionally — the ONE trigger: it is
+     * {@code createUpdaterPersistence()} is therefore the ONE trigger: it is
      * the earliest point at which "this JVM is genuinely running the Postgres search-updater write path" (the write
      * path that marks rows for the reaper to collect) is known true, called by production wiring exactly once at real
-     * service startup ({@code SearchUpdaterRootActor.java:109}). Pinned by
+     * service startup (in the {@code SearchUpdaterRootActor} constructor). Pinned by
      * {@code PostgresSearchPersistenceProviderTest.createUpdaterPersistenceStartsTheReaperExactlyOnceRegardlessOfSurroundingCallOrder}
      * (interleaves every other factory method around it) and
      * {@code ...otherFactoryMethodsNeverStartTheReaperWithoutCreateUpdaterPersistence} (proves the negative: none of
@@ -326,8 +324,8 @@ public final class PostgresSearchPersistenceProvider implements SearchPersistenc
 
     @Override
     public ThingsAggregationPersistence createAggregationPersistence() {
-        // Operator "custom aggregation metrics" ($match+$group) over the single shared connection pool (plan §3.5). The
-        // metric filter's RQL field names are resolved with the neutral simple-field-mappings (read below), so this
+        // Operator "custom aggregation metrics" ($match+$group) over the single shared connection pool. The metric
+        // filter's RQL field names are resolved with the neutral simple-field-mappings (read below), so this
         // provider passes a plain Map — the persistence takes no Mongo-coupled service config.
         return PostgresThingsAggregationPersistence.of(PostgresClientExtension.get(actorSystem).getClient(),
                 simpleFieldMappings());
@@ -336,7 +334,7 @@ public final class PostgresSearchPersistenceProvider implements SearchPersistenc
     @Override
     public SearchUpdaterFlow createUpdaterFlow() {
         // Per-thing transactional write engine over the single shared connection pool (one per service, resolved via
-        // PostgresClientExtension). Unconditional doc-row upsert + v1.5 anti-join flat maintenance (plan §3.4).
+        // PostgresClientExtension). Unconditional doc-row upsert + delete-changed / insert-changed flat maintenance.
         return PostgresSearchUpdaterFlow.of(PostgresClientExtension.get(actorSystem).getClient());
     }
 
@@ -348,10 +346,10 @@ public final class PostgresSearchPersistenceProvider implements SearchPersistenc
 
     @Override
     public Props healthCheckProps() {
-        // Drop-in reuse of the shared postgres-client SELECT-1 prober (plan §3.6): SearchHealthCheckingActorFactory
+        // Drop-in reuse of the shared postgres-client SELECT-1 prober: SearchHealthCheckingActorFactory
         // consumes this Props exactly like MongoHealthChecker.props() — a no-arg-constructible AbstractHealthCheckingActor
         // Props it stores verbatim under the "persistence" label inside a CompositeCachingHealthCheckingActor
-        // (thingsearch/service SearchHealthCheckingActorFactory:62). PostgresHealthChecker already satisfies that shape
+        // (SearchHealthCheckingActorFactory in thingsearch/service). PostgresHealthChecker already satisfies that shape
         // (no-arg Props, StatusInfo UP/DOWN via the RetrieveHealth/triggerHealthRetrieval protocol) and resolves the SAME
         // shared pool this provider's other factory methods use (PostgresClientExtension.get(actorSystem).getClient()),
         // so it needs no search-specific adaptation. Identical to how PostgresPersistenceBackendProvider#healthCheckProps()
@@ -361,7 +359,7 @@ public final class PostgresSearchPersistenceProvider implements SearchPersistenc
 
     @Override
     public QueryBuilderFactory queryBuilderFactory(final LimitsConfig limitsConfig) {
-        // Backend-neutral criteria→Query builder: default _id ASC, thing-id truncation, LimitsConfig page bounds (D3).
+        // Backend-neutral criteria→Query builder: default _id ASC, thing-id truncation, LimitsConfig page bounds.
         return new PostgresQueryBuilderFactory(limitsConfig);
     }
 
@@ -439,7 +437,7 @@ public final class PostgresSearchPersistenceProvider implements SearchPersistenc
 
     /**
      * Detects and WARN-logs each Mongo-only operational knob that is set in the config but has NO effect on the
-     * PostgreSQL search backend (plan §3.6): {@code mongo-hints-by-namespace}, {@code mongo-count-hint-index-name},
+     * PostgreSQL search backend: {@code mongo-hints-by-namespace}, {@code mongo-count-hint-index-name},
      * {@code index-initialization.custom-indexes}, and any per-metric {@code index-hint}.
      *
      * @param config the actor-system (root) config.

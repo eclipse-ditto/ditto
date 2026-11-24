@@ -22,9 +22,9 @@ import org.eclipse.ditto.json.JsonValue;
  * The default {@link PostgresPayloadCodec}: the payload already is JSON. A Ditto {@link JsonValue} is rendered, JSON
  * text ({@link CharSequence} or UTF-8 {@code byte[]}) is taken as it is; anything else is rejected, because the
  * per-entity event adapter or snapshot codec must produce a JSONB-bindable payload. On read the stored text is handed
- * back unchanged for that adapter to parse. (Before this codec existed the journal accepted {@code JsonValue} and
- * {@code CharSequence} and the snapshot store additionally {@code byte[]}; the union is deliberate — no Ditto adapter
- * produces {@code byte[]}, and a non-JSON one is still rejected, by PostgreSQL as a class-22 data error.)
+ * back unchanged for that adapter to parse. (The accepted types are the union of what the journal and the snapshot
+ * store take; this is deliberate — no Ditto adapter produces {@code byte[]}, and a non-JSON one is still rejected, by
+ * PostgreSQL as a class-22 data error.)
  * <p>
  * A raw U+0000 in the text is rejected up front: PostgreSQL {@code jsonb} cannot store it, so the insert could never
  * succeed. Ditto's JSON escaper turns a NUL in a string value into the six-character escape before it reaches here, so

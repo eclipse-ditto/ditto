@@ -51,7 +51,7 @@ public final class DefaultPostgresConfig implements PostgresConfig {
      * {@code r2dbc:pool:postgresql://}). Group 1 = user, group 2 = password (optional). Anchored at the start.
      * <p>
      * The scheme prefix is matched case-insensitively ({@code (?i:...)}), consistent with {@link #SECRET_PARAM_PATTERN}
-     * (ticket ditto-postgres-smv, defence-in-depth: an upper-case scheme must not pass through with its credentials
+     * (defence-in-depth: an upper-case scheme must not pass through with its credentials
      * intact). The user/password character classes deliberately exclude {@code @}; a literal {@code @} inside the
      * password (which RFC&nbsp;3986 requires to be percent-encoded) is caught earlier by {@link #looksMalformed} and
      * routed to the {@value #REDACTED} fallback rather than risking a partial leak.
@@ -246,8 +246,8 @@ public final class DefaultPostgresConfig implements PostgresConfig {
      * {@code ://} and the first {@code /} or {@code ?}) must contain balanced square brackets and at most one
      * {@code @}.
      * <ul>
-     *     <li>Unbalanced {@code []} brackets are the canonical malformed example cited by the plan.</li>
-     *     <li>More than one {@code @} (ticket ditto-postgres-smv) means a literal, non-percent-encoded {@code @} is
+     *     <li>Unbalanced {@code []} brackets are the canonical malformed authority.</li>
+     *     <li>More than one {@code @} means a literal, non-percent-encoded {@code @} is
      *     embedded in the userinfo — RFC&nbsp;3986 requires it to be percent-encoded. The {@link #USERINFO_PATTERN}
      *     password class stops at the first {@code @}, so masking such a URI would leave a plaintext password fragment
      *     (e.g. {@code user:****@ss@host}). Treating it as malformed routes the whole URI to the {@value #REDACTED}

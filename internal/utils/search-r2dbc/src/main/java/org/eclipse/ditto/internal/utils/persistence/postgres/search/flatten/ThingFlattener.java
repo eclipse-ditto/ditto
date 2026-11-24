@@ -30,8 +30,8 @@ import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.thingsearch.persistence.api.model.SearchIndexDocument;
 
 /**
- * Flattens a thing payload into {@code search_flat} rows (plan §3.2 amended, Task C1 adjudications). It operates
- * directly on Ditto's {@link JsonObject}/{@link JsonArray}/{@link JsonValue} tree, since that is the shape
+ * Flattens a thing payload into {@code search_flat} rows (design document, Search backend, Data model). It
+ * operates directly on Ditto's {@link JsonObject}/{@link JsonArray}/{@link JsonValue} tree, since that is the shape
  * {@link SearchIndexDocument#thing()} actually has.
  * <p>
  * <b>Source of truth:</b> flattening reads {@link SearchIndexDocument#thing()} ONLY. It never reads
@@ -86,12 +86,12 @@ import org.eclipse.ditto.thingsearch.persistence.api.model.SearchIndexDocument;
  * {@code long} (which subsumes every {@code int}) is converted via {@link JsonValue#asLong()}; only a value that
  * does not fit in a {@code long} (i.e. has a fractional part, or is out of {@code long} range) falls through to
  * {@link JsonValue#asDouble()}. Converting every number's {@code double} value first would silently round longs
- * beyond {@code 2^53} (Ditto numbers are {@code int}/{@code long}/{@code double} only, per plan §3.2).
+ * beyond {@code 2^53} (Ditto numbers are {@code int}/{@code long}/{@code double} only).
  * </p>
  * <p>
  * <b>Emission order</b> is deterministic (a pre-order walk in {@link JsonObject}'s own field iteration order,
- * repeatable across calls on the same input) but not sorted; Task C2's bulk-write path may rely on that
- * repeatability for stable column-wise extraction, but must not assume any particular sort order.
+ * repeatable across calls on the same input) but not sorted; the bulk write of {@code PostgresSearchUpdaterFlow}
+ * may rely on that repeatability for stable column-wise extraction, but must not assume any particular sort order.
  * </p>
  *
  * @since 4.0.0

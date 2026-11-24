@@ -20,9 +20,9 @@ import javax.annotation.concurrent.Immutable;
 
 /**
  * One {@code search_flat} row produced by {@link ThingFlattener}, shaped exactly for the {@code search_flat} table
- * columns (plan §3.2, {@code PostgresSearchSchema}): {@code (thing_id, path, wpath, f_id, ord, type_rank, val_bool,
- * val_num, val_text)}, in that order, so Task C2's writer can column-wise {@code unnest()} a batch of rows without
- * any reshaping.
+ * columns ({@code PostgresSearchSchema}): {@code (thing_id, path, wpath, f_id, ord, type_rank, val_bool, val_num,
+ * val_text)}, in that order, so the writer, {@code PostgresSearchUpdaterFlow}, can column-wise {@code unnest()} a
+ * batch of rows without any reshaping.
  * <p>
  * Exactly one of {@link #valBool()}/{@link #valNum()}/{@link #valText()} is non-null for a scalar row
  * ({@code typeRank} 2/3/6); all three are {@code null} for object/array/null rows ({@code typeRank} 1/4/5).

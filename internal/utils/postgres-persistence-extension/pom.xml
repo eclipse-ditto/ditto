@@ -26,7 +26,8 @@
     <name>Eclipse Ditto :: Postgres :: Persistence Extension (thin)</name>
 
     <!--
-        THIN event-sourcing persistence extension jar (§6 D2 — three-JAR layered packaging).
+        THIN event-sourcing persistence extension jar (three-JAR layered packaging; see the design document,
+        Architecture, Packaging and activation).
 
         Carries ONLY the ditto-internal-utils-persistence-r2dbc implementation classes (the Postgres event-sourcing
         journal/snapshot/ops/read-journal + PostgresPersistenceBackendProvider) plus their conf resources

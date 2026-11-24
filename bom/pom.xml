@@ -73,7 +73,7 @@
         <cloudevents.version>5.0.0</cloudevents.version>
 
         <!--
-            R2DBC driver libraries for the PostgreSQL persistence backend (phase 2).
+            R2DBC driver libraries for the PostgreSQL persistence backend.
             Pure SPI libs only — the upstream org.apache.pekko:pekko-persistence-r2dbc plugin is
             deliberately NOT used (and banned via maven-enforcer below). All four artifacts converge
             on r2dbc-spi 1.0.0.RELEASE: r2dbc-postgresql 1.0.7, r2dbc-pool 1.0.2 and r2dbc-proxy 1.1.5
@@ -93,7 +93,7 @@
             reactor-core is pinned to EXACTLY 3.5.20 so that all allinone jars carry a version that
             includes Mono.singleOptional() (added in 3.5.x after 3.5.0, required by r2dbc at runtime).
             The allinone is first on the classpath, so this pin wins over whatever the extension shade
-            might bring in.  The three extension-only transitives are also pinned here so the E3 shade
+            might bring in.  The three extension-only transitives are also pinned here so the extension shade
             and the BOM remain consistent.
         -->
         <reactor-core.version>3.5.20</reactor-core.version>
@@ -321,7 +321,7 @@
                 <version>${mongo-java-driver.version}</version>
             </dependency>
 
-            <!-- R2DBC driver libraries (PostgreSQL persistence backend, phase 2) -->
+            <!-- R2DBC driver libraries (PostgreSQL persistence backend) -->
             <dependency>
                 <groupId>io.r2dbc</groupId>
                 <artifactId>r2dbc-spi</artifactId>
@@ -795,7 +795,8 @@
                 <artifactId>ditto-internal-utils-persistence-r2dbc</artifactId>
                 <version>${project.version}</version>
             </dependency>
-            <!-- Layered Postgres drop-in extension jars (§6 D2): base client + thin persistence + thin search.
+            <!-- Layered Postgres drop-in extension jars: base client + thin persistence + thin search (design document,
+                 Architecture, Packaging and activation).
                  These are deployment artifacts (dropped into /opt/ditto/extensions/), not dependencies of any service. -->
             <dependency>
                 <groupId>org.eclipse.ditto</groupId>
@@ -1278,20 +1279,20 @@
             <!--
                 Two enforcer executions for the persistence-backend guards. They are split by inheritance
                 scope on purpose, because bom/pom.xml is the PARENT pom of nearly every Ditto module:
-                  * enforce-no-pekko-r2dbc-plugin (INHERITED — runs in every module) — WU3 [M10]:
+                  * enforce-no-pekko-r2dbc-plugin (INHERITED — runs in every module):
                         ban the upstream org.apache.pekko:pekko-persistence-r2dbc* plugin everywhere so the
                         custom Ditto plugin + pure r2dbc SPI libs are the only thing on any classpath.
-                  * enforce-bom-version-pins (inherited=false — bom module ONLY) — WU15 [LOW]:
+                  * enforce-bom-version-pins (inherited=false — bom module ONLY):
                         requireUpperBoundDeps + requireProperty range guards on the Pekko version properties.
                         These are scoped to the bom module because (a) the properties are defined here and
                         (b) requireUpperBoundDeps applied project-wide trips on pre-existing transitive
-                        convergence gaps (e.g. byte-buddy via assertj) that are out of scope for WU15.
+                        convergence gaps (e.g. byte-buddy via assertj) that these guards do not address.
             -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-enforcer-plugin</artifactId>
                 <executions>
-                    <!-- WU3 [M10] — project-wide ban; inherited by every module that has bom as its parent -->
+                    <!-- Project-wide ban; inherited by every module that has bom as its parent -->
                     <execution>
                         <id>enforce-no-pekko-r2dbc-plugin</id>
                         <phase>validate</phase>
@@ -1317,7 +1318,7 @@
                         </configuration>
                     </execution>
 
-                    <!-- WU15 [LOW] — bom module ONLY; do NOT inherit into child modules -->
+                    <!-- Bom module ONLY; do NOT inherit into child modules -->
                     <execution>
                         <id>enforce-bom-version-pins</id>
                         <phase>validate</phase>

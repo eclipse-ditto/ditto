@@ -29,7 +29,7 @@
         descriptor, the descriptor-driven bootstrap wiring, and the PostgresSearchPersistenceProvider; it depends ONLY
         on the shared postgres-client infrastructure and the neutral thingsearch persistence-api SPI (NO Mongo, NO
         event-sourcing persistence-r2dbc).
-        See `.claude/concepts/postgresql-persistence-design.md`, §4 Search backend.
+        See `.claude/concepts/postgresql-persistence-design.md`, chapter Search backend.
     -->
 
     <dependencies>
@@ -45,8 +45,8 @@
             <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-thingsearch-persistence-api</artifactId>
         </dependency>
-        <!-- The RQL predicate parser used to parse each operator-metric's filter string into a Criteria (Phase E,
-             mirroring MongoThingsAggregationPersistence's QueryFilterCriteriaFactory.of(..., RqlPredicateParser)). -->
+        <!-- The RQL predicate parser used to parse each operator-metric's filter string into a Criteria
+             (mirroring MongoThingsAggregationPersistence's QueryFilterCriteriaFactory.of(..., RqlPredicateParser)). -->
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-rql-parser</artifactId>
@@ -83,9 +83,9 @@
         </dependency>
         <!-- TEST-SCOPE ONLY: the event-sourcing PostgresSchema.descriptor() is needed by the concurrent-bootstrap IT
              (two schema managers — persistence + search — racing one fresh DB). This is a test-only dependency: the
-             production search backend has NO dependency on persistence-r2dbc (verified by grep in the task report). It
-             is acceptable because the IT genuinely exercises cross-component coordination that only the real
-             persistence descriptor can express, and it never leaks onto the compile/runtime classpath. -->
+             production search backend has NO dependency on persistence-r2dbc. It is acceptable because the IT
+             genuinely exercises cross-component coordination that only the real persistence descriptor can express,
+             and it never leaks onto the compile/runtime classpath. -->
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-internal-utils-persistence-r2dbc</artifactId>
@@ -93,16 +93,16 @@
         </dependency>
         <!-- TEST-SCOPE ONLY: the backend-neutral ThingsSearchCursor lives (package-private) in thingsearch/service; the
              cursor-resume round-trip IT (PostgresCursorResumeIT) drives the REAL cursor encode->decode->adjust and then
-             translates its resume criteria with the D2/D3 SQL machinery against a real Postgres — proving the D4
-             BSON->plain-Java cursor seam end-to-end. This is a test-only dependency: the production search backend has
-             NO dependency on thingsearch/service (verified by grep), it never leaks onto the compile/runtime classpath,
-             and thingsearch/service does not depend on this module (no reactor cycle). -->
+             translates its resume criteria with the SQL criteria and sort translation against a real Postgres, proving
+             the BSON->plain-Java cursor seam end-to-end. This is a test-only dependency: the production search backend
+             has NO dependency on thingsearch/service (verified by grep), it never leaks onto the compile/runtime
+             classpath, and thingsearch/service does not depend on this module (no reactor cycle). -->
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-thingsearch-service</artifactId>
             <scope>test</scope>
         </dependency>
-        <!-- TEST-SCOPE ONLY: the Mongo docker testkit (MongoDbResource) used by the Phase-G Mongo<->Postgres parity
+        <!-- TEST-SCOPE ONLY: the Mongo docker testkit (MongoDbResource) used by the Mongo<->Postgres parity
              matrix IT (SearchBackendParityIT), which writes one corpus through BOTH backends' full production write
              paths and asserts a large RQL battery answers identically. Mirrors the thingsearch/service test dep shape
              (incl. the docker-java transport pair MongoDbResource needs at runtime). Test-only: nothing leaks onto the
@@ -149,7 +149,7 @@
             <artifactId>logback-classic</artifactId>
             <scope>test</scope>
         </dependency>
-        <!-- ArchUnit no-Mongo/no-BSON boundary test (Phase F requirement 3, switchability proof) — driven from JUnit 4
+        <!-- ArchUnit no-Mongo/no-BSON boundary test (switchability proof) — driven from JUnit 4
              @Test methods via ArchUnit's core API so the module keeps its existing JUnit 4 / surefire setup, mirroring
              the thingsearch-persistence-api / thingsearch-service precedent. -->
         <dependency>

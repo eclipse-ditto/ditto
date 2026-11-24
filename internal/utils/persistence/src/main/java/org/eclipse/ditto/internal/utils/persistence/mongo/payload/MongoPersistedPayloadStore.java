@@ -60,9 +60,10 @@ import com.mongodb.reactivestreams.client.MongoDatabase;
  * The MongoDB {@link PersistedPayloadStore}: streams and rewrites the documents of the {@code <entityType>_snaps} and
  * {@code <entityType>_journal} collections the {@code pekko-persistence-mongodb} plugin writes, and keeps the progress
  * record as the single document {@code _id: "current"} of the {@code <entityType>_encryption_migration} collection —
- * the collection keeps the historical name the connectivity encryption migration gave it before this store existed.
+ * the collection name is the one the connectivity encryption migration uses, so existing progress records stay
+ * readable.
  * <p>
- * The statements are the ones that migration ran directly against the driver before: a {@code find} filtered by
+ * The statements are the ones that migration runs against the MongoDB driver: a {@code find} filtered by
  * {@code $or} of {@code $exists} on the dotted paths of the required fields below the payload ({@code s2.} for
  * snapshots, {@code events.p.} for journal events), combined with {@code _id > afterCursor} (the cursor parsed as an
  * {@link ObjectId} first, as a string otherwise), sorted by {@code _id} ascending and fetched with the given batch
@@ -83,7 +84,7 @@ import com.mongodb.reactivestreams.client.MongoDatabase;
  */
 public final class MongoPersistedPayloadStore implements PersistedPayloadStore {
 
-    /** Collection suffixes per entity type: the pekko-persistence-mongodb plugin's and the historical progress one. */
+    /** Collection suffixes per entity type: the pekko-persistence-mongodb plugin's and the progress one. */
     static final String SNAPSHOT_COLLECTION_SUFFIX = "_snaps";
     static final String JOURNAL_COLLECTION_SUFFIX = "_journal";
     static final String PROGRESS_COLLECTION_SUFFIX = "_encryption_migration";

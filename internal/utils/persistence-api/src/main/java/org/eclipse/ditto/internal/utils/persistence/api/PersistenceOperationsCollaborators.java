@@ -31,14 +31,14 @@ import org.eclipse.ditto.internal.utils.persistence.api.operations.NamespacePers
  * {@code MongoEntitiesPersistenceOperations}). This bundle hoists "build the collaborators for an entity type" behind
  * {@link PersistenceBackendProvider#operations(String)} so the ops actor can be wired without naming a backend.
  * <p>
- * Not every entity type uses both collaborators — the wiring mirrors the historical per-service ops actors exactly:
+ * Not every entity type uses both collaborators — the wiring is the same as the per-service ops actors':
  * <ul>
  *     <li>{@code thing} &rarr; {@link #namespaceOps()} only ({@link #entitiesOps()} is {@code null}),</li>
  *     <li>{@code policy} &rarr; both {@link #namespaceOps()} and {@link #entitiesOps()},</li>
  *     <li>{@code connection} &rarr; {@link #entitiesOps()} only ({@link #namespaceOps()} is {@code null}).</li>
  * </ul>
  * The {@link #closeable()} is the backend resource the ops actor must close on {@code postStop} (Mongo: the
- * {@code MongoClientWrapper} the collaborators read through; Postgres later: a no-op closeable). Because the bundle
+ * {@code MongoClientWrapper} the collaborators read through; Postgres: a no-op closeable). Because the bundle
  * exposes only the two neutral operations interfaces and a {@link Closeable}, neither this module nor the calling
  * {@code RootActor} depends on a backend's operations classes.
  *

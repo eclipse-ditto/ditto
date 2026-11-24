@@ -103,9 +103,9 @@ public interface PostgresConfig {
      * r2dbc-postgresql {@code options} startup parameter, like {@code statement_timeout}; behind PgBouncer it must be
      * listed in {@code track_extra_parameters}, see {@code ditto-postgres-client.conf}).
      * <p>
-     * This is the <strong>plancache generic-plan-flip guard</strong> (a HARD Phase-D requirement of the PostgreSQL
-     * things-search backend — see the search plan §3.5 and bench-results doc §8.2). r2dbc-postgresql, like pgjdbc,
-     * reuses named prepared statements; Task 0.2b measured PostgreSQL's plancache flipping a {@code wpath}-parameterized
+     * This is the <strong>plancache generic-plan-flip guard</strong>, which the PostgreSQL things-search backend
+     * requires (design document, Performance summary). r2dbc-postgresql, like pgjdbc, reuses named prepared
+     * statements, and PostgreSQL's plancache was measured flipping a {@code wpath}-parameterized
      * search query to a catastrophic generic plan once improved statistics made that generic plan look artificially
      * cheap — <strong>55&nbsp;s per execution vs. 0.4&nbsp;s custom-planned</strong>, a cliff triggered purely by a
      * statistics change that was otherwise a pure improvement. Forcing custom planning removes the generic-plan branch

@@ -92,7 +92,7 @@ public final class PostgresSnapshotStoreOps {
      * Serialization ({@link PostgresPayloadCodec#encode(Object)} / {@link #extractLifecycle(String)}) is deferred into
      * {@code Mono.fromCallable(...)} so that an unserializable snapshot (e.g. a {@code BsonValue} the Mongo adapter
      * would produce) surfaces as a <em>failed Future</em>, which is what Pekko's {@code SnapshotStore} contract
-     * expects, rather than as a synchronous throw out of {@code saveAsync} (L-13).
+     * expects, rather than as a synchronous throw out of {@code saveAsync}.
      */
     public CompletionStage<Void> saveAsync(final SnapshotMetadata metadata, final Object snapshot) {
         final Instant writtenAt = Instant.ofEpochMilli(metadata.timestamp());

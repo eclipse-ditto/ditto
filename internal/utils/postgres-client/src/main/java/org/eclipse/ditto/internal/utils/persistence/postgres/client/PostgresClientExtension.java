@@ -33,11 +33,11 @@ import org.slf4j.LoggerFactory;
  * <p>
  * This mirrors {@code MongoClientExtension} (the Mongo backend's one-client-per-actor-system seam): a Ditto service
  * persists a single entity type per actor system, and its journal, snapshot-store and read-journal plugins all talk to
- * the same PostgreSQL backend. Before this extension existed, {@code PostgresJournal(Config)}, {@code
- * PostgresSnapshotStore(Config)} and {@code PostgresPersistenceBackendProvider.getReadJournal()} each called
- * {@link DittoPostgresClient#newInstance} independently, so one service instance opened up to <strong>3 ×
- * {@code pool.max-size}</strong> connections — three times what {@code ditto-postgres-persistence.conf} documents {@code max-size}
- * to mean (the per-service total). Resolving the client through this extension collapses those three pools into one.
+ * the same PostgreSQL backend. If {@code PostgresJournal(Config)}, {@code PostgresSnapshotStore(Config)} and
+ * {@code PostgresPersistenceBackendProvider.getReadJournal()} each called {@link DittoPostgresClient#newInstance}
+ * independently, one service instance would open up to <strong>3 × {@code pool.max-size}</strong> connections — three
+ * times what {@code ditto-postgres-persistence.conf} documents {@code max-size} to mean (the per-service total).
+ * Resolving the client through this extension gives them one pool.
  * </p>
  * <p>
  * The pool is built lazily on first {@link #getClient()} (the extension instance itself is created the first time any of
@@ -90,9 +90,9 @@ public final class PostgresClientExtension implements Extension {
             final PostgresSchemaHealer schemaHealer = PostgresSchemaHealer.of(postgresConfig);
             final DittoPostgresClient client = DittoPostgresClient.newInstance(postgresConfig, schemaHealer);
             // The single shared pool now exists, so surface its occupancy as gauges from here — NOT from the lazy
-            // read-journal path: a write-heavy service may never call getReadJournal(), so
-            // starting the poller there left the write path's pool saturation invisible. The extension is created
-            // exactly once per actor system (the first time ANY of journal/snapshot/read-journal resolves the client),
+            // read-journal path: a write-heavy service may never call getReadJournal(), so starting the poller there
+            // would leave the write path's pool saturation invisible. The extension is created exactly once per actor
+            // system (the first time ANY of journal/snapshot/read-journal resolves the client),
             // so exactly one poller is started for the one pool, tagged pool=shared.
             final PoolMetricsPoller poller = PoolMetricsPoller.of(client::getPoolMetrics, PostgresMetrics.ROLE_SHARED);
             poller.start();

@@ -13,8 +13,8 @@
 -- Ditto PostgreSQL persistence backend — two-role provisioning
 -- =============================================================================
 --
--- Implements the two-role split from the Postgres persistence-backend spec
--- (§11 "Role privileges", resolves §6 important #4, finding [G5]).
+-- Implements the two-role split of the Postgres persistence backend
+-- (design document, Persistence backend, Schema lifecycle).
 --
 --   schema  ditto      -- owned by ditto_ddl; holds *_journal, *_journal_seq,
 --                         *_snaps (4 entity types + connectivity's remember-entities
@@ -22,8 +22,8 @@
 --                         row of the connection encryption migration) and
 --                         schema_version.
 --   ditto_ddl  -- DDL role: OWNS the schema and all tables; runs CREATE in the
---                 bootstrap DDL transaction (PostgresSchemaManager, [H2]).
---                 Used via the `ddl-credentials` block in the HOCON (§7)
+--                 bootstrap DDL transaction (PostgresSchemaManager).
+--                 Used via the `ddl-credentials` block in the HOCON
 --                 by the schema bootstrap, the runtime self-heal and the
 --                 per-path search index builds (CREATE/DROP INDEX
 --                 CONCURRENTLY).
@@ -44,7 +44,7 @@
 --      on tables that already exist.
 --   2. THEN start the Ditto application. On first boot PostgresSchemaManager
 --      connects as ditto_ddl and runs the bootstrap DDL (CREATE TABLE / CREATE
---      INDEX) inside a single pg_advisory_xact_lock'd transaction [H2]. Because
+--      INDEX) inside a single pg_advisory_xact_lock'd transaction. Because
 --      step 1 already set the default privileges, each newly created table is
 --      born with the SELECT/INSERT/UPDATE/DELETE grant to ditto_app — no second
 --      provisioning pass is required after the app boots.
@@ -53,8 +53,8 @@
 --   psql -h <host> -U <database owner> -d ditto \
 --        -v ddl_pw='...' -v app_pw='...' -f 01-roles-and-grants.sql
 --
--- The schema name is `ditto` and the roles are ditto_ddl / ditto_app, matching
--- the spec; the role passwords are supplied as :ddl_pw / :app_pw psql variables.
+-- The schema name is `ditto` and the roles are ditto_ddl / ditto_app;
+-- the role passwords are supplied as :ddl_pw / :app_pw psql variables.
 -- =============================================================================
 
 -- --- Roles ------------------------------------------------------------------

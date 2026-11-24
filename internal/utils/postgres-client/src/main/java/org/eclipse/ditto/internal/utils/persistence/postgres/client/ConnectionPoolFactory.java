@@ -199,7 +199,7 @@ public final class ConnectionPoolFactory {
             options.put("statement_timeout", Long.toString(statementTimeout.toMillis()));
         }
 
-        // Plancache generic-plan-flip guard (search plan §3.5, bench-results doc §8.2 — HARD Phase-D requirement).
+        // Plancache generic-plan-flip guard, required by the things-search backend.
         // plan_cache_mode is bound as a startup GUC (rather than a per-session SET); on a direct connection it applies
         // to every connection this pool opens for the lifetime of the connection. Behind PgBouncer it has the same
         // caveat as statement_timeout above: refused unless listed in track_extra_parameters (then applied) or
