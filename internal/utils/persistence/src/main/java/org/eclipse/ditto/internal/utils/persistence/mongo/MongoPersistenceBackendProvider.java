@@ -12,6 +12,8 @@
  */
 package org.eclipse.ditto.internal.utils.persistence.mongo;
 
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.Function;
@@ -37,6 +39,7 @@ import org.eclipse.ditto.internal.utils.persistence.mongo.payload.MongoPersisted
 import org.eclipse.ditto.internal.utils.persistence.mongo.streaming.MongoReadJournal;
 
 import com.typesafe.config.Config;
+import com.typesafe.config.ConfigException;
 
 /**
  * MongoDB-backed implementation of {@link PersistenceBackendProvider}. Yields the standard
@@ -67,6 +70,10 @@ public final class MongoPersistenceBackendProvider implements PersistenceBackend
     private static final String PLUGIN_IDS_PATH = "plugin-ids";
     private static final String JOURNAL_KEY = "journal";
     private static final String SNAPSHOT_KEY = "snapshot";
+    private static final String AUTO_START_JOURNALS_PATH = "pekko.persistence.journal.auto-start-journals";
+    private static final String JOURNAL_COLLECTION_PATH = ".overrides.journal-collection";
+    private static final String SNAPS_COLLECTION_PATH = ".overrides.snaps-collection";
+    private static final String READ_PLUGIN_SUFFIX = "-read";
 
     /**
      * The shipped Mongo plugin BLOCK NAMES per entity type — the single in-code source of truth, immune to
@@ -84,6 +91,11 @@ public final class MongoPersistenceBackendProvider implements PersistenceBackend
     private final Config extensionConfig;
     @Nullable
     private DittoReadJournal readJournal;
+    @Nullable
+    private MongoDbConfig mongoDbConfig;
+    @Nullable
+    private DittoMongoClient mongoClient;
+    private final Map<String, DittoReadJournal> readJournalsByEntityType = new HashMap<>();
     @Nullable
     private PersistenceOperationsFactory operationsFactory;
 
@@ -214,9 +226,80 @@ public final class MongoPersistenceBackendProvider implements PersistenceBackend
     @Override
     public synchronized DittoReadJournal getReadJournal() {
         if (readJournal == null) {
-            readJournal = MongoReadJournal.newInstance(actorSystem);
+            final DittoMongoClient client = getMongoClient();
+            readJournal = MongoReadJournal.newInstance(actorSystem.settings().config(), client,
+                    getMongoDbConfig().getReadJournalConfig(), actorSystem);
         }
         return readJournal;
+    }
+
+    /**
+     * {@inheritDoc}
+     * <p>
+     * The shared read journal is bound to the single entry of {@code pekko.persistence.journal.auto-start-journals};
+     * the entity type whose journal plugin is that entry gets the shared instance. Any other entity type gets a
+     * {@link MongoReadJournal} over its own journal and snapshot plugins ({@code <journal>.overrides.journal-collection},
+     * {@code <snapshot>.overrides.snaps-collection}, read plugin {@code <journal>-read}), built lazily and kept per
+     * entity type. All read journals of this provider share one {@link DittoMongoClient}; only the Pekko read plugin
+     * {@code <journal>-read} opens its own client, lazily, as the shared read journal's read plugin does. A failed
+     * lookup caches nothing, so the next call fails the same way.
+     *
+     * @throws DittoConfigError if the entity type has no plugin ID, or the configuration lacks its journal collection,
+     * its snapshot collection or its {@code -read} plugin block.
+     */
+    @Override
+    public synchronized DittoReadJournal getReadJournal(final String entityType) {
+        final DittoReadJournal cached = readJournalsByEntityType.get(entityType);
+        if (cached != null) {
+            return cached;
+        }
+        final String journalPluginId = getJournalPluginId(entityType);
+        final String snapshotPluginId = getSnapshotPluginId(entityType);
+        final Config config = actorSystem.settings().config();
+        final DittoReadJournal result;
+        if (List.of(journalPluginId).equals(autoStartJournals(config))) {
+            result = getReadJournal();
+        } else {
+            requirePath(config, entityType, journalPluginId + JOURNAL_COLLECTION_PATH);
+            requirePath(config, entityType, snapshotPluginId + SNAPS_COLLECTION_PATH);
+            requirePath(config, entityType, journalPluginId + READ_PLUGIN_SUFFIX);
+            try {
+                result = MongoReadJournal.newInstance(config, getMongoClient(),
+                        getMongoDbConfig().getReadJournalConfig(), actorSystem, journalPluginId, snapshotPluginId);
+            } catch (final ConfigException e) {
+                throw new DittoConfigError(noReadJournalMessage(entityType, e.getMessage()), e);
+            }
+        }
+        readJournalsByEntityType.put(entityType, result);
+        return result;
+    }
+
+    private synchronized MongoDbConfig getMongoDbConfig() {
+        if (mongoDbConfig == null) {
+            mongoDbConfig = DefaultMongoDbConfig.of(DefaultScopedConfig.dittoScoped(actorSystem.settings().config()));
+        }
+        return mongoDbConfig;
+    }
+
+    private synchronized DittoMongoClient getMongoClient() {
+        if (mongoClient == null) {
+            mongoClient = MongoClientWrapper.newInstance(getMongoDbConfig());
+        }
+        return mongoClient;
+    }
+
+    private static List<String> autoStartJournals(final Config config) {
+        return config.hasPath(AUTO_START_JOURNALS_PATH) ? config.getStringList(AUTO_START_JOURNALS_PATH) : List.of();
+    }
+
+    private static void requirePath(final Config config, final String entityType, final String path) {
+        if (!config.hasPath(path)) {
+            throw new DittoConfigError(noReadJournalMessage(entityType, "the configuration lacks <" + path + ">"));
+        }
+    }
+
+    private static String noReadJournalMessage(final String entityType, final String reason) {
+        return "No read journal can be built for entity type <" + entityType + ">: " + reason + ".";
     }
 
     private java.util.Optional<String> getOverride(final String entityType, final String key) {

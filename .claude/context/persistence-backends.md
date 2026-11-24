@@ -36,7 +36,8 @@ swaps the provider, defines the `ditto-postgres-<entity>-journal`/`-snapshots` p
 the `ditto.postgresql.*` defaults from `ditto-postgres-client.conf`. A persistence service then narrows
 `pekko.persistence.*.auto-start-*` to its own entity's plugins — nothing checks this; the first
 persistent actor fails with a Pekko `ConfigurationException` — and needs `read-journal.entity`, which
-the stock service confs set. `<service>-pg-dev.conf` are the local-dev variants.
+the stock service confs set; that key binds the shared read journal only, and WoT validation configs
+read their history through a read journal bound to their own journal. `<service>-pg-dev.conf` are the local-dev variants.
 
 Deployment: `context/deployment.md`; config keys: `.claude/rules/config-and-helm.md`; design:
 `concepts/postgresql-persistence-design.md`; operators: `installation-postgresql.md`,

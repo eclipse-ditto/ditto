@@ -288,6 +288,8 @@ public final class PostgresPersistenceBackendProviderTest {
                         + "  thing.snapshot                 = \"ditto-postgres-things-snapshots\"\n"
                         + "  wot-validation-config.journal  = \"ditto-postgres-wot-journal\"\n"
                         + "  wot-validation-config.snapshot = \"ditto-postgres-wot-snapshots\"\n"
+                        + "  policy.journal                 = \"ditto-postgres-policies-journal\"\n"
+                        + "  policy.snapshot                = \"ditto-postgres-policies-snapshots\"\n"
                         + "}\n"
                         + "read-journal.entity = \"things\"\n");
         return new PostgresPersistenceBackendProvider(system, extensionConfig);
@@ -309,6 +311,43 @@ public final class PostgresPersistenceBackendProviderTest {
                 .isThrownBy(() -> provider.streaming("wot-validation-config", id -> null, entityId -> null))
                 .withMessageContaining("wot")
                 .withMessageContaining("things");
+    }
+
+    @Test
+    public void readJournalOfTheServiceEntityIsTheSharedInstance() {
+        final PostgresPersistenceBackendProvider provider = providerForStreamingGuard();
+
+        assertThat(provider.getReadJournal("thing")).isSameAs(provider.getReadJournal());
+    }
+
+    @Test
+    public void readJournalOfAnotherEntityIsADifferentInstance() {
+        final PostgresPersistenceBackendProvider provider = providerForStreamingGuard();
+
+        final DittoReadJournal wotReadJournal = provider.getReadJournal("wot-validation-config");
+        final DittoReadJournal sharedReadJournal = provider.getReadJournal();
+
+        assertThat(wotReadJournal)
+                .isInstanceOf(PostgresReadJournal.class)
+                .isNotSameAs(sharedReadJournal);
+        assertThat(provider.getReadJournal("wot-validation-config")).isSameAs(wotReadJournal);
+        // both read journals read through the single per-actor-system pool
+        assertThat(provider.resolvedReadJournalClient()).isSameAs(PostgresClientExtension.get(system).getClient());
+    }
+
+    @Test
+    public void readJournalOfAnEntityWithoutJournalConfigurationFails() {
+        // the system config declares no ditto-postgres-policies-journal.entity
+        final PostgresPersistenceBackendProvider provider = providerForStreamingGuard();
+        assertThat(provider.getReadJournal("wot-validation-config")).isInstanceOf(PostgresReadJournal.class);
+
+        assertThatExceptionOfType(DittoConfigError.class)
+                .isThrownBy(() -> provider.getReadJournal("policy"))
+                .withMessageContaining("policy")
+                .withMessageContaining("ditto-postgres-policies-journal");
+        assertThatExceptionOfType(DittoConfigError.class)
+                .isThrownBy(() -> provider.getReadJournal("policy"))
+                .withMessageContaining("policy");
     }
 
     @Test

@@ -33,8 +33,9 @@ import com.typesafe.config.Config;
  * {@code ditto.extensions.persistence-backend-provider}.
  * <p>
  * Beyond plugin IDs and the read journal, the provider also exposes the backend's collaborator
- * accessors — {@link #pluginConfig()}, {@link #operations(String)}, {@link #healthCheck()},
- * {@link #streaming}, {@link #snapshotCodec()} and {@link #payloadStore(String)} — including the factory for
+ * accessors — {@link #getReadJournal(String)}, {@link #pluginConfig()}, {@link #operations(String)},
+ * {@link #healthCheck()}, {@link #streaming}, {@link #snapshotCodec()} and {@link #payloadStore(String)} — including
+ * the factory for
  * backend-specific namespace persistence operations. These accessors default to throwing
  * {@link UnsupportedOperationException} so a backend can wire them incrementally; each backend overrides them as it is
  * implemented. The two boot hooks, {@link #bootstrapSchema()} and {@link #verifyPluginWiring(String)}, default to
@@ -60,6 +61,27 @@ public interface PersistenceBackendProvider extends DittoExtensionPoint {
      * @return the backend's read journal instance, shared across actors in this service
      */
     DittoReadJournal getReadJournal();
+
+    /**
+     * Returns a read journal bound to the journal of the given entity type.
+     * <p>
+     * For the entity type whose journal the shared {@link #getReadJournal()} is bound to, the same instance is
+     * returned. For any other entity type, an instance is created lazily on the first call and kept per entity type.
+     * An entity type without a configured journal fails with a
+     * {@link org.eclipse.ditto.internal.utils.config.DittoConfigError} naming the entity type and the plugin ID; the
+     * shared read journal is never returned in its place.
+     * <p>
+     * The default throws {@link UnsupportedOperationException} so existing backends compile before they wire it; the
+     * MongoDB and the PostgreSQL provider both implement it.
+     *
+     * @param entityType the entity type, e.g. {@code "thing"}, {@code "wot-validation-config"}
+     * @return the read journal bound to the journal of the entity type.
+     * @throws UnsupportedOperationException until the active backend overrides this accessor.
+     */
+    default DittoReadJournal getReadJournal(final String entityType) {
+        throw new UnsupportedOperationException(
+                "getReadJournal(" + entityType + ") is not implemented by this persistence backend yet");
+    }
 
     /**
      * Returns the active backend's richer plugin-ID surface: the same per-entity journal/snapshot IDs as

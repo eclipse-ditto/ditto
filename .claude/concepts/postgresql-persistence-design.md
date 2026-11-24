@@ -421,8 +421,9 @@ Per entity (`things`, `policies`, `connections`, `wot`) and for connectivity's r
   slower). MongoDB already returned no payload here, so the change is PostgreSQL-only; `Cleanup` itself changed in
   types only.
 - **Streaming is bound to one entity type** per service (`read-journal.entity`, required with no default: `things`,
-  `policies` or `connections`; WoT validation config lives in the things JVM and is no read-journal consumer); only
-  things streams snapshots in Ditto. Known gap: the snapshot stream returns whole snapshots although background sync
+  `policies` or `connections`; WoT validation configs read their history through a read journal bound to their own
+  journal (`getReadJournal(entityType)`), while the persistence ping, the clean-up and the snapshot streaming of the
+  things service cover things only); only things streams snapshots in Ditto. Known gap: the snapshot stream returns whole snapshots although background sync
   asks for three fields.
 - **Boot order** in a persistence service: provider construction → `verifyPluginWiring()` (the PostgreSQL provider's
   check, §2.1) → `bootstrapSchema()` (DDL under the advisory lock) → `getReadJournal()` (lazy, first use) → shard

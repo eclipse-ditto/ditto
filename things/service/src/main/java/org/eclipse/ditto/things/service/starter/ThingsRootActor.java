@@ -91,6 +91,11 @@ public final class ThingsRootActor extends DittoRootActor {
      */
     private static final String REVISION_FIELD = "_revision";
 
+    /**
+     * Entity type of the WoT validation configs, under which the persistence backend resolves their journal.
+     */
+    private static final String WOT_VALIDATION_CONFIG_ENTITY_TYPE = "wot-validation-config";
+
     private final DiagnosticLoggingAdapter log = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
 
     private final RetrieveStatisticsDetailsResponseSupplier retrieveStatisticsDetailsResponseSupplier;
@@ -150,7 +155,7 @@ public final class ThingsRootActor extends DittoRootActor {
         // Create WoT validation config supervisor actor
         final Props wotValidationConfigSupervisorProps = WotValidationConfigSupervisorActor.props(
                 pubSubMediator,
-                readJournal
+                wotValidationConfigReadJournal(backendProvider)
         );
         final ActorRef wotValidationConfigShardRegion =
                 ShardRegionCreator.start(
@@ -334,6 +339,17 @@ public final class ThingsRootActor extends DittoRootActor {
      */
     static Optional<JsonObject> selectMostRecent(final Set<JsonObject> configs) {
         return configs.stream().max(Comparator.comparingLong(ThingsRootActor::extractRevision));
+    }
+
+    /**
+     * Returns the read journal the WoT validation config supervisor answers historical queries with: the one bound to
+     * the journal of the WoT validation configs, not the shared read journal of the things.
+     *
+     * @param provider the persistence backend provider.
+     * @return the read journal of the WoT validation config entity type.
+     */
+    static DittoReadJournal wotValidationConfigReadJournal(final PersistenceBackendProvider provider) {
+        return provider.getReadJournal(WOT_VALIDATION_CONFIG_ENTITY_TYPE);
     }
 
     private static long extractRevision(final JsonObject configJson) {

@@ -12,6 +12,8 @@
  */
 package org.eclipse.ditto.internal.utils.persistence.postgres;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Function;
@@ -48,6 +50,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.typesafe.config.Config;
+import com.typesafe.config.ConfigException;
 import com.typesafe.config.ConfigFactory;
 
 /**
@@ -83,6 +86,8 @@ import com.typesafe.config.ConfigFactory;
  * is only needed by Cleanup / PersistencePingActor / historical queries, never during actor super-construction, so it
  * must not be built eagerly in the constructor (that breaks test setups that use the in-memory persistence plugin and
  * never touch Postgres). {@code synchronized} (not CAS) avoids a loser-thread connection-pool leak under a race.
+ * {@link #getReadJournal(String)} hands out further read journals per entity type over the same pool;
+ * {@code read-journal.entity} configures the shared one only.
  */
 public final class PostgresPersistenceBackendProvider implements PersistenceBackendProvider {
 
@@ -115,6 +120,7 @@ public final class PostgresPersistenceBackendProvider implements PersistenceBack
     private DittoPostgresClient client;
     @Nullable
     private PersistenceOperationsFactory operationsFactory;
+    private final Map<String, DittoReadJournal> readJournalsByEntityType = new HashMap<>();
 
     /**
      * Constructor invoked reflectively by {@code PekkoClassLoader} during extension loading.
@@ -158,6 +164,62 @@ public final class PostgresPersistenceBackendProvider implements PersistenceBack
             readJournal = PostgresReadJournal.of(operations);
         }
         return readJournal;
+    }
+
+    /**
+     * {@inheritDoc}
+     * <p>
+     * The entity table set of the entity type is the {@code entity} key of its journal plugin block
+     * ({@code <journal plugin ID>.entity}). When it equals {@code read-journal.entity}, the shared read journal is
+     * returned; otherwise a {@link PostgresReadJournal} over that table set is built lazily on the single
+     * per-actor-system pool owned by {@link PostgresClientExtension} (no new pool) and kept per entity type. Requires
+     * {@code read-journal.entity}, against which the table set is compared. A failed lookup caches nothing.
+     *
+     * @throws DittoConfigError if the entity type has no plugin-ID mapping, its journal plugin block has no
+     * {@code entity} key, or the key names no entity table set.
+     */
+    @Override
+    public synchronized DittoReadJournal getReadJournal(final String entityType) {
+        final DittoReadJournal cached = readJournalsByEntityType.get(entityType);
+        if (cached != null) {
+            return cached;
+        }
+        final String journalPluginId = getJournalPluginId(entityType);
+        final String entity = resolveJournalEntity(entityType, journalPluginId);
+        final DittoReadJournal result;
+        if (entity.equals(resolveReadJournalEntity())) {
+            result = getReadJournal();
+        } else {
+            final DittoPostgresClient sharedClient = PostgresClientExtension.get(actorSystem).getClient();
+            result = PostgresReadJournal.of(PostgresPersistenceOperations.of(sharedClient, entity));
+        }
+        readJournalsByEntityType.put(entityType, result);
+        return result;
+    }
+
+    private String resolveJournalEntity(final String entityType, final String journalPluginId) {
+        final String entity;
+        try {
+            entity = actorSystem.settings().config().getString(journalPluginId + ".entity");
+        } catch (final ConfigException e) {
+            throw new DittoConfigError("No read journal can be built for entity type <" + entityType
+                    + ">: the journal plugin <" + journalPluginId + "> declares no valid <entity>: "
+                    + e.getMessage(), e);
+        }
+        final String tableSet;
+        try {
+            tableSet = PostgresTableNames.of(entity).entityPrefix();
+        } catch (final IllegalArgumentException e) {
+            throw new DittoConfigError("No read journal can be built for entity type <" + entityType
+                    + ">: the journal plugin <" + journalPluginId + "> declares the unknown entity <" + entity
+                    + ">.", e);
+        }
+        if (!PostgresSchema.ENTITY_TABLE_SETS.contains(tableSet)) {
+            throw new DittoConfigError("No read journal can be built for entity type <" + entityType
+                    + ">: the journal plugin <" + journalPluginId + "> declares <" + entity
+                    + ">, which is a table set but no entity (things|policies|connections|wot).");
+        }
+        return entity;
     }
 
     /**

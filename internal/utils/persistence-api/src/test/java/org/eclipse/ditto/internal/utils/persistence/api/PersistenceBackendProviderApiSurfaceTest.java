@@ -69,6 +69,13 @@ public final class PersistenceBackendProviderApiSurfaceTest {
     }
 
     @Test
+    public void perEntityReadJournalDefaultThrowsUnsupported() {
+        assertThatThrownBy(() -> provider.getReadJournal("thing"))
+                .isInstanceOf(UnsupportedOperationException.class)
+                .hasMessageContaining("thing");
+    }
+
+    @Test
     public void preExistingMethodsRemainAbstractAndUnaffected() {
         // The minimal provider only implements the original abstract methods; that it compiles and answers proves the
         // new accessors are purely additive defaults and did not change the existing contract.

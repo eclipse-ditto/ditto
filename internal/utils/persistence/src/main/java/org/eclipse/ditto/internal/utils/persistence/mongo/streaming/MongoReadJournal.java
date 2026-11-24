@@ -99,6 +99,8 @@ import pekko.contrib.persistence.mongodb.SnapshottingFieldNames$;
  * collection.
  * </li>
  * </ul>
+ * A read journal can also be bound to explicitly named journal and snapshot plugins, see
+ * {@link #newInstance(Config, DittoMongoClient, MongoReadJournalConfig, ActorSystem, String, String)}.
  */
 @AllValuesAreNonnullByDefault
 public final class MongoReadJournal implements DittoReadJournal {
@@ -277,7 +279,8 @@ public final class MongoReadJournal implements DittoReadJournal {
     }
 
     /**
-     * Creates a new {@code MongoReadJournal}.
+     * Creates a new {@code MongoReadJournal} bound to the unique auto-start journal and snapshot store of the Pekko
+     * system configuration.
      *
      * @param config The Pekko system configuration.
      * @param mongoClient The Mongo client wrapper.
@@ -290,13 +293,37 @@ public final class MongoReadJournal implements DittoReadJournal {
 
         final String autoStartJournalKey = extractAutoStartConfigKey(config, PEKKO_PERSISTENCE_JOURNAL_AUTO_START);
         final String autoStartSnapsKey = extractAutoStartConfigKey(config, PEKKO_PERSISTENCE_SNAPS_AUTO_START);
+        return newInstance(config, mongoClient, mongoReadJournalConfig, actorSystem, autoStartJournalKey,
+                autoStartSnapsKey);
+    }
+
+    /**
+     * Creates a new {@code MongoReadJournal} bound to the explicitly named journal and snapshot plugins. The journal
+     * collection is read from {@code <journalPluginId>.overrides.journal-collection}, the snapshot collection from
+     * {@code <snapshotPluginId>.overrides.snaps-collection}, and the events are queried through the Pekko read plugin
+     * {@code <journalPluginId>-read}.
+     *
+     * @param config The Pekko system configuration.
+     * @param mongoClient The Mongo client wrapper.
+     * @param mongoReadJournalConfig the configuration to use for the mongo read journal.
+     * @param actorSystem the actor system.
+     * @param journalPluginId the ID of the journal plugin whose events the read journal reads.
+     * @param snapshotPluginId the ID of the snapshot plugin whose snapshots the read journal reads.
+     * @return A {@code MongoReadJournal} object.
+     * @throws com.typesafe.config.ConfigException if a plugin block or its collection setting is missing or has the
+     * wrong type.
+     */
+    public static MongoReadJournal newInstance(final Config config, final DittoMongoClient mongoClient,
+            final MongoReadJournalConfig mongoReadJournalConfig, final ActorSystem actorSystem,
+            final String journalPluginId, final String snapshotPluginId) {
+
         final String journalCollection =
-                getOverrideCollectionName(config.getConfig(autoStartJournalKey), JOURNAL_COLLECTION_NAME_KEY);
+                getOverrideCollectionName(config.getConfig(journalPluginId), JOURNAL_COLLECTION_NAME_KEY);
         final String snapshotCollection =
-                getOverrideCollectionName(config.getConfig(autoStartSnapsKey), SNAPS_COLLECTION_NAME_KEY);
+                getOverrideCollectionName(config.getConfig(snapshotPluginId), SNAPS_COLLECTION_NAME_KEY);
         return new MongoReadJournal(journalCollection,
                 snapshotCollection,
-                autoStartJournalKey + "-read",
+                journalPluginId + "-read",
                 mongoClient,
                 mongoReadJournalConfig,
                 actorSystem
