@@ -12,49 +12,54 @@
  */
 package org.eclipse.ditto.things.service.persistence.serializer;
 
+import java.util.Set;
+
+import javax.annotation.Nullable;
+
 import org.apache.pekko.actor.ExtendedActorSystem;
+import org.apache.pekko.persistence.journal.EventSeq;
 import org.eclipse.ditto.base.model.signals.events.Event;
 import org.eclipse.ditto.base.model.signals.events.GlobalEventRegistry;
 import org.eclipse.ditto.base.service.config.DittoServiceConfig;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.internal.utils.persistence.serializer.AbstractPostgresEventAdapter;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.json.JsonObjectBuilder;
-import org.eclipse.ditto.json.JsonPointer;
-import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.things.model.signals.events.ThingEvent;
-import org.eclipse.ditto.things.model.signals.events.ThingMerged;
 import org.eclipse.ditto.things.service.common.config.DefaultThingConfig;
 
 /**
- * PostgreSQL {@code EventAdapter} for {@link Event}s persisted into the pekko-persistence event-journal. The JSONB peer
- * of {@link ThingMongoEventAdapter}: it reuses the identical serializer/migration logic (including stripping the inlined
- * policy from the journal payload) and only differs in the storage envelope (JSONB text instead of BSON).
+ * PostgreSQL {@code EventAdapter} for {@link ThingEvent}s persisted into the pekko-persistence event-journal: stores
+ * the journal JSON as JSONB text; the domain hooks are in {@link ThingEventSerializer}.
  */
 public final class ThingPostgresEventAdapter extends AbstractPostgresEventAdapter<ThingEvent<?>> {
 
-    private static final JsonPointer POLICY_IN_THING_EVENT_PAYLOAD = ThingEvent.JsonFields.THING.getPointer()
-            .append(JsonPointer.of(Policy.INLINED_FIELD_NAME));
-
-    private static final JsonPointer POLICY_IN_THING_MERGED_VALUE_PAYLOAD =
-            ThingMerged.JsonFields.JSON_VALUE.getPointer()
-                    .append(JsonPointer.of(Policy.INLINED_FIELD_NAME));
+    private final ThingEventSerializer serializer;
 
     public ThingPostgresEventAdapter(final ExtendedActorSystem system) {
         super(system, GlobalEventRegistry.getInstance(), DefaultThingConfig.of(
                 DittoServiceConfig.of(DefaultScopedConfig.dittoScoped(system.settings().config()), "things")
         ).getEventConfig());
+        serializer = new ThingEventSerializer(system);
     }
 
     @Override
-    protected JsonObjectBuilder performToJournalMigration(final Event<?> event, final JsonObject jsonObject) {
-        if (event instanceof ThingMerged thingMerged && thingMerged.getResourcePath().isEmpty()) {
-            return super.performToJournalMigration(event, jsonObject)
-                    .remove(POLICY_IN_THING_MERGED_VALUE_PAYLOAD); // remove the policy entries from thing merged payload
-        } else {
-            return super.performToJournalMigration(event, jsonObject)
-                    .remove(POLICY_IN_THING_EVENT_PAYLOAD); // remove the policy entries from thing event payload
-        }
+    public JsonObject toJournalJson(final Event<?> event) {
+        return serializer.toJournalJson(event);
+    }
+
+    @Override
+    public Set<String> getJournalTags(final Event<?> event) {
+        return serializer.getJournalTags(event);
+    }
+
+    @Override
+    public EventSeq fromJournalJson(final JsonObject jsonObject, @Nullable final String manifest) {
+        return serializer.fromJournalJson(jsonObject, manifest);
+    }
+
+    @Override
+    public EventSeq fromJournalJson(final JsonObject jsonObject) {
+        return serializer.fromJournalJson(jsonObject);
     }
 
 }

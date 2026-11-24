@@ -1,0 +1,1 @@
+{"type": "policies:importsAliasCreated", "_timestamp": "2026-04-01T00:00:00Z", "_metadata": null, "revision": 7, "policyId": "golden:legacy-policy", "label": "legacy-alias", "importsAlias": {"targets": [{"import": "golden:imported-policy", "entry": "DEFAULT"}]}, "__hh": {"correlation-id": "golden-legacy-policy"}}

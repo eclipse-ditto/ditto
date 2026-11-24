@@ -13,8 +13,6 @@
 
 package org.eclipse.ditto.policies.service.persistence.serializer;
 
-import java.util.Set;
-
 import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.base.model.signals.events.GlobalEventRegistry;
@@ -36,7 +34,8 @@ import org.apache.pekko.persistence.journal.EventSeq;
 
 /**
  * Abstract base EventAdapter for {@link PolicyEvent}s persisted into pekko-persistence event-journal.
- * Converts Events to MongoDB BSON objects and vice versa.
+ * Converts Events to MongoDB BSON objects and vice versa. Subclasses may override the journal migration hooks; journal
+ * rows of removed legacy policy event types are discarded during recovery as {@link PolicyEventSerializer} decides.
  */
 public abstract class AbstractPolicyMongoEventAdapter extends AbstractMongoEventAdapter<PolicyEvent<?>> {
 
@@ -46,47 +45,19 @@ public abstract class AbstractPolicyMongoEventAdapter extends AbstractMongoEvent
             JsonFactory.newJsonObjectFieldDefinition("policy/entries", FieldType.SPECIAL,
                     JsonSchemaVersion.V_2);
 
-    /**
-     * Event types that existed prior to the policy-import-model simplification (commit 7dd7eb22fa,
-     * 2026-04-29) and were removed in favour of the unified {@code references}/{@code allowedAdditions}
-     * model. Any journal row carrying one of these types is silently skipped during recovery so
-     * clusters that wrote them under previous versions can roll forward without operator action.
-     */
-    private static final Set<String> LEGACY_DISCARDED_EVENT_TYPES = Set.of(
-            "policies:importsAliasCreated",
-            "policies:importsAliasModified",
-            "policies:importsAliasDeleted",
-            "policies:importsAliasSubjectCreated",
-            "policies:importsAliasSubjectModified",
-            "policies:importsAliasSubjectDeleted",
-            "policies:importsAliasSubjectsModified",
-            "policies:importsAliasesModified",
-            "policies:importsAliasesDeleted",
-            "policies:policyEntryAllowedImportAdditionsModified",
-            "policies:policyImportEntriesAdditionsModified",
-            "policies:policyImportEntryAdditionCreated",
-            "policies:policyImportEntryAdditionModified",
-            "policies:policyImportEntryAdditionDeleted"
-    );
+    private final PolicyEventSerializer policyEventSerializer;
 
     protected AbstractPolicyMongoEventAdapter(final ExtendedActorSystem system) {
         super(system, GlobalEventRegistry.getInstance(), DefaultPolicyConfig.of(
                         DittoServiceConfig.of(DefaultScopedConfig.dittoScoped(system.settings().config()), "policies"))
                 .getEventConfig());
+        policyEventSerializer = new PolicyEventSerializer(system);
     }
 
     @Override
     public EventSeq fromJournalJson(final JsonObject jsonObject, @Nullable final String manifest) {
-        // Drop journal rows whose manifest matches a removed legacy event type before they reach
-        // the parser. The parent's catch-all logs every parse failure as an ERROR; here we emit a
-        // single INFO per legacy type so upgrades on clusters that emitted these events are
-        // observable but not noisy. The persistence layer provides the manifest from the stored
-        // row's manifest field; for the rare case of a row without manifest the parent's path will
-        // throw JsonTypeNotParsableException which is caught and logged as ERROR. This lives in the
-        // backend-neutral serializer layer so both the MongoDB and PostgreSQL envelopes reuse it.
-        if (manifest != null && LEGACY_DISCARDED_EVENT_TYPES.contains(manifest)) {
-            LOGGER.info("Discarding legacy policy event of removed type <{}> during journal recovery.",
-                    manifest);
+        if (policyEventSerializer.discards(manifest)) {
+            LOGGER.info("Discarding legacy policy event of removed type <{}> during journal recovery.", manifest);
             return EventSeq.empty();
         }
         return super.fromJournalJson(jsonObject, manifest);

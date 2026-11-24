@@ -1,0 +1,119 @@
+{
+  "rows": [
+    {
+      "manifest": "connectivity.events:connectionCreated",
+      "tags": [
+        "always-alive",
+        "priority-3"
+      ],
+      "payload": {
+        "type": "connectivity.events:connectionCreated",
+        "_timestamp": "2026-11-19T00:00:00Z",
+        "_metadata": null,
+        "revision": {
+          "$numberInt": "1"
+        },
+        "connectionId": "golden-connection",
+        "connection": {
+          "id": "golden-connection",
+          "name": null,
+          "connectionType": "amqp-10",
+          "connectionStatus": "closed",
+          "uri": "amqps://user:encrypted_3XoXzhgJ2e0C4NQGLYZMj7YYBs2MMAx_2B5n-zV3CCTWbN3a1jPBNV8=@golden-host:5671",
+          "sources": [],
+          "targets": [
+            {
+              "address": "golden/target",
+              "topics": [
+                "_/_/things/twin/events"
+              ],
+              "authorizationContext": [
+                "golden:subject"
+              ],
+              "headerMapping": {}
+            }
+          ],
+          "clientCount": {
+            "$numberInt": "1"
+          },
+          "failoverEnabled": true,
+          "validateCertificates": true,
+          "processorPoolSize": {
+            "$numberInt": "1"
+          },
+          "tags": []
+        },
+        "__hh": {
+          "correlation-id": "golden-connection"
+        }
+      }
+    },
+    {
+      "manifest": "connectivity.events:connectionModified",
+      "tags": [
+        "always-alive",
+        "priority-3"
+      ],
+      "payload": {
+        "type": "connectivity.events:connectionModified",
+        "_timestamp": "2026-11-19T00:00:00Z",
+        "_metadata": null,
+        "revision": {
+          "$numberInt": "2"
+        },
+        "connectionId": "golden-connection",
+        "connection": {
+          "id": "golden-connection",
+          "name": null,
+          "connectionType": "amqp-10",
+          "connectionStatus": "closed",
+          "uri": "amqps://user:encrypted_1WxLGVk-mBREFDq2PT0gcxZH1y1fHBW0ObWtfaIT4fjfgldleQB2ocY=@golden-host:5671",
+          "sources": [],
+          "targets": [
+            {
+              "address": "golden/modified",
+              "topics": [
+                "_/_/things/twin/events"
+              ],
+              "authorizationContext": [
+                "golden:subject"
+              ],
+              "headerMapping": {}
+            }
+          ],
+          "clientCount": {
+            "$numberInt": "1"
+          },
+          "failoverEnabled": true,
+          "validateCertificates": true,
+          "processorPoolSize": {
+            "$numberInt": "1"
+          },
+          "tags": []
+        },
+        "__hh": {
+          "correlation-id": "golden-connection"
+        }
+      }
+    },
+    {
+      "manifest": "connectivity.events:connectionDeleted",
+      "tags": [
+        "always-alive",
+        "priority-3"
+      ],
+      "payload": {
+        "type": "connectivity.events:connectionDeleted",
+        "_timestamp": "2026-11-19T00:00:00Z",
+        "_metadata": null,
+        "revision": {
+          "$numberInt": "3"
+        },
+        "connectionId": "golden-connection",
+        "__hh": {
+          "correlation-id": "golden-connection"
+        }
+      }
+    }
+  ]
+}
