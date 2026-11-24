@@ -31,9 +31,9 @@ import org.eclipse.ditto.json.JsonObject;
  * (via {@link DittoBsonJson#parse(JsonObject)}), and recovering it back (via
  * {@link DittoBsonJson#serialize(BsonValue)}).
  * <p>
- * This is the single source of the BSON envelope that was previously duplicated between
- * {@link AbstractMongoSnapshotAdapter#toSnapshotStore} and its {@code convertToJson} helper. Both now delegate
- * here; the behaviour is identical, so {@code SnapshotSerializerParityTest} remains the safety net.
+ * {@link org.eclipse.ditto.internal.utils.persistence.api.serializer.NeutralSnapshotAdapter} applies this codec around
+ * the per-service {@code SnapshotSerializer} when MongoDB is the active backend;
+ * {@link MongoPersistenceBackendProvider#snapshotCodec()} hands it out.
  *
  * @since 4.0.0
  */

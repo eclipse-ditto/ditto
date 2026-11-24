@@ -64,20 +64,6 @@ public final class PolicyPersistenceActor
      */
     public static final String PERSISTENCE_ID_PREFIX = "policy:";
 
-    /**
-     * The MongoDB journal plugin ID for policies. Retained for the Mongo namespace-operations actor
-     * ({@code PolicyPersistenceOperationsActor}); the persistent-actor write path resolves its journal plugin through
-     * the {@link PersistenceBackendProvider} (see {@link #journalPluginId()}) so it follows the active backend profile.
-     */
-    static final String JOURNAL_PLUGIN_ID = "pekko-contrib-mongodb-persistence-policies-journal";
-
-    /**
-     * The MongoDB snapshot plugin ID for policies. Retained for the Mongo namespace-operations actor; the
-     * persistent-actor write path resolves its snapshot plugin through the {@link PersistenceBackendProvider} (see
-     * {@link #snapshotPluginId()}).
-     */
-    static final String SNAPSHOT_PLUGIN_ID = "pekko-contrib-mongodb-persistence-policies-snapshots";
-
     private final ActorRef pubSubMediator;
     private final PolicyConfig policyConfig;
     private final NamespaceActivityCheckConfigProvider activityCheckConfigProvider;

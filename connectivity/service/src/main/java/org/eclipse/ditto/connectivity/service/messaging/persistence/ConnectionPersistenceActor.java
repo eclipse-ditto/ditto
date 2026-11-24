@@ -162,21 +162,6 @@ public final class ConnectionPersistenceActor
      */
     public static final String PERSISTENCE_ID_PREFIX = "connection:";
 
-    /**
-     * The MongoDB journal plugin ID for connections. Retained for the Mongo namespace-operations actor
-     * ({@code ConnectionPersistenceOperationsActor}); the persistent-actor write path resolves its journal plugin
-     * through the {@link PersistenceBackendProvider} (see {@link #journalPluginId()}) so it follows the active backend
-     * profile.
-     */
-    public static final String JOURNAL_PLUGIN_ID = "pekko-contrib-mongodb-persistence-connection-journal";
-
-    /**
-     * The MongoDB snapshot plugin ID for connections. Retained for the Mongo namespace-operations actor; the
-     * persistent-actor write path resolves its snapshot plugin through the {@link PersistenceBackendProvider} (see
-     * {@link #snapshotPluginId()}).
-     */
-    public static final String SNAPSHOT_PLUGIN_ID = "pekko-contrib-mongodb-persistence-connection-snapshots";
-
     private static final Duration DEFAULT_RETRIEVE_STATUS_TIMEOUT = Duration.ofMillis(500L);
     private static final Duration GRACE_PERIOD_NOT_RETRIEVING_CONNECTION_STATUS_AFTER_RECOVERY = Duration.ofSeconds(10);
     private static final Duration SELF_RETRIEVE_CONNECTION_STATUS_TIMEOUT = Duration.ofSeconds(30);

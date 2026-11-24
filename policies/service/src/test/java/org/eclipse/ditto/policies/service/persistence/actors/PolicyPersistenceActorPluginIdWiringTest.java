@@ -44,8 +44,9 @@ import com.typesafe.config.ConfigFactory;
  *
  * <p><b>What this catches.</b></p>
  * <ul>
- *     <li>A revert to {@code return JOURNAL_PLUGIN_ID} (the Mongo constant): the actor would return
- *     {@code pekko-contrib-mongodb-persistence-policies-journal}, not the sentinel &rarr; assertion fails.</li>
+ *     <li>A revert to returning the hard-coded MongoDB plugin ID
+ *     {@code pekko-contrib-mongodb-persistence-policies-journal}: the actor would not return the sentinel &rarr;
+ *     assertion fails.</li>
  *     <li>Passing the wrong entity-type string to the provider: the stub throws {@code IllegalArgumentException} for any
  *     type other than {@code "policy"}, so the actor fails to start (the plugin-id methods run during Pekko's
  *     {@code Eventsourced} trait init) &rarr; test fails.</li>

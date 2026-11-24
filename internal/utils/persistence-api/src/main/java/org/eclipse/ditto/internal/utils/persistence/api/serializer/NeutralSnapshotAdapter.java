@@ -31,11 +31,12 @@ import org.apache.pekko.persistence.SnapshotOffer;
  * {@link SnapshotCodec} (the storage envelope — BSON for MongoDB, JSONB for PostgreSQL).
  * <p>
  * This unifies what a per-backend pair of snapshot adapters would otherwise do:
- * the only thing that ever differed between backends was the storage envelope, which is now the injected
+ * the only thing that ever differed between backends was the storage envelope, which is the injected
  * {@link SnapshotCodec}. The serializer and codec each have exactly one home, so a snapshot adapter is assembled rather
  * than subclassed per backend.
  * <p>
- * Its behaviour mirrors the former {@code AbstractMongoSnapshotAdapter} exactly:
+ * The adapter applies the codec around the serializer; on MongoDB the codec is {@code MongoSnapshotCodec}, the BSON
+ * envelope, and on PostgreSQL the JSONB one:
  * <ul>
  *   <li>{@link #toSnapshotStore} = {@code codec.encode(serializer.toJson(entity))} — the
  *       {@link SnapshotSerializer#toJson} call applies the {@code onSnapshotStoreConversion} side-effect
@@ -43,7 +44,7 @@ import org.apache.pekko.persistence.SnapshotOffer;
  *       before the codec wraps the resulting {@link JsonObject} for storage.</li>
  *   <li>the {@code fromSnapshotStore} methods = {@code serializer.fromJson(codec.decode(rawStoredValue))} — the codec
  *       decodes the raw stored value back to a {@link JsonObject}, then the serializer recovers the domain type (and
- *       returns {@code null} for a deleted snapshot, exactly as before).</li>
+ *       returns {@code null} for a deleted snapshot).</li>
  * </ul>
  *
  * @param <T> the jsonifiable snapshot type.

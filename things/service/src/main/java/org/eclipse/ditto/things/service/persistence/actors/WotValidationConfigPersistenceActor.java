@@ -77,20 +77,6 @@ public final class WotValidationConfigPersistenceActor
      */
     static final String PERSISTENCE_ID_PREFIX = ENTITY_TYPE + ":";
 
-    /**
-     * The MongoDB journal plugin ID for WoT validation configs. The persistent-actor write path now resolves its journal
-     * plugin through the {@link PersistenceBackendProvider} (see {@link #journalPluginId()}) so it follows the active
-     * backend profile; this constant documents the Mongo default.
-     */
-    static final String JOURNAL_PLUGIN_ID = "pekko-contrib-mongodb-persistence-wot-validation-config-journal";
-
-    /**
-     * The MongoDB snapshot plugin ID for WoT validation configs. The persistent-actor write path now resolves its
-     * snapshot plugin through the {@link PersistenceBackendProvider} (see {@link #snapshotPluginId()}); this constant
-     * documents the Mongo default.
-     */
-    static final String SNAPSHOT_PLUGIN_ID = "pekko-contrib-mongodb-persistence-wot-validation-config-snapshots";
-
     private static final String WOT_VALIDATION_CONFIG_PATH = "things.wot-validation-config";
 
     private final ActorRef pubSubMediator;

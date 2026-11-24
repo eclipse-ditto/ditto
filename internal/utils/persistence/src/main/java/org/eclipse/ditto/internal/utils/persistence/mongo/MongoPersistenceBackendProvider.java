@@ -192,9 +192,9 @@ public final class MongoPersistenceBackendProvider implements PersistenceBackend
     /**
      * {@inheritDoc}
      * <p>
-     * Returns the singleton {@link MongoSnapshotCodec} — the BSON envelope extracted from
-     * {@link AbstractMongoSnapshotAdapter}. Both the adapter and this accessor share the same stateless
-     * codec instance, so the BSON envelope logic lives in exactly one place.
+     * Returns the stateless singleton {@link MongoSnapshotCodec}, the BSON envelope that
+     * {@link org.eclipse.ditto.internal.utils.persistence.api.serializer.NeutralSnapshotAdapter} applies around a
+     * service's {@code SnapshotSerializer}.
      */
     @Override
     public SnapshotCodec snapshotCodec() {
