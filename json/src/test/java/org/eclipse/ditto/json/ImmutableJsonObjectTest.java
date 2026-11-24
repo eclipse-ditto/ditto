@@ -1522,7 +1522,7 @@ public final class ImmutableJsonObjectTest {
         assertThat(getInternalField(jsonObject, "jsonObjectStringRepresentation"))
                 .as("string representation must not be eagerly created on construction")
                 .isNull();
-        assertThat(getInternalField(jsonObject, "cborObjectRepresentation"))
+        assertThat(getInternalField(jsonObject, "cborBytes"))
                 .as("CBOR representation must not be eagerly created on construction")
                 .isNull();
         assertThat(getInternalField(jsonObject, "fieldsRef"))

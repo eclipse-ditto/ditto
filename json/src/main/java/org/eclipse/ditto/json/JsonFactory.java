@@ -943,15 +943,14 @@ public final class JsonFactory {
     }
 
     /**
-     * Creates a {@link JsonObject} which takes over the passed field map instead of copying it, for parsers which
-     * build the map exclusively for the new object.
+     * Creates a {@link JsonObject} from a field map which parsers built exclusively for the new object.
+     * The fields are copied into a compact representation, so the passed map is not referenced by the created object.
      * <p>
      * <b>This is a Ditto internal API is not intended for re-use.</b>
      * It therefore is not treated as API which is held binary compatible to previous versions.
      * </p>
      *
-     * @param jsonFieldMap the JSON fields to create the JsonObject from - the caller must neither modify the map nor
-     * keep a reference to it.
+     * @param jsonFieldMap the JSON fields to create the JsonObject from.
      * @return the created JsonObject.
      * @since 3.9.9
      */
@@ -960,20 +959,60 @@ public final class JsonFactory {
     }
 
     /**
-     * Creates a {@link JsonArray} which takes over the passed value list instead of copying it, for parsers which
-     * build the list exclusively for the new array.
+     * Creates a {@link JsonArray} from a value list which parsers built exclusively for the new array.
+     * The values are copied into a compact representation, so the passed list is not referenced by the created array.
      * <p>
      * <b>This is a Ditto internal API is not intended for re-use.</b>
      * It therefore is not treated as API which is held binary compatible to previous versions.
      * </p>
      *
-     * @param jsonValueList the JSON values to create the JsonArray from - the caller must neither modify the list nor
-     * keep a reference to it.
+     * @param jsonValueList the JSON values to create the JsonArray from.
      * @return the created JsonArray.
      * @since 3.9.9
      */
     public static JsonArray createJsonArrayTakingOwnership(final List<JsonValue> jsonValueList) {
         return ImmutableJsonArray.ofTakingOwnership(jsonValueList, null);
+    }
+
+    /**
+     * Creates a {@link JsonObject} parsed from CBOR: takes over the passed fields array and references its CBOR
+     * representation as slice of {@code cborBytes}, so that its fields can be released under memory pressure and
+     * be parsed again from the slice.
+     * <p>
+     * <b>This is a Ditto internal API is not intended for re-use.</b>
+     * It therefore is not treated as API which is held binary compatible to previous versions.
+     * </p>
+     *
+     * @param ownedFields the fields in parsing order - the caller must neither modify the array nor keep it.
+     * @param cborBytes the bytes containing the CBOR representation, never to be modified by anyone.
+     * @param cborOffset the offset of the CBOR representation in {@code cborBytes}.
+     * @param cborLength the length of the CBOR representation.
+     * @return the created JsonObject.
+     * @since 3.9.10
+     */
+    public static JsonObject createJsonObjectFromCborSlice(final JsonField[] ownedFields, final byte[] cborBytes,
+            final int cborOffset, final int cborLength) {
+        return ImmutableJsonObject.ofCborSlice(ownedFields, cborBytes, cborOffset, cborLength);
+    }
+
+    /**
+     * Creates a {@link JsonArray} parsed from CBOR, like
+     * {@link #createJsonObjectFromCborSlice(JsonField[], byte[], int, int)}.
+     * <p>
+     * <b>This is a Ditto internal API is not intended for re-use.</b>
+     * It therefore is not treated as API which is held binary compatible to previous versions.
+     * </p>
+     *
+     * @param ownedValues the values - the caller must neither modify the array nor keep it; none is {@code null}.
+     * @param cborBytes the bytes containing the CBOR representation, never to be modified by anyone.
+     * @param cborOffset the offset of the CBOR representation in {@code cborBytes}.
+     * @param cborLength the length of the CBOR representation.
+     * @return the created JsonArray.
+     * @since 3.9.10
+     */
+    public static JsonArray createJsonArrayFromCborSlice(final JsonValue[] ownedValues, final byte[] cborBytes,
+            final int cborOffset, final int cborLength) {
+        return ImmutableJsonArray.ofCborSlice(ownedValues, cborBytes, cborOffset, cborLength);
     }
 
     /**

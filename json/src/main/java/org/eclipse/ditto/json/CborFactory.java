@@ -62,6 +62,24 @@ public interface CborFactory {
     JsonValue readFrom(byte[] bytes, int offset, int length);
 
     /**
+     * Like {@link #readFrom(byte[], int, int)}, but for bytes which are never modified, e.g. the CBOR representation
+     * of an already parsed value: the parsed values may reference slices of {@code bytes} instead of a copy.
+     * <p>
+     * <b>This is a Ditto internal API is not intended for re-use.</b>
+     * </p>
+     *
+     * @param bytes the immutable bytes to parse with CBOR.
+     * @param offset the offset where to start reading from.
+     * @param length the length of how much bytes to read.
+     * @return the parsed JsonValue.
+     * @throws JsonParseException if the content of {@code bytes} cannot be deserialized to a {@link JsonValue}.
+     * @since 3.9.10
+     */
+    default JsonValue readFromOwnedBytes(final byte[] bytes, final int offset, final int length) {
+        return readFrom(bytes, offset, length);
+    }
+
+    /**
      * Deserializes a {@code JsonValue} by parsing the passed {@code byteBuffer} with CBOR.
      *
      * @param byteBuffer the ByteBuffer to parse with CBOR.
