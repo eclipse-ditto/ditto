@@ -426,6 +426,27 @@
                     <version>3.6.2</version>
                 </plugin>
                 <plugin>
+                    <!-- The snapshot Dockerfiles COPY ${TARGET_DIR}/extensions/: build-images.sh fills the directory
+                         with extension JARs, otherwise it stays empty. Service modules activate this execution. -->
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-antrun-plugin</artifactId>
+                    <version>3.1.0</version>
+                    <executions>
+                        <execution>
+                            <id>create-extensions-dir</id>
+                            <phase>prepare-package</phase>
+                            <goals>
+                                <goal>run</goal>
+                            </goals>
+                            <configuration>
+                                <target>
+                                    <mkdir dir="${project.build.directory}/extensions"/>
+                                </target>
+                            </configuration>
+                        </execution>
+                    </executions>
+                </plugin>
+                <plugin>
                     <groupId>org.sonatype.plugins</groupId>
                     <artifactId>port-allocator-maven-plugin</artifactId>
                     <version>1.2</version>
