@@ -69,6 +69,16 @@ public final class MongoThingsSearchPersistenceRecoveryTest {
     }
 
     @Test
+    public void recoveredDocumentCarriesTheStoredBson() {
+        final AbstractWriteModel result = MongoThingsSearchPersistence.documentToWriteModel(toDocument(storedBson()));
+
+        assertThat(result).isInstanceOfSatisfying(ThingWriteModel.class, recovered ->
+                assertThat(recovered.getDocument().encoded(BsonDocument.class, d -> {
+                    throw new AssertionError("recovered document encoded again");
+                })).isEqualTo(storedBson()));
+    }
+
+    @Test
     public void documentWithoutReferencedPoliciesIsRecoveredAsEmptiedOut() {
         final BsonDocument bson = storedBson();
         bson.remove(PersistenceConstants.FIELD_REFERENCED_POLICIES);

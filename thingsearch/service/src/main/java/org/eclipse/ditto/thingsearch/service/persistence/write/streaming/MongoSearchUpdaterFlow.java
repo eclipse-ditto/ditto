@@ -176,7 +176,8 @@ public final class MongoSearchUpdaterFlow implements SearchUpdaterFlow {
                         .noopWriteModel(metadata);
             } else {
                 return org.eclipse.ditto.thingsearch.service.persistence.write.model.ThingWriteModel.of(metadata,
-                        SearchIndexDocumentMongoEncoder.encode(neutralWrite.getDocument()));
+                        neutralWrite.getDocument()
+                                .encoded(BsonDocument.class, SearchIndexDocumentMongoEncoder::encode));
             }
         } else {
             throw new IllegalArgumentException("Unsupported neutral write model: " + neutral);

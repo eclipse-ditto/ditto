@@ -18,6 +18,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Function;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
@@ -37,6 +38,9 @@ import org.eclipse.ditto.things.model.ThingId;
  * concern applied when serializing this document), the policy-derived authorization projections, and the
  * revision/policy bookkeeping needed for consistency checks. A backend serializes this into its own on-disk
  * shape (Mongo: a BSON document with revised keys; PostgreSQL: a JSONB row plus flattened side rows).
+ * <p>
+ * A document memoises one encoded form of itself (see {@link #encoded(Class, Function)}), e.g. a MongoDB backend's
+ * {@code BsonDocument}. The encoding is a cache and takes no part in the value of the document.
  *
  * @since 4.0.0
  */
@@ -53,6 +57,12 @@ public final class SearchIndexDocument {
     private final JsonObject thing;
     private final JsonObject policyAuth;
     private final List<FeatureEntry> features;
+
+    /**
+     * Memoised encoded form of this document; a cache that is deliberately not final and takes no part in
+     * {@code equals}, {@code hashCode} and {@code toString}.
+     */
+    @Nullable private volatile Object encoding;
 
     private SearchIndexDocument(final Builder builder) {
         this.thingId = Objects.requireNonNull(builder.thingId, "thingId");
@@ -144,6 +154,35 @@ public final class SearchIndexDocument {
      */
     public List<FeatureEntry> features() {
         return features;
+    }
+
+    /**
+     * Returns the encoded form of this document of the given type, e.g. a MongoDB backend's {@code BsonDocument}.
+     * The document memoises one encoded form: if it holds an encoding of the given type, that encoding is returned
+     * and the encoder is not called; otherwise the encoder is called and its result replaces the memoised encoding.
+     * A failing encoder leaves the memoised encoding as it was.
+     * <p>
+     * The encoding is a cache that takes no part in the value of this document ({@code equals}, {@code hashCode},
+     * {@code toString}). Callers must treat a returned encoding as read-only, because it is shared by every write
+     * model that holds this document. Two threads may both encode the document; the last result is kept.
+     *
+     * @param type the type of the encoding.
+     * @param encoder computes the encoding of this document; must not return {@code null}.
+     * @param <T> the type of the encoding.
+     * @return the encoding of this document.
+     * @throws NullPointerException if {@code type} or {@code encoder} is {@code null} or the encoder returns
+     * {@code null}.
+     */
+    public <T> T encoded(final Class<T> type, final Function<SearchIndexDocument, T> encoder) {
+        Objects.requireNonNull(type, "type");
+        Objects.requireNonNull(encoder, "encoder");
+        final Object memoised = encoding;
+        if (type.isInstance(memoised)) {
+            return type.cast(memoised);
+        }
+        final T encoded = Objects.requireNonNull(encoder.apply(this), "encoder returned null");
+        encoding = encoded;
+        return encoded;
     }
 
     @Override

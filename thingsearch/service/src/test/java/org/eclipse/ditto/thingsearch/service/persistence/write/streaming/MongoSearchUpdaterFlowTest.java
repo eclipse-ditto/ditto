@@ -46,6 +46,7 @@ import org.eclipse.ditto.thingsearch.persistence.api.write.UpdaterData;
 import org.eclipse.ditto.thingsearch.persistence.api.write.UpdaterResult;
 import org.eclipse.ditto.thingsearch.service.common.config.PersistenceStreamConfig;
 import org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants;
+import org.eclipse.ditto.thingsearch.service.persistence.write.mapping.SearchIndexDocumentMongoEncoder;
 import org.eclipse.ditto.thingsearch.service.persistence.write.model.WriteResultAndErrors;
 import org.junit.After;
 import org.junit.Before;
@@ -206,6 +207,31 @@ public final class MongoSearchUpdaterFlowTest {
     }
 
     @Test
+    public void documentIsEncodedOnce() throws Exception {
+        whenBulkWriteReturn(BulkWriteResult.acknowledged(0, 1, 0, 1, List.of(), List.of()));
+        final SearchIndexDocument lastDocument = document(1L, thingWithAttributes(1));
+        final SearchIndexDocument currentDocument = document(2L, thingWithAttributes(2));
+        final var lastWriteModel = ThingWriteModel.of(metadata(1L, null), lastDocument);
+        final var writeModel = ThingWriteModel.of(metadata(2L, null), currentDocument);
+
+        final List<UpdaterResult> results = runFlow(new UpdaterData(writeModel, lastWriteModel));
+
+        final BsonDocument currentEncoding = currentDocument.encoded(BsonDocument.class, d -> {
+            throw new AssertionError("document encoded again");
+        });
+        final BsonDocument lastEncoding = lastDocument.encoded(BsonDocument.class, d -> {
+            throw new AssertionError("last document encoded again");
+        });
+        assertThat(currentEncoding).isEqualTo(SearchIndexDocumentMongoEncoder.encode(currentDocument));
+        assertThat(lastEncoding).isEqualTo(SearchIndexDocumentMongoEncoder.encode(lastDocument));
+        assertThat(results).singleElement().satisfies(result ->
+                assertThat(result.writeModel()).isInstanceOfSatisfying(ThingWriteModel.class, reported ->
+                        assertThat(reported.getDocument().encoded(BsonDocument.class, d -> {
+                            throw new AssertionError("reported document encoded again");
+                        })).isSameAs(currentEncoding)));
+    }
+
+    @Test
     public void fullReplaceIsReportedWithoutThePatchFlag() throws Exception {
         whenBulkWriteReturn(BulkWriteResult.acknowledged(0, 0, 0, 0,
                 List.of(new BulkWriteUpsert(0, new BsonString(THING_ID.toString()))), List.of()));
@@ -271,7 +297,7 @@ public final class MongoSearchUpdaterFlowTest {
      */
     private static SearchIndexDocument unencodableDocument() {
         final SearchIndexDocument document = mock(SearchIndexDocument.class);
-        when(document.thingId()).thenThrow(new IllegalStateException("document cannot be encoded"));
+        when(document.encoded(any(), any())).thenThrow(new IllegalStateException("document cannot be encoded"));
         return document;
     }
 
