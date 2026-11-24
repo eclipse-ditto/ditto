@@ -27,6 +27,8 @@ sections: `Added`, `Changed`, `Deprecated`, `Removed`, `Fixed`, `Security`.
     requests directly to the gateway. **Action required** for such installations: either set `global.jwtOnly: true`
     (recommended), or make sure the ingress controller sets the header from a verified identity or removes it on every
     path and confirm that with the new `ingress.preAuthenticationHeaderSanitized: true`.
+    Although this requires user action on upgrade, it is intentionally released as a minor version, as an exception
+    for this security fix.
 
 ## [4.9.0]
 
