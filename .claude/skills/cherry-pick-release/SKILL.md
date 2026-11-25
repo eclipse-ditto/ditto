@@ -116,18 +116,49 @@ git cherry-pick <COMMIT_SHA>
   3. Ask if they want to skip this commit: `git cherry-pick --skip`
   4. Or abort the entire operation: `git cherry-pick --abort`
 
-### Step 7: Summary
+### Step 7: Set the Helm Chart `appVersion` on the Release Branch and on master
+
+This step is **mandatory for every release**, also when no helm-chart PR was cherry-picked: the release job
+tags the head of the release branch, so the chart released from it must already reference the new Ditto
+version. Cherry-picked commits never change `appVersion`, so it is still at the previous patch version.
+
+1. **Release branch**: `deployment/helm/ditto/Chart.yaml` → `appVersion` must be the released Ditto version
+   (e.g. `3.9.10`), and `version` the chart version released with it. If `appVersion` differs, set it and
+   commit it separately:
+
+   ```bash
+   sed -i '' 's/^appVersion: .*/appVersion: <VERSION>/' deployment/helm/ditto/Chart.yaml
+   git commit -s -am "Bump Helm appVersion to <VERSION>"
+   ```
+
+2. **master**: if master's `appVersion` belongs to the **same** release line (e.g. master at `3.9.9` when
+   releasing `3.9.10`), bump it to `<VERSION>` on master as well, in a separate commit on a fresh
+   `origin/master`. If master's `appVersion` belongs to a newer line (e.g. master at `3.9.x` when releasing
+   `3.8.16`), leave master unchanged.
+
+3. Verify the result on both branches:
+
+   ```bash
+   for b in release-<MAJOR>.<MINOR> master; do
+     echo "$b: $(git show $b:deployment/helm/ditto/Chart.yaml | grep -E '^(version|appVersion)' | tr '\n' ' ')"
+   done
+   ```
+
+4. `deployment/helm/ditto/CHANGELOG.md` (if it exists on the release branch) must have a section for the
+   released chart version, starting with ``Bumped Ditto `appVersion` to `<VERSION>`.``, and no entries left
+   under `[Unreleased]` that belong to this release. When a commit from master (e.g. the release notes commit)
+   is cherry-picked, check that no master-only entries (changes of the next major/minor version) leaked into
+   the release branch's `CHANGELOG.md`.
+
+### Step 8: Summary
 
 After processing all PRs, provide a summary:
 - Number of PRs processed (note how many were milestone vs. helm-chart-labeled)
 - Number of commits cherry-picked
 - Any PRs or commits that were skipped
 - Current state of the release branch
-
-If any helm-chart PRs were cherry-picked, verify the chart is coherent on the release branch:
-- `deployment/helm/ditto/Chart.yaml` → `version` matches the released chart version and `appVersion`
-  matches this Ditto release
-- `deployment/helm/ditto/CHANGELOG.md` has a section for that chart version (not left under `[Unreleased]`)
+- The `version` / `appVersion` of `deployment/helm/ditto/Chart.yaml` on the release branch and on master
+  (from Step 7)
 
 ## Example Interaction
 
