@@ -39,6 +39,7 @@ import org.eclipse.ditto.thingsearch.api.commands.sudo.SudoRetrieveNamespaceRepo
 import org.eclipse.ditto.thingsearch.model.signals.commands.SearchErrorResponse;
 import org.eclipse.ditto.thingsearch.model.signals.commands.query.QueryThingsResponse;
 import org.eclipse.ditto.things.model.devops.commands.RetrieveWotValidationConfigResponse;
+import org.eclipse.ditto.timeseries.model.signals.commands.RetrieveTimeseriesResponse;
 
 public final class ThingsSearchServiceGlobalCommandResponseRegistryTest extends GlobalCommandResponseRegistryTestCases {
 
@@ -70,7 +71,8 @@ public final class ThingsSearchServiceGlobalCommandResponseRegistryTest extends 
                 ModifySplitBrainResolverResponse.class,
                 ConnectivityErrorResponse.class,
                 RetrieveWotValidationConfigResponse.class,
-                CheckPermissionsResponse.class
+                CheckPermissionsResponse.class,
+                RetrieveTimeseriesResponse.class
 
         );
     }

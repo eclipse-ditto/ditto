@@ -21,6 +21,13 @@ sections: `Added`, `Changed`, `Deprecated`, `Removed`, `Fixed`, `Security`.
   error for every rejected request, regardless of whether the entity exists. Set it to `false` to restore the
   previous, resource-specific errors (e.g. `403 things:thing.notmodifiable`) which allow to determine whether an
   entity exists ([#2596](https://github.com/eclipse-ditto/ditto/pull/2596))
+- New optional `timeseries` service (`timeseries.enabled`, default `false`) with its Deployment, ConfigMap,
+  PodDisruptionBudget and PodMonitor.
+- New `global.featureFlags.timeseriesEnabled` (default `false`), passed to the things, gateway and connectivity
+  services as `DITTO_DEVOPS_FEATURE_TIMESERIES_ENABLED`. It switches on the ingest of WoT-annotated properties and
+  the `/api/2/timeseries` endpoints; enable it together with `timeseries.enabled`.
+- New `things.config.timeseries.maxMeasurementAge` (default `35d`), passed to the things service as
+  `THINGS_TIMESERIES_MAX_MEASUREMENT_AGE`: how far before its event a data point's measurement time may lie.
 
 ## [4.9.0]
 

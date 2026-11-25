@@ -230,6 +230,8 @@ spec:
               value: "{{ .Values.global.featureFlags.policyEnforcementUseThroughputOptimizedEvaluatorEnabled }}"
             - name: DITTO_DEVOPS_FEATURE_STACKLESS_FLOW_CONTROL_EXCEPTIONS_ENABLED
               value: "{{ .Values.global.featureFlags.stacklessFlowControlExceptionsEnabled }}"
+            - name: DITTO_DEVOPS_FEATURE_TIMESERIES_ENABLED
+              value: "{{ .Values.global.featureFlags.timeseriesEnabled }}"
             - name: DITTO_DEVOPS_FEATURE_HIDE_INACCESSIBLE_ENTITY_EXISTENCE_ENABLED
               value: "{{ .Values.global.featureFlags.hideInaccessibleEntityExistenceEnabled }}"
             - name: DITTO_METRICS_LIVE_ENTITIES_METRICS_ENABLED
@@ -338,6 +340,8 @@ spec:
               value: "{{ .Values.things.config.supervisor.localAskTimeoutDuringRecovery }}"
             - name: THINGS_SUPERVISOR_LOCAL_ASK_ENFORCER_TIMEOUT
               value: "{{ .Values.things.config.supervisor.localAskEnforcerTimeout }}"
+            - name: THINGS_TIMESERIES_MAX_MEASUREMENT_AGE
+              value: "{{ .Values.things.config.timeseries.maxMeasurementAge }}"
             - name: THINGS_WOT_TO_THING_DESCRIPTION_BASE_PREFIX
               value: "{{ .Values.things.config.wot.tdBasePrefix }}"
             - name: THINGS_WOT_THING_MODEL_CACHE_SIZE

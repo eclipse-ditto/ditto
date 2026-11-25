@@ -33,6 +33,33 @@ public final class Permission {
     public static final String WRITE = "WRITE";
 
     /**
+     * Permission to read timeseries data of a Thing's properties.
+     * <p>
+     * Applies only to {@code thing:/...} resources and gates retrieval of historical timeseries data via the
+     * Timeseries API. The Timeseries service exposes a boolean
+     * {@code ditto.timeseries.simplified-read-permission} (default {@code false}) which selects between
+     * two enforcement modes:
+     * <ul>
+     *   <li><b>Strict (default, {@code simplified-read-permission = false}):</b> the subject must have an
+     *       explicit {@code READ_TS} grant on the requested resource. {@link #READ} alone is <em>not</em>
+     *       sufficient. An explicit {@code READ_TS} revoke at a more specific path takes precedence over a
+     *       {@code READ_TS} grant at a parent path, following Ditto's standard policy resolution.</li>
+     *   <li><b>Simplified ({@code simplified-read-permission = true}):</b> a {@link #READ} grant on the
+     *       requested resource is sufficient to read timeseries data; no separate {@code READ_TS} grant is
+     *       required. In this mode an explicit {@code READ_TS} revoke is a no-op because the enforcer does
+     *       not look up {@code READ_TS}.</li>
+     * </ul>
+     * <p>
+     * Note: {@code READ_TS} is intentionally <em>not</em> included in {@link #DEFAULT_THING_PERMISSIONS}.
+     * Subjects that own a Thing without an explicit policy do not implicitly gain timeseries read access;
+     * timeseries access is opt-in via policy.
+     *
+     * @see <a href="https://github.com/eclipse-ditto/ditto/issues/2291">Ditto issue #2291</a>
+     * @since 4.0.0
+     */
+    public static final String READ_TS = "READ_TS";
+
+    /**
      * The set of Permissions which must be set as default on the 'thing:/' Resource for the current Subject,
      * if no policy is present.
      */
