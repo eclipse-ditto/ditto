@@ -13,6 +13,7 @@
 package org.eclipse.ditto.gateway.service.streaming.actors;
 
 import java.util.List;
+import java.util.Set;
 
 import javax.annotation.Nullable;
 
@@ -63,7 +64,7 @@ public final class SessionedSignals {
             @Nullable final String filter, @Nullable final ThingFieldSelector extraFields,
             final ActorRef streamingSessionActor) {
 
-        final StreamingSession session = StreamingSession.of(List.of(),
+        final StreamingSession session = StreamingSession.of(List.of(), Set.of(),
                 null == filter ? null :
                         StreamingSession.getFilterCriteriaFactory().filterCriteria(filter, sessionHeaders),
                 extraFields,

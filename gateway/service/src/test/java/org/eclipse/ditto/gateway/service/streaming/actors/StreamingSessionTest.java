@@ -16,6 +16,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 
 import java.util.List;
+import java.util.Set;
 
 import org.apache.pekko.actor.ActorRef;
 import org.eclipse.ditto.base.model.exceptions.InvalidRqlExpressionException;
@@ -106,6 +107,24 @@ public final class StreamingSessionTest {
     }
 
     @Test
+    public void withoutThingIdsEverySignalMatches() {
+        final StreamingSession underTest = sessionWithFilter(null);
+
+        assertThat(underTest.matchesThingIds(thingDeleted(DittoHeaders.empty()))).isTrue();
+    }
+
+    @Test
+    public void matchesOnlySignalsOfGivenThingIds() {
+        final StreamingSession underTest = StreamingSession.of(List.of(), Set.of(THING_ID), null, null,
+                ActorRef.noSender(), Mockito.mock(ThreadSafeDittoLoggingAdapter.class));
+        final Signal<?> otherThingDeleted =
+                ThingDeleted.of(ThingId.of("org.eclipse.ditto:other-thing"), 1L, null, DittoHeaders.empty(), null);
+
+        assertThat(underTest.matchesThingIds(thingDeleted(DittoHeaders.empty()))).isTrue();
+        assertThat(underTest.matchesThingIds(otherThingDeleted)).isFalse();
+    }
+
+    @Test
     public void rejectsPlaceholdersWhichAreNotResolved() {
         assertThatExceptionOfType(InvalidRqlExpressionException.class)
                 .isThrownBy(() -> StreamingSession.getFilterCriteriaFactory()
@@ -119,7 +138,7 @@ public final class StreamingSessionTest {
     }
 
     private static StreamingSession sessionWithFilter(final String filter) {
-        return StreamingSession.of(List.of(),
+        return StreamingSession.of(List.of(), Set.of(),
                 filter == null ? null :
                         StreamingSession.getFilterCriteriaFactory().filterCriteria(filter, DittoHeaders.empty()),
                 null,

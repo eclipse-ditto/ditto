@@ -14,6 +14,7 @@ package org.eclipse.ditto.gateway.service.streaming.actors;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.BiPredicate;
 
 import javax.annotation.Nullable;
@@ -37,6 +38,7 @@ import org.eclipse.ditto.rql.query.filter.QueryFilterCriteriaFactory;
 import org.eclipse.ditto.rql.query.things.ThingPredicateVisitor;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingFieldSelector;
+import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.events.ThingEventToThingConverter;
 
 import org.apache.pekko.actor.ActorRef;
@@ -70,26 +72,28 @@ public final class StreamingSession {
     private static final DittoProtocolAdapter PROTOCOL_ADAPTER = DittoProtocolAdapter.newInstance();
 
     private final List<String> namespaces;
+    private final Set<ThingId> thingIds;
     private final BiPredicate<Thing, Signal<?>> thingPredicate;
     @Nullable private final ThingFieldSelector extraFields;
     private final ActorRef streamingSessionActor;
     private final ThreadSafeDittoLoggingAdapter logger;
 
-    private StreamingSession(final List<String> namespaces, @Nullable final Criteria filterCriteria,
-            @Nullable final ThingFieldSelector extraFields, final ActorRef streamingSessionActor,
-            final ThreadSafeDittoLoggingAdapter logger) {
+    private StreamingSession(final List<String> namespaces, final Set<ThingId> thingIds,
+            @Nullable final Criteria filterCriteria, @Nullable final ThingFieldSelector extraFields,
+            final ActorRef streamingSessionActor, final ThreadSafeDittoLoggingAdapter logger) {
         this.namespaces = namespaces;
+        this.thingIds = thingIds;
         thingPredicate = toThingPredicate(filterCriteria);
         this.extraFields = extraFields;
         this.streamingSessionActor = streamingSessionActor;
         this.logger = logger;
     }
 
-    static StreamingSession of(final List<String> namespaces, @Nullable final Criteria filterCriteria,
-            @Nullable final ThingFieldSelector extraFields, final ActorRef streamingSessionActor,
-            final ThreadSafeDittoLoggingAdapter logger) {
+    static StreamingSession of(final List<String> namespaces, final Set<ThingId> thingIds,
+            @Nullable final Criteria filterCriteria, @Nullable final ThingFieldSelector extraFields,
+            final ActorRef streamingSessionActor, final ThreadSafeDittoLoggingAdapter logger) {
 
-        return new StreamingSession(namespaces, filterCriteria, extraFields, streamingSessionActor, logger);
+        return new StreamingSession(namespaces, thingIds, filterCriteria, extraFields, streamingSessionActor, logger);
     }
 
     /**
@@ -125,6 +129,17 @@ public final class StreamingSession {
      */
     public List<String> getNamespaces() {
         return namespaces;
+    }
+
+    /**
+     * Test whether a signal concerns one of the thing IDs this session is restricted to.
+     *
+     * @param signal the signal.
+     * @return {@code true} if the session is not restricted to thing IDs or the signal's entity ID is one of them.
+     * @since 3.9.11
+     */
+    public boolean matchesThingIds(final Signal<?> signal) {
+        return thingIds.isEmpty() || WithEntityId.getEntityId(signal).filter(thingIds::contains).isPresent();
     }
 
     /**

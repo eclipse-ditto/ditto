@@ -111,7 +111,7 @@ final class SseSessionStatistics {
     /**
      * Counts a signal which reached the SSE stream of the session.
      * The streaming session actor already dropped signals the session is not allowed to read or which do not match
-     * its namespaces before, those are not counted.
+     * its thing IDs or namespaces before, those are not counted.
      */
     void signalReceived() {
         received.increment();

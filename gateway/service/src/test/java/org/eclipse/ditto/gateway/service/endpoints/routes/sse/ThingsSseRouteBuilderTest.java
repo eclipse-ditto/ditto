@@ -201,7 +201,9 @@ public final class ThingsSseRouteBuilderTest extends EndpointTestBase {
         executeThingsRouteTest(HttpRequest.GET(THINGS_ROUTE + "/org.eclipse.ditto:my-thing-1").addHeader(acceptHeader),
                 StartStreaming.getBuilder(StreamingType.EVENTS, connectionCorrelationId,
                         AuthorizationModelFactory.newAuthContext(DittoAuthorizationContextType.UNSPECIFIED,
-                                Collections.emptySet())).build());
+                                Collections.emptySet()))
+                        .withThingIds(List.of(ThingId.of("org.eclipse.ditto:my-thing-1")))
+                        .build());
     }
 
     @Test
@@ -290,6 +292,7 @@ public final class ThingsSseRouteBuilderTest extends EndpointTestBase {
                 StartStreaming.getBuilder(StreamingType.EVENTS, connectionCorrelationId,
                                 AuthorizationModelFactory.newAuthContext(DittoAuthorizationContextType.UNSPECIFIED,
                                         Collections.emptySet()))
+                        .withThingIds(List.of(ThingId.of("org.eclipse.ditto:my-thing-1")))
                         .withFilter(filter)
                         .build());
     }
@@ -335,6 +338,7 @@ public final class ThingsSseRouteBuilderTest extends EndpointTestBase {
                 StartStreaming.getBuilder(StreamingType.EVENTS, connectionCorrelationId,
                                 AuthorizationModelFactory.newAuthContext(DittoAuthorizationContextType.UNSPECIFIED,
                                         Collections.emptySet()))
+                        .withThingIds(List.of(ThingId.of("org.eclipse.ditto:my-thing-1")))
                         .build());
     }
 
@@ -347,6 +351,7 @@ public final class ThingsSseRouteBuilderTest extends EndpointTestBase {
                 StartStreaming.getBuilder(StreamingType.MESSAGES, connectionCorrelationId,
                                 AuthorizationModelFactory.newAuthContext(DittoAuthorizationContextType.UNSPECIFIED,
                                         Collections.emptySet()))
+                        .withThingIds(List.of(ThingId.of("org.eclipse.ditto:my-thing-1")))
                         .withFilter(String.format("and(eq(entity:id,'%s'),like(resource:path,'%s*'))", thingId,
                                 "/inbox/messages"))
                         .build());
@@ -361,8 +366,24 @@ public final class ThingsSseRouteBuilderTest extends EndpointTestBase {
                 StartStreaming.getBuilder(StreamingType.MESSAGES, connectionCorrelationId,
                                 AuthorizationModelFactory.newAuthContext(DittoAuthorizationContextType.UNSPECIFIED,
                                         Collections.emptySet()))
+                        .withThingIds(List.of(ThingId.of("org.eclipse.ditto:my-thing-1")))
                         .withFilter(String.format("and(eq(entity:id,'%s'),eq(resource:path,'%s'))", thingId,
                                 "/inbox/messages/hello-world"))
+                        .build());
+    }
+
+    @Test
+    public void getWithAcceptHeaderAndIdsParameterOpensSseConnection() {
+        final List<ThingId> thingIds =
+                List.of(ThingId.of("org.eclipse.ditto:my-thing-1"), ThingId.of("org.eclipse.ditto:my-thing-2"));
+
+        final String requestUrl = THINGS_ROUTE + "?ids=" + thingIds.get(0) + "," + thingIds.get(1);
+
+        executeThingsRouteTest(HttpRequest.GET(requestUrl).addHeader(acceptHeader),
+                StartStreaming.getBuilder(StreamingType.EVENTS, connectionCorrelationId,
+                                AuthorizationModelFactory.newAuthContext(DittoAuthorizationContextType.UNSPECIFIED,
+                                        Collections.emptySet()))
+                        .withThingIds(thingIds)
                         .build());
     }
 
@@ -859,6 +880,8 @@ public final class ThingsSseRouteBuilderTest extends EndpointTestBase {
                     .isEqualTo(expectedStartStreaming.getFilter());
             assertThat(receivedStartStreaming.getNamespaces())
                     .isEqualTo(expectedStartStreaming.getNamespaces());
+            assertThat(receivedStartStreaming.getThingIds())
+                    .isEqualTo(expectedStartStreaming.getThingIds());
             assertThat(receivedStartStreaming.getStreamingType())
                     .isEqualTo(expectedStartStreaming.getStreamingType());
 
