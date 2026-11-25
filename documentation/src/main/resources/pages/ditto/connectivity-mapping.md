@@ -491,12 +491,13 @@ All conditions must evaluate to true for the mapping to run:
 
 ## JavaScript mapping engine
 
-Ditto uses the [Rhino](https://github.com/mozilla/rhino) JavaScript engine (version `1.7.14`,
+Ditto uses the [Rhino](https://github.com/mozilla/rhino) JavaScript engine (version `1.9.1`,
 ES6 flag enabled) with strict sandboxing for security.
 
 ### Sandboxing constraints
 
-* No access to Java packages or classes
+* No access to Java classes or objects -- Java packages may be referenced when the connectivity
+  configuration `allowUnsafeStandardObjects` is enabled, but no Java class can be loaded or accessed
 * No file access, network calls, or `exit`/`quit`/`print`
 * Endless loops and deep recursion are terminated
 * Script file size is limited
