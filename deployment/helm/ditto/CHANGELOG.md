@@ -15,6 +15,17 @@ sections: `Added`, `Changed`, `Deprecated`, `Removed`, `Fixed`, `Security`.
 
 ## [Unreleased]
 
+### Added
+- New `global.featureFlags.hideInaccessibleEntityExistenceEnabled` (default `true`), passed to the things and
+  policies services. When enabled, requesters without any permission on a thing or policy get the same "not found"
+  error for every rejected request, regardless of whether the entity exists. Set it to `false` to restore the
+  previous, resource-specific errors (e.g. `403 things:thing.notmodifiable`) which allow to determine whether an
+  entity exists ([#2596](https://github.com/eclipse-ditto/ditto/pull/2596))
+
+## [4.10.0]
+
+Bumped Ditto `appVersion` to `3.9.10`.
+
 ### Security
 - Fixed an unauthenticated impersonation of policy subjects
   ([GHSA-f779-cv8j-4p59](https://github.com/eclipse-ditto/ditto/security/advisories/GHSA-f779-cv8j-4p59),
@@ -29,13 +40,6 @@ sections: `Added`, `Changed`, `Deprecated`, `Removed`, `Fixed`, `Security`.
     path and confirm that with the new `ingress.preAuthenticationHeaderSanitized: true`.
     Although this requires user action on upgrade, it is intentionally released as a minor version, as an exception
     for this security fix.
-
-### Added
-- New `global.featureFlags.hideInaccessibleEntityExistenceEnabled` (default `true`), passed to the things and
-  policies services. When enabled, requesters without any permission on a thing or policy get the same "not found"
-  error for every rejected request, regardless of whether the entity exists. Set it to `false` to restore the
-  previous, resource-specific errors (e.g. `403 things:thing.notmodifiable`) which allow to determine whether an
-  entity exists ([#2596](https://github.com/eclipse-ditto/ditto/pull/2596))
 
 ## [4.9.0]
 
