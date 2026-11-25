@@ -99,9 +99,9 @@ public final class PostgresPersistenceBackendProvider implements PersistenceBack
 
     /**
      * The {@code extension-config} key naming the entity prefix the shared read journal binds to (one of
-     * {@link PostgresTableNames}'s known entities). A Ditto service persists a single entity type per actor system
-     * (things, policies, connections, wot), so the read journal targets exactly one table set — exactly as
-     * {@code MongoReadJournal} binds to one journal collection per service.
+     * {@link PostgresTableNames}'s known entities). The shared read journal targets exactly one table set, as
+     * {@code MongoReadJournal} binds to one journal collection per service. An entity type of the service that is
+     * stored in another table set gets its own read journal from {@link #getReadJournal(String)}.
      * <p>
      * This key is <strong>required</strong> when the Postgres profile is active: there is NO silent default (a
      * fabricated {@code "things"} default would have pointed a policies/connectivity service's read journal at the
@@ -187,7 +187,7 @@ public final class PostgresPersistenceBackendProvider implements PersistenceBack
         final String journalPluginId = getJournalPluginId(entityType);
         final String entity = resolveJournalEntity(entityType, journalPluginId);
         final DittoReadJournal result;
-        if (entity.equals(resolveReadJournalEntity())) {
+        if (tableSetOf(entity).equals(tableSetOf(resolveReadJournalEntity()))) {
             result = getReadJournal();
         } else {
             final DittoPostgresClient sharedClient = PostgresClientExtension.get(actorSystem).getClient();
@@ -195,6 +195,10 @@ public final class PostgresPersistenceBackendProvider implements PersistenceBack
         }
         readJournalsByEntityType.put(entityType, result);
         return result;
+    }
+
+    private static String tableSetOf(final String entity) {
+        return PostgresTableNames.of(entity).entityPrefix();
     }
 
     private String resolveJournalEntity(final String entityType, final String journalPluginId) {

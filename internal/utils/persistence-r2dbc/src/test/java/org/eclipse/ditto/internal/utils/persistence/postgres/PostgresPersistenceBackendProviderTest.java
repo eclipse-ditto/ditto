@@ -273,12 +273,16 @@ public final class PostgresPersistenceBackendProviderTest {
      * the extension-config subtree.
      */
     private PostgresPersistenceBackendProvider providerForStreamingGuard() {
+        return providerForStreamingGuard("things");
+    }
+
+    private PostgresPersistenceBackendProvider providerForStreamingGuard(final String thingsJournalEntity) {
         final Config dittoConfig = ConfigFactory.parseString(
                 "ditto.postgresql.uri = \"r2dbc:postgresql://localhost:5432/ditto\"\n"
                         + "ditto.postgresql.username = \"ditto\"\n"
                         + "ditto.postgresql.password = \"secret\"\n"
                         + "ditto.postgresql.ssl.mode = \"disable\"\n"
-                        + "ditto-postgres-things-journal.entity = \"things\"\n"
+                        + "ditto-postgres-things-journal.entity = \"" + thingsJournalEntity + "\"\n"
                         + "ditto-postgres-wot-journal.entity = \"wot\"\n");
         system = ActorSystem.create("PostgresPersistenceBackendProviderStreamingTest",
                 dittoConfig.withFallback(ConfigFactory.load()));
@@ -316,6 +320,13 @@ public final class PostgresPersistenceBackendProviderTest {
     @Test
     public void readJournalOfTheServiceEntityIsTheSharedInstance() {
         final PostgresPersistenceBackendProvider provider = providerForStreamingGuard();
+
+        assertThat(provider.getReadJournal("thing")).isSameAs(provider.getReadJournal());
+    }
+
+    @Test
+    public void readJournalOfTheServiceEntityIsTheSharedInstanceInAnotherSpelling() {
+        final PostgresPersistenceBackendProvider provider = providerForStreamingGuard("Things");
 
         assertThat(provider.getReadJournal("thing")).isSameAs(provider.getReadJournal());
     }
