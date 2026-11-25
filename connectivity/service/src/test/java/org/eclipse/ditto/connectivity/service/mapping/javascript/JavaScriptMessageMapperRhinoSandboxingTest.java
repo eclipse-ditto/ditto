@@ -12,6 +12,9 @@
  */
 package org.eclipse.ditto.connectivity.service.mapping.javascript;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
+
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -41,6 +44,25 @@ import org.apache.pekko.actor.ActorSystem;
  * Tests the {@link JavaScriptMessageMapperRhino} sandboxing capabilities by trying to exploit CPU time, exiting, etc.
  */
 public final class JavaScriptMessageMapperRhinoSandboxingTest {
+
+    /**
+     * Catches an error raised by the Rhino engine itself and fails if Rhino attached the underlying Java exception to
+     * it, which would hand a Java object to the script.
+     */
+    private static final String JAVA_EXCEPTION_VISIBILITY_CHECK = """
+            var caught = null;
+            try {
+                null.foo;
+            } catch (e) {
+                caught = e;
+            }
+            if (!(caught instanceof TypeError)) {
+                throw new Error('expected a TypeError to be caught');
+            }
+            if (typeof caught.rhinoException !== 'undefined' || typeof caught.javaException !== 'undefined') {
+                throw new Error('Java exception object is visible to the script');
+            }
+            """;
 
     private static ActorSystem actorSystem;
 
@@ -112,13 +134,67 @@ public final class JavaScriptMessageMapperRhinoSandboxingTest {
         );
     }
 
+    @Test
+    public void ensureCaughtEngineErrorExposesNoJavaObject() {
+        final MessageMapper mapper = createMapper(JAVA_EXCEPTION_VISIBILITY_CHECK);
+
+        assertThat(mapper.map(createMessage())).hasSize(1);
+    }
+
+    @Test
+    public void ensureCaughtEngineErrorExposesNoJavaObjectWithUnsafeStandardObjects() {
+        final MessageMapper mapper = createMapper(JAVA_EXCEPTION_VISIBILITY_CHECK, true);
+
+        assertThat(mapper.map(createMessage())).hasSize(1);
+    }
+
+    @Test
+    public void ensureCaughtEngineErrorExposesNoJavaObjectInTopLevelCode() {
+        assertThatCode(() -> createMapperForScript(JAVA_EXCEPTION_VISIBILITY_CHECK, false))
+                .doesNotThrowAnyException();
+    }
+
+    @Test
+    public void ensureCaughtEngineErrorExposesNoJavaObjectInTopLevelCodeWithUnsafeStandardObjects() {
+        assertThatCode(() -> createMapperForScript(JAVA_EXCEPTION_VISIBILITY_CHECK, true))
+                .doesNotThrowAnyException();
+    }
+
+    @Test
+    public void ensureJavaClassesAreNotAccessibleWithUnsafeStandardObjects() {
+        final MessageMapper mapper = createMapper("java.lang.System.getProperty('java.version');", true);
+
+        Assertions.assertThatExceptionOfType(MessageMappingFailedException.class)
+                .isThrownBy(() -> mapper.map(createMessage()));
+    }
+
+    @Test
+    public void ensureJavaClassesAreNotAccessibleViaPackagesWithUnsafeStandardObjects() {
+        final MessageMapper mapper =
+                createMapper("Packages.java.lang.System.getProperty('java.version');", true);
+
+        Assertions.assertThatExceptionOfType(MessageMappingFailedException.class)
+                .isThrownBy(() -> mapper.map(createMessage()));
+    }
+
     private static MessageMapper createMapper(final String maliciousStuff) {
+        return createMapper(maliciousStuff, false);
+    }
+
+    private static MessageMapper createMapper(final String maliciousStuff, final boolean allowUnsafeStandardObjects) {
+        return createMapperForScript(getMappingWrapperScript(maliciousStuff), allowUnsafeStandardObjects);
+    }
+
+    private static MessageMapper createMapperForScript(final String incomingScript,
+            final boolean allowUnsafeStandardObjects) {
+
         final MessageMapper mapper = JavaScriptMessageMapperFactory.createJavaScriptMessageMapperRhino();
         final Config config =
                 ConfigFactory.parseString("ditto.connectivity.mapping.javascript {\n" +
                         "        maxScriptSizeBytes = 50000 # 50kB\n" +
                         "        maxScriptExecutionTime = 500ms\n" +
                         "        maxScriptStackDepth = 10\n" +
+                        "        allowUnsafeStandardObjects = " + allowUnsafeStandardObjects + "\n" +
                         "      }").withFallback(ConfigFactory.load("test"));
         final ConnectivityConfig connectivityConfig =
                 DittoConnectivityConfig.of(DefaultScopedConfig.dittoScoped(config));
@@ -127,7 +203,7 @@ public final class JavaScriptMessageMapperRhinoSandboxingTest {
         mapper.configure(connection, connectivityConfig,
                 JavaScriptMessageMapperFactory
                         .createJavaScriptMessageMapperConfigurationBuilder("malicious", Collections.emptyMap())
-                        .incomingScript(getMappingWrapperScript(maliciousStuff))
+                        .incomingScript(incomingScript)
                         .build(),
                 actorSystem
         );

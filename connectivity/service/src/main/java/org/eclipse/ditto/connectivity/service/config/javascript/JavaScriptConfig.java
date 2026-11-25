@@ -52,7 +52,9 @@ public interface JavaScriptConfig {
     int getMaxScriptStackDepth();
 
     /**
-     * Whether to allow using 'print', 'exit', 'quit' in JavaScript executions, only intended for debugging purposes.
+     * Whether to initialize the JavaScript scope with all standard objects, including the LiveConnect objects
+     * ({@code Packages}, {@code java}, ...), only intended for debugging purposes.
+     * Java classes are not accessible from scripts, independent of this setting.
      *
      * @return whether to allow using unsafe standard objects in JS mapping.
      */
@@ -88,7 +90,9 @@ public interface JavaScriptConfig {
         MAX_SCRIPT_STACK_DEPTH("maxScriptStackDepth", 25),
 
         /**
-         * Whether to allow using 'print', 'exit', 'quit' in JavaScript executions, only intended for debugging purposes.
+         * Whether to initialize the JavaScript scope with all standard objects, including the LiveConnect objects
+         * ({@code Packages}, {@code java}, ...), only intended for debugging purposes.
+         * Java classes are not accessible from scripts, independent of this setting.
          */
         ALLOW_UNSAFE_STANDARD_OBJECTS("allowUnsafeStandardObjects", false),
 

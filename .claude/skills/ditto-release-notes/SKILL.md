@@ -1,5 +1,5 @@
 ---
-name: release-notes
+name: ditto-release-notes
 description: Generate Ditto release notes for a GitHub milestone. Use when writing release notes for a new Ditto version. Requires the milestone name (e.g., "3.9.0") as argument.
 allowed-tools: Read, Grep, Glob, Bash(gh:*), WebFetch
 argument-hint: <milestone>

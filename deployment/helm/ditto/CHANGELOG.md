@@ -15,21 +15,6 @@ sections: `Added`, `Changed`, `Deprecated`, `Removed`, `Fixed`, `Security`.
 
 ## [Unreleased]
 
-### Security
-- Fixed an unauthenticated impersonation of policy subjects
-  ([GHSA-f779-cv8j-4p59](https://github.com/eclipse-ditto/ditto/security/advisories/GHSA-f779-cv8j-4p59),
-  CVE-2026-135150):
-  - The bundled nginx now clears the `x-ditto-pre-authenticated` header in all locations which proxy to the gateway
-    without nginx authentication (`/api/2/connections`, `/health`, `/status`, `/stats`, `/devops`), so a
-    client-supplied header is never forwarded to the gateway.
-  - Rendering the chart now fails if `ingress.enabled` is `true` while Ditto pre-authentication is enabled
-    (`global.jwtOnly: false` or `gateway.config.authentication.enablePreAuthentication: true`), as the Ingress routes
-    requests directly to the gateway. **Action required** for such installations: either set `global.jwtOnly: true`
-    (recommended), or make sure the ingress controller sets the header from a verified identity or removes it on every
-    path and confirm that with the new `ingress.preAuthenticationHeaderSanitized: true`.
-    Although this requires user action on upgrade, it is intentionally released as a minor version, as an exception
-    for this security fix.
-
 ### Added
 - New `global.featureFlags.hideInaccessibleEntityExistenceEnabled` (default `true`), passed to the things and
   policies services. When enabled, requesters without any permission on a thing or policy get the same "not found"
@@ -59,6 +44,25 @@ sections: `Added`, `Changed`, `Deprecated`, `Removed`, `Fixed`, `Security`.
   `BACKOFF_DELAY`, `retryAttempts` 3, `fixedDelay` 2s, `backOffDelay` 500ms–4s with `randomFactor` 0.5), passed to
   the things service as `ENFORCEMENT_CREATED_POLICY_ROLLBACK_*`. It configures the bounded retries of the deletion of
   a policy that the things service created for a thing whose creation then failed.
+
+## [4.10.0]
+
+Bumped Ditto `appVersion` to `3.9.10`.
+
+### Security
+- Fixed an unauthenticated impersonation of policy subjects
+  ([GHSA-f779-cv8j-4p59](https://github.com/eclipse-ditto/ditto/security/advisories/GHSA-f779-cv8j-4p59),
+  CVE-2026-135150):
+  - The bundled nginx now clears the `x-ditto-pre-authenticated` header in all locations which proxy to the gateway
+    without nginx authentication (`/api/2/connections`, `/health`, `/status`, `/stats`, `/devops`), so a
+    client-supplied header is never forwarded to the gateway.
+  - Rendering the chart now fails if `ingress.enabled` is `true` while Ditto pre-authentication is enabled
+    (`global.jwtOnly: false` or `gateway.config.authentication.enablePreAuthentication: true`), as the Ingress routes
+    requests directly to the gateway. **Action required** for such installations: either set `global.jwtOnly: true`
+    (recommended), or make sure the ingress controller sets the header from a verified identity or removes it on every
+    path and confirm that with the new `ingress.preAuthenticationHeaderSanitized: true`.
+    Although this requires user action on upgrade, it is intentionally released as a minor version, as an exception
+    for this security fix.
 
 ## [4.9.0]
 

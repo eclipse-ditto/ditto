@@ -9,7 +9,7 @@ point and holds the cross-cutting gotchas; everything here is loaded only when r
 | `context/`    | Architecture, persistence backends, build, deployment, git, troubleshooting | On demand, via "Where to look" in `AGENTS.md`                                          |
 | `deep-dives/` | End-to-end explanations of flows and features                               | On demand, via `deep-dives/README.md`                                                  |
 | `concepts/`   | Design documents for larger features                                        | On demand                                                                              |
-| `skills/`     | `release-notes`, `cherry-pick-release`, `update-agent-context`              | Claude Code: as `/release-notes <milestone>` etc.                                      |
+| `skills/`     | `ditto-release-notes`, `cherry-pick-release`, `update-agent-context`        | Claude Code: as `/ditto-release-notes <milestone>` etc.                                |
 
 ## Maintaining
 
