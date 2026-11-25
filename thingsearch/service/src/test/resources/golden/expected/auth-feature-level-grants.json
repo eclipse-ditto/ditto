@@ -1,0 +1,104 @@
+{
+  "_id": "golden:auth-feature-level-grants",
+  "_namespace": "golden",
+  "gr": [
+    "g:f2",
+    "g:f1",
+    "g:root"
+  ],
+  "_revision": {
+    "$numberLong": "8"
+  },
+  "policyId": "golden:auth-feature-level-grants",
+  "__policyRev": {
+    "$numberLong": "1"
+  },
+  "__referencedPolicies": [
+    {
+      "type": "policy",
+      "id": "golden:auth-feature-level-grants",
+      "revision": {
+        "$numberInt": "1"
+      }
+    }
+  ],
+  "t": {
+    "thingId": "golden:auth-feature-level-grants",
+    "_namespace": "golden",
+    "_revision": {
+      "$numberInt": "8"
+    },
+    "policyId": "golden:auth-feature-level-grants",
+    "features": {
+      "f1": {
+        "properties": {
+          "p": {
+            "$numberInt": "1"
+          }
+        }
+      },
+      "f2": {
+        "properties": {
+          "p": {
+            "$numberInt": "2"
+          }
+        }
+      }
+    }
+  },
+  "p": {
+    "features": {
+      "f2": {
+        "·g": [
+          "g:f2"
+        ]
+      },
+      "f1": {
+        "·g": [
+          "g:f1"
+        ]
+      }
+    },
+    "·g": [
+      "g:root"
+    ]
+  },
+  "f": [
+    {
+      "id": "f1",
+      "properties": {
+        "p": {
+          "$numberInt": "1"
+        }
+      },
+      "p": {
+        "·g": [
+          "g:root"
+        ],
+        "id": {
+          "·g": [
+            "g:f1"
+          ]
+        }
+      }
+    },
+    {
+      "id": "f2",
+      "properties": {
+        "p": {
+          "$numberInt": "2"
+        }
+      },
+      "p": {
+        "·g": [
+          "g:root"
+        ],
+        "id": {
+          "·g": [
+            "g:f2"
+          ]
+        }
+      }
+    }
+  ]
+}

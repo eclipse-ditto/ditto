@@ -23,6 +23,7 @@ import org.apache.pekko.testkit.TestProbe;
 import org.eclipse.ditto.policies.api.PolicyTag;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.things.model.ThingId;
+import org.eclipse.ditto.thingsearch.persistence.api.model.Metadata;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;

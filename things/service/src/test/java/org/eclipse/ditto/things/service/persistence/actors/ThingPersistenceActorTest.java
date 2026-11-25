@@ -2334,7 +2334,7 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
                 ThingId thingId = getIdOrThrow(thing);
 
                 ActorRef underTest = createSupervisorActorWithCustomPersistenceActor(thingId,
-                        (thingId1, mongoReadJournal, thingConfig, distributedPub, searchShardRegionProxy, policyEnforcerProvider) -> FailingInCtorActor.props());
+                        (thingId1, readJournal, thingConfig, distributedPub, searchShardRegionProxy, policyEnforcerProvider) -> FailingInCtorActor.props());
 
                 CreateThing createThing = CreateThing.of(thing, null, dittoHeaders);
                 underTest.tell(createThing, getRef());
@@ -2374,7 +2374,7 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
                 ThingId thingId = getIdOrThrow(thing);
 
                 ActorRef underTest = createSupervisorActorWithCustomPersistenceActor(thingId,
-                        (thingId1, mongoReadJournal, thingConfig, distributedPub, searchShardRegionProxy, policyEnforcerProvider) -> FailingInCtorActor.props());
+                        (thingId1, readJournal, thingConfig, distributedPub, searchShardRegionProxy, policyEnforcerProvider) -> FailingInCtorActor.props());
 
                 RetrieveThing retrieveThing = RetrieveThing.of(thingId, dittoHeaders);
                 underTest.tell(retrieveThing, getRef());

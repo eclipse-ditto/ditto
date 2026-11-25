@@ -46,7 +46,7 @@ import org.eclipse.ditto.internal.utils.pekko.actors.ModifyConfigBehavior;
 import org.eclipse.ditto.internal.utils.pekko.actors.RetrieveConfigBehavior;
 import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.pekko.logging.ThreadSafeDittoLoggingAdapter;
-import org.eclipse.ditto.internal.utils.persistence.mongo.streaming.MongoReadJournal;
+import org.eclipse.ditto.internal.utils.persistence.api.DittoReadJournal;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonValue;
 
@@ -82,7 +82,7 @@ public final class PersistenceCleanupActor extends AbstractFSM<PersistenceCleanu
     private final Materializer materializer = Materializer.createMaterializer(getContext());
     private final Counter deleteEventsCounter = DittoMetrics.counter("cleanup_delete_events");
     private final Counter deleteSnapsCounter = DittoMetrics.counter("cleanup_delete_snapshots");
-    private final MongoReadJournal mongoReadJournal;
+    private final DittoReadJournal readJournal;
     private final Supplier<Pair<Integer, Integer>> responsibilitySupplier;
 
     private CleanupConfig config;
@@ -92,24 +92,24 @@ public final class PersistenceCleanupActor extends AbstractFSM<PersistenceCleanu
 
     PersistenceCleanupActor(final Cleanup cleanup,
             final Credits credits,
-            final MongoReadJournal mongoReadJournal,
+            final DittoReadJournal readJournal,
             final Supplier<Pair<Integer, Integer>> responsibilitySupplier) {
         this.config = CleanupConfig.of(ConfigFactory.empty());
         this.cleanup = cleanup;
         this.credits = credits;
-        this.mongoReadJournal = mongoReadJournal;
+        this.readJournal = readJournal;
         this.responsibilitySupplier = responsibilitySupplier;
     }
 
     @SuppressWarnings("unused") // called by reflection
     private PersistenceCleanupActor(final CleanupConfig config,
-            final MongoReadJournal mongoReadJournal,
+            final DittoReadJournal readJournal,
             final String myRole) {
         final var cluster = Cluster.get(getContext().getSystem());
-        this.mongoReadJournal = mongoReadJournal;
+        this.readJournal = readJournal;
         responsibilitySupplier = ClusterResponsibilitySupplier.of(cluster, myRole);
         this.config = config;
-        cleanup = Cleanup.of(config, mongoReadJournal, logger, materializer, responsibilitySupplier);
+        cleanup = Cleanup.of(config, readJournal, logger, materializer, responsibilitySupplier);
         credits = Credits.of(config);
     }
 
@@ -117,14 +117,14 @@ public final class PersistenceCleanupActor extends AbstractFSM<PersistenceCleanu
      * Create the Props object for this actor.
      *
      * @param config the background cleanup config.
-     * @param mongoReadJournal the Mongo read journal for database operations.
+     * @param readJournal the read journal for database operations.
      * @param myRole the cluster role of this node among which the background cleanup responsibility is divided.
      * @return the Props object.
      */
-    public static Props props(final CleanupConfig config, final MongoReadJournal mongoReadJournal,
+    public static Props props(final CleanupConfig config, final DittoReadJournal readJournal,
             final String myRole) {
 
-        return Props.create(PersistenceCleanupActor.class, config, mongoReadJournal, myRole);
+        return Props.create(PersistenceCleanupActor.class, config, readJournal, myRole);
     }
 
     @Override
@@ -323,7 +323,7 @@ public final class PersistenceCleanupActor extends AbstractFSM<PersistenceCleanu
     @Override
     public Config setConfig(final Config config) {
         this.config = this.config.setAll(config);
-        cleanup = Cleanup.of(this.config, mongoReadJournal, logger, materializer, responsibilitySupplier);
+        cleanup = Cleanup.of(this.config, readJournal, logger, materializer, responsibilitySupplier);
         credits = Credits.of(this.config);
         getSelf().tell(Control.SHUTDOWN, ActorRef.noSender());
 

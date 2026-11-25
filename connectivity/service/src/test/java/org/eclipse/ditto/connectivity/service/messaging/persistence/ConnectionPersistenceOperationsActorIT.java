@@ -40,7 +40,7 @@ import org.eclipse.ditto.connectivity.service.config.DittoConnectivityConfig;
 import org.eclipse.ditto.connectivity.service.enforcement.ConnectionEnforcerActorPropsFactory;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.internal.utils.config.ScopedConfig;
-import org.eclipse.ditto.internal.utils.persistence.mongo.MongoClientWrapper;
+import org.eclipse.ditto.internal.utils.persistence.api.PersistenceBackendProvider;
 import org.eclipse.ditto.internal.utils.persistence.mongo.ops.eventsource.MongoEventSourceITAssertions;
 import org.eclipse.ditto.internal.utils.persistence.mongo.streaming.MongoReadJournal;
 import org.eclipse.ditto.internal.utils.tracing.DittoTracingInitResource;
@@ -124,9 +124,9 @@ public final class ConnectionPersistenceOperationsActorIT extends MongoEventSour
     @Override
     protected ActorRef startActorUnderTest(final ActorSystem actorSystem, final ActorRef pubSubMediator,
             final Config config) {
-        final MongoClientWrapper mongoClientWrapper =
-                MongoClientWrapper.newInstance(mongoDbConfig);
-        final Props opsActorProps = ConnectionPersistenceOperationsActor.props(pubSubMediator, mongoClientWrapper, config,
+        final PersistenceBackendProvider backendProvider = PersistenceBackendProvider.get(actorSystem,
+                ScopedConfig.dittoExtension(actorSystem.settings().config()));
+        final Props opsActorProps = ConnectionPersistenceOperationsActor.props(pubSubMediator, backendProvider,
                 persistenceOperationsConfig);
         return actorSystem.actorOf(opsActorProps, ConnectionPersistenceOperationsActor.ACTOR_NAME);
     }

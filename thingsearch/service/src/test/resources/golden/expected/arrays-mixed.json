@@ -1,0 +1,119 @@
+{
+  "_id": "golden:arrays-mixed",
+  "_namespace": "golden",
+  "gr": [
+    "g:0"
+  ],
+  "_revision": {
+    "$numberLong": "3"
+  },
+  "policyId": "golden:arrays-mixed",
+  "__policyRev": {
+    "$numberLong": "1"
+  },
+  "__referencedPolicies": [
+    {
+      "type": "policy",
+      "id": "golden:arrays-mixed",
+      "revision": {
+        "$numberInt": "1"
+      }
+    }
+  ],
+  "t": {
+    "thingId": "golden:arrays-mixed",
+    "_namespace": "golden",
+    "_revision": {
+      "$numberInt": "3"
+    },
+    "policyId": "golden:arrays-mixed",
+    "attributes": {
+      "tags": [
+        "a",
+        "b",
+        "c"
+      ],
+      "objects": [
+        {
+          "x": {
+            "$numberInt": "1"
+          }
+        },
+        {
+          "x": {
+            "$numberInt": "2"
+          }
+        }
+      ],
+      "nestedUnderArrayOfObjects": [
+        {
+          "list": [
+            {
+              "$numberInt": "1"
+            },
+            {
+              "$numberInt": "2"
+            },
+            {
+              "$numberInt": "3"
+            }
+          ]
+        },
+        {
+          "list": [
+            {
+              "$numberInt": "4"
+            },
+            {
+              "$numberInt": "5"
+            }
+          ]
+        }
+      ],
+      "matrix": [
+        [
+          {
+            "$numberInt": "1"
+          },
+          {
+            "$numberInt": "2"
+          }
+        ],
+        [
+          {
+            "$numberInt": "3"
+          },
+          {
+            "$numberInt": "4"
+          }
+        ]
+      ],
+      "mixedArray": [
+        {
+          "$numberInt": "1"
+        },
+        "two",
+        true,
+        null,
+        {
+          "k": "v"
+        },
+        [
+          {
+            "$numberInt": "9"
+          },
+          {
+            "$numberInt": "9"
+          }
+        ]
+      ],
+      "emptyArray": []
+    }
+  },
+  "p": {
+    "·g": [
+      "g:0"
+    ]
+  },
+  "f": []
+}

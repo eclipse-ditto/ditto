@@ -37,8 +37,8 @@ import org.eclipse.ditto.thingsearch.api.UpdateReason;
 import org.eclipse.ditto.thingsearch.api.commands.sudo.SudoUpdateThing;
 import org.eclipse.ditto.thingsearch.service.common.config.BackgroundSyncConfig;
 import org.eclipse.ditto.thingsearch.service.common.config.DefaultBackgroundSyncConfig;
-import org.eclipse.ditto.thingsearch.service.persistence.read.ThingsSearchPersistence;
-import org.eclipse.ditto.thingsearch.service.persistence.write.model.Metadata;
+import org.eclipse.ditto.thingsearch.persistence.api.ThingsSearchPersistence;
+import org.eclipse.ditto.thingsearch.persistence.api.model.Metadata;
 import org.eclipse.ditto.thingsearch.service.persistence.write.streaming.BackgroundSyncStream;
 
 import com.typesafe.config.Config;

@@ -1,0 +1,33 @@
+{
+  "_id": "golden:thing-without-policy",
+  "_namespace": "golden",
+  "gr": [
+    "g:0"
+  ],
+  "_revision": {
+    "$numberLong": "1"
+  },
+  "policyId": "",
+  "__policyRev": {
+    "$numberLong": "0"
+  },
+  "__referencedPolicies": [],
+  "t": {
+    "thingId": "golden:thing-without-policy",
+    "_namespace": "golden",
+    "_revision": {
+      "$numberInt": "1"
+    },
+    "attributes": {
+      "x": {
+        "$numberInt": "1"
+      }
+    }
+  },
+  "p": {
+    "·g": [
+      "g:0"
+    ]
+  },
+  "f": []
+}

@@ -18,10 +18,10 @@ import java.util.function.Function;
 
 import org.eclipse.ditto.base.model.namespaces.NamespaceBlockedException;
 import org.eclipse.ditto.internal.utils.namespaces.BlockedNamespaces;
+import org.eclipse.ditto.thingsearch.persistence.api.write.SearchUpdaterFlow;
+import org.eclipse.ditto.thingsearch.persistence.api.write.UpdaterResult;
 import org.eclipse.ditto.thingsearch.service.common.config.UpdaterConfig;
 import org.eclipse.ditto.thingsearch.service.updater.actors.ThingUpdater;
-
-import com.mongodb.reactivestreams.client.MongoDatabase;
 
 import org.apache.pekko.NotUsed;
 import org.apache.pekko.actor.ActorRef;
@@ -35,17 +35,17 @@ import org.apache.pekko.stream.javadsl.Source;
 public final class SearchUpdaterStream {
 
     private final EnforcementFlow enforcementFlow;
-    private final MongoSearchUpdaterFlow mongoSearchUpdaterFlow;
+    private final SearchUpdaterFlow searchUpdaterFlow;
     private final BlockedNamespaces blockedNamespaces;
     private final SearchUpdateMapper searchUpdateMapper;
 
     private SearchUpdaterStream(final EnforcementFlow enforcementFlow,
-            final MongoSearchUpdaterFlow mongoSearchUpdaterFlow,
+            final SearchUpdaterFlow searchUpdaterFlow,
             final BlockedNamespaces blockedNamespaces,
             final SearchUpdateMapper searchUpdateMapper) {
 
         this.enforcementFlow = enforcementFlow;
-        this.mongoSearchUpdaterFlow = mongoSearchUpdaterFlow;
+        this.searchUpdaterFlow = searchUpdaterFlow;
         this.blockedNamespaces = blockedNamespaces;
         this.searchUpdateMapper = searchUpdateMapper;
     }
@@ -57,7 +57,7 @@ public final class SearchUpdaterStream {
      * @param actorSystem actor system to run the stream in.
      * @param thingsShard shard region proxy of things.
      * @param policiesShard shard region proxy of policies.
-     * @param database MongoDB database.
+     * @param searchUpdaterFlow the backend-neutral search updater flow that applies write models to the index.
      * @param searchUpdateMapper a custom listener for search updates.
      * @return a SearchUpdaterStream object.
      */
@@ -65,7 +65,7 @@ public final class SearchUpdaterStream {
             final ActorSystem actorSystem,
             final ActorRef thingsShard,
             final ActorRef policiesShard,
-            final MongoDatabase database,
+            final SearchUpdaterFlow searchUpdaterFlow,
             final BlockedNamespaces blockedNamespaces,
             final SearchUpdateMapper searchUpdateMapper) {
 
@@ -74,10 +74,7 @@ public final class SearchUpdaterStream {
         final var enforcementFlow =
                 EnforcementFlow.of(actorSystem, streamConfig, thingsShard, policiesShard, actorSystem.getScheduler());
 
-        final var mongoSearchUpdaterFlow =
-                MongoSearchUpdaterFlow.of(database, streamConfig.getPersistenceConfig());
-
-        return new SearchUpdaterStream(enforcementFlow, mongoSearchUpdaterFlow, blockedNamespaces, searchUpdateMapper);
+        return new SearchUpdaterStream(enforcementFlow, searchUpdaterFlow, blockedNamespaces, searchUpdateMapper);
     }
 
     /**
@@ -85,7 +82,7 @@ public final class SearchUpdaterStream {
      *
      * @return The flow.
      */
-    public Flow<ThingUpdater.Data, ThingUpdater.Result, NotUsed> flow() {
+    public Flow<ThingUpdater.Data, UpdaterResult, NotUsed> flow() {
         final Flow<ThingUpdater.Data, ThingUpdater.Data, NotUsed> blockNamespace =
                 blockNamespaceFlow(data -> data.metadata().getThingId().getNamespace());
 
@@ -97,7 +94,7 @@ public final class SearchUpdaterStream {
                     if (optional.isPresent()) {
                         return Source.single(optional.get())
                                 .via(enforcementFlow.create(searchUpdateMapper))
-                                .via(mongoSearchUpdaterFlow.create());
+                                .via(searchUpdaterFlow.create());
                     } else {
                         return Source.single(asNamespaceBlockedException(data));
                     }
@@ -116,9 +113,9 @@ public final class SearchUpdaterStream {
                 });
     }
 
-    private static ThingUpdater.Result asNamespaceBlockedException(final ThingUpdater.Data data) {
+    private static UpdaterResult asNamespaceBlockedException(final ThingUpdater.Data data) {
         final var error = NamespaceBlockedException.newBuilder(data.metadata().getThingId().getNamespace()).build();
-        return ThingUpdater.Result.fromError(data.metadata(), error);
+        return ThingUpdater.fromError(data.metadata(), error);
     }
 
 }

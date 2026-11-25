@@ -24,6 +24,7 @@ import org.bson.BsonDocument;
 import org.eclipse.ditto.internal.utils.pekko.logging.DittoLogger;
 import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
 import org.eclipse.ditto.things.model.ThingId;
+import org.eclipse.ditto.thingsearch.persistence.api.model.Metadata;
 import org.eclipse.ditto.thingsearch.service.persistence.AbstractThingSearchPersistenceITBase;
 import org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants;
 import org.junit.After;

@@ -18,19 +18,28 @@ import static org.mockito.Mockito.when;
 
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.pekko.actor.ActorRef;
 import org.apache.pekko.cluster.Cluster;
 import org.apache.pekko.cluster.MemberStatus;
 import org.apache.pekko.cluster.pubsub.DistributedPubSubMediator;
+import org.apache.pekko.event.Logging;
+import org.apache.pekko.pattern.Patterns;
+import org.apache.pekko.persistence.Persistence;
+import org.apache.pekko.persistence.SelectedSnapshot;
+import org.apache.pekko.persistence.SnapshotProtocol;
+import org.apache.pekko.persistence.SnapshotSelectionCriteria;
 import org.apache.pekko.stream.javadsl.Source;
 import org.apache.pekko.testkit.TestProbe;
 import org.apache.pekko.testkit.javadsl.TestKit;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.internal.utils.persistentactors.AbstractPersistenceSupervisor;
 import org.eclipse.ditto.internal.utils.persistence.mongo.streaming.MongoReadJournal;
 import org.eclipse.ditto.internal.utils.tracing.DittoTracingInitResource;
 import org.eclipse.ditto.json.JsonObject;
@@ -49,6 +58,7 @@ import org.eclipse.ditto.things.model.devops.commands.ModifyWotValidationConfig;
 import org.eclipse.ditto.things.model.devops.commands.ModifyWotValidationConfigResponse;
 import org.eclipse.ditto.things.model.devops.commands.RetrieveWotValidationConfig;
 import org.eclipse.ditto.things.model.devops.commands.RetrieveWotValidationConfigResponse;
+import org.eclipse.ditto.things.model.devops.exceptions.WotValidationConfigNotAccessibleException;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.ClassRule;
@@ -63,6 +73,8 @@ import org.slf4j.LoggerFactory;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 import com.typesafe.config.ConfigValueFactory;
+
+import scala.jdk.javaapi.OptionConverters;
 
 
 public class WotValidationConfigPersistenceActorTest extends PersistenceActorTestBase {
@@ -80,7 +92,9 @@ public class WotValidationConfigPersistenceActorTest extends PersistenceActorTes
     private WotValidationConfig config;
     private ActorRef supervisorActor;
     private TestProbe pubSubMediatorProbe;
+    private TestProbe errorProbe;
     private Cluster cluster;
+    private Config baseConfigWithoutWotBlock;
 
     @Mock
     private MongoReadJournal mongoReadJournal;
@@ -88,6 +102,10 @@ public class WotValidationConfigPersistenceActorTest extends PersistenceActorTes
     private static final DittoHeaders TEST_HEADERS = DittoHeaders.newBuilder()
             .putHeader("ditto-auth-type", "devops")
             .build();
+
+    private static final String WOT_BLOCK = "ditto.things.wot-validation-config";
+    private static final String SNAPSHOT_STORE_PLUGIN_ID =
+            "pekko-contrib-mongodb-persistence-wot-validation-config-snapshots";
 
     @Before
     public void setUp() {
@@ -97,7 +115,7 @@ public class WotValidationConfigPersistenceActorTest extends PersistenceActorTes
         final int port = 25520; // Standard Pekko port
         final String hostname = "127.0.0.1";
 
-        final Config customConfig = ConfigFactory.empty()
+        baseConfigWithoutWotBlock = ConfigFactory.empty()
                 .withValue("pekko.actor.provider",
                         ConfigValueFactory.fromAnyRef("org.apache.pekko.cluster.ClusterActorRefProvider"))
                 .withValue("pekko.cluster.roles",
@@ -149,7 +167,18 @@ public class WotValidationConfigPersistenceActorTest extends PersistenceActorTes
                 .withValue("pekko.cluster.distributed-data.durable.lmdb.cleanup-interval",
                         ConfigValueFactory.fromAnyRef("1h"));
 
+        final Config customConfigWithBlock = baseConfigWithoutWotBlock
+                .withValue(WOT_BLOCK + ".snapshot.threshold", ConfigValueFactory.fromAnyRef(1))
+                .withValue(WOT_BLOCK + ".activity-check.inactive-interval", ConfigValueFactory.fromAnyRef("1s"))
+                .withValue(WOT_BLOCK + ".activity-check.deleted-interval", ConfigValueFactory.fromAnyRef("1s"));
+
+        startActorSystem(customConfigWithBlock);
+    }
+
+    private void startActorSystem(final Config customConfig) {
         setup(customConfig);
+        errorProbe = TestProbe.apply("errorProbe", actorSystem);
+        actorSystem.getEventStream().subscribe(errorProbe.ref(), Logging.Error.class);
 
         cluster = Cluster.get(actorSystem);
         cluster.join(cluster.selfAddress());
@@ -219,6 +248,79 @@ public class WotValidationConfigPersistenceActorTest extends PersistenceActorTes
         if (actorSystem != null) {
             TestKit.shutdownActorSystem(actorSystem);
         }
+    }
+
+    private Optional<SelectedSnapshot> latestSnapshot(final String persistenceId) {
+        final ActorRef snapshotStore =
+                Persistence.get(actorSystem).snapshotStoreFor(SNAPSHOT_STORE_PLUGIN_ID, ConfigFactory.empty());
+        final SnapshotProtocol.LoadSnapshot loadSnapshot =
+                new SnapshotProtocol.LoadSnapshot(persistenceId, SnapshotSelectionCriteria.latest(), Long.MAX_VALUE);
+        try {
+            return Patterns.ask(snapshotStore, loadSnapshot, Duration.ofSeconds(3))
+                    .thenApply(SnapshotProtocol.LoadSnapshotResult.class::cast)
+                    .thenApply(result -> OptionConverters.toJava(result.snapshot()))
+                    .toCompletableFuture()
+                    .get(5, TimeUnit.SECONDS);
+        } catch (final Exception e) {
+            throw new AssertionError("Could not load the latest snapshot of <" + persistenceId + ">", e);
+        }
+    }
+
+    private String persistenceIdOf(final WotValidationConfigId id) {
+        return "wot-validation-config:" + id;
+    }
+
+    private void awaitSnapshotAtSequenceNumber(final TestKit testKit, final long expectedSequenceNr) {
+        testKit.awaitAssert(Duration.ofSeconds(10), () -> {
+            final Optional<SelectedSnapshot> snapshot = latestSnapshot(persistenceIdOf(configId));
+            assertThat(snapshot).isPresent();
+            assertThat(snapshot.get().metadata().sequenceNr()).isEqualTo(expectedSequenceNr);
+            return null;
+        });
+    }
+
+    private void restartSupervisor() {
+        final TestProbe terminationProbe = new TestProbe(actorSystem);
+        terminationProbe.watch(supervisorActor);
+        actorSystem.stop(supervisorActor);
+        terminationProbe.expectTerminated(supervisorActor, scala.concurrent.duration.Duration.create(5, "seconds"));
+        supervisorActor = createPersistenceActorFor(configId);
+    }
+
+    private WotValidationConfig modifiedConfig() {
+        final ThingValidationEnforceConfig newThingEnforce =
+                ThingValidationEnforceConfig.of(false, false, false, false, false);
+        final ThingValidationForbidConfig newThingForbid = ThingValidationForbidConfig.of(true, false, true, false);
+        final ThingValidationConfig newThingConfig = ThingValidationConfig.of(newThingEnforce, newThingForbid);
+
+        final FeatureValidationEnforceConfig newFeatureEnforce =
+                FeatureValidationEnforceConfig.of(false, true, false, true, false, true, false);
+        final FeatureValidationForbidConfig newFeatureForbid =
+                FeatureValidationForbidConfig.of(true, false, true, false, true, false);
+        final FeatureValidationConfig newFeatureConfig =
+                FeatureValidationConfig.of(newFeatureEnforce, newFeatureForbid);
+
+        return WotValidationConfig.of(
+                configId,
+                false,
+                true,
+                newThingConfig,
+                newFeatureConfig,
+                config.getDynamicConfigs(),
+                WotValidationConfigRevision.of(2L),
+                config.getCreated().orElse(null),
+                Instant.now(),
+                false,
+                null
+        );
+    }
+
+    private static JsonObject withoutTimestamps(final JsonObject json) {
+        return JsonObject.newBuilder()
+                .setAll(json)
+                .remove("_created")
+                .remove("_modified")
+                .build();
     }
 
     private ActorRef createPersistenceActorFor(final WotValidationConfigId configId) {
@@ -368,7 +470,7 @@ public class WotValidationConfigPersistenceActorTest extends PersistenceActorTes
             final RetrieveWotValidationConfigResponse response = expectMsgClass(RetrieveWotValidationConfigResponse.class);
             assertThat(response.getConfigId().toString()).isEqualTo(configId.toString());
 
-            final JsonObject expectedJson = config.toJson().asObject();
+            final JsonObject expectedJson = initialResponse.getValidationConfig().asObject();
             final JsonObject actualJson = response.getValidationConfig().asObject();
 
             final JsonObject expectedWithoutTimestamps = JsonObject.newBuilder()
@@ -399,6 +501,98 @@ public class WotValidationConfigPersistenceActorTest extends PersistenceActorTes
             supervisorActor.tell(command, getRef());
             final RetrieveWotValidationConfigResponse response = expectMsgClass(RetrieveWotValidationConfigResponse.class);
             assertThat(response.getConfigId().toString()).isEqualTo(configId.toString());
+        }};
+    }
+
+    @Test
+    public void snapshotOfAnActiveConfigIsTakenAndRecovered() {
+        new TestKit(actorSystem) {{
+            supervisorActor.tell(ModifyWotValidationConfig.of(configId, config, TEST_HEADERS), getRef());
+            expectMsgClass(ModifyWotValidationConfigResponse.class);
+            final WotValidationConfig newConfig = modifiedConfig();
+            supervisorActor.tell(ModifyWotValidationConfig.of(configId, newConfig, TEST_HEADERS), getRef());
+            expectMsgClass(ModifyWotValidationConfigResponse.class);
+            pubSubMediatorProbe.expectMsgClass(DistributedPubSubMediator.Publish.class);
+            pubSubMediatorProbe.expectMsgClass(DistributedPubSubMediator.Publish.class);
+
+            awaitSnapshotAtSequenceNumber(this, 2L);
+
+            restartSupervisor();
+
+            supervisorActor.tell(RetrieveWotValidationConfig.of(configId, TEST_HEADERS), getRef());
+            final RetrieveWotValidationConfigResponse response =
+                    expectMsgClass(RetrieveWotValidationConfigResponse.class);
+            final JsonObject actualJson = response.getValidationConfig().asObject();
+            assertThat(actualJson.getValue("_revision").get().asLong()).isEqualTo(2L);
+            assertThat(withoutTimestamps(actualJson)).isEqualTo(withoutTimestamps(newConfig.toJson().asObject()));
+
+            errorProbe.expectNoMessage(scala.concurrent.duration.Duration.create(1, "second"));
+        }};
+    }
+
+    @Test
+    public void snapshotOfADeletedConfigIsTakenAndRecovered() {
+        new TestKit(actorSystem) {{
+            supervisorActor.tell(ModifyWotValidationConfig.of(configId, config, TEST_HEADERS), getRef());
+            expectMsgClass(ModifyWotValidationConfigResponse.class);
+            supervisorActor.tell(DeleteWotValidationConfig.of(configId, TEST_HEADERS), getRef());
+            expectMsgClass(DeleteWotValidationConfigResponse.class);
+            pubSubMediatorProbe.expectMsgClass(DistributedPubSubMediator.Publish.class);
+            pubSubMediatorProbe.expectMsgClass(DistributedPubSubMediator.Publish.class);
+
+            // the deletion leaves no entity to snapshot: recovery replays it on top of the creation's snapshot
+            awaitSnapshotAtSequenceNumber(this, 1L);
+            expectNoMessage(Duration.ofSeconds(2));
+            awaitSnapshotAtSequenceNumber(this, 1L);
+
+            restartSupervisor();
+
+            supervisorActor.tell(RetrieveWotValidationConfig.of(configId, TEST_HEADERS), getRef());
+            expectMsgClass(WotValidationConfigNotAccessibleException.class);
+
+            errorProbe.expectNoMessage(scala.concurrent.duration.Duration.create(1, "second"));
+        }};
+    }
+
+    @Test
+    public void activityCheckSettingsOfTheWotBlockAreUsed() {
+        final WotValidationConfigId otherId = WotValidationConfigId.of("ns:activity-check-id");
+        final WotValidationConfig otherConfig = WotValidationConfig.of(otherId, true, false,
+                config.getThingConfig().orElse(null),
+                config.getFeatureConfig().orElse(null), config.getDynamicConfigs(), WotValidationConfigRevision.of(0L),
+                Instant.now(), Instant.now(), false, null);
+        final TestKit parent = new TestKit(actorSystem);
+        final TestKit sender = new TestKit(actorSystem);
+        final ActorRef persistenceActor = parent.childActorOf(
+                WotValidationConfigPersistenceActor.props(otherId, mongoReadJournal, pubSubMediator));
+
+        persistenceActor.tell(ModifyWotValidationConfig.of(otherId, otherConfig, TEST_HEADERS), sender.getRef());
+        sender.expectMsgClass(ModifyWotValidationConfigResponse.class);
+
+        parent.expectMsgEquals(AbstractPersistenceSupervisor.Control.PA_RECOVERED);
+        parent.expectMsgEquals(Duration.ofSeconds(10), AbstractPersistenceSupervisor.Control.PASSIVATE);
+    }
+
+    @Test
+    public void missingWotBlockFallsBackToTheDefaults() {
+        cluster.leave(cluster.selfAddress());
+        TestKit.shutdownActorSystem(actorSystem);
+        startActorSystem(baseConfigWithoutWotBlock);
+        assertThat(actorSystem.settings().config().hasPath(WOT_BLOCK)).isFalse();
+
+        new TestKit(actorSystem) {{
+            supervisorActor.tell(ModifyWotValidationConfig.of(configId, config, TEST_HEADERS), getRef());
+            expectMsgClass(ModifyWotValidationConfigResponse.class);
+            supervisorActor.tell(ModifyWotValidationConfig.of(configId, modifiedConfig(), TEST_HEADERS), getRef());
+            expectMsgClass(ModifyWotValidationConfigResponse.class);
+
+            supervisorActor.tell(RetrieveWotValidationConfig.of(configId, TEST_HEADERS), getRef());
+            final RetrieveWotValidationConfigResponse response =
+                    expectMsgClass(RetrieveWotValidationConfigResponse.class);
+            assertThat(response.getConfigId().toString()).isEqualTo(configId.toString());
+
+            expectNoMessage(Duration.ofSeconds(1));
+            assertThat(latestSnapshot(persistenceIdOf(configId))).isEmpty();
         }};
     }
 }

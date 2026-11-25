@@ -1,0 +1,146 @@
+{
+  "rows": [
+    {
+      "manifest": "wot.validation.config.events:wotValidationConfigCreated",
+      "tags": [
+        "wot-validation-config"
+      ],
+      "payload": {
+        "type": "wot.validation.config.events:wotValidationConfigCreated",
+        "_timestamp": "2026-11-19T00:00:00Z",
+        "_metadata": null,
+        "revision": {
+          "$numberInt": "1"
+        },
+        "configId": "golden:wot",
+        "config": {
+          "configId": "golden:wot",
+          "enabled": true,
+          "log-warning-instead-of-failing-api-calls": false,
+          "thing": {
+            "enforce": {
+              "thing-description-modification": true,
+              "attributes": true,
+              "inbox-messages-input": true,
+              "inbox-messages-output": true,
+              "outbox-messages": true
+            },
+            "forbid": {
+              "thing-description-deletion": false,
+              "non-modeled-attributes": true,
+              "non-modeled-inbox-messages": false,
+              "non-modeled-outbox-messages": true
+            }
+          },
+          "feature": {
+            "enforce": {
+              "feature-description-modification": true,
+              "presence-of-modeled-features": false,
+              "properties": true,
+              "desired-properties": false,
+              "inbox-messages-input": true,
+              "inbox-messages-output": false,
+              "outbox-messages": true
+            },
+            "forbid": {
+              "feature-description-deletion": false,
+              "non-modeled-features": true,
+              "non-modeled-properties": false,
+              "non-modeled-desired-properties": true,
+              "non-modeled-inbox-messages": false,
+              "non-modeled-outbox-messages": true
+            }
+          },
+          "_revision": {
+            "$numberInt": "1"
+          },
+          "_created": "2026-11-19T00:00:00Z",
+          "_modified": "2026-11-19T00:00:00Z"
+        },
+        "__hh": {
+          "correlation-id": "golden-wot"
+        }
+      }
+    },
+    {
+      "manifest": "wot.validation.config.events:wotValidationConfigModified",
+      "tags": [
+        "wot-validation-config"
+      ],
+      "payload": {
+        "type": "wot.validation.config.events:wotValidationConfigModified",
+        "_timestamp": "2026-11-19T00:00:00Z",
+        "_metadata": null,
+        "revision": {
+          "$numberInt": "2"
+        },
+        "configId": "golden:wot",
+        "config": {
+          "configId": "golden:wot",
+          "enabled": false,
+          "log-warning-instead-of-failing-api-calls": false,
+          "thing": {
+            "enforce": {
+              "thing-description-modification": true,
+              "attributes": true,
+              "inbox-messages-input": true,
+              "inbox-messages-output": true,
+              "outbox-messages": true
+            },
+            "forbid": {
+              "thing-description-deletion": false,
+              "non-modeled-attributes": true,
+              "non-modeled-inbox-messages": false,
+              "non-modeled-outbox-messages": true
+            }
+          },
+          "feature": {
+            "enforce": {
+              "feature-description-modification": true,
+              "presence-of-modeled-features": false,
+              "properties": true,
+              "desired-properties": false,
+              "inbox-messages-input": true,
+              "inbox-messages-output": false,
+              "outbox-messages": true
+            },
+            "forbid": {
+              "feature-description-deletion": false,
+              "non-modeled-features": true,
+              "non-modeled-properties": false,
+              "non-modeled-desired-properties": true,
+              "non-modeled-inbox-messages": false,
+              "non-modeled-outbox-messages": true
+            }
+          },
+          "_revision": {
+            "$numberInt": "1"
+          },
+          "_created": "2026-11-19T00:00:00Z",
+          "_modified": "2026-11-19T00:00:00Z"
+        },
+        "__hh": {
+          "correlation-id": "golden-wot"
+        }
+      }
+    },
+    {
+      "manifest": "wot.validation.config.events:wotValidationConfigDeleted",
+      "tags": [
+        "wot-validation-config"
+      ],
+      "payload": {
+        "type": "wot.validation.config.events:wotValidationConfigDeleted",
+        "_timestamp": "2026-11-19T00:00:00Z",
+        "_metadata": null,
+        "revision": {
+          "$numberInt": "3"
+        },
+        "configId": "golden:wot",
+        "__hh": {
+          "correlation-id": "golden-wot"
+        }
+      }
+    }
+  ]
+}

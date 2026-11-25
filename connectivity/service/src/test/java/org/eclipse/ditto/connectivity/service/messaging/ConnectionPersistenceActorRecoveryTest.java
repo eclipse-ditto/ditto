@@ -36,6 +36,9 @@ import org.eclipse.ditto.connectivity.model.signals.events.ConnectionDeleted;
 import org.eclipse.ditto.connectivity.model.signals.events.ConnectivityEvent;
 import org.eclipse.ditto.connectivity.service.config.DefaultFieldsEncryptionConfig;
 import org.eclipse.ditto.connectivity.service.messaging.persistence.ConnectionMongoSnapshotAdapter;
+import org.eclipse.ditto.internal.utils.persistence.api.serializer.NeutralSnapshotAdapter;
+import org.eclipse.ditto.internal.utils.persistence.api.serializer.SnapshotAdapter;
+import org.eclipse.ditto.internal.utils.persistence.mongo.MongoSnapshotCodec;
 import org.eclipse.ditto.internal.utils.pekko.PingCommand;
 import org.eclipse.ditto.internal.utils.tracing.DittoTracingInitResource;
 import org.eclipse.ditto.json.JsonValue;
@@ -79,8 +82,11 @@ public final class ConnectionPersistenceActorRecoveryTest extends WithMockServer
     private ConnectionCreated connectionCreated;
     private ConnectionDeleted connectionDeleted;
     private static final Config config = ConfigFactory.load("connection-fields-encryption-test");
-    private static final ConnectionMongoSnapshotAdapter SNAPSHOT_ADAPTER =
-            new ConnectionMongoSnapshotAdapter(DefaultFieldsEncryptionConfig.of(config.getConfig("connection")));
+    // The single neutral adapter = the Connection serializer + the Mongo (BSON) codec, exactly as
+    // AbstractPersistenceActor composes it for the Mongo backend.
+    private static final SnapshotAdapter<Connection> SNAPSHOT_ADAPTER = new NeutralSnapshotAdapter<>(
+            new ConnectionMongoSnapshotAdapter(DefaultFieldsEncryptionConfig.of(config.getConfig("connection"))),
+            MongoSnapshotCodec.INSTANCE);
 
     @BeforeClass
     public static void setUp() {

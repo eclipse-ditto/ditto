@@ -29,16 +29,16 @@ import org.eclipse.ditto.internal.utils.config.ScopedConfig;
 import org.eclipse.ditto.internal.utils.health.RetrieveHealth;
 import org.eclipse.ditto.internal.utils.namespaces.BlockedNamespaces;
 import org.eclipse.ditto.internal.utils.pekko.streaming.TimestampPersistence;
-import org.eclipse.ditto.internal.utils.persistence.mongo.DittoMongoClient;
 import org.eclipse.ditto.policies.enforcement.config.DefaultNamespacePoliciesConfig;
 import org.eclipse.ditto.thingsearch.api.ThingsSearchConstants;
+import org.eclipse.ditto.thingsearch.persistence.api.SearchPersistenceProvider;
+import org.eclipse.ditto.thingsearch.persistence.api.ThingsSearchPersistence;
+import org.eclipse.ditto.thingsearch.persistence.api.ThingsSearchUpdaterPersistence;
+import org.eclipse.ditto.thingsearch.persistence.api.write.SearchUpdaterFlow;
 import org.eclipse.ditto.thingsearch.service.common.config.SearchConfig;
 import org.eclipse.ditto.thingsearch.service.common.util.RootSupervisorStrategyFactory;
-import org.eclipse.ditto.thingsearch.service.persistence.read.MongoThingsSearchPersistence;
-import org.eclipse.ditto.thingsearch.service.persistence.write.impl.MongoThingsSearchUpdaterPersistence;
 import org.eclipse.ditto.thingsearch.service.persistence.write.streaming.SearchUpdateMapper;
 import org.eclipse.ditto.thingsearch.service.persistence.write.streaming.SearchUpdaterStream;
-import org.eclipse.ditto.thingsearch.service.starter.actors.MongoClientExtension;
 import org.eclipse.ditto.thingsearch.service.starter.actors.OperatorMetricsProviderActor;
 import org.eclipse.ditto.thingsearch.service.starter.actors.OperatorAggregateMetricsProviderActor;
 
@@ -64,13 +64,12 @@ public final class SearchUpdaterRootActor extends AbstractActor {
 
     private final ActorRef thingsUpdaterActor;
     private final ActorRef backgroundSyncActorProxy;
-    private final DittoMongoClient dittoMongoClient;
 
     @SuppressWarnings("unused")
     private SearchUpdaterRootActor(final SearchConfig searchConfig,
             final ActorRef searchActor,
             final ActorRef pubSubMediator,
-            final MongoThingsSearchPersistence thingsSearchPersistence,
+            final ThingsSearchPersistence thingsSearchPersistence,
             final TimestampPersistence backgroundSyncPersistence) {
 
         final var clusterConfig = searchConfig.getClusterConfig();
@@ -79,7 +78,8 @@ public final class SearchUpdaterRootActor extends AbstractActor {
         final var actorSystem = getContext().getSystem();
         final var namespacePoliciesConfig = DefaultNamespacePoliciesConfig.of(actorSystem.settings().config());
 
-        dittoMongoClient = MongoClientExtension.get(actorSystem).getUpdaterClient();
+        final var searchPersistenceProvider = SearchPersistenceProvider.get(actorSystem,
+                ScopedConfig.dittoExtension(actorSystem.settings().config()));
 
         final var shardRegionFactory = ShardRegionFactory.getInstance(actorSystem);
         final var blockedNamespaces = BlockedNamespaces.of(actorSystem);
@@ -93,9 +93,10 @@ public final class SearchUpdaterRootActor extends AbstractActor {
         final ActorRef policiesShard = shardRegionFactory.getPoliciesShardRegion(numberOfShards);
         final var dittoExtensionsConfig = ScopedConfig.dittoExtension(actorSystem.settings().config());
         final var searchUpdateMapper = SearchUpdateMapper.get(actorSystem, dittoExtensionsConfig);
+        final SearchUpdaterFlow searchUpdaterFlow = searchPersistenceProvider.createUpdaterFlow();
         final SearchUpdaterStream searchUpdaterStream =
                 SearchUpdaterStream.of(updaterConfig, actorSystem, thingsShard, policiesShard,
-                        dittoMongoClient.getDefaultDatabase(), blockedNamespaces,
+                        searchUpdaterFlow, blockedNamespaces,
                         searchUpdateMapper);
 
         final var thingUpdaterProps =
@@ -104,9 +105,8 @@ public final class SearchUpdaterRootActor extends AbstractActor {
         final ActorRef updaterShard =
                 shardRegionFactory.getSearchUpdaterShardRegion(numberOfShards, thingUpdaterProps, CLUSTER_ROLE);
 
-        final var searchUpdaterPersistence =
-                MongoThingsSearchUpdaterPersistence.of(dittoMongoClient.getDefaultDatabase(),
-                        updaterConfig.getUpdaterPersistenceConfig());
+        final ThingsSearchUpdaterPersistence searchUpdaterPersistence =
+                searchPersistenceProvider.createUpdaterPersistence();
 
         pubSubMediator.tell(DistPubSubAccess.put(getSelf()), getSelf());
 
@@ -160,16 +160,10 @@ public final class SearchUpdaterRootActor extends AbstractActor {
     public static Props props(final SearchConfig searchConfig,
             final ActorRef searchActor,
             final ActorRef pubSubMediator,
-            final MongoThingsSearchPersistence thingsSearchPersistence,
+            final ThingsSearchPersistence thingsSearchPersistence,
             final TimestampPersistence backgroundSyncPersistence) {
         return Props.create(SearchUpdaterRootActor.class, searchConfig, searchActor, pubSubMediator,
                 thingsSearchPersistence, backgroundSyncPersistence);
-    }
-
-    @Override
-    public void postStop() throws Exception {
-        dittoMongoClient.close();
-        super.postStop();
     }
 
     @Override

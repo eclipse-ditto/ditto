@@ -1,0 +1,20 @@
+{
+  "thingId": "org.eclipse.ditto.parity:scalars-green",
+  "_namespace": "org.eclipse.ditto.parity",
+  "_revision": 1,
+  "_modified": "2026-03-10T10:00:00Z",
+  "policyId": "org.eclipse.ditto.parity:policy-graded",
+  "definition": "org.example:Actuator:1.0.0",
+  "attributes": {
+    "color": "green",
+    "size": 100,
+    "weight": 9.75,
+    "active": true,
+    "secret": "top-green",
+    "nested": { "deep": { "value": "gamma", "secret": "hidden-green" } }
+  },
+  "features": {
+    "f1": { "properties": { "status": "on", "level": 3 } },
+    "lamp": { "properties": { "status": "standby", "secretcode": "s3cr3t" } }
+  }
+}

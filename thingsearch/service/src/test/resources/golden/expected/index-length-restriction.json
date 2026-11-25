@@ -1,0 +1,41 @@
+{
+  "_id": "golden:index-length-restriction",
+  "_namespace": "golden",
+  "gr": [
+    "g:0"
+  ],
+  "_revision": {
+    "$numberLong": "1"
+  },
+  "policyId": "golden:index-length-restriction",
+  "__policyRev": {
+    "$numberLong": "1"
+  },
+  "__referencedPolicies": [
+    {
+      "type": "policy",
+      "id": "golden:index-length-restriction",
+      "revision": {
+        "$numberInt": "1"
+      }
+    }
+  ],
+  "t": {
+    "thingId": "golden:index-length-restriction",
+    "_namespace": "golden",
+    "_revision": {
+      "$numberInt": "1"
+    },
+    "policyId": "golden:index-length-restriction",
+    "attributes": {
+      "longNote": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "shortNote": "fits fine"
+    }
+  },
+  "p": {
+    "·g": [
+      "g:0"
+    ]
+  },
+  "f": []
+}

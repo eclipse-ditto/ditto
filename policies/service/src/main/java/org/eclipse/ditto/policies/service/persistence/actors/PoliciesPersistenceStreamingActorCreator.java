@@ -15,8 +15,10 @@ package org.eclipse.ditto.policies.service.persistence.actors;
 import java.util.regex.Pattern;
 
 import org.eclipse.ditto.internal.models.streaming.EntityIdWithRevision;
-import org.eclipse.ditto.internal.utils.persistence.mongo.DefaultPersistenceStreamingActor;
-import org.eclipse.ditto.internal.utils.persistence.mongo.streaming.PidWithSeqNr;
+import org.eclipse.ditto.internal.utils.persistence.api.DittoReadJournal;
+import org.eclipse.ditto.internal.utils.persistence.api.streaming.DefaultPersistenceStreamingActor;
+import org.eclipse.ditto.internal.utils.persistence.api.streaming.NoOpCloseable;
+import org.eclipse.ditto.internal.utils.persistence.api.streaming.PidWithSeqNr;
 import org.eclipse.ditto.policies.api.PolicyTag;
 import org.eclipse.ditto.policies.model.PolicyId;
 
@@ -40,13 +42,19 @@ public final class PoliciesPersistenceStreamingActorCreator {
 
     /**
      * Creates Pekko configuration object Props for this PersistenceQueriesActor.
+     * <p>
+     * The backend-neutral {@link DefaultPersistenceStreamingActor} is wired with the active backend's shared read
+     * journal; it owns no backend resource, so it is given a {@link NoOpCloseable}.
      *
+     * @param readJournal the active backend's read journal.
      * @return the Pekko configuration Props object.
      */
-    public static Props props() {
+    public static Props props(final DittoReadJournal readJournal) {
         return DefaultPersistenceStreamingActor.props(PolicyTag.class,
                 PoliciesPersistenceStreamingActorCreator::createElement,
-                PoliciesPersistenceStreamingActorCreator::createPidWithSeqNr);
+                PoliciesPersistenceStreamingActorCreator::createPidWithSeqNr,
+                readJournal,
+                NoOpCloseable.getInstance());
     }
 
     private static PolicyTag createElement(final PidWithSeqNr pidWithSeqNr) {

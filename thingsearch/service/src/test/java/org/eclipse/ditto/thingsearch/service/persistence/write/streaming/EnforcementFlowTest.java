@@ -38,7 +38,6 @@ import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.internal.utils.tracing.DittoTracing;
 import org.eclipse.ditto.internal.utils.tracing.config.TracingConfig;
 import org.eclipse.ditto.internal.utils.tracing.filter.AcceptAllTracingFilter;
-import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
@@ -61,11 +60,10 @@ import org.eclipse.ditto.things.model.signals.events.ThingMerged;
 import org.eclipse.ditto.things.model.signals.events.ThingModified;
 import org.eclipse.ditto.thingsearch.service.common.config.DefaultStreamConfig;
 import org.eclipse.ditto.thingsearch.service.common.config.StreamConfig;
-import org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants;
-import org.eclipse.ditto.thingsearch.service.persistence.write.model.AbstractWriteModel;
-import org.eclipse.ditto.thingsearch.service.persistence.write.model.Metadata;
-import org.eclipse.ditto.thingsearch.service.persistence.write.model.ThingDeleteModel;
-import org.eclipse.ditto.thingsearch.service.persistence.write.model.ThingWriteModel;
+import org.eclipse.ditto.thingsearch.persistence.api.model.AbstractWriteModel;
+import org.eclipse.ditto.thingsearch.persistence.api.model.Metadata;
+import org.eclipse.ditto.thingsearch.persistence.api.model.ThingDeleteModel;
+import org.eclipse.ditto.thingsearch.persistence.api.model.ThingWriteModel;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -162,11 +160,11 @@ public final class EnforcementFlowTest {
             final AbstractWriteModel writeModel = sinkProbe.expectNext().get(0);
             sinkProbe.expectComplete();
             assertThat(writeModel).isInstanceOf(ThingWriteModel.class);
-            final var document = JsonObject.of(((ThingWriteModel) writeModel).getThingDocument().toJson());
-            assertThat(document.getValue("_id")).contains(JsonValue.of(thingId));
-            assertThat(document.getValue("policyId")).contains(JsonValue.of(policyId));
-            assertThat(document.getValue("_revision")).contains(JsonValue.of(thingRev2));
-            assertThat(document.getValue("__policyRev")).contains(JsonValue.of(policyRev2));
+            final var document = ((ThingWriteModel) writeModel).getDocument();
+            assertThat((CharSequence) document.thingId()).isEqualTo(thingId);
+            assertThat(document.policyId()).contains(policyId);
+            assertThat(document.revision()).isEqualTo(thingRev2);
+            assertThat(document.policyRevision()).isEqualTo(policyRev2);
         }};
     }
 
@@ -208,9 +206,9 @@ public final class EnforcementFlowTest {
 
         final AbstractWriteModel writeModel1 = sinkProbe.expectNext().get(0);
         assertThat(writeModel1).isInstanceOf(ThingWriteModel.class);
-        final var document1 = JsonObject.of(((ThingWriteModel) writeModel1).getThingDocument().toJson());
-        assertThat(document1.getValue("_revision")).contains(JsonValue.of(thingRev2));
-        assertThat(document1.getValue("__policyRev")).contains(JsonValue.of(policyRev1));
+        final var document1 = ((ThingWriteModel) writeModel1).getDocument();
+        assertThat(document1.revision()).isEqualTo(thingRev2);
+        assertThat(document1.policyRevision()).isEqualTo(policyRev1);
 
         // WHEN: a metadata with 'invalidateCache' flag is enqueued
         final Metadata metadata2 = metadata1.invalidateCaches(true, true);
@@ -228,9 +226,9 @@ public final class EnforcementFlowTest {
         final AbstractWriteModel writeModel2 = sinkProbe.expectNext().get(0);
         sinkProbe.expectComplete();
         assertThat(writeModel2).isInstanceOf(ThingWriteModel.class);
-        final var document2 = JsonObject.of(((ThingWriteModel) writeModel2).getThingDocument().toJson());
-        assertThat(document2.getValue("_revision")).contains(JsonValue.of(thingRev2));
-        assertThat(document2.getValue("__policyRev")).contains(JsonValue.of(policyRev2));
+        final var document2 = ((ThingWriteModel) writeModel2).getDocument();
+        assertThat(document2.revision()).isEqualTo(thingRev2);
+        assertThat(document2.policyRevision()).isEqualTo(policyRev2);
     }
 
     @Test
@@ -293,14 +291,14 @@ public final class EnforcementFlowTest {
 
         final AbstractWriteModel writeModel1 = sinkProbe.expectNext().get(0);
         assertThat(writeModel1).isInstanceOf(ThingWriteModel.class);
-        final var document1 = JsonObject.of(((ThingWriteModel) writeModel1).getThingDocument().toJson());
-        assertThat(document1.getValue(PersistenceConstants.FIELD_REVISION)).contains(JsonValue.of(thing1Rev2));
-        assertThat(document1.getValue(PersistenceConstants.FIELD_POLICY_REVISION)).contains(JsonValue.of(policy1Rev1));
-        assertThat(document1.getValue(PersistenceConstants.FIELD_REFERENCED_POLICIES))
-                .contains(JsonArray.of(
-                        PolicyTag.of(importedPolicyId, importedPolicyRev1).toJson(),
-                        PolicyTag.of(importingPolicy1Id, policy1Rev1).toJson()
-                ));
+        final var document1 = ((ThingWriteModel) writeModel1).getDocument();
+        assertThat(document1.revision()).isEqualTo(thing1Rev2);
+        assertThat(document1.policyRevision()).isEqualTo(policy1Rev1);
+        assertThat(document1.referencedPolicies())
+                .containsExactlyInAnyOrder(
+                        PolicyTag.of(importedPolicyId, importedPolicyRev1),
+                        PolicyTag.of(importingPolicy1Id, policy1Rev1)
+                );
 
         sinkProbe.ensureSubscription();
         sourceProbe.ensureSubscription();
@@ -325,14 +323,14 @@ public final class EnforcementFlowTest {
 
         final AbstractWriteModel writeModel2 = sinkProbe.expectNext().get(0);
         assertThat(writeModel2).isInstanceOf(ThingWriteModel.class);
-        final var document2 = JsonObject.of(((ThingWriteModel) writeModel2).getThingDocument().toJson());
-        assertThat(document2.getValue(PersistenceConstants.FIELD_REVISION)).contains(JsonValue.of(thing2Rev2));
-        assertThat(document2.getValue(PersistenceConstants.FIELD_POLICY_REVISION)).contains(JsonValue.of(policy2Rev1));
-        assertThat(document2.getValue(PersistenceConstants.FIELD_REFERENCED_POLICIES))
-                .contains(JsonArray.of(
-                        PolicyTag.of(importedPolicyId, importedPolicyRev1).toJson(),
-                        PolicyTag.of(importingPolicy2Id, policy2Rev1).toJson()
-                ));
+        final var document2 = ((ThingWriteModel) writeModel2).getDocument();
+        assertThat(document2.revision()).isEqualTo(thing2Rev2);
+        assertThat(document2.policyRevision()).isEqualTo(policy2Rev1);
+        assertThat(document2.referencedPolicies())
+                .containsExactlyInAnyOrder(
+                        PolicyTag.of(importedPolicyId, importedPolicyRev1),
+                        PolicyTag.of(importingPolicy2Id, policy2Rev1)
+                );
 
 
 
@@ -365,14 +363,14 @@ public final class EnforcementFlowTest {
         // THEN: write model contains up-to-date policy revisions.
         final AbstractWriteModel writeModel1_2 = sinkProbe.expectNext().get(0);
         assertThat(writeModel1_2).isInstanceOf(ThingWriteModel.class);
-        final var document1_2 = JsonObject.of(((ThingWriteModel) writeModel1_2).getThingDocument().toJson());
-        assertThat(document1_2.getValue(PersistenceConstants.FIELD_REVISION)).contains(JsonValue.of(thing1Rev2));
-        assertThat(document1_2.getValue(PersistenceConstants.FIELD_POLICY_REVISION)).contains(JsonValue.of(policy1Rev1));
-        assertThat(document1_2.getValue(PersistenceConstants.FIELD_REFERENCED_POLICIES))
-                .contains(JsonArray.of(
-                        PolicyTag.of(importedPolicyId, importedPolicyRev2).toJson(),
-                        PolicyTag.of(importingPolicy1Id, policy1Rev1).toJson()
-                ));
+        final var document1_2 = ((ThingWriteModel) writeModel1_2).getDocument();
+        assertThat(document1_2.revision()).isEqualTo(thing1Rev2);
+        assertThat(document1_2.policyRevision()).isEqualTo(policy1Rev1);
+        assertThat(document1_2.referencedPolicies())
+                .containsExactlyInAnyOrder(
+                        PolicyTag.of(importedPolicyId, importedPolicyRev2),
+                        PolicyTag.of(importingPolicy1Id, policy1Rev1)
+                );
 
         final Metadata metadata2_2 = metadata2
                 .withCausingPolicyTag(PolicyTag.of(importedPolicyId, importedPolicyRev2))
@@ -399,14 +397,14 @@ public final class EnforcementFlowTest {
         final AbstractWriteModel writeModel2_2 = sinkProbe.expectNext().get(0);
         sinkProbe.expectComplete();
         assertThat(writeModel2_2).isInstanceOf(ThingWriteModel.class);
-        final var document2_2 = JsonObject.of(((ThingWriteModel) writeModel2_2).getThingDocument().toJson());
-        assertThat(document2_2.getValue(PersistenceConstants.FIELD_REVISION)).contains(JsonValue.of(thing2Rev2));
-        assertThat(document2_2.getValue(PersistenceConstants.FIELD_POLICY_REVISION)).contains(JsonValue.of(policy2Rev1));
-        assertThat(document2_2.getValue(PersistenceConstants.FIELD_REFERENCED_POLICIES))
-                .contains(JsonArray.of(
-                        PolicyTag.of(importedPolicyId, importedPolicyRev2).toJson(),
-                        PolicyTag.of(importingPolicy2Id, policy2Rev1).toJson()
-                ));
+        final var document2_2 = ((ThingWriteModel) writeModel2_2).getDocument();
+        assertThat(document2_2.revision()).isEqualTo(thing2Rev2);
+        assertThat(document2_2.policyRevision()).isEqualTo(policy2Rev1);
+        assertThat(document2_2.referencedPolicies())
+                .containsExactlyInAnyOrder(
+                        PolicyTag.of(importedPolicyId, importedPolicyRev2),
+                        PolicyTag.of(importingPolicy2Id, policy2Rev1)
+                );
     }
 
     @Test
@@ -462,12 +460,13 @@ public final class EnforcementFlowTest {
             final AbstractWriteModel writeModel = sinkProbe.expectNext().get(0);
             sinkProbe.expectComplete();
             assertThat(writeModel).isInstanceOf(ThingWriteModel.class);
-            final var document = JsonObject.of(((ThingWriteModel) writeModel).getThingDocument().toJson());
-            assertThat(document.getValue("_id")).contains(JsonValue.of(thingId));
-            assertThat(document.getValue("policyId")).contains(JsonValue.of(policyId));
-            assertThat(document.getValue("_revision")).contains(JsonValue.of(6));
-            assertThat(document.getValue("__policyRev")).contains(JsonValue.of(1));
-            assertThat(document.getValue("t/attributes")).contains(JsonObject.of("{\"x\":5,\"y\":6,\"z\":7}"));
+            final var document = ((ThingWriteModel) writeModel).getDocument();
+            assertThat((CharSequence) document.thingId()).isEqualTo(thingId);
+            assertThat(document.policyId()).contains(policyId);
+            assertThat(document.revision()).isEqualTo(6);
+            assertThat(document.policyRevision()).isEqualTo(1);
+            assertThat(document.thing().getValue(JsonPointer.of("attributes")))
+                    .contains(JsonObject.of("{\"x\":5,\"y\":6,\"z\":7}"));
 
             // THEN: thing is computed in the cache
             thingsProbe.expectNoMessage(FiniteDuration.Zero());
@@ -724,12 +723,13 @@ public final class EnforcementFlowTest {
             final AbstractWriteModel writeModel = sinkProbe.expectNext().get(0);
             sinkProbe.expectComplete();
             assertThat(writeModel).isInstanceOf(ThingWriteModel.class);
-            final var document = JsonObject.of(((ThingWriteModel) writeModel).getThingDocument().toJson());
-            assertThat(document.getValue("_id")).contains(JsonValue.of(thingId));
-            assertThat(document.getValue("policyId")).contains(JsonValue.of(policyId));
-            assertThat(document.getValue("_revision")).contains(JsonValue.of(6));
-            assertThat(document.getValue("__policyRev")).contains(JsonValue.of(1));
-            assertThat(document.getValue("t/attributes")).contains(JsonObject.of("{\"x\":5,\"y\":6,\"z\":7}"));
+            final var document = ((ThingWriteModel) writeModel).getDocument();
+            assertThat((CharSequence) document.thingId()).isEqualTo(thingId);
+            assertThat(document.policyId()).contains(policyId);
+            assertThat(document.revision()).isEqualTo(6);
+            assertThat(document.policyRevision()).isEqualTo(1);
+            assertThat(document.thing().getValue(JsonPointer.of("attributes")))
+                    .contains(JsonObject.of("{\"x\":5,\"y\":6,\"z\":7}"));
 
             // THEN: thing is computed in the cache
             thingsProbe.expectNoMessage(FiniteDuration.Zero());
@@ -792,12 +792,13 @@ public final class EnforcementFlowTest {
             final AbstractWriteModel writeModel = sinkProbe.expectNext().get(0);
             sinkProbe.expectComplete();
             assertThat(writeModel).isInstanceOf(ThingWriteModel.class);
-            final var document = JsonObject.of(((ThingWriteModel) writeModel).getThingDocument().toJson());
-            assertThat(document.getValue("_id")).contains(JsonValue.of(thingId));
-            assertThat(document.getValue("policyId")).contains(JsonValue.of(policyId));
-            assertThat(document.getValue("_revision")).contains(JsonValue.of(6));
-            assertThat(document.getValue("__policyRev")).contains(JsonValue.of(1));
-            assertThat(document.getValue("t/attributes")).contains(JsonObject.of("{\"x\":5,\"y\":6,\"z\":7}"));
+            final var document = ((ThingWriteModel) writeModel).getDocument();
+            assertThat((CharSequence) document.thingId()).isEqualTo(thingId);
+            assertThat(document.policyId()).contains(policyId);
+            assertThat(document.revision()).isEqualTo(6);
+            assertThat(document.policyRevision()).isEqualTo(1);
+            assertThat(document.thing().getValue(JsonPointer.of("attributes")))
+                    .contains(JsonObject.of("{\"x\":5,\"y\":6,\"z\":7}"));
 
             // THEN: thing is computed in the cache
             thingsProbe.expectNoMessage(FiniteDuration.Zero());

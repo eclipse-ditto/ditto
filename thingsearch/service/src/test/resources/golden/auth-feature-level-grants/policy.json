@@ -1,0 +1,29 @@
+{
+  "policyId": "golden:auth-feature-level-grants",
+  "entries": {
+    "ROOT": {
+      "subjects": {
+        "g:root": { "type": "generated" }
+      },
+      "resources": {
+        "thing:/": { "grant": ["READ"], "revoke": [] }
+      }
+    },
+    "F1": {
+      "subjects": {
+        "g:f1": { "type": "generated" }
+      },
+      "resources": {
+        "thing:/features/f1": { "grant": ["READ"], "revoke": [] }
+      }
+    },
+    "F2": {
+      "subjects": {
+        "g:f2": { "type": "generated" }
+      },
+      "resources": {
+        "thing:/features/f2": { "grant": ["READ"], "revoke": [] }
+      }
+    }
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "policyId": "golden:auth-revoke-below-grant",
+  "entries": {
+    "ROOT": {
+      "subjects": {
+        "g:root": { "type": "generated" }
+      },
+      "resources": {
+        "thing:/": { "grant": ["READ"], "revoke": [] }
+      }
+    },
+    "REVOKE_DEEP": {
+      "subjects": {
+        "g:root": { "type": "generated" }
+      },
+      "resources": {
+        "thing:/attributes/secret/inner": { "grant": [], "revoke": ["READ"] }
+      }
+    }
+  }
+}

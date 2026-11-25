@@ -1,0 +1,8 @@
+{
+  "thingId": "org.eclipse.ditto.parity:zsort-e",
+  "_namespace": "org.eclipse.ditto.parity",
+  "_revision": 1,
+  "_modified": "2026-09-01T10:04:00Z",
+  "policyId": "org.eclipse.ditto.parity:policy-full",
+  "features": { "meter": { "properties": { "status": "on", "reading": "n/a" } } }
+}

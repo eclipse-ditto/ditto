@@ -20,7 +20,7 @@ import javax.annotation.concurrent.Immutable;
 import org.apache.pekko.actor.ActorRef;
 import org.apache.pekko.actor.ActorSystem;
 import org.apache.pekko.actor.Props;
-import org.eclipse.ditto.internal.utils.persistence.mongo.streaming.MongoReadJournal;
+import org.eclipse.ditto.internal.utils.persistence.api.DittoReadJournal;
 import org.eclipse.ditto.internal.utils.pubsub.DistributedPub;
 import org.eclipse.ditto.policies.enforcement.PolicyEnforcerProvider;
 import org.eclipse.ditto.things.model.ThingId;
@@ -53,11 +53,14 @@ final class DefaultThingPersistenceActorPropsFactory implements ThingPersistence
     }
 
     @Override
-    public Props props(final ThingId thingId, final MongoReadJournal mongoReadJournal, final ThingConfig thingConfig,
-            final DistributedPub<ThingEvent<?>> distributedPub, @Nullable final ActorRef searchShardRegionProxy,
+    public Props props(final ThingId thingId,
+            final DittoReadJournal readJournal,
+            final ThingConfig thingConfig,
+            final DistributedPub<ThingEvent<?>> distributedPub,
+            @Nullable final ActorRef searchShardRegionProxy,
             final PolicyEnforcerProvider policyEnforcerProvider) {
         argumentNotEmpty(thingId);
-        return ThingPersistenceActor.props(thingId, mongoReadJournal, thingConfig, distributedPub,
+        return ThingPersistenceActor.props(thingId, readJournal, thingConfig, distributedPub,
                 searchShardRegionProxy, policyEnforcerProvider);
     }
 }

@@ -12,20 +12,16 @@
  */
 package org.eclipse.ditto.policies.service.persistence.actors;
 
-import org.eclipse.ditto.internal.utils.persistence.mongo.MongoClientWrapper;
-import org.eclipse.ditto.internal.utils.persistence.mongo.config.MongoDbConfig;
-import org.eclipse.ditto.internal.utils.persistence.mongo.ops.eventsource.MongoEntitiesPersistenceOperations;
-import org.eclipse.ditto.internal.utils.persistence.mongo.ops.eventsource.MongoEventSourceSettings;
-import org.eclipse.ditto.internal.utils.persistence.mongo.ops.eventsource.MongoNamespacePersistenceOperations;
+import java.io.Closeable;
+
+import org.eclipse.ditto.internal.utils.persistence.api.PersistenceBackendProvider;
+import org.eclipse.ditto.internal.utils.persistence.api.PersistenceOperationsCollaborators;
+import org.eclipse.ditto.internal.utils.persistence.api.operations.EntityPersistenceOperations;
+import org.eclipse.ditto.internal.utils.persistence.api.operations.NamespacePersistenceOperations;
 import org.eclipse.ditto.internal.utils.persistence.operations.AbstractPersistenceOperationsActor;
-import org.eclipse.ditto.internal.utils.persistence.operations.EntityPersistenceOperations;
-import org.eclipse.ditto.internal.utils.persistence.operations.NamespacePersistenceOperations;
 import org.eclipse.ditto.internal.utils.persistence.operations.PersistenceOperationsConfig;
 import org.eclipse.ditto.policies.model.PolicyConstants;
 import org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault;
-
-import com.mongodb.reactivestreams.client.MongoDatabase;
-import com.typesafe.config.Config;
 
 import org.apache.pekko.actor.ActorRef;
 import org.apache.pekko.actor.Props;
@@ -41,7 +37,7 @@ public final class PolicyPersistenceOperationsActor extends AbstractPersistenceO
     PolicyPersistenceOperationsActor(final ActorRef pubSubMediator,
             final NamespacePersistenceOperations namespaceOps,
             final EntityPersistenceOperations entitiesOps,
-            final MongoClientWrapper mongoClient,
+            final Closeable toCloseWhenStopped,
             final PersistenceOperationsConfig persistenceOperationsConfig) {
 
         super(pubSubMediator,
@@ -49,39 +45,28 @@ public final class PolicyPersistenceOperationsActor extends AbstractPersistenceO
                 namespaceOps,
                 entitiesOps,
                 persistenceOperationsConfig,
-                mongoClient);
+                toCloseWhenStopped);
     }
 
     /**
      * Create Props of this actor.
      *
      * @param pubSubMediator Pekko pub-sub mediator.
-     * @param mongoDbConfig the MongoDB configuration settings.
-     * @param config Configuration with info about event journal, snapshot store and database.
+     * @param provider the active persistence-backend provider yielding the backend-neutral ops collaborators.
      * @param persistenceOperationsConfig the persistence operations configuration settings.
      * @return a Props object.
      */
     public static Props props(final ActorRef pubSubMediator,
-            final MongoDbConfig mongoDbConfig,
-            final Config config,
+            final PersistenceBackendProvider provider,
             final PersistenceOperationsConfig persistenceOperationsConfig) {
 
         return Props.create(PolicyPersistenceOperationsActor.class, () -> {
-            final MongoEventSourceSettings eventSourceSettings =
-                    MongoEventSourceSettings.fromConfig(config, PolicyPersistenceActor.PERSISTENCE_ID_PREFIX,
-                            true, PolicyPersistenceActor.JOURNAL_PLUGIN_ID,
-                            PolicyPersistenceActor.SNAPSHOT_PLUGIN_ID);
+            // Build the backend client + collaborators lazily, at actor instantiation time (one client per actor).
+            final PersistenceOperationsCollaborators collaborators =
+                    provider.operations(PolicyConstants.ENTITY_TYPE.toString());
 
-            final MongoClientWrapper mongoClient = MongoClientWrapper.newInstance(mongoDbConfig);
-            final MongoDatabase db = mongoClient.getDefaultDatabase();
-
-            final NamespacePersistenceOperations namespaceOps =
-                    MongoNamespacePersistenceOperations.of(db, eventSourceSettings);
-            final EntityPersistenceOperations entitiesOps =
-                    MongoEntitiesPersistenceOperations.of(db, eventSourceSettings);
-
-            return new PolicyPersistenceOperationsActor(pubSubMediator, namespaceOps, entitiesOps, mongoClient,
-                    persistenceOperationsConfig);
+            return new PolicyPersistenceOperationsActor(pubSubMediator, collaborators.namespaceOps(),
+                    collaborators.entitiesOps(), collaborators.closeable(), persistenceOperationsConfig);
         });
     }
 

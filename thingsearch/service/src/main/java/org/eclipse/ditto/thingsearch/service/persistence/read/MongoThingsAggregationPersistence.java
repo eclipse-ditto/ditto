@@ -34,11 +34,14 @@ import org.bson.Document;
 import org.bson.conversions.Bson;
 import org.eclipse.ditto.internal.utils.persistence.mongo.DittoBsonJson;
 import org.eclipse.ditto.internal.utils.persistence.mongo.DittoMongoClient;
+import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.rql.parser.RqlPredicateParser;
 import org.eclipse.ditto.rql.query.expression.ThingsFieldExpressionFactory;
 import org.eclipse.ditto.rql.query.filter.QueryFilterCriteriaFactory;
 import org.eclipse.ditto.thingsearch.model.signals.commands.query.AggregateThingsMetrics;
+import org.eclipse.ditto.thingsearch.persistence.api.ThingsAggregationPersistence;
 import org.eclipse.ditto.thingsearch.service.common.config.SearchConfig;
 import org.eclipse.ditto.thingsearch.service.common.config.SearchPersistenceConfig;
 import org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants;
@@ -105,7 +108,7 @@ public final class MongoThingsAggregationPersistence implements ThingsAggregatio
     }
 
     @Override
-    public Source<Document, NotUsed> aggregateThings(final AggregateThingsMetrics aggregateCommand) {
+    public Source<JsonObject, NotUsed> aggregateThings(final AggregateThingsMetrics aggregateCommand) {
         final List<Bson> aggregatePipeline = new ArrayList<>();
 
         // Create namespace predicate optional for $match stage
@@ -149,6 +152,7 @@ public final class MongoThingsAggregationPersistence implements ThingsAggregatio
         } else {
             hints.getHint(aggregateCommand.getNamespaces()).ifPresent(aggregatePublisher::hint);
         }
-        return Source.fromPublisher(aggregatePublisher);
+        return Source.fromPublisher(aggregatePublisher)
+                .map(document -> JsonFactory.newObject(document.toJson()));
     }
 }

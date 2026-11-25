@@ -1,0 +1,14 @@
+{
+  "thingId": "org.eclipse.ditto.parity:zzempty-full",
+  "_namespace": "org.eclipse.ditto.parity",
+  "_revision": 1,
+  "_modified": "2026-11-09T10:01:00Z",
+  "policyId": "org.eclipse.ditto.parity:policy-full",
+  "features": {
+    "only": {
+      "definition": ["org.example:Full:1.0.0"],
+      "properties": { "obj": { "a": 1 } },
+      "desiredProperties": { "target": 5, "cfg": { "mode": "auto" } }
+    }
+  }
+}

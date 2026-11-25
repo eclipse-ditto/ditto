@@ -21,6 +21,7 @@ import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.base.model.entity.Entity;
 import org.eclipse.ditto.base.model.entity.metadata.Metadata;
+import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
 
 /**
@@ -162,6 +163,55 @@ public interface WotValidationConfig extends Entity<WotValidationConfigRevision>
                 configId, enabled, logWarningInsteadOfFailingApiCalls, thingConfig, featureConfig,
                 dynamicConfig, revision, created, modified, deleted, metadata
         );
+    }
+
+    /**
+     * An enumeration of the known JSON fields of a WoT validation config that are part of its persisted snapshot
+     * contract (revision, lifecycle timestamps, deleted marker and metadata). These are exposed here so that the
+     * snapshot serializer can reference the persisted-key contract without depending on the package-private
+     * implementation.
+     * <p>
+     * Field definitions delegate to {@code ImmutableWotValidationConfig.JsonFields} (the single source of truth)
+     * to ensure the JSON key contract is defined in exactly one place.
+     * </p>
+     *
+     * @since 4.0.0
+     */
+    final class JsonFields {
+
+        /**
+         * JSON field containing the created timestamp.
+         */
+        public static final JsonFieldDefinition<String> CREATED =
+                ImmutableWotValidationConfig.JsonFields.CREATED;
+
+        /**
+         * JSON field containing the revision.
+         */
+        public static final JsonFieldDefinition<Long> REVISION =
+                ImmutableWotValidationConfig.JsonFields.REVISION;
+
+        /**
+         * JSON field containing the modified timestamp.
+         */
+        public static final JsonFieldDefinition<String> MODIFIED =
+                ImmutableWotValidationConfig.JsonFields.MODIFIED;
+
+        /**
+         * JSON field containing the deleted flag.
+         */
+        public static final JsonFieldDefinition<Boolean> DELETED =
+                ImmutableWotValidationConfig.JsonFields.DELETED;
+
+        /**
+         * JSON field containing the metadata.
+         */
+        public static final JsonFieldDefinition<JsonObject> METADATA =
+                ImmutableWotValidationConfig.JsonFields.METADATA;
+
+        private JsonFields() {
+            throw new AssertionError();
+        }
     }
 
 } 

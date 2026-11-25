@@ -31,7 +31,7 @@ import org.eclipse.ditto.rql.query.SortOption;
 import org.eclipse.ditto.rql.query.expression.ThingsFieldExpressionFactory;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingId;
-import org.eclipse.ditto.thingsearch.service.common.model.ResultList;
+import org.eclipse.ditto.thingsearch.persistence.api.model.ResultList;
 import org.eclipse.ditto.thingsearch.service.persistence.TestConstants;
 import org.junit.Before;
 import org.junit.BeforeClass;

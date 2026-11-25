@@ -29,7 +29,7 @@ import org.eclipse.ditto.base.model.signals.events.Event;
 import org.eclipse.ditto.base.service.actors.ShutdownBehaviour;
 import org.eclipse.ditto.internal.utils.cache.entry.Entry;
 import org.eclipse.ditto.internal.utils.namespaces.BlockedNamespaces;
-import org.eclipse.ditto.internal.utils.persistence.mongo.streaming.MongoReadJournal;
+import org.eclipse.ditto.internal.utils.persistence.api.DittoReadJournal;
 import org.eclipse.ditto.internal.utils.persistentactors.AbstractPersistenceSupervisor;
 import org.eclipse.ditto.internal.utils.pubsub.DistributedPub;
 import org.eclipse.ditto.policies.enforcement.PolicyCacheLoader;
@@ -67,10 +67,10 @@ public final class PolicySupervisorActor extends AbstractPersistenceSupervisor<P
             final DistributedPub<PolicyAnnouncement<?>> policyAnnouncementPub,
             @Nullable final BlockedNamespaces blockedNamespaces,
             final PolicyEnforcerProvider policyEnforcerProvider,
-            final MongoReadJournal mongoReadJournal,
+            final DittoReadJournal readJournal,
             final NamespacePoliciesConfig namespacePoliciesConfig) {
 
-        super(blockedNamespaces, mongoReadJournal, policiesConfig.getPolicyConfig().getSupervisorConfig());
+        super(blockedNamespaces, readJournal, policiesConfig.getPolicyConfig().getSupervisorConfig());
         this.policyEnforcerProvider = policyEnforcerProvider;
         this.pubSubMediator = pubSubMediator;
         this.policiesConfig = policiesConfig;
@@ -97,7 +97,7 @@ public final class PolicySupervisorActor extends AbstractPersistenceSupervisor<P
      * @param policyAnnouncementPub publisher interface of policy announcements.
      * @param blockedNamespaces the blocked namespaces functionality to retrieve/subscribe for blocked namespaces.
      * @param policyEnforcerProvider used to load the policy enforcer to authorize commands.
-     * @param mongoReadJournal the ReadJournal used for gaining access to historical values of the policy.
+     * @param readJournal the ReadJournal used for gaining access to historical values of the policy.
      * @param namespacePoliciesConfig the pre-parsed namespace policies configuration shared for the actor system.
      * @return the {@link Props} to create this actor.
      */
@@ -106,11 +106,11 @@ public final class PolicySupervisorActor extends AbstractPersistenceSupervisor<P
             final DistributedPub<PolicyAnnouncement<?>> policyAnnouncementPub,
             @Nullable final BlockedNamespaces blockedNamespaces,
             final PolicyEnforcerProvider policyEnforcerProvider,
-            final MongoReadJournal mongoReadJournal,
+            final DittoReadJournal readJournal,
             final NamespacePoliciesConfig namespacePoliciesConfig) {
 
         return Props.create(PolicySupervisorActor.class, pubSubMediator, policiesConfig,
-                policyAnnouncementPub, blockedNamespaces, policyEnforcerProvider, mongoReadJournal,
+                policyAnnouncementPub, blockedNamespaces, policyEnforcerProvider, readJournal,
                 namespacePoliciesConfig);
     }
 
@@ -121,8 +121,8 @@ public final class PolicySupervisorActor extends AbstractPersistenceSupervisor<P
 
     @Override
     protected Props getPersistenceActorProps(final PolicyId entityId) {
-        return PolicyPersistenceActor.props(entityId, mongoReadJournal, pubSubMediator, announcementManager,
-                policiesConfig.getPolicyConfig());
+        return PolicyPersistenceActor.props(entityId, readJournal, pubSubMediator,
+                announcementManager, policiesConfig.getPolicyConfig());
     }
 
     @Override

@@ -1,0 +1,204 @@
+/*
+ * Copyright (c) 2026 Contributors to the Eclipse Foundation
+ *
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
+ *
+ * SPDX-License-Identifier: EPL-2.0
+ */
+package org.eclipse.ditto.internal.utils.persistence.mongo;
+
+import static org.assertj.core.api.Assertions.assertThat;
+
+import java.util.List;
+
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.testkit.javadsl.TestKit;
+import org.eclipse.ditto.internal.utils.config.ScopedConfig;
+import org.junit.AfterClass;
+import org.junit.Before;
+import org.junit.BeforeClass;
+import org.junit.Test;
+
+import com.typesafe.config.Config;
+import com.typesafe.config.ConfigFactory;
+
+/**
+ * Unit tests for {@link MongoPersistencePluginConfig}.
+ * <p>
+ * These tests assert the exact shipped Mongo plugin IDs per entity and per service (auto-start sets), and that no
+ * remember-store plugin IDs are returned (MongoDB leaves them to the configuration). They serve as the
+ * "auto-start set == shipped static list" check at the unit level. Expected values are explicit literals that match
+ * the shipped HOCON:
+ * <ul>
+ *     <li>things.conf {@code pekko.persistence.journal.auto-start-journals} /
+ *     {@code pekko.persistence.snapshot-store.auto-start-snapshot-stores}: things journal + snapshot (WoT
+ *     excluded).</li>
+ *     <li>policies.conf, the same two keys: policies journal + snapshot.</li>
+ *     <li>connectivity.conf, the same two keys: connection journal + snapshot.</li>
+ * </ul>
+ *
+ * @since 4.0.0
+ */
+public final class MongoPersistencePluginConfigTest {
+
+    private static ActorSystem system;
+    private static Config referenceExtensionConfig;
+
+    private MongoPersistencePluginConfig underTest;
+
+    @BeforeClass
+    public static void setUpClass() {
+        system = ActorSystem.create("MongoPersistencePluginConfigTest", ConfigFactory.load("reference"));
+        referenceExtensionConfig =
+                ScopedConfig.dittoExtension(ConfigFactory.load("reference"))
+                        .getConfig("persistence-backend-provider.extension-config");
+    }
+
+    @AfterClass
+    public static void tearDownClass() {
+        if (system != null) {
+            TestKit.shutdownActorSystem(system);
+            system = null;
+        }
+    }
+
+    @Before
+    public void setUp() {
+        final var provider = new MongoPersistenceBackendProvider(system, referenceExtensionConfig);
+        underTest = MongoPersistencePluginConfig.of(provider);
+    }
+
+    // ── per-entity journal / snapshot IDs ───────────────────────────────────
+
+    @Test
+    public void thingJournalPluginIdMatchesShippedBlock() {
+        assertThat(underTest.getJournalPluginId("thing"))
+                .as("thing journal plugin id must match the shipped pekko block name (things.conf)")
+                .isEqualTo("pekko-contrib-mongodb-persistence-things-journal");
+    }
+
+    @Test
+    public void thingSnapshotPluginIdMatchesShippedBlock() {
+        assertThat(underTest.getSnapshotPluginId("thing"))
+                .as("thing snapshot plugin id must match the shipped pekko block name (things.conf)")
+                .isEqualTo("pekko-contrib-mongodb-persistence-things-snapshots");
+    }
+
+    @Test
+    public void policyJournalPluginIdMatchesShippedBlock() {
+        assertThat(underTest.getJournalPluginId("policy"))
+                .as("policy journal plugin id must match the shipped pekko block name (policies.conf)")
+                .isEqualTo("pekko-contrib-mongodb-persistence-policies-journal");
+    }
+
+    @Test
+    public void policySnapshotPluginIdMatchesShippedBlock() {
+        assertThat(underTest.getSnapshotPluginId("policy"))
+                .as("policy snapshot plugin id must match the shipped pekko block name (policies.conf)")
+                .isEqualTo("pekko-contrib-mongodb-persistence-policies-snapshots");
+    }
+
+    @Test
+    public void connectionJournalPluginIdMatchesShippedBlock() {
+        assertThat(underTest.getJournalPluginId("connection"))
+                .as("connection journal plugin id must match the shipped pekko block name (connectivity.conf)")
+                .isEqualTo("pekko-contrib-mongodb-persistence-connection-journal");
+    }
+
+    @Test
+    public void connectionSnapshotPluginIdMatchesShippedBlock() {
+        assertThat(underTest.getSnapshotPluginId("connection"))
+                .as("connection snapshot plugin id must match the shipped pekko block name (connectivity.conf)")
+                .isEqualTo("pekko-contrib-mongodb-persistence-connection-snapshots");
+    }
+
+    // ── auto-start sets (regression guard) ───────────────────────────────────
+
+    @Test
+    public void thingsAutoStartSetMatchesShippedHocon() {
+        // things.conf pekko.persistence auto-start-journals / auto-start-snapshot-stores — journal + snapshot only;
+        // WoT is NOT in this set
+        final List<String> expected = List.of(
+                "pekko-contrib-mongodb-persistence-things-journal",
+                "pekko-contrib-mongodb-persistence-things-snapshots"
+        );
+        assertThat(underTest.getAutoStartPluginIds("things"))
+                .as("things auto-start set must match the auto-start-journals / auto-start-snapshot-stores"
+                        + " of things.conf exactly (WoT excluded)")
+                .containsExactlyInAnyOrderElementsOf(expected);
+    }
+
+    @Test
+    public void thingsAutoStartSetDoesNotContainWot() {
+        assertThat(underTest.getAutoStartPluginIds("things"))
+                .as("WoT validation-config plugin must NOT be in the things auto-start set")
+                .doesNotContain("pekko-contrib-mongodb-persistence-wot-validation-config-journal",
+                        "pekko-contrib-mongodb-persistence-wot-validation-config-snapshots");
+    }
+
+    @Test
+    public void policiesAutoStartSetMatchesShippedHocon() {
+        // policies.conf pekko.persistence auto-start-journals / auto-start-snapshot-stores
+        final List<String> expected = List.of(
+                "pekko-contrib-mongodb-persistence-policies-journal",
+                "pekko-contrib-mongodb-persistence-policies-snapshots"
+        );
+        assertThat(underTest.getAutoStartPluginIds("policies"))
+                .as("policies auto-start set must match the auto-start-journals / auto-start-snapshot-stores"
+                        + " of policies.conf exactly")
+                .containsExactlyInAnyOrderElementsOf(expected);
+    }
+
+    @Test
+    public void connectivityAutoStartSetMatchesShippedHocon() {
+        // connectivity.conf pekko.persistence auto-start-journals / auto-start-snapshot-stores — main connection
+        // journal + snapshots only (not remember-store)
+        final List<String> expected = List.of(
+                "pekko-contrib-mongodb-persistence-connection-journal",
+                "pekko-contrib-mongodb-persistence-connection-snapshots"
+        );
+        assertThat(underTest.getAutoStartPluginIds("connectivity"))
+                .as("connectivity auto-start set must match the auto-start-journals / auto-start-snapshot-stores"
+                        + " of connectivity.conf exactly")
+                .containsExactlyInAnyOrderElementsOf(expected);
+    }
+
+    @Test
+    public void autoStartForUnknownServiceReturnsEmpty() {
+        assertThat(underTest.getAutoStartPluginIds("unknown-service"))
+                .as("unknown service must return an empty auto-start set (not throw)")
+                .isEmpty();
+    }
+
+    // ── remember-store plugin IDs ─────────────────────────────────────────────
+
+    @Test
+    public void rememberStoreForConnectionIsEmpty() {
+        assertThat(underTest.getRememberStorePluginIds("connection"))
+                .as("MongoDB leaves the connection remember-store plugin IDs to the configuration")
+                .isEmpty();
+    }
+
+    @Test
+    public void rememberStoreForUnknownEntityIsEmpty() {
+        assertThat(underTest.getRememberStorePluginIds("unknown-entity"))
+                .as("MongoDB leaves every entity's remember-store plugin IDs to the configuration")
+                .isEmpty();
+    }
+
+    // ── pluginConfig() wiring on the provider ────────────────────────────────
+
+    @Test
+    public void providerPluginConfigReturnsMongoPersistencePluginConfig() {
+        final var provider = new MongoPersistenceBackendProvider(system, referenceExtensionConfig);
+        assertThat(provider.pluginConfig())
+                .as("pluginConfig() must not throw and must return a non-null MongoPersistencePluginConfig")
+                .isNotNull()
+                .isInstanceOf(MongoPersistencePluginConfig.class);
+    }
+}

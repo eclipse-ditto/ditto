@@ -1,0 +1,20 @@
+{
+  "comment": "Named authorization situations for the parity battery. null = sudo (no auth filter). Unless a query case names specific situations, the engine crosses it with ALL situations below.",
+  "situations": {
+    "sudo": null,
+    "full": ["parity:full"],
+    "reader": ["parity:reader"],
+    "attr": ["parity:attr"],
+    "feature": ["parity:feature"],
+    "limited": ["parity:limited"],
+    "deep": ["parity:deep"],
+    "nobody": ["parity:nobody"],
+    "multi": ["parity:attr", "parity:feature"],
+    "absAttributes": ["parity:abs-attributes"],
+    "absFoo": ["parity:abs-foo"],
+    "absProperty": ["parity:abs-property"],
+    "absRevoked": ["parity:abs-revoked"],
+    "absOnly": ["parity:abs-only"],
+    "absFeatureId": ["parity:abs-feature-id"]
+  }
+}

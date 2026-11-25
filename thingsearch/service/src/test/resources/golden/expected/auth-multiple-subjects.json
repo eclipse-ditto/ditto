@@ -1,0 +1,53 @@
+{
+  "_id": "golden:auth-multiple-subjects",
+  "_namespace": "golden",
+  "gr": [
+    "g:c",
+    "g:b",
+    "g:a"
+  ],
+  "_revision": {
+    "$numberLong": "9"
+  },
+  "policyId": "golden:auth-multiple-subjects",
+  "__policyRev": {
+    "$numberLong": "1"
+  },
+  "__referencedPolicies": [
+    {
+      "type": "policy",
+      "id": "golden:auth-multiple-subjects",
+      "revision": {
+        "$numberInt": "1"
+      }
+    }
+  ],
+  "t": {
+    "thingId": "golden:auth-multiple-subjects",
+    "_namespace": "golden",
+    "_revision": {
+      "$numberInt": "9"
+    },
+    "policyId": "golden:auth-multiple-subjects",
+    "attributes": {
+      "x": {
+        "$numberInt": "1"
+      }
+    }
+  },
+  "p": {
+    "·g": [
+      "g:c",
+      "g:b",
+      "g:a"
+    ],
+    "attributes": {
+      "x": {
+        "·r": [
+          "g:b"
+        ]
+      }
+    }
+  },
+  "f": []
+}

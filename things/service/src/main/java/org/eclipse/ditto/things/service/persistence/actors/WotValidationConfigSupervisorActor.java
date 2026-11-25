@@ -31,7 +31,7 @@ import org.eclipse.ditto.base.service.signaltransformer.SignalTransformers;
 import org.eclipse.ditto.internal.utils.cluster.StopShardedActor;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.internal.utils.config.ScopedConfig;
-import org.eclipse.ditto.internal.utils.persistence.mongo.streaming.MongoReadJournal;
+import org.eclipse.ditto.internal.utils.persistence.api.DittoReadJournal;
 import org.eclipse.ditto.things.model.devops.WotValidationConfigId;
 import org.eclipse.ditto.things.model.devops.commands.WotValidationConfigCommand;
 import org.eclipse.ditto.things.model.devops.exceptions.WotValidationConfigNotAccessibleException;
@@ -44,7 +44,7 @@ import org.eclipse.ditto.things.service.common.config.DittoThingsConfig;
 public final class WotValidationConfigSupervisorActor extends AbstractActorWithTimers {
 
     private final ActorRef pubSubMediator;
-    private final MongoReadJournal mongoReadJournal;
+    private final DittoReadJournal readJournal;
     private final LoggingAdapter log = Logging.getLogger(getContext().getSystem(), this);
     @Nullable
     private ActorRef persistenceActorChild;
@@ -52,9 +52,9 @@ public final class WotValidationConfigSupervisorActor extends AbstractActorWithT
 
     @SuppressWarnings("unused")
     private WotValidationConfigSupervisorActor(final ActorRef pubSubMediator,
-            final MongoReadJournal mongoReadJournal) {
+            final DittoReadJournal readJournal) {
         this.pubSubMediator = pubSubMediator;
-        this.mongoReadJournal = mongoReadJournal;
+        this.readJournal = readJournal;
 
         final var system = getContext().getSystem();
         // This is the only way that works for your transformer setup!
@@ -62,8 +62,8 @@ public final class WotValidationConfigSupervisorActor extends AbstractActorWithT
     }
 
     public static Props props(final ActorRef pubSubMediator,
-            final MongoReadJournal mongoReadJournal) {
-        return Props.create(WotValidationConfigSupervisorActor.class, pubSubMediator, mongoReadJournal);
+            final DittoReadJournal readJournal) {
+        return Props.create(WotValidationConfigSupervisorActor.class, pubSubMediator, readJournal);
     }
 
     @Override
@@ -116,7 +116,7 @@ public final class WotValidationConfigSupervisorActor extends AbstractActorWithT
     }
 
     private Props getPersistenceActorProps(final WotValidationConfigId entityId) {
-        return WotValidationConfigPersistenceActor.props(entityId, mongoReadJournal, pubSubMediator);
+        return WotValidationConfigPersistenceActor.props(entityId, readJournal, pubSubMediator);
     }
 
     private ExponentialBackOffConfig getExponentialBackOffConfig() {

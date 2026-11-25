@@ -12,16 +12,14 @@
  */
 package org.eclipse.ditto.connectivity.service.messaging.persistence;
 
-import org.eclipse.ditto.connectivity.model.ConnectivityConstants;
-import org.eclipse.ditto.internal.utils.persistence.mongo.MongoClientWrapper;
-import org.eclipse.ditto.internal.utils.persistence.mongo.ops.eventsource.MongoEntitiesPersistenceOperations;
-import org.eclipse.ditto.internal.utils.persistence.mongo.ops.eventsource.MongoEventSourceSettings;
-import org.eclipse.ditto.internal.utils.persistence.operations.AbstractPersistenceOperationsActor;
-import org.eclipse.ditto.internal.utils.persistence.operations.EntityPersistenceOperations;
-import org.eclipse.ditto.internal.utils.persistence.operations.PersistenceOperationsConfig;
+import java.io.Closeable;
 
-import com.mongodb.reactivestreams.client.MongoDatabase;
-import com.typesafe.config.Config;
+import org.eclipse.ditto.connectivity.model.ConnectivityConstants;
+import org.eclipse.ditto.internal.utils.persistence.api.PersistenceBackendProvider;
+import org.eclipse.ditto.internal.utils.persistence.api.PersistenceOperationsCollaborators;
+import org.eclipse.ditto.internal.utils.persistence.api.operations.EntityPersistenceOperations;
+import org.eclipse.ditto.internal.utils.persistence.operations.AbstractPersistenceOperationsActor;
+import org.eclipse.ditto.internal.utils.persistence.operations.PersistenceOperationsConfig;
 
 import org.apache.pekko.actor.ActorRef;
 import org.apache.pekko.actor.Props;
@@ -35,7 +33,7 @@ public final class ConnectionPersistenceOperationsActor extends AbstractPersiste
 
     private ConnectionPersistenceOperationsActor(final ActorRef pubSubMediator,
             final EntityPersistenceOperations entitiesOps,
-            final MongoClientWrapper mongoClientWrapper,
+            final Closeable toCloseWhenStopped,
             final PersistenceOperationsConfig persistenceOperationsConfig) {
 
         super(pubSubMediator,
@@ -43,36 +41,28 @@ public final class ConnectionPersistenceOperationsActor extends AbstractPersiste
                 null,
                 entitiesOps,
                 persistenceOperationsConfig,
-                mongoClientWrapper);
+                toCloseWhenStopped);
     }
 
     /**
      * Create Props of this actor.
      *
      * @param pubSubMediator Pekko pub-sub mediator.
-     * @param mongoClient the MongoDB client.
-     * @param config configuration with info about event journal, snapshot store and database.
+     * @param provider the active persistence-backend provider yielding the backend-neutral ops collaborators.
      * @param persistenceOperationsConfig the persistence operations configuration settings.
      * @return a Props object.
      */
     public static Props props(final ActorRef pubSubMediator,
-            final MongoClientWrapper mongoClient,
-            final Config config,
+            final PersistenceBackendProvider provider,
             final PersistenceOperationsConfig persistenceOperationsConfig) {
 
         return Props.create(ConnectionPersistenceOperationsActor.class, () -> {
-            final MongoEventSourceSettings eventSourceSettings =
-                    MongoEventSourceSettings.fromConfig(config, ConnectionPersistenceActor.PERSISTENCE_ID_PREFIX,
-                            false, ConnectionPersistenceActor.JOURNAL_PLUGIN_ID,
-                            ConnectionPersistenceActor.SNAPSHOT_PLUGIN_ID);
+            // Build the backend client + collaborators lazily, at actor instantiation time (one client per actor).
+            final PersistenceOperationsCollaborators collaborators =
+                    provider.operations(ConnectivityConstants.ENTITY_TYPE.toString());
 
-            final MongoDatabase db = mongoClient.getDefaultDatabase();
-
-            final EntityPersistenceOperations entitiesOps =
-                    MongoEntitiesPersistenceOperations.of(db, eventSourceSettings);
-
-            return new ConnectionPersistenceOperationsActor(pubSubMediator, entitiesOps, mongoClient,
-                    persistenceOperationsConfig);
+            return new ConnectionPersistenceOperationsActor(pubSubMediator, collaborators.entitiesOps(),
+                    collaborators.closeable(), persistenceOperationsConfig);
         });
     }
 

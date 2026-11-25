@@ -37,8 +37,9 @@ import org.eclipse.ditto.internal.models.streaming.AbstractEntityIdWithRevision;
 import org.eclipse.ditto.internal.models.streaming.BatchedEntityIdWithRevisions;
 import org.eclipse.ditto.internal.models.streaming.EntityIdWithRevision;
 import org.eclipse.ditto.internal.models.streaming.SudoStreamPids;
+import org.eclipse.ditto.internal.utils.persistence.api.streaming.DefaultPersistenceStreamingActor;
+import org.eclipse.ditto.internal.utils.persistence.api.streaming.PidWithSeqNr;
 import org.eclipse.ditto.internal.utils.persistence.mongo.streaming.MongoReadJournal;
-import org.eclipse.ditto.internal.utils.persistence.mongo.streaming.PidWithSeqNr;
 import org.eclipse.ditto.things.model.ThingConstants;
 import org.eclipse.ditto.things.model.ThingId;
 import org.junit.AfterClass;
@@ -118,11 +119,11 @@ public final class DefaultPersistenceStreamingActorTest {
         final DittoMongoClient mockClient = mock(DittoMongoClient.class);
         final MongoReadJournal mockJournal = mock(MongoReadJournal.class);
         when(mockJournal.getJournalPids(anyInt(), any(Duration.class), any(Materializer.class))).thenReturn(mockedSource);
-        final Props props = DefaultPersistenceStreamingActor.propsForTests(SimpleEntityIdWithRevision.class,
+        final Props props = DefaultPersistenceStreamingActor.props(SimpleEntityIdWithRevision.class,
                 DefaultPersistenceStreamingActorTest::mapEntity,
                 DefaultPersistenceStreamingActorTest::unmapEntity,
-                mockClient,
-                mockJournal);
+                mockJournal,
+                mockClient);
         return actorSystem.actorOf(props, "persistenceQueriesActor-" + UUID.randomUUID());
     }
 

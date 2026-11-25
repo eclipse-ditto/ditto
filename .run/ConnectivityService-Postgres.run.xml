@@ -1,0 +1,48 @@
+<!--
+  ~ Copyright (c) 2026 Contributors to the Eclipse Foundation
+  ~
+  ~ See the NOTICE file(s) distributed with this work for additional
+  ~ information regarding copyright ownership.
+  ~
+  ~ This program and the accompanying materials are made available under the
+  ~ terms of the Eclipse Public License 2.0 which is available at
+  ~ http://www.eclipse.org/legal/epl-2.0
+  ~
+  ~ SPDX-License-Identifier: EPL-2.0
+  -->
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="ConnectivityService (Postgres)" type="Application" factoryName="Application" folderName="Ditto Postgres">
+    <envs>
+      <env name="CLEANUP_HISTORY_RETENTION_DURATION" value="6d" />
+      <env name="CONNECTION_EVENT_HISTORICAL_HEADERS_TO_PERSIST.0" value="ditto-originator" />
+      <!-- docker-compose sets this for the containerized service only; without it the connection-log
+           publisher stays off and ConnectivityLogPublishingIT sees no records. Fluency's default host
+           (localhost:24224) already reaches the published fluentbit port from the host. -->
+      <env name="CONNECTIVITY_LOGGER_PUBLISHER_ENABLED" value="true" />
+      <env name="DITTO_TRACING_ENABLED" value="true" />
+      <env name="LOG_LEVEL_APPLICATION" value="INFO" />
+      <env name="DITTO_TRACING_SAMPLER" value="always" />
+      <!-- Inject the Postgres dev profile as the highest-priority (FILE_BASED) config layer. Connectivity joins the
+           Policies-founded cluster at 2552 (no seed-nodes override) — launch alongside Policies via the compound
+           "Ditto (Postgres)", or restart this alone against a running Policies for the write→restart→recover demo. -->
+      <env name="HOSTING_ENVIRONMENT" value="filebased" />
+      <env name="HOSTING_ENVIRONMENT_FILE_LOCATION" value="$PROJECT_DIR$/connectivity/service/src/main/resources/connectivity-pg-dev.conf" />
+      <!-- Local plaintext Postgres: disable SSL or the pool refuses to connect (default mode is verify-full). -->
+      <env name="POSTGRES_SSL_MODE" value="disable" />
+      <env name="POSTGRES_URI" value="r2dbc:postgresql://localhost:5432/ditto" />
+      <env name="POSTGRES_USER" value="ditto" />
+      <env name="POSTGRES_PASSWORD" value="ditto" />
+      <!-- Default `ditto` role owns the DB locally, so it is also the DDL (schema bootstrap) role. -->
+      <env name="POSTGRES_DDL_USER" value="ditto" />
+      <env name="POSTGRES_DDL_PASSWORD" value="ditto" />
+    </envs>
+    <option name="MAIN_CLASS_NAME" value="org.eclipse.ditto.connectivity.service.ConnectivityService" />
+    <!-- Classpath module = the IDE Postgres launcher (puts ditto-internal-utils-persistence-r2dbc on the run
+         classpath). The MAIN_CLASS above stays the connectivity service's own starter. See ide-postgres-launcher/pom.xml. -->
+    <module name="ditto-ide-postgres-launcher" />
+    <option name="VM_PARAMETERS" value="-Xms512m -Xmx512m --add-opens java.base/java.nio=ALL-UNNAMED --add-opens java.base/sun.nio.ch=ALL-UNNAMED --add-opens java.base/sun.security.util=ALL-UNNAMED" />
+    <method v="2">
+      <option name="Make" enabled="true" />
+    </method>
+  </configuration>
+</component>

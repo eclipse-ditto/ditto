@@ -17,7 +17,7 @@ import java.util.Objects;
 
 import org.eclipse.ditto.internal.utils.config.ConfigWithFallback;
 import org.eclipse.ditto.internal.utils.config.ScopedConfig;
-import org.eclipse.ditto.internal.utils.persistence.mongo.config.DefaultEventConfig;
+import org.eclipse.ditto.internal.utils.persistence.api.config.DefaultEventConfig;
 
 import com.typesafe.config.Config;
 

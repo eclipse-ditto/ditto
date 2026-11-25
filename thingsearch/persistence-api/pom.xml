@@ -1,0 +1,126 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  ~ Copyright (c) 2026 Contributors to the Eclipse Foundation
+  ~
+  ~ See the NOTICE file(s) distributed with this work for additional
+  ~ information regarding copyright ownership.
+  ~
+  ~ This program and the accompanying materials are made available under the
+  ~ terms of the Eclipse Public License 2.0 which is available at
+  ~ http://www.eclipse.org/legal/epl-2.0
+  ~
+  ~ SPDX-License-Identifier: EPL-2.0
+  -->
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <artifactId>ditto-thingsearch</artifactId>
+        <groupId>org.eclipse.ditto</groupId>
+        <version>${revision}</version>
+    </parent>
+
+    <artifactId>ditto-thingsearch-persistence-api</artifactId>
+    <name>Eclipse Ditto :: Thing Search :: Persistence API</name>
+
+    <description>
+        Backend-neutral persistence SPI for the thing-search service: the persistence interfaces, the
+        SearchPersistenceProvider extension point, neutral write-path types and the neutral search-index
+        document. Contains NO backend (Mongo / R2DBC / Postgres) types so a backend can plug in behind it.
+    </description>
+
+    <dependencies>
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-json</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-base-model</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-things-model</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-policies-model</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-policies-api</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-rql-query</artifactId>
+        </dependency>
+        <!-- SearchNamespaceReportResult, PolicyReferenceTag, UpdateReason, AggregateThingsMetrics. -->
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-thingsearch-api</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-thingsearch-model</artifactId>
+        </dependency>
+        <!-- AbstractEntityIdWithRevision used by Metadata. -->
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-internal-models-streaming</artifactId>
+        </dependency>
+        <!-- StartedTimer used by Metadata. -->
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-internal-utils-metrics</artifactId>
+        </dependency>
+        <!-- DittoExtensionPoint / DittoExtensionIds for the SearchPersistenceProvider extension point. -->
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-internal-utils-extension</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-internal-utils-config</artifactId>
+        </dependency>
+        <!-- NamespacePersistenceOperations extended by ThingsSearchUpdaterPersistence (backend-neutral). -->
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-internal-utils-persistence-api</artifactId>
+        </dependency>
+        <!-- TimestampPersistence (backend-neutral) referenced by SearchPersistenceProvider. -->
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-internal-utils-pekko</artifactId>
+        </dependency>
+        <!-- LimitsConfig referenced by SearchPersistenceProvider#queryBuilderFactory. -->
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-base-service</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.apache.pekko</groupId>
+            <artifactId>pekko-actor_${scala.version}</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.pekko</groupId>
+            <artifactId>pekko-stream_${scala.version}</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>com.google.code.findbugs</groupId>
+            <artifactId>jsr305</artifactId>
+        </dependency>
+
+        <!-- test dependencies -->
+        <!-- ArchUnit backend-neutrality boundary test (switchability proof), driven from JUnit 4 @Test
+             methods via ArchUnit's core API so the module keeps its existing JUnit 4 / surefire setup. -->
+        <dependency>
+            <groupId>com.tngtech.archunit</groupId>
+            <artifactId>archunit</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+</project>

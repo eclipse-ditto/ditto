@@ -36,6 +36,14 @@ public interface EnforcementConfig {
     AskWithRetryConfig getAskWithRetryConfig();
 
     /**
+     * Returns the configuration of the compensating deletion of a policy that was created for a thing whose creation
+     * then failed: the ask timeout of each attempt, the retry strategy, and the number and delays of the retries.
+     *
+     * @return the config of the rollback of a created policy.
+     */
+    AskWithRetryConfig getCreatedPolicyRollbackConfig();
+
+    /**
      * Returns whether live responses from channels other than their subscribers should be dispatched.
      *
      * @return whether global live response dispatching is enabled.

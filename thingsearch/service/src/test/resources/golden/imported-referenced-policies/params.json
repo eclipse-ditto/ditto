@@ -1,0 +1,10 @@
+{
+  "policyRevision": 7,
+  "maxArraySize": -1,
+  "referencedPolicies": [
+    { "id": "golden:imported-a", "revision": 5 }
+  ],
+  "oldReferencedPolicies": [
+    { "id": "golden:imported-b", "revision": 2 }
+  ]
+}

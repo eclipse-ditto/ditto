@@ -110,7 +110,8 @@ public final class EnforcedThingMapperTest {
                 """);
 
         final BsonDocument result =
-                EnforcedThingMapper.toWriteModel(thing, policy, Set.of(), policyRevision, null, -1).getThingDocument();
+                SearchIndexDocumentMongoEncoder.encode(
+                        EnforcedThingMapper.toWriteModel(thing, policy, Set.of(), policyRevision, null, -1).getDocument());
 
         assertThat(JsonFactory.newObject(result.toJson())).isEqualTo(expectedJson);
     }
@@ -291,7 +292,8 @@ public final class EnforcedThingMapperTest {
                 """);
 
         final BsonDocument result =
-                EnforcedThingMapper.toWriteModel(thing, policy, Set.of(), policyRevision, null, -1).getThingDocument();
+                SearchIndexDocumentMongoEncoder.encode(
+                        EnforcedThingMapper.toWriteModel(thing, policy, Set.of(), policyRevision, null, -1).getDocument());
 
         assertThat(JsonFactory.newObject(result.toJson())).isEqualTo(expectedJson);
     }
@@ -397,8 +399,8 @@ public final class EnforcedThingMapperTest {
                 """);
 
         final JsonObject result = JsonFactory.newObject(
-                EnforcedThingMapper.toWriteModel(thing, policy, Set.of(), 56L, null, -1)
-                        .getThingDocument()
+                SearchIndexDocumentMongoEncoder.encode(
+                                EnforcedThingMapper.toWriteModel(thing, policy, Set.of(), 56L, null, -1).getDocument())
                         .toJson());
 
         assertThat(result.remove("gr")).isEqualTo(expectedJson);

@@ -12,13 +12,17 @@
  */
 package org.eclipse.ditto.connectivity.service.messaging.persistence.migration;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionException;
 import java.util.concurrent.CompletionStage;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Function;
 
 import javax.annotation.Nullable;
 
@@ -31,32 +35,41 @@ import org.apache.pekko.japi.pf.ReceiveBuilder;
 import org.apache.pekko.stream.KillSwitches;
 import org.apache.pekko.stream.Materializer;
 import org.apache.pekko.stream.SharedKillSwitch;
+import org.apache.pekko.stream.SystemMaterializer;
 import org.apache.pekko.stream.javadsl.Sink;
 import org.apache.pekko.stream.javadsl.Source;
-import org.bson.Document;
+import org.eclipse.ditto.connectivity.model.ConnectivityConstants;
 import org.eclipse.ditto.connectivity.service.config.ConnectivityConfig;
 import org.eclipse.ditto.connectivity.service.config.FieldsEncryptionConfig;
 import org.eclipse.ditto.internal.utils.pekko.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
-import org.eclipse.ditto.internal.utils.persistence.mongo.MongoClientWrapper;
-import com.mongodb.client.model.BulkWriteOptions;
-import com.mongodb.client.model.WriteModel;
-import com.mongodb.reactivestreams.client.MongoCollection;
+import org.eclipse.ditto.internal.utils.pekko.logging.ThreadSafeDittoLogger;
+import org.eclipse.ditto.internal.utils.persistence.api.CompletionExceptions;
+import org.eclipse.ditto.internal.utils.persistence.api.PersistenceBackendProvider;
+import org.eclipse.ditto.internal.utils.persistence.api.payload.PersistedJournalEntry;
+import org.eclipse.ditto.internal.utils.persistence.api.payload.PersistedPayloadStore;
+import org.eclipse.ditto.internal.utils.persistence.api.payload.PersistedSnapshot;
 
 /**
  * Actor that orchestrates encryption key migration for persisted connection data.
  * <p>
  * This actor handles message routing and stream execution for encrypting, re-encrypting,
- * or decrypting connection data stored in MongoDB. It supports three migration modes:
+ * or decrypting persisted connection data. It supports three migration modes:
  * <ul>
  *   <li><b>Initial encryption</b>: Encrypt plaintext data with a new key</li>
  *   <li><b>Key rotation</b>: Re-encrypt data from old key to new key</li>
  *   <li><b>Disable encryption</b>: Decrypt data back to plaintext</li>
  * </ul>
  * <p>
+ * The actor reaches the persisted data through the active persistence backend's {@link PersistedPayloadStore}, which
+ * it obtains from the {@link PersistenceBackendProvider} in {@link #preStart()}, so only the node that runs the
+ * singleton holds the backend client the store owns. When the actor stops, {@link #postStop()} lets the batch in flight
+ * be written and its progress be saved, starts no further phase, and closes the store once that work has ended or a
+ * bounded wait has passed. The actor itself sees the payloads as JSON only and never names a backend.
+ * <p>
  * The actor delegates to helper classes for focused responsibilities:
  * <ul>
- *   <li>{@link DocumentProcessor} - Document transformation and re-encryption logic</li>
+ *   <li>{@link PayloadReEncryptor} - Payload transformation and re-encryption logic</li>
  *   <li>{@link MigrationStreamFactory} - Stream construction with filters and throttling</li>
  *   <li>{@link MigrationProgressTracker} - Progress persistence for resume support</li>
  * </ul>
@@ -65,8 +78,8 @@ import com.mongodb.reactivestreams.client.MongoCollection;
  * <ol>
  *   <li>Receives {@link MigrateConnectionEncryption} command</li>
  *   <li>Validates encryption configuration</li>
- *   <li>Processes snapshot collection (connection_snaps)</li>
- *   <li>Processes journal collection (connection_journal)</li>
+ *   <li>Processes the connection snapshots</li>
+ *   <li>Processes the connection journal entries</li>
  *   <li>Saves progress after each batch for resume capability</li>
  *   <li>Returns {@link MigrateConnectionEncryptionResponse} immediately (202 Accepted)</li>
  * </ol>
@@ -80,7 +93,7 @@ import com.mongodb.reactivestreams.client.MongoCollection;
  *   <li>Status queries via {@link MigrateConnectionEncryptionStatus}</li>
  * </ul>
  *
- * @see DocumentProcessor
+ * @see PayloadReEncryptor
  * @see MigrationStreamFactory
  * @see MigrationProgressTracker
  * @see MigrationProgress
@@ -92,61 +105,125 @@ public final class EncryptionMigrationActor extends AbstractActor {
      */
     public static final String ACTOR_NAME = "encryptionMigration";
 
+    private static final ThreadSafeDittoLogger LOGGER =
+            DittoLoggerFactory.getThreadSafeLogger(EncryptionMigrationActor.class);
 
-    private static final String SNAPSHOT_COLLECTION = "connection_snaps";
-    private static final String JOURNAL_COLLECTION = "connection_journal";
-    private static final String PROGRESS_COLLECTION = "connection_encryption_migration";
-
-
-    // MongoDB field name for document ID
-    private static final String ID_FIELD = "_id";
+    private static final Duration CLOSE_TIMEOUT = Duration.ofSeconds(30);
 
     private final DittoDiagnosticLoggingAdapter log = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
 
     private final FieldsEncryptionConfig encryptionConfig;
+    private final PersistenceBackendProvider backendProvider;
     private final Materializer materializer;
-    private final MongoCollection<Document> snapshotCollection;
-    private final MongoCollection<Document> journalCollection;
-    private final MigrationProgressTracker progressTracker;
     private final int batchSize;
     private final int maxDocumentsPerMinute;
+    private final Duration closeTimeout;
+
+    // Obtained in preStart and closed once the store work that a stop lets finish has ended (or after the close
+    // timeout): the store (and the backend client it owns) exists only while this singleton runs, on one node. The
+    // field stays set after postStop, so that a batch the stream emits after the stop can still reach the store.
+    @Nullable
+    private PersistedPayloadStore payloadStore;
+    private MigrationProgressTracker progressTracker;
 
     private boolean migrationInProgress = false;
     private boolean currentDryRun = false;
     private boolean abortRequested = false;
     private SharedKillSwitch activeKillSwitch;
+    // the stop flag of the current run; stream callbacks read the reference passed to runMigration, not this field
+    @Nullable
+    private AtomicBoolean stopped;
+    // the last store stage this actor started: the migration result, then the save of an aborted run's progress
+    @Nullable
+    private CompletionStage<?> pendingStoreWork;
     @Nullable
     private MigrationProgress currentProgress;
 
-    private EncryptionMigrationActor(final ConnectivityConfig connectivityConfig, final MongoClientWrapper mongoClient) {
+    private EncryptionMigrationActor(final ConnectivityConfig connectivityConfig,
+            final PersistenceBackendProvider backendProvider, final Duration closeTimeout) {
         this.encryptionConfig = connectivityConfig.getConnectionConfig().getFieldsEncryptionConfig();
-        this.materializer = Materializer.createMaterializer(this::getContext);
+        this.backendProvider = backendProvider;
+        // the system materializer, so that stopping this actor does not abort the stream of the batch in flight
+        this.materializer = SystemMaterializer.get(getContext().getSystem()).materializer();
         this.batchSize = encryptionConfig.getMigrationBatchSize();
         this.maxDocumentsPerMinute = encryptionConfig.getMigrationMaxDocumentsPerMinute();
-
-        final var db = mongoClient.getDefaultDatabase();
-        this.snapshotCollection = db.getCollection(SNAPSHOT_COLLECTION);
-        this.journalCollection = db.getCollection(JOURNAL_COLLECTION);
-        final MongoCollection<Document> progressCollection = db.getCollection(PROGRESS_COLLECTION);
-        this.progressTracker = new MigrationProgressTracker(progressCollection, materializer);
+        this.closeTimeout = closeTimeout;
     }
 
     /**
-     * Creates Props for this actor.
+     * Creates Props for this actor. The actor obtains its {@link PersistedPayloadStore} for the {@code connection}
+     * entity type from the provider when it starts and closes it when it stops.
      *
      * @param connectivityConfig the connectivity configuration.
+     * @param backendProvider the active persistence backend's provider.
      * @return the Props.
      */
-    public static Props props(final ConnectivityConfig connectivityConfig, final MongoClientWrapper mongoClient) {
-        return Props.create(EncryptionMigrationActor.class, connectivityConfig, mongoClient);
+    public static Props props(final ConnectivityConfig connectivityConfig,
+            final PersistenceBackendProvider backendProvider) {
+        return Props.create(EncryptionMigrationActor.class, connectivityConfig, backendProvider, CLOSE_TIMEOUT);
+    }
+
+    /**
+     * Creates Props for this actor as {@link #props(ConnectivityConfig, PersistenceBackendProvider)} does, with the
+     * given bound on how long {@link #postStop()} waits before it closes the store.
+     *
+     * @param connectivityConfig the connectivity configuration.
+     * @param backendProvider the active persistence backend's provider.
+     * @param closeTimeout how long {@code postStop} waits for the work in flight before it closes the store.
+     * @return the Props.
+     */
+    static Props propsForTests(final ConnectivityConfig connectivityConfig,
+            final PersistenceBackendProvider backendProvider, final Duration closeTimeout) {
+        return Props.create(EncryptionMigrationActor.class, connectivityConfig, backendProvider, closeTimeout);
+    }
+
+    @Override
+    public void preStart() throws Exception {
+        super.preStart();
+        final PersistedPayloadStore store = backendProvider.payloadStore(ConnectivityConstants.ENTITY_TYPE.toString());
+        payloadStore = store;
+        progressTracker = new MigrationProgressTracker(store);
     }
 
     @Override
     public void postStop() throws Exception {
+        if (stopped != null) {
+            stopped.set(true);
+        }
         if (activeKillSwitch != null) {
             activeKillSwitch.shutdown();
         }
+        final PersistedPayloadStore store = payloadStore;
+        if (store != null) {
+            final CompletionStage<?> pending = pendingStoreWork;
+            if (pending != null) {
+                // a bounded copy, so that the timeout never completes the migration's own stage
+                pending.toCompletableFuture()
+                        .copy()
+                        .orTimeout(closeTimeout.toMillis(), TimeUnit.MILLISECONDS)
+                        .whenComplete((result, error) -> closeQuietly(store, error));
+            } else {
+                closeQuietly(store, null);
+            }
+        }
         super.postStop();
+    }
+
+    private static void closeQuietly(final PersistedPayloadStore store, @Nullable final Throwable waitError) {
+        if (waitError != null) {
+            if (CompletionExceptions.unwrap(waitError) instanceof TimeoutException) {
+                LOGGER.warn("The encryption migration did not finish its store work within the close timeout; " +
+                        "closing the payload store anyway.");
+            } else {
+                LOGGER.debug("The encryption migration's store work ended with a failure before the payload store " +
+                        "is closed: {}", String.valueOf(waitError));
+            }
+        }
+        try {
+            store.close();
+        } catch (final RuntimeException e) {
+            LOGGER.warn("Failed to close the payload store of the encryption migration.", e);
+        }
     }
 
     @Override
@@ -165,13 +242,6 @@ public final class EncryptionMigrationActor extends AbstractActor {
         migrationInProgress = update.progress.phase() != MigrationPhase.COMPLETED;
     }
 
-    private static Throwable unwrapCompletionException(final Throwable error) {
-        if (error instanceof CompletionException && error.getCause() != null) {
-            return error.getCause();
-        }
-        return error;
-    }
-
     private void handleMigrationCompleted(final MigrationCompleted completed) {
         migrationInProgress = false;
         activeKillSwitch = null;
@@ -179,7 +249,7 @@ public final class EncryptionMigrationActor extends AbstractActor {
         abortRequested = false;
         final MigrationProgress progress = completed.progress;
         final boolean dryRun = completed.dryRun;
-        final Throwable error = completed.error != null ? unwrapCompletionException(completed.error) : null;
+        final Throwable error = completed.error != null ? CompletionExceptions.unwrap(completed.error) : null;
 
         if (error != null && !wasAborted) {
             log.error(error, "Encryption migration failed");
@@ -203,10 +273,10 @@ public final class EncryptionMigrationActor extends AbstractActor {
             if (progress != null) {
                 currentProgress = progress;
                 if (wasAborted && !dryRun) {
-                    progressTracker.saveProgressWithRetry(progress, 2)
+                    pendingStoreWork = progressTracker.saveProgressWithRetry(progress, 2)
                             .whenComplete((v, saveErr) -> {
                                 if (saveErr != null) {
-                                    log.error(unwrapCompletionException(saveErr),
+                                    log.error(CompletionExceptions.unwrap(saveErr),
                                             "Failed to save abort progress after retries");
                                 } else {
                                     log.info("Abort progress saved successfully: phase={}",
@@ -230,7 +300,7 @@ public final class EncryptionMigrationActor extends AbstractActor {
                     phase, inMemory, currentDryRun, migrationInProgress,
                     command.getDittoHeaders()), getSelf());
         } else {
-            // Fall back to MongoDB (e.g. after service restart)
+            // Fall back to the stored progress (e.g. after service restart)
             final ActorRef self = getSelf();
             progressTracker.loadProgress().thenApply(optProgress -> {
                 final MigrationProgress progress = optProgress.orElseGet(MigrationProgress::new);
@@ -311,6 +381,8 @@ public final class EncryptionMigrationActor extends AbstractActor {
         abortRequested = false;
         currentProgress = null;
         activeKillSwitch = KillSwitches.shared("encryption-migration");
+        final AtomicBoolean runStopped = new AtomicBoolean();
+        stopped = runStopped;
         final String mode = isDisableWorkflow ? "disable" : isInitialEncryption ? "initial-encryption" : "key-rotation";
         log.info("Starting encryption migration (mode={}, dryRun={}, resume={})", mode, dryRun, resume);
 
@@ -334,15 +406,17 @@ public final class EncryptionMigrationActor extends AbstractActor {
                         progress.lastProcessedSnapshotId(), progress.lastProcessedJournalId());
                 sender.tell(MigrateConnectionEncryptionResponse.accepted(
                         true, Instant.now().toString(), dryRun, command.getDittoHeaders()), getSelf());
-                return runMigration(progress, oldKey, newKey, pointers, dryRun);
+                return runMigration(progress, oldKey, newKey, pointers, dryRun, runStopped);
             });
         } else {
             migrationResult = progressTracker.deleteProgress().thenCompose(v ->
-                    runMigration(new MigrationProgress(), oldKey, newKey, pointers, dryRun));
+                    runMigration(new MigrationProgress(), oldKey, newKey, pointers, dryRun, runStopped));
             // Reply immediately with 202 Accepted
             sender.tell(MigrateConnectionEncryptionResponse.accepted(
                     false, Instant.now().toString(), dryRun, command.getDittoHeaders()), getSelf());
         }
+
+        pendingStoreWork = migrationResult;
 
         final ActorRef self = getSelf();
         migrationResult.whenComplete((progress, error) -> {
@@ -358,7 +432,7 @@ public final class EncryptionMigrationActor extends AbstractActor {
     /**
      * Runs the encryption migration process.
      * <p>
-     * Processes both snapshot and journal collections in sequence. Handles resume logic
+     * Processes the snapshots and the journal in sequence. Handles resume logic
      * by checking the initial progress phase and skipping completed phases.
      *
      * @param initialProgress the starting progress (from resume or fresh start)
@@ -366,10 +440,12 @@ public final class EncryptionMigrationActor extends AbstractActor {
      * @param newKey the new encryption key (null for disable workflow)
      * @param pointers the JSON pointers to encrypt/decrypt
      * @param dryRun if true, validate without writing changes
+     * @param stopped the stop flag of this run: once set, no further phase starts
      * @return completion stage with final migration progress
      */
     private CompletionStage<MigrationProgress> runMigration(final MigrationProgress initialProgress,
-            @Nullable final String oldKey, @Nullable final String newKey, final List<String> pointers, final boolean dryRun) {
+            @Nullable final String oldKey, @Nullable final String newKey, final List<String> pointers,
+            final boolean dryRun, final AtomicBoolean stopped) {
 
         log.info("runMigration: loaded progress phase={}, lastSnapshotId={}, lastJournalId={}, " +
                         "snapshots(p={}/s={}/f={}), journal(p={}/s={}/f={})",
@@ -394,13 +470,13 @@ public final class EncryptionMigrationActor extends AbstractActor {
         }
 
         return afterSnapshots.thenCompose(progress -> {
-            if (abortRequested) {
+            if (abortRequested || stopped.get()) {
                 return CompletableFuture.completedFuture(progress);
             }
             final MigrationProgress journalProgress = progress.withPhase(MigrationPhase.JOURNAL);
             return migrateJournal(journalProgress, oldKey, newKey, pointers, dryRun);
         }).thenCompose(progress -> {
-            if (abortRequested) {
+            if (abortRequested || stopped.get()) {
                 return CompletableFuture.completedFuture(progress);
             }
             final MigrationProgress completed = progress.withPhase(MigrationPhase.COMPLETED);
@@ -412,10 +488,10 @@ public final class EncryptionMigrationActor extends AbstractActor {
     }
 
     /**
-     * Migrates the snapshot collection (connection_snaps).
+     * Migrates the connection snapshots.
      * <p>
      * Builds a stream from {@link MigrationStreamFactory}, applies the kill switch for abort
-     * support, groups documents into batches, and processes each batch via
+     * support, groups snapshots into batches, and processes each batch via
      * {@link #processSnapshotBatch}.
      *
      * @param progress the current migration progress
@@ -431,8 +507,8 @@ public final class EncryptionMigrationActor extends AbstractActor {
         log.info("Starting snapshot migration (dryRun={}, throttling={} docs/min)", dryRun,
                 maxDocumentsPerMinute > 0 ? maxDocumentsPerMinute : "disabled");
 
-        final Source<Document, NotUsed> source = MigrationStreamFactory.buildSnapshotStream(
-                snapshotCollection, progress, pointers, batchSize, maxDocumentsPerMinute);
+        final Source<PersistedSnapshot, NotUsed> source = MigrationStreamFactory.buildSnapshotStream(
+                payloadStore(), progress, pointers, batchSize, maxDocumentsPerMinute);
 
         return source
                 .via(activeKillSwitch.flow())
@@ -450,14 +526,14 @@ public final class EncryptionMigrationActor extends AbstractActor {
     }
 
     /**
-     * Processes a batch of snapshot documents.
+     * Processes a batch of snapshots.
      * <p>
-     * Iterates through each document, delegates transformation to {@link DocumentProcessor},
-     * updates progress counters, collects write models, and delegates batch write to
+     * Iterates through each snapshot, delegates transformation to {@link PayloadReEncryptor},
+     * updates progress counters, collects the rewritten snapshots, and delegates the batch write to
      * {@link #executeBatchWriteAndSaveProgress}.
      *
      * @param progress the current progress
-     * @param batch the batch of documents to process
+     * @param batch the batch of snapshots to process
      * @param oldKey the old encryption key
      * @param newKey the new encryption key
      * @param pointers the JSON pointers to encrypt/decrypt
@@ -465,20 +541,21 @@ public final class EncryptionMigrationActor extends AbstractActor {
      * @return completion stage with updated progress
      */
     private CompletionStage<MigrationProgress> processSnapshotBatch(final MigrationProgress progress,
-            final List<Document> batch, @Nullable final String oldKey, @Nullable final String newKey,
+            final List<PersistedSnapshot> batch, @Nullable final String oldKey, @Nullable final String newKey,
             final List<String> pointers, final boolean dryRun) {
 
         log.debug("processSnapshotBatch: batchSize={}, firstId={}, lastId={}",
                 batch.size(),
-                batch.isEmpty() ? "N/A" : batch.getFirst().get(ID_FIELD),
-                batch.isEmpty() ? "N/A" : batch.getLast().get(ID_FIELD));
+                batch.isEmpty() ? "N/A" : batch.getFirst().cursor(),
+                batch.isEmpty() ? "N/A" : batch.getLast().cursor());
         MigrationProgress currentProgress = progress;
-        final List<WriteModel<Document>> writeModels = new ArrayList<>();
+        final List<PersistedSnapshot> rewritten = new ArrayList<>();
 
-        for (final Document doc : batch) {
-            final String docId = doc.get(ID_FIELD).toString();
-            final String pid = doc.getString("pid");
-            final DocumentProcessingResult result = processSnapshotDocument(doc, oldKey, newKey, pointers, dryRun);
+        for (final PersistedSnapshot snapshot : batch) {
+            final String docId = snapshot.cursor();
+            final String pid = snapshot.pid();
+            final PayloadProcessingResult<PersistedSnapshot> result =
+                    processSnapshot(snapshot, oldKey, newKey, pointers, dryRun);
             switch (result.outcome()) {
                 case PROCESSED -> currentProgress = currentProgress.incrementSnapshotsProcessed();
                 case SKIPPED -> currentProgress = currentProgress.incrementSnapshotsSkipped();
@@ -487,27 +564,29 @@ public final class EncryptionMigrationActor extends AbstractActor {
                     log.warning("Failed to process snapshot document {} (pid={}), skipping", docId, pid);
                 }
             }
-            if (result.writeModel() != null) {
-                writeModels.add(result.writeModel());
+            if (result.rewritten() != null) {
+                rewritten.add(result.rewritten());
             }
             currentProgress = currentProgress.withLastSnapshot(docId, pid);
         }
 
         return executeBatchWriteAndSaveProgress(
-                currentProgress, writeModels, snapshotCollection, MigrationPhase.SNAPSHOTS, dryRun, true);
+                currentProgress, rewritten, payloadStore()::rewriteSnapshots, MigrationPhase.SNAPSHOTS, dryRun,
+                true);
     }
 
-    private DocumentProcessingResult processSnapshotDocument(final Document doc, @Nullable final String oldKey,
-            @Nullable final String newKey, final List<String> pointers, final boolean dryRun) {
+    private PayloadProcessingResult<PersistedSnapshot> processSnapshot(final PersistedSnapshot snapshot,
+            @Nullable final String oldKey, @Nullable final String newKey, final List<String> pointers,
+            final boolean dryRun) {
         final MigrationContext context = MigrationContext.forSnapshots(oldKey, newKey, pointers);
-        return DocumentProcessor.processSnapshotDocument(doc, context, dryRun);
+        return PayloadReEncryptor.processSnapshot(snapshot, context, dryRun);
     }
 
     /**
-     * Migrates the journal collection (connection_journal).
+     * Migrates the connection journal.
      * <p>
-     * Similar to {@link #migrateSnapshots} but processes journal event documents which
-     * contain arrays of events with payloads to re-encrypt.
+     * Similar to {@link #migrateSnapshots} but processes journal entries which
+     * carry one or more event payloads to re-encrypt.
      *
      * @param progress the current migration progress
      * @param oldKey the old encryption key
@@ -522,8 +601,8 @@ public final class EncryptionMigrationActor extends AbstractActor {
         log.info("Starting journal migration (dryRun={}, throttling={} docs/min)", dryRun,
                 maxDocumentsPerMinute > 0 ? maxDocumentsPerMinute : "disabled");
 
-        final Source<Document, NotUsed> source = MigrationStreamFactory.buildJournalStream(
-                journalCollection, progress, pointers, batchSize, maxDocumentsPerMinute);
+        final Source<PersistedJournalEntry, NotUsed> source = MigrationStreamFactory.buildJournalStream(
+                payloadStore(), progress, pointers, batchSize, maxDocumentsPerMinute);
 
         return source
                 .via(activeKillSwitch.flow())
@@ -541,20 +620,21 @@ public final class EncryptionMigrationActor extends AbstractActor {
     }
 
     private CompletionStage<MigrationProgress> processJournalBatch(final MigrationProgress progress,
-            final List<Document> batch, @Nullable final String oldKey, @Nullable final String newKey,
+            final List<PersistedJournalEntry> batch, @Nullable final String oldKey, @Nullable final String newKey,
             final List<String> pointers, final boolean dryRun) {
 
         log.debug("processJournalBatch: batchSize={}, firstId={}, lastId={}",
                 batch.size(),
-                batch.isEmpty() ? "N/A" : batch.getFirst().get(ID_FIELD),
-                batch.isEmpty() ? "N/A" : batch.getLast().get(ID_FIELD));
+                batch.isEmpty() ? "N/A" : batch.getFirst().cursor(),
+                batch.isEmpty() ? "N/A" : batch.getLast().cursor());
         MigrationProgress currentProgress = progress;
-        final List<WriteModel<Document>> writeModels = new ArrayList<>();
+        final List<PersistedJournalEntry> rewritten = new ArrayList<>();
 
-        for (final Document doc : batch) {
-            final String docIdStr = doc.get(ID_FIELD).toString();
-            final String pid = doc.getString("pid");
-            final DocumentProcessingResult result = processJournalDocument(doc, oldKey, newKey, pointers, dryRun);
+        for (final PersistedJournalEntry entry : batch) {
+            final String docIdStr = entry.cursor();
+            final String pid = entry.pid();
+            final PayloadProcessingResult<PersistedJournalEntry> result =
+                    processJournalEntry(entry, oldKey, newKey, pointers, dryRun);
             switch (result.outcome()) {
                 case PROCESSED -> currentProgress = currentProgress.incrementJournalProcessed();
                 case SKIPPED -> currentProgress = currentProgress.incrementJournalSkipped();
@@ -563,54 +643,54 @@ public final class EncryptionMigrationActor extends AbstractActor {
                     log.warning("Failed to process journal document {} (pid={}), skipping", docIdStr, pid);
                 }
             }
-            if (result.writeModel() != null) {
-                writeModels.add(result.writeModel());
+            if (result.rewritten() != null) {
+                rewritten.add(result.rewritten());
             }
             currentProgress = currentProgress.withLastJournal(docIdStr, pid);
         }
 
         return executeBatchWriteAndSaveProgress(
-                currentProgress, writeModels, journalCollection, MigrationPhase.JOURNAL, dryRun, false);
+                currentProgress, rewritten, payloadStore()::rewriteJournalEntries, MigrationPhase.JOURNAL, dryRun,
+                false);
     }
 
-    private DocumentProcessingResult processJournalDocument(final Document doc, @Nullable final String oldKey,
-            @Nullable String newKey, final List<String> pointers, final boolean dryRun) {
+    private PayloadProcessingResult<PersistedJournalEntry> processJournalEntry(final PersistedJournalEntry entry,
+            @Nullable final String oldKey, @Nullable final String newKey, final List<String> pointers,
+            final boolean dryRun) {
         final MigrationContext context = MigrationContext.forJournal(oldKey, newKey, pointers);
-        return DocumentProcessor.processJournalDocument(doc, context, dryRun);
+        return PayloadReEncryptor.processJournalEntry(entry, context, dryRun);
     }
 
     /**
-     * Executes a batch write to MongoDB and saves migration progress.
+     * Executes a batch write through the payload store and saves migration progress.
      * <p>
      * Coordinates the batch write operation, handles failures by adjusting progress counters,
      * saves progress via {@link MigrationProgressTracker}, and sends progress updates to
      * the actor for in-memory tracking.
      *
      * @param progress the current progress
-     * @param writeModels the MongoDB write models for bulk update
-     * @param collection the MongoDB collection to write to
+     * @param rewrittenEntries the rewritten entries to write back
+     * @param rewrite the store operation that writes the entries back and yields the number actually written
      * @param phase the current migration phase (for logging and progress tracking)
      * @param dryRun if true, skip database writes
-     * @param isSnapshot true for snapshot collection, false for journal collection
+     * @param isSnapshot true for the snapshots, false for the journal
+     * @param <E> the entry type
      * @return completion stage with progress after write and save
      */
-    private CompletionStage<MigrationProgress> executeBatchWriteAndSaveProgress(
+    private <E> CompletionStage<MigrationProgress> executeBatchWriteAndSaveProgress(
             final MigrationProgress progress,
-            final List<WriteModel<Document>> writeModels,
-            final MongoCollection<Document> collection,
+            final List<E> rewrittenEntries,
+            final Function<List<E>, CompletionStage<Long>> rewrite,
             final MigrationPhase phase,
             final boolean dryRun,
             final boolean isSnapshot) {
 
-        final int batchWriteCount = writeModels.size();
-        log.debug("executeBatchWrite: phase={}, writeModels={}, dryRun={}", phase, batchWriteCount, dryRun);
+        final int batchWriteCount = rewrittenEntries.size();
+        log.debug("executeBatchWrite: phase={}, entries={}, dryRun={}", phase, batchWriteCount, dryRun);
         final CompletionStage<MigrationProgress> writeStage;
-        if (!dryRun && !writeModels.isEmpty()) {
-            writeStage = Source.fromPublisher(collection.bulkWrite(writeModels,
-                            new BulkWriteOptions().ordered(false)))
-                    .runWith(Sink.head(), materializer)
-                    .thenApply(r -> {
-                        final long written = r.getModifiedCount() + r.getInsertedCount();
+        if (!dryRun && !rewrittenEntries.isEmpty()) {
+            writeStage = rewrite.apply(rewrittenEntries)
+                    .thenApply(written -> {
                         if (written < batchWriteCount) {
                             log.warning("Partial bulk write for {} batch: {}/{} documents written",
                                     phase, written, batchWriteCount);
@@ -645,6 +725,14 @@ public final class EncryptionMigrationActor extends AbstractActor {
             self.tell(new ProgressUpdate(p), ActorRef.noSender());
             return p;
         });
+    }
+
+    private PersistedPayloadStore payloadStore() {
+        final PersistedPayloadStore store = payloadStore;
+        if (store == null) {
+            throw new IllegalStateException("The payload store is not available: the actor is not started.");
+        }
+        return store;
     }
 
     /**

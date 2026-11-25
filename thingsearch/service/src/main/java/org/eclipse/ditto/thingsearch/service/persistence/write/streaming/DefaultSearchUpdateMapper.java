@@ -12,10 +12,7 @@
  */
 package org.eclipse.ditto.thingsearch.service.persistence.write.streaming;
 
-import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
-import org.eclipse.ditto.internal.utils.pekko.logging.ThreadSafeDittoLogger;
-import org.eclipse.ditto.thingsearch.service.persistence.write.model.AbstractWriteModel;
-import org.eclipse.ditto.thingsearch.service.updater.actors.MongoWriteModel;
+import org.eclipse.ditto.thingsearch.persistence.api.model.AbstractWriteModel;
 
 import com.typesafe.config.Config;
 
@@ -24,11 +21,10 @@ import org.apache.pekko.actor.ActorSystem;
 import org.apache.pekko.stream.javadsl.Source;
 
 /**
- * Default {@code SearchUpdateMapper} for custom search update processing.
+ * Default {@code SearchUpdateMapper} for custom search update processing. Passes the neutral write model
+ * through unchanged; the per-backend seam performs the incremental-update computation.
  */
 public final class DefaultSearchUpdateMapper extends SearchUpdateMapper {
-
-    private final ThreadSafeDittoLogger logger = DittoLoggerFactory.getThreadSafeLogger(getClass());
 
     /**
      * Instantiate this provider. Called by reflection.
@@ -42,9 +38,9 @@ public final class DefaultSearchUpdateMapper extends SearchUpdateMapper {
     }
 
     @Override
-    public Source<MongoWriteModel, NotUsed> processWriteModel(final AbstractWriteModel writeModel,
+    public Source<AbstractWriteModel, NotUsed> processWriteModel(final AbstractWriteModel writeModel,
             final AbstractWriteModel lastWriteModel) {
-        return toIncrementalMongo(writeModel, lastWriteModel, logger);
+        return Source.single(writeModel);
     }
 
 }

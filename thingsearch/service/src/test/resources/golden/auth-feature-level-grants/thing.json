@@ -1,0 +1,10 @@
+{
+  "thingId": "golden:auth-feature-level-grants",
+  "_namespace": "golden",
+  "_revision": 8,
+  "policyId": "golden:auth-feature-level-grants",
+  "features": {
+    "f1": { "properties": { "p": 1 } },
+    "f2": { "properties": { "p": 2 } }
+  }
+}

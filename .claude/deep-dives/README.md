@@ -19,15 +19,15 @@ disagrees with the code, the code wins (and the deep dive deserves a fix).
 
 ## Features
 
-| File                                       | Read when                                                                      |
-|--------------------------------------------|--------------------------------------------------------------------------------|
-| [Acknowledgements.md](Acknowledgements.md) | built-in/custom acks, ACK/NACK semantics, at-least-once on top of at-most-once |
-| [Enrichment.md](Enrichment.md)             | extra fields on events; why it happens at the edges                            |
-| [Placeholder.md](Placeholder.md)           | placeholders and pipeline functions in connections and policies                |
-| [LiveMessaging.md](LiveMessaging.md)       | the live channel and request/response messages                                 |
-| [RQL.md](RQL.md)                           | RQL syntax: filters, sort, property paths                                      |
-| [Search.md](Search.md)                     | search index structure, background sync, query translation                     |
-| [Ditto-W3C-WoT.md](Ditto-W3C-WoT.md)       | WoT integration: TMs vs TDs, skeleton creation, TD generation                  |
+| File                                       | Read when                                                                                                |
+|--------------------------------------------|----------------------------------------------------------------------------------------------------------|
+| [Acknowledgements.md](Acknowledgements.md) | built-in/custom acks, ACK/NACK semantics, at-least-once on top of at-most-once                           |
+| [Enrichment.md](Enrichment.md)             | extra fields on events; why it happens at the edges                                                      |
+| [Placeholder.md](Placeholder.md)           | placeholders and pipeline functions in connections and policies                                          |
+| [LiveMessaging.md](LiveMessaging.md)       | the live channel and request/response messages                                                           |
+| [RQL.md](RQL.md)                           | RQL syntax: filters, sort, property paths                                                                |
+| [Search.md](Search.md)                     | search index structure, background sync, query translation; the PostgreSQL backend and its parity corpus |
+| [Ditto-W3C-WoT.md](Ditto-W3C-WoT.md)       | WoT integration: TMs vs TDs, skeleton creation, TD generation                                            |
 
 ## Connectivity
 

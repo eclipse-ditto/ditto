@@ -45,3 +45,7 @@ ENTRYPOINT ["/usr/bin/tini", "--"]
 CMD ["sh", "-c", "exec java ${JVM_CMD_ARGS_ENV} ${MAIN_CLASS_ENV}"]
 
 COPY --chown=ditto:ditto ${TARGET_DIR}/${SERVICE_STARTER}-${SERVICE_VERSION}-allinone.jar $DITTO_HOME
+
+# Extension JARs staged by build-images.sh (empty unless e.g. BAKE_POSTGRES_EXTENSIONS=true);
+# $DITTO_HOME/extensions/* is already on the CLASSPATH above.
+COPY --chown=ditto:ditto ${TARGET_DIR}/extensions/ $DITTO_HOME/extensions/

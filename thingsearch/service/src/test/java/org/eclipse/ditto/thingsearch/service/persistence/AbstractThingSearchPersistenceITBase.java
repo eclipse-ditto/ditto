@@ -46,7 +46,7 @@ import org.eclipse.ditto.rql.query.expression.ThingsFieldExpressionFactory;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.thingsearch.service.common.config.DefaultSearchPersistenceConfig;
 import org.eclipse.ditto.thingsearch.service.common.config.DittoSearchConfig;
-import org.eclipse.ditto.thingsearch.service.common.model.ResultList;
+import org.eclipse.ditto.thingsearch.persistence.api.model.ResultList;
 import org.eclipse.ditto.thingsearch.service.persistence.read.MongoThingsSearchPersistence;
 import org.eclipse.ditto.thingsearch.service.persistence.read.query.MongoQueryBuilderFactory;
 import org.eclipse.ditto.thingsearch.service.persistence.write.streaming.SearchUpdateMapper;

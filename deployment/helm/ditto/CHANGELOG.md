@@ -21,6 +21,29 @@ sections: `Added`, `Changed`, `Deprecated`, `Removed`, `Fixed`, `Security`.
   error for every rejected request, regardless of whether the entity exists. Set it to `false` to restore the
   previous, resource-specific errors (e.g. `403 things:thing.notmodifiable`) which allow to determine whether an
   entity exists ([#2596](https://github.com/eclipse-ditto/ditto/pull/2596))
+- The Helm side of the opt-in PostgreSQL persistence and search backends: the two entries that follow. Everything
+  PostgreSQL is off by default. A deployment on MongoDB renders the same manifests as before, except for the seven
+  new `ENFORCEMENT_CREATED_POLICY_ROLLBACK_*` environment variables of the things Deployment (the last entry), whose
+  defaults equal the service's built-in defaults; it needs no change.
+- New `postgres.tls` block (default `enabled: false`) for Ditto services on the opt-in PostgreSQL backend: `caCert`
+  (PEM, may be a multi-CA bundle for staged CA rotation) is rendered into a new managed `<fullname>-postgres-tls`
+  Secret (i.e. `<release>-ditto-postgres-tls` unless the release name contains `ditto` or `fullnameOverride` is set)
+  by the new template `postgres-tls-secret.yaml`, or `existingSecret` names a pre-created Secret holding the key
+  `ca.crt` instead; `mTLS.enabled` with `mTLS.clientCert` / `mTLS.clientKey` (PKCS#8) adds the client certificate
+  as `tls.crt` / `tls.key`. When enabled, the policies, things, connectivity and things-search deployments mount the
+  Secret read-only at `postgres.tls.mountPath` (default `/etc/ditto/pg-tls`), so that, with
+  `POSTGRES_SSL_MODE=verify-full`, `POSTGRES_SSL_ROOT_CERT=/etc/ditto/pg-tls/ca.crt` lets the r2dbc client verify
+  PostgreSQL or a TLS-terminating PgBouncer.
+- New `policies.extraInitContainers`, `things.extraInitContainers`, `thingsSearch.extraInitContainers` and
+  `connectivity.extraInitContainers` (default empty), rendered after the built-in init containers of the respective
+  deployment. `values.yaml` shows how to combine them with `extraVolumes` / `extraVolumeMounts` to stage the
+  PostgreSQL extension JARs into `/opt/ditto/extensions`, and carries commented `POSTGRES_POOL_MAX_SIZE` examples
+  under `extraEnv`. Activating a PostgreSQL backend itself stays a file-based overlay
+  (`HOSTING_ENVIRONMENT=filebased`); chart-native PostgreSQL configuration values are a later step.
+- New `things.config.policiesEnforcer.createdPolicyRollback` (defaults `askTimeout` 3s, `retryStrategy`
+  `BACKOFF_DELAY`, `retryAttempts` 3, `fixedDelay` 2s, `backOffDelay` 500ms–4s with `randomFactor` 0.5), passed to
+  the things service as `ENFORCEMENT_CREATED_POLICY_ROLLBACK_*`. It configures the bounded retries of the deletion of
+  a policy that the things service created for a thing whose creation then failed.
 
 ## [4.10.0]
 

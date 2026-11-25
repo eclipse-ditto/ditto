@@ -1,0 +1,48 @@
+{
+  "policyId": "org.eclipse.ditto.parity:policy-graded",
+  "entries": {
+    "ROOT": {
+      "subjects": {
+        "parity:full": { "type": "generated" }
+      },
+      "resources": {
+        "thing:/": { "grant": ["READ"], "revoke": [] }
+      }
+    },
+    "ATTR": {
+      "subjects": {
+        "parity:attr": { "type": "generated" }
+      },
+      "resources": {
+        "thing:/attributes": { "grant": ["READ"], "revoke": [] },
+        "thing:/attributes/secret": { "grant": [], "revoke": ["READ"] }
+      }
+    },
+    "DEEP": {
+      "subjects": {
+        "parity:deep": { "type": "generated" }
+      },
+      "resources": {
+        "thing:/attributes/nested": { "grant": ["READ"], "revoke": [] },
+        "thing:/attributes/nested/deep/secret": { "grant": [], "revoke": ["READ"] }
+      }
+    },
+    "FEATURE_F1": {
+      "subjects": {
+        "parity:feature": { "type": "generated" }
+      },
+      "resources": {
+        "thing:/features/f1": { "grant": ["READ"], "revoke": [] }
+      }
+    },
+    "FEATURE_LAMP": {
+      "subjects": {
+        "parity:feature": { "type": "generated" }
+      },
+      "resources": {
+        "thing:/features/lamp": { "grant": ["READ"], "revoke": [] },
+        "thing:/features/lamp/properties/secretcode": { "grant": [], "revoke": ["READ"] }
+      }
+    }
+  }
+}

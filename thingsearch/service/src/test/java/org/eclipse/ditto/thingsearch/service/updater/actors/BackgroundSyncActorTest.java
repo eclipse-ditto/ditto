@@ -59,7 +59,6 @@ import org.eclipse.ditto.internal.utils.health.RetrieveHealthResponse;
 import org.eclipse.ditto.internal.utils.health.StatusDetailMessage;
 import org.eclipse.ditto.internal.utils.health.StatusInfo;
 import org.eclipse.ditto.internal.utils.pekko.streaming.TimestampPersistence;
-import org.eclipse.ditto.internal.utils.persistence.mongo.config.IndexInitializationConfig;
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonValue;
@@ -74,10 +73,10 @@ import org.eclipse.ditto.thingsearch.api.UpdateReason;
 import org.eclipse.ditto.thingsearch.api.commands.sudo.SudoUpdateThing;
 import org.eclipse.ditto.thingsearch.service.common.config.BackgroundSyncConfig;
 import org.eclipse.ditto.thingsearch.service.common.config.DefaultBackgroundSyncConfig;
-import org.eclipse.ditto.thingsearch.service.common.model.ResultList;
-import org.eclipse.ditto.thingsearch.service.common.model.TimestampedThingId;
-import org.eclipse.ditto.thingsearch.service.persistence.read.ThingsSearchPersistence;
-import org.eclipse.ditto.thingsearch.service.persistence.write.model.Metadata;
+import org.eclipse.ditto.thingsearch.persistence.api.model.ResultList;
+import org.eclipse.ditto.thingsearch.persistence.api.model.TimestampedThingId;
+import org.eclipse.ditto.thingsearch.persistence.api.ThingsSearchPersistence;
+import org.eclipse.ditto.thingsearch.persistence.api.model.Metadata;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -460,11 +459,6 @@ public final class BackgroundSyncActorTest {
         }
 
         @Override
-        public CompletionStage<Void> initializeIndices(final IndexInitializationConfig indexInitializationConfig) {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
         public Source<SearchNamespaceReportResult, NotUsed> generateNamespaceCountReport() {
             throw new UnsupportedOperationException();
         }
@@ -499,6 +493,12 @@ public final class BackgroundSyncActorTest {
             checkNotNull(this.metadata,
                     "Metadata may not be null when #sudoStreamMetadata is called. Use #provideMetadata beforehand.");
             return Source.from(this.metadata);
+        }
+
+        @Override
+        public Source<org.eclipse.ditto.thingsearch.persistence.api.model.AbstractWriteModel, NotUsed>
+        recoverLastWriteModel(final ThingId thingId) {
+            throw new UnsupportedOperationException();
         }
 
     }

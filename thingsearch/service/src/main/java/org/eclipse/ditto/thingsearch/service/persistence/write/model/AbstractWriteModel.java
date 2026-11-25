@@ -20,6 +20,7 @@ import javax.annotation.Nullable;
 import org.bson.BsonDocument;
 import org.bson.BsonString;
 import org.bson.conversions.Bson;
+import org.eclipse.ditto.thingsearch.persistence.api.model.Metadata;
 import org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants;
 import org.eclipse.ditto.thingsearch.service.updater.actors.MongoWriteModel;
 

@@ -1,0 +1,102 @@
+{
+  "rows": [
+    {
+      "manifest": "things.events:thingCreated",
+      "tags": [],
+      "payload": {
+        "type": "things.events:thingCreated",
+        "_timestamp": "2026-11-19T00:00:00Z",
+        "_metadata": null,
+        "revision": {
+          "$numberInt": "1"
+        },
+        "thingId": "golden:thing",
+        "thing": {
+          "__lifecycle": "ACTIVE",
+          "_revision": {
+            "$numberInt": "1"
+          },
+          "_modified": "2026-11-19T00:00:00Z",
+          "_created": "2026-11-19T00:00:00Z",
+          "_namespace": "golden",
+          "thingId": "golden:thing",
+          "policyId": "golden:thing",
+          "attributes": {
+            "hello": "golden"
+          }
+        },
+        "__hh": {
+          "correlation-id": "golden-thing"
+        }
+      }
+    },
+    {
+      "manifest": "things.events:thingMerged",
+      "tags": [],
+      "payload": {
+        "type": "things.events:thingMerged",
+        "_timestamp": "2026-11-19T00:00:00Z",
+        "_metadata": null,
+        "revision": {
+          "$numberInt": "2"
+        },
+        "thingId": "golden:thing",
+        "path": "/",
+        "value": {
+          "attributes": {
+            "hello": "merged"
+          }
+        },
+        "__hh": {
+          "correlation-id": "golden-thing"
+        }
+      }
+    },
+    {
+      "manifest": "things.events:thingModified",
+      "tags": [],
+      "payload": {
+        "type": "things.events:thingModified",
+        "_timestamp": "2026-11-19T00:00:00Z",
+        "_metadata": null,
+        "revision": {
+          "$numberInt": "3"
+        },
+        "thingId": "golden:thing",
+        "thing": {
+          "__lifecycle": "ACTIVE",
+          "_revision": {
+            "$numberInt": "1"
+          },
+          "_modified": "2026-11-19T00:00:00Z",
+          "_created": "2026-11-19T00:00:00Z",
+          "_namespace": "golden",
+          "thingId": "golden:thing",
+          "policyId": "golden:thing",
+          "attributes": {
+            "hello": "modified"
+          }
+        },
+        "__hh": {
+          "correlation-id": "golden-thing"
+        }
+      }
+    },
+    {
+      "manifest": "things.events:thingDeleted",
+      "tags": [],
+      "payload": {
+        "type": "things.events:thingDeleted",
+        "_timestamp": "2026-11-19T00:00:00Z",
+        "_metadata": null,
+        "revision": {
+          "$numberInt": "4"
+        },
+        "thingId": "golden:thing",
+        "__hh": {
+          "correlation-id": "golden-thing"
+        }
+      }
+    }
+  ]
+}

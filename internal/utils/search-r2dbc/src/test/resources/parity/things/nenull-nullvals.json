@@ -1,0 +1,10 @@
+{
+  "thingId": "org.eclipse.ditto.parity:nenull-nullvals",
+  "_namespace": "org.eclipse.ditto.parity",
+  "_revision": 1,
+  "_modified": "2026-07-01T10:00:00Z",
+  "policyId": "org.eclipse.ditto.parity:policy-full",
+  "definition": null,
+  "attributes": { "nullAttr": null },
+  "features": { "f1": { "properties": { "status": "on", "nullProp": null } } }
+}

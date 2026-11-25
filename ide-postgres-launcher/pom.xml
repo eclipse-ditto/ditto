@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  ~ Copyright (c) 2026 Contributors to the Eclipse Foundation
+  ~
+  ~ See the NOTICE file(s) distributed with this work for additional
+  ~ information regarding copyright ownership.
+  ~
+  ~ This program and the accompanying materials are made available under the
+  ~ terms of the Eclipse Public License 2.0 which is available at
+  ~ http://www.eclipse.org/legal/epl-2.0
+  ~
+  ~ SPDX-License-Identifier: EPL-2.0
+  -->
+<project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://maven.apache.org/POM/4.0.0"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>org.eclipse.ditto</groupId>
+        <artifactId>ditto-bom</artifactId>
+        <version>${revision}</version>
+        <relativePath>../bom/pom.xml</relativePath>
+    </parent>
+    <artifactId>ditto-ide-postgres-launcher</artifactId>
+    <packaging>jar</packaging>
+    <name>Eclipse Ditto :: IDE PostgreSQL Launcher</name>
+
+    <!--
+        LOCAL-DEV / IDE ONLY — this module ships no code and is never published or bundled.
+
+        Its sole purpose is to give the IntelliJ "(Postgres)" run configurations one module whose classpath carries
+        BOTH a service (things/policies/connectivity/thing-search) AND the PostgreSQL backends
+        (ditto-internal-utils-persistence-r2dbc for event-sourcing persistence + ditto-internal-utils-search-r2dbc for
+        thing-search: the providers, the journal/snapshot plugin classes, the ditto-postgres-*.conf profile resources
+        and the r2dbc driver).
+
+        Why this module exists instead of a dependency on the service itself:
+          * The service modules deliberately do NOT depend on r2dbc — the `enforce-no-r2dbc-in-service` rule keeps
+            it out of their shaded allinones, because PostgreSQL ships in production as separate drop-in extension JARs
+            (the base ditto-postgres-client-extension plus the thin ditto-postgres-persistence-extension /
+            ditto-postgres-search-extension).
+          * An IntelliJ "Application" run configuration uses only a module's PRODUCTION (compile/runtime) classpath,
+            never its test scope, so a test-scope r2dbc dependency on the service would never reach the run
+            classpath.
+        Pointing the "(Postgres)" run configs' "Use classpath of module" at THIS module (while keeping the
+        service's own main class, e.g. org.eclipse.ditto.policies.service.starter.PoliciesService) puts r2dbc on the
+        production/compile classpath without touching the service modules or their allinones.
+
+        Leak-free by construction: this module is never listed in any service's maven-shade artifact set, and the
+        `enforce-no-r2dbc-in-service` rules are scoped to the service modules, so carrying r2dbc here at compile
+        scope cannot reach a published service image.
+    -->
+
+    <properties>
+        <!-- Dev-only aggregator: never deploy this (essentially empty) jar to a repository. -->
+        <maven.deploy.skip>true</maven.deploy.skip>
+    </properties>
+
+    <dependencies>
+        <!--
+            The services whose "(Postgres)" run configs point their classpath at this module. Each contributes its
+            own main class + service config (e.g. policies.conf with read-journal.entity="policies").
+        -->
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-policies-service</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-things-service</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-connectivity-service</artifactId>
+        </dependency>
+        <!--
+            The thing-search service, whose "SearchService (Postgres)" run config points its classpath at this module.
+            Contributes the SearchService main class + search.conf (Mongo-default search-persistence-provider, swapped to
+            the Postgres one by the search-pg-dev.conf overlay).
+        -->
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-thingsearch-service</artifactId>
+        </dependency>
+        <!--
+            The PostgreSQL persistence backend the run configs need on the classpath: PostgresPersistenceBackendProvider
+            (selected by the *-pg-dev.conf overlay), the Postgres journal/snapshot plugin classes, the
+            ditto-postgres-persistence.conf profile (provider wiring + client/pool/SSL defaults), and the
+            r2dbc-postgresql driver + pool.
+        -->
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-internal-utils-persistence-r2dbc</artifactId>
+        </dependency>
+        <!--
+            The PostgreSQL SEARCH backend the "SearchService (Postgres)" run config needs on the classpath:
+            PostgresSearchPersistenceProvider (selected by the search-pg-dev.conf overlay), the search read/write/
+            aggregation impls, and the ditto-postgres-search.conf profile. The shared ditto-internal-utils-postgres-client
+            (client/pool + r2dbc driver stack) arrives TRANSITIVELY through this dependency — do not list it separately.
+        -->
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-internal-utils-search-r2dbc</artifactId>
+        </dependency>
+    </dependencies>
+</project>

@@ -1,0 +1,43 @@
+{
+  "_id": "golden:unicode-keys-values",
+  "_namespace": "golden",
+  "gr": [
+    "g:0"
+  ],
+  "_revision": {
+    "$numberLong": "4"
+  },
+  "policyId": "golden:unicode-keys-values",
+  "__policyRev": {
+    "$numberLong": "1"
+  },
+  "__referencedPolicies": [
+    {
+      "type": "policy",
+      "id": "golden:unicode-keys-values",
+      "revision": {
+        "$numberInt": "1"
+      }
+    }
+  ],
+  "t": {
+    "thingId": "golden:unicode-keys-values",
+    "_namespace": "golden",
+    "_revision": {
+      "$numberInt": "4"
+    },
+    "policyId": "golden:unicode-keys-values",
+    "attributes": {
+      "Ärger": "Öl und Übung",
+      "emoji": "\ud83d\ude80\ud83d\udd25",
+      "cjk": "日本語のテスト",
+      "mixedUnicodeKey✓": "check"
+    }
+  },
+  "p": {
+    "·g": [
+      "g:0"
+    ]
+  },
+  "f": []
+}

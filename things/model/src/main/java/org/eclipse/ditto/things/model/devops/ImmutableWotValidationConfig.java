@@ -333,7 +333,6 @@ final class ImmutableWotValidationConfig implements WotValidationConfig {
         return builder.build();
     }
 
-
     /**
      * An enumeration of the known JSON fields of a WoT validation config.
      */
@@ -346,7 +345,7 @@ final class ImmutableWotValidationConfig implements WotValidationConfig {
                 JsonFactory.newStringFieldDefinition("_created", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
         /**
-         * JSON field containing the created timestamp.
+         * JSON field containing the revision.
          */
         public static final JsonFieldDefinition<Long> REVISION =
                 JsonFactory.newLongFieldDefinition("_revision", FieldType.REGULAR, JsonSchemaVersion.V_2);
@@ -373,4 +372,5 @@ final class ImmutableWotValidationConfig implements WotValidationConfig {
             throw new AssertionError();
         }
     }
+
 }

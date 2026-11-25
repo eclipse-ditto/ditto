@@ -37,7 +37,7 @@ import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.thingsearch.api.SearchNamespaceReportResult;
 import org.eclipse.ditto.thingsearch.service.persistence.TestConstants;
 import org.eclipse.ditto.thingsearch.service.persistence.read.query.MongoQueryBuilderFactory;
-import org.eclipse.ditto.thingsearch.service.persistence.write.model.Metadata;
+import org.eclipse.ditto.thingsearch.persistence.api.model.Metadata;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;

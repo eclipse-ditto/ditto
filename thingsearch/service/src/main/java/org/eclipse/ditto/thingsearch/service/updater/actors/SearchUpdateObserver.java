@@ -19,7 +19,7 @@ import javax.annotation.Nullable;
 import org.eclipse.ditto.internal.utils.extension.DittoExtensionIds;
 import org.eclipse.ditto.internal.utils.extension.DittoExtensionPoint;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.thingsearch.service.persistence.write.model.Metadata;
+import org.eclipse.ditto.thingsearch.persistence.api.model.Metadata;
 
 import com.typesafe.config.Config;
 

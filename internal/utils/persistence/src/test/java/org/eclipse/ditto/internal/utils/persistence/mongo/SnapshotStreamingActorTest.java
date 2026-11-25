@@ -17,7 +17,10 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
 
+import java.io.Closeable;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.pekko.Done;
 import org.apache.pekko.NotUsed;
@@ -31,14 +34,15 @@ import org.apache.pekko.stream.javadsl.Sink;
 import org.apache.pekko.stream.javadsl.Source;
 import org.apache.pekko.testkit.TestProbe;
 import org.apache.pekko.testkit.javadsl.TestKit;
-import org.bson.Document;
 import org.eclipse.ditto.base.model.entity.id.EntityId;
 import org.eclipse.ditto.base.model.entity.type.EntityType;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.internal.models.streaming.StreamedSnapshot;
 import org.eclipse.ditto.internal.models.streaming.SudoStreamSnapshots;
+import org.eclipse.ditto.internal.utils.persistence.api.SnapshotEntry;
+import org.eclipse.ditto.internal.utils.persistence.api.SnapshotFilter;
+import org.eclipse.ditto.internal.utils.persistence.api.streaming.SnapshotStreamingActor;
 import org.eclipse.ditto.internal.utils.persistence.mongo.streaming.MongoReadJournal;
-import org.eclipse.ditto.internal.utils.persistence.mongo.streaming.SnapshotFilter;
 import org.eclipse.ditto.json.JsonObject;
 import org.junit.After;
 import org.junit.Before;
@@ -137,6 +141,34 @@ public final class SnapshotStreamingActorTest {
         }};
     }
 
+    @Test
+    public void closesInjectedResourceOnStop() throws Exception {
+        new TestKit(actorSystem) {{
+            final AtomicBoolean closed = new AtomicBoolean(false);
+            final Closeable resourceToClose = () -> closed.set(true);
+            final Props props = SnapshotStreamingActor.propsForTest(
+                    pid -> EntityId.of(THING_TYPE, pid),
+                    EntityId::toString,
+                    mockReadJournal,
+                    resourceToClose,
+                    pubSubMediatorTestProbe.ref()
+            );
+            final ActorRef underTest = actorSystem.actorOf(props);
+            watch(underTest);
+
+            // WHEN the actor is stopped
+            underTest.tell(org.apache.pekko.actor.PoisonPill.getInstance(), getRef());
+            expectTerminated(underTest);
+
+            // THEN the injected Closeable was closed on postStop()
+            // (postStop runs asynchronously w.r.t. the Terminated watch notification on some Pekko versions)
+            org.awaitility.Awaitility.await()
+                    .atMost(5, TimeUnit.SECONDS)
+                    .untilTrue(closed);
+            assertThat(closed.get()).isTrue();
+        }};
+    }
+
     private void streamNonemptySnapshotCollection(final SudoStreamSnapshots sudoStreamSnapshots,
             final SnapshotFilter expectedFilter) {
         new TestKit(actorSystem) {{
@@ -144,15 +176,12 @@ public final class SnapshotStreamingActorTest {
 
             // WHEN
             setSnapshotStore(expectedFilter, Source.from(List.of(
-                    new Document().append("_id", "thing:snap:1")
-                            .append("_revision", 1)
-                            .append("_modified", "2001-01-01"),
-                    new Document().append("_id", "thing:snap:2")
-                            .append("_revision", 2)
-                            .append("_modified", "2002-02-02"),
-                    new Document().append("_id", "thing:snap:3")
-                            .append("_revision", 3)
-                            .append("_modified", "2003-03-03")
+                    SnapshotEntry.of("thing:snap:1", 1L, null,
+                            JsonObject.of("{\"_revision\":1,\"_modified\":\"2001-01-01\"}")),
+                    SnapshotEntry.of("thing:snap:2", 2L, null,
+                            JsonObject.of("{\"_revision\":2,\"_modified\":\"2002-02-02\"}")),
+                    SnapshotEntry.of("thing:snap:3", 3L, null,
+                            JsonObject.of("{\"_revision\":3,\"_modified\":\"2003-03-03\"}"))
             )));
             underTest.tell(sudoStreamSnapshots, getRef());
 
@@ -177,13 +206,14 @@ public final class SnapshotStreamingActorTest {
     }
 
 
-    private void setSnapshotStore(final Source<Document, NotUsed> mockSource) {
+    private void setSnapshotStore(final Source<SnapshotEntry, NotUsed> mockSource) {
         Mockito.when(mockReadJournal.getNewestSnapshotsAbove(
                 any(SnapshotFilter.class), anyInt(), any(Materializer.class), any(String[].class)))
                 .thenReturn(mockSource);
     }
 
-    private void setSnapshotStore(final SnapshotFilter expectedFilter, final Source<Document, NotUsed> mockSource) {
+    private void setSnapshotStore(final SnapshotFilter expectedFilter,
+            final Source<SnapshotEntry, NotUsed> mockSource) {
         Mockito.when(mockReadJournal.getNewestSnapshotsAbove(
                 eq(expectedFilter), anyInt(), any(Materializer.class), any(String[].class)))
                 .thenReturn(mockSource);
@@ -194,8 +224,8 @@ public final class SnapshotStreamingActorTest {
                 pid -> EntityId.of(EntityType.of(pid.substring(0, pid.indexOf(":"))),
                         pid.substring(pid.indexOf(':') + 1)),
                 entityId -> THING_TYPE + ":" + entityId.toString(),
-                mockClient,
                 mockReadJournal,
+                mockClient,
                 pubSubMediatorTestProbe.ref()
         );
 

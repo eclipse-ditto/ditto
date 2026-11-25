@@ -1,0 +1,21 @@
+{
+  "thingId": "org.eclipse.ditto.parity:scalars-blue",
+  "_namespace": "org.eclipse.ditto.parity",
+  "_revision": 1,
+  "_modified": "2026-02-10T10:00:00Z",
+  "policyId": "org.eclipse.ditto.parity:policy-full",
+  "definition": "org.example:Sensor:2.0.0",
+  "attributes": {
+    "color": "blue",
+    "size": 7,
+    "big": 4000000000,
+    "weight": 0.5,
+    "active": false,
+    "secret": "top-blue",
+    "nested": { "deep": { "value": "beta", "secret": "hidden-blue" } }
+  },
+  "features": {
+    "lamp": { "properties": { "status": "off", "brightness": 20 } },
+    "sensor": { "properties": { "status": "on", "unit": "F" } }
+  }
+}

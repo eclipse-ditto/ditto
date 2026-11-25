@@ -18,6 +18,7 @@ import java.util.concurrent.CompletionStage;
 import javax.annotation.Nullable;
 
 import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.ActorSystem;
 import org.apache.pekko.actor.Props;
 import org.apache.pekko.cluster.pubsub.DistributedPubSubMediator;
 import org.apache.pekko.persistence.RecoveryCompleted;
@@ -26,11 +27,14 @@ import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
-import org.eclipse.ditto.internal.utils.persistence.mongo.config.ActivityCheckConfig;
-import org.eclipse.ditto.internal.utils.persistence.mongo.config.DefaultActivityCheckConfig;
-import org.eclipse.ditto.internal.utils.persistence.mongo.config.DefaultSnapshotConfig;
-import org.eclipse.ditto.internal.utils.persistence.mongo.config.SnapshotConfig;
-import org.eclipse.ditto.internal.utils.persistence.mongo.streaming.MongoReadJournal;
+import org.eclipse.ditto.internal.utils.config.ScopedConfig;
+import org.eclipse.ditto.internal.utils.persistence.api.config.ActivityCheckConfig;
+import org.eclipse.ditto.internal.utils.persistence.api.config.DefaultActivityCheckConfig;
+import org.eclipse.ditto.internal.utils.persistence.api.config.DefaultSnapshotConfig;
+import org.eclipse.ditto.internal.utils.persistence.api.config.SnapshotConfig;
+import org.eclipse.ditto.internal.utils.persistence.api.DittoReadJournal;
+import org.eclipse.ditto.internal.utils.persistence.api.PersistenceBackendProvider;
+import org.eclipse.ditto.internal.utils.persistence.api.serializer.SnapshotSerializer;
 import org.eclipse.ditto.internal.utils.persistentactors.AbstractPersistenceActor;
 import org.eclipse.ditto.internal.utils.persistentactors.commands.CommandStrategy;
 import org.eclipse.ditto.internal.utils.persistentactors.commands.DefaultContext;
@@ -43,6 +47,9 @@ import org.eclipse.ditto.things.model.devops.exceptions.WotValidationConfigNotAc
 import org.eclipse.ditto.things.service.persistence.actors.strategies.commands.WotValidationConfigCommandStrategies;
 import org.eclipse.ditto.things.service.persistence.actors.strategies.commands.WotValidationConfigDData;
 import org.eclipse.ditto.things.service.persistence.actors.strategies.events.WotValidationConfigEventStrategies;
+import org.eclipse.ditto.things.service.persistence.serializer.WotValidationConfigSnapshotSerializer;
+
+import com.typesafe.config.Config;
 
 /**
  * Persistence actor responsible for managing the lifecycle and distributed state of WoT validation configurations.
@@ -59,19 +66,18 @@ public final class WotValidationConfigPersistenceActor
         AbstractPersistenceActor<Command<?>, WotValidationConfig, WotValidationConfigId, WotValidationConfigId, WotValidationConfigEvent<?>> {
 
     /**
+     * The entity type of WoT validation configs, used to resolve the backend-specific persistence plugin IDs through
+     * the {@link PersistenceBackendProvider}. Matches {@code WotValidationConfigId}'s {@code @TypedEntityId(type = ...)}
+     * and the {@code wot-validation-config.{journal|snapshot}} plugin-id keys in the Postgres profile.
+     */
+    static final String ENTITY_TYPE = "wot-validation-config";
+
+    /**
      * The prefix of the persistenceId for WoT validation configs.
      */
-    static final String PERSISTENCE_ID_PREFIX = "wot-validation-config:";
+    static final String PERSISTENCE_ID_PREFIX = ENTITY_TYPE + ":";
 
-    /**
-     * The ID of the journal plugin this persistence actor uses.
-     */
-    static final String JOURNAL_PLUGIN_ID = "pekko-contrib-mongodb-persistence-wot-validation-config-journal";
-
-    /**
-     * The ID of the snapshot plugin this persistence actor uses.
-     */
-    static final String SNAPSHOT_PLUGIN_ID = "pekko-contrib-mongodb-persistence-wot-validation-config-snapshots";
+    private static final String WOT_VALIDATION_CONFIG_PATH = "things.wot-validation-config";
 
     private final ActorRef pubSubMediator;
     private final DefaultActivityCheckConfig activityCheckConfig;
@@ -82,23 +88,35 @@ public final class WotValidationConfigPersistenceActor
 
     @SuppressWarnings("unused")
     private WotValidationConfigPersistenceActor(final WotValidationConfigId entityId,
-            final MongoReadJournal mongoReadJournal,
+            final DittoReadJournal readJournal,
             final ActorRef pubSubMediator) {
-        super(entityId, mongoReadJournal);
+        super(entityId, readJournal);
         this.pubSubMediator = pubSubMediator;
 
         final var actorSystem = getContext().getSystem();
-        final var config = DefaultScopedConfig.dittoScoped(actorSystem.settings().config());
-        this.activityCheckConfig = DefaultActivityCheckConfig.of(config);
-        this.snapshotConfig = DefaultSnapshotConfig.of(config);
+        final var wotValidationConfigBlock = wotValidationConfigBlock(actorSystem.settings().config());
+        this.activityCheckConfig = DefaultActivityCheckConfig.of(wotValidationConfigBlock);
+        this.snapshotConfig = DefaultSnapshotConfig.of(wotValidationConfigBlock);
         this.ddata = WotValidationConfigDData.of(actorSystem);
         this.eventStrategy = WotValidationConfigEventStrategies.getInstance();
         this.commandStrategies = WotValidationConfigCommandStrategies.getInstance(actorSystem);
     }
 
-    public static Props props(final WotValidationConfigId entityId, final MongoReadJournal mongoReadJournal,
+    /**
+     * Reads the {@code ditto.things.wot-validation-config} block holding this actor's activity-check and snapshot
+     * settings; when the block is absent, an empty config is returned so that the code defaults apply.
+     */
+    private static ScopedConfig wotValidationConfigBlock(final Config rawConfig) {
+        final var dittoScoped = DefaultScopedConfig.dittoScoped(rawConfig);
+        if (dittoScoped.hasPath(WOT_VALIDATION_CONFIG_PATH)) {
+            return DefaultScopedConfig.newInstance(dittoScoped, WOT_VALIDATION_CONFIG_PATH);
+        }
+        return DefaultScopedConfig.empty(dittoScoped.getConfigPath() + "." + WOT_VALIDATION_CONFIG_PATH);
+    }
+
+    public static Props props(final WotValidationConfigId entityId, final DittoReadJournal readJournal,
             final ActorRef pubSubMediator) {
-        return Props.create(WotValidationConfigPersistenceActor.class, entityId, mongoReadJournal, pubSubMediator);
+        return Props.create(WotValidationConfigPersistenceActor.class, entityId, readJournal, pubSubMediator);
     }
 
     @Override
@@ -108,12 +126,31 @@ public final class WotValidationConfigPersistenceActor
 
     @Override
     public String journalPluginId() {
-        return JOURNAL_PLUGIN_ID;
+        return backendProvider().getJournalPluginId(ENTITY_TYPE);
     }
 
     @Override
     public String snapshotPluginId() {
-        return SNAPSHOT_PLUGIN_ID;
+        return backendProvider().getSnapshotPluginId(ENTITY_TYPE);
+    }
+
+    private PersistenceBackendProvider backendProvider() {
+        final var system = context().system();
+        return PersistenceBackendProvider.get(system, ScopedConfig.dittoExtension(system.settings().config()));
+    }
+
+    /**
+     * Returns the WoT-validation-config snapshot serializer instead of the things-JVM default (which only understands
+     * {@code Thing}s and would otherwise cause a {@code ClassCastException} when a WoT snapshot is taken).
+     * <p>
+     * This override runs from the {@link AbstractPersistenceActor} constructor, so it relies only on a freshly
+     * constructed static serializer and reads no subclass instance fields; the backend snapshot codec stays the
+     * shared single-per-JVM one.
+     */
+    @Override
+    protected SnapshotSerializer<WotValidationConfig> resolveSnapshotSerializer(final ActorSystem actorSystem,
+            final Config dittoExtensionsConfig) {
+        return new WotValidationConfigSnapshotSerializer();
     }
 
     @Override

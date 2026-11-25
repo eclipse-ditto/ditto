@@ -12,6 +12,8 @@
  */
 package org.eclipse.ditto.internal.utils.persistence.mongo.config;
 
+import org.eclipse.ditto.internal.utils.persistence.api.config.ActivityCheckConfig;
+
 /**
  * This interface provides access to the configuration settings activity checking of entities.
  */

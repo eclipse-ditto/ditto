@@ -1,0 +1,45 @@
+{
+  "comment": "The frozen Mongo<->Postgres divergence allowlist for the parity matrix. Items 1-5 are divergences of sorting, the sort cursor and empty() on arrays of arrays; items 6-7 are the array-of-array content and ilike case-folding divergences; item 8 is the sudo feature-wildcard value divergence. Each is described in the design document, Search backend, Differences from MongoDB (search). Every entry MUST be exercised by at least one query case (the IT asserts referenced == declared) and the divergent behavior is pinned per backend, never skipped.",
+  "entries": [
+    {
+      "id": "cursor-sort-value-whole-array-object-null",
+      "source": "design document, Search backend, Differences from MongoDB (search): cursor boundary encoding",
+      "description": "PostgresSortClause#toSortValues encodes null for a rank-1 (null) or rank-5 (empty-array/array-of-array) boundary element, and {\"typeRank\":4} for a rank-4 (object) boundary, which resumes by rank, then thing id; Mongo's GetSortBsonVisitor#sortValuesAsArray encodes the whole container/value. Cursor sort-value ENCODING diverges; each backend's own walk must still terminate and produce its pinned sequence."
+    },
+    {
+      "id": "object-sort-ties-by-thing-id",
+      "source": "design document, Search backend, Differences from MongoDB (search): object-valued sort keys",
+      "description": "Object-valued sort keys all produce the identical (rank 4, NULL, NULL, NULL) ordering tuple on Postgres and fall through to the thing-id tiebreak; Mongo orders objects by recursive BSON field content."
+    },
+    {
+      "id": "array-of-array-asc-desc-asymmetry",
+      "source": "design document, Search backend, Differences from MongoDB (search): a scalar next to a nested array",
+      "description": "When a scalar sibling shares the path with a nested array, Postgres ASC picks the scalar sibling's real value while DESC picks the rank-5 array stub (folded into the null rank), so the same row sorts by a value under ASC and as-if-missing under DESC. Mongo sorts by min element (ASC) / max element (DESC) consistently including inner arrays."
+    },
+    {
+      "id": "wildcard-sort-rejection-vs-noop",
+      "source": "design document, Search backend, Differences from MongoDB (search): the features/*/... sort key",
+      "description": "Postgres hard-rejects a features/*/... sort key (IllegalArgumentException); Mongo silently builds a never-matching literal '*' BSON path, so the query still returns results, just not ordered by that key."
+    },
+    {
+      "id": "empty-overmatch-array-of-array",
+      "source": "design document, Search backend, Differences from MongoDB (search): empty() on an array of arrays",
+      "description": "empty() against a path whose only content is a direct array-of-array collapses onto the same rank-5 stub row the flattener emits for a genuinely empty array, so Postgres matches empty() where Mongo does not."
+    },
+    {
+      "id": "array-of-array-inner-content",
+      "source": "design document, Search backend, Differences from MongoDB (search): array-of-array inner content",
+      "description": "Content nested inside a direct array-of-array is flattened to a single valueless rank-5 stub on Postgres (inner elements are not enumerated); Mongo keeps the inner arrays as BSON values. RQL-scalar-expressible predicates cannot reach the inner content on either backend; the pinned cases document the observed behavior of both."
+    },
+    {
+      "id": "ilike-fold-edges-sharp-s-dotted-i",
+      "source": "design document, Search backend, Differences from MongoDB (search): ilike folding ss/I-dot",
+      "description": "Case-insensitive matching of U+00DF LATIN SMALL LETTER SHARP S and U+0130 LATIN CAPITAL LETTER I WITH DOT ABOVE differs between Mongo's case-insensitive regex and Postgres' lower()-based ILIKE folding. Each backend's observed result is pinned."
+    },
+    {
+      "id": "sudo-wildcard-value-mongo-degenerate-path",
+      "source": "design document, Search backend, Differences from MongoDB (search): sudo features/* value predicates",
+      "description": "sudo + feature-wildcard value predicates: Mongo GetFilterBsonVisitor.matchWildcardFeatureValue degrades to a dotted top-level path (e.g. properties.status) that no document has. For an ordinary operand that path matches nothing (empty result); for a null-including operand (in(…, null), ge(null), le(null)), whose Mongo semantics is null = missing, the same missing path matches EVERY thing, and its negation nothing. Postgres answers features/* value predicates semantically (per visible feature). No auth impact (sudo bypasses auth by definition). The MongoDB behavior is left as it is (the golden BSON tests keep the MongoDB search documents unchanged), and mimicking the degenerate behavior in Postgres would deliberately produce wrong results."
+    }
+  ]
+}

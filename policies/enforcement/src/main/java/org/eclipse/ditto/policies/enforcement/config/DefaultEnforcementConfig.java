@@ -33,14 +33,18 @@ public final class DefaultEnforcementConfig implements EnforcementConfig {
 
     private static final String CONFIG_PATH = "enforcement";
     private static final String ASK_WITH_RETRY_CONFIG_PATH = "ask-with-retry";
+    private static final String CREATED_POLICY_ROLLBACK_CONFIG_PATH = "created-policy-rollback";
 
     private final AskWithRetryConfig askWithRetryConfig;
+    private final AskWithRetryConfig createdPolicyRollbackConfig;
 
     private final boolean globalLiveResponseDispatching;
     private final Set<String> specialLoggingInspectedNamespaces;
 
     private DefaultEnforcementConfig(final ConfigWithFallback configWithFallback) {
         askWithRetryConfig = DefaultAskWithRetryConfig.of(configWithFallback, ASK_WITH_RETRY_CONFIG_PATH);
+        createdPolicyRollbackConfig =
+                DefaultAskWithRetryConfig.of(configWithFallback, CREATED_POLICY_ROLLBACK_CONFIG_PATH);
         globalLiveResponseDispatching =
                 configWithFallback.getBoolean(EnforcementConfigValue.GLOBAL_LIVE_RESPONSE_DISPATCHING.getConfigPath());
         specialLoggingInspectedNamespaces = Collections.unmodifiableSet(new HashSet<>(configWithFallback.getStringList(
@@ -65,6 +69,11 @@ public final class DefaultEnforcementConfig implements EnforcementConfig {
     }
 
     @Override
+    public AskWithRetryConfig getCreatedPolicyRollbackConfig() {
+        return createdPolicyRollbackConfig;
+    }
+
+    @Override
     public boolean isDispatchLiveResponsesGlobally() {
         return globalLiveResponseDispatching;
     }
@@ -85,18 +94,21 @@ public final class DefaultEnforcementConfig implements EnforcementConfig {
         final DefaultEnforcementConfig that = (DefaultEnforcementConfig) o;
         return globalLiveResponseDispatching == that.globalLiveResponseDispatching &&
                 askWithRetryConfig.equals(that.askWithRetryConfig) &&
+                createdPolicyRollbackConfig.equals(that.createdPolicyRollbackConfig) &&
                 specialLoggingInspectedNamespaces.equals(that.specialLoggingInspectedNamespaces);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(askWithRetryConfig, globalLiveResponseDispatching, specialLoggingInspectedNamespaces);
+        return Objects.hash(askWithRetryConfig, createdPolicyRollbackConfig, globalLiveResponseDispatching,
+                specialLoggingInspectedNamespaces);
     }
 
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
                 "askWithRetryConfig=" + askWithRetryConfig +
+                ", createdPolicyRollbackConfig=" + createdPolicyRollbackConfig +
                 ", globalLiveResponseDispatching=" + globalLiveResponseDispatching +
                 ", specialLoggingInspectedNamespaces=" + specialLoggingInspectedNamespaces +
                 "]";

@@ -58,13 +58,13 @@ ditto.extensions.signal-enrichment-provider = org.eclipse.ditto.gateway.service.
 
 For simple configuration changes, use [system properties](operating-configuration.html). For extensive changes, create a [HOCON](https://github.com/lightbend/config/blob/main/HOCON.md) file named `<ditto-service-name>-extension.conf` and place it in the Docker container's working directory:
 
-| Service | Extension config path |
-|---------|----------------------|
-| Policies | `/opt/ditto/policies-extension.conf` |
-| Things | `/opt/ditto/things-extension.conf` |
-| Search | `/opt/ditto/search-extension.conf` |
+| Service      | Extension config path                    |
+|--------------|------------------------------------------|
+| Policies     | `/opt/ditto/policies-extension.conf`     |
+| Things       | `/opt/ditto/things-extension.conf`       |
+| Search       | `/opt/ditto/search-extension.conf`       |
 | Connectivity | `/opt/ditto/connectivity-extension.conf` |
-| Gateway | `/opt/ditto/gateway-extension.conf` |
+| Gateway      | `/opt/ditto/gateway-extension.conf`      |
 
 These files can contain any configuration from the [service config files](operating-configuration.html).
 
@@ -149,6 +149,15 @@ connectivity:
     - ./logback.xml:/opt/ditto/logback.xml
     - ./gateway-extension.jar:/opt/ditto/extensions/gateway-extension.jar
 ```
+
+### PostgreSQL backends
+
+The PostgreSQL persistence backend (policies, things, connectivity) and the PostgreSQL search backend (things-search)
+are the largest extensions built from Ditto's own sources: layered drop-in JARs plus one `include` in the service's
+`<service>-extension.conf`. How to install and activate them is described in
+[Running Ditto on PostgreSQL](installation-postgresql.html); how to operate them (schema lifecycle, self-heal,
+connection budget, TLS, PgBouncer, monitoring, vacuum, differences from MongoDB) in
+[Operating PostgreSQL](operating-postgresql.html).
 
 ## Further reading
 

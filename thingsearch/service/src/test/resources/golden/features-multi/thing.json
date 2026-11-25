@@ -1,0 +1,24 @@
+{
+  "thingId": "golden:features-multi",
+  "_namespace": "golden",
+  "_revision": 7,
+  "policyId": "golden:features-multi",
+  "definition": "org.eclipse.ditto:golden-thing:1.0.0",
+  "features": {
+    "f1": {
+      "definition": ["org.eclipse.ditto:f1:1.0.0"],
+      "properties": { "p1": 1, "p2": "on" },
+      "desiredProperties": { "p1": 2 }
+    },
+    "f2": {
+      "definition": ["org.eclipse.ditto:f2:2.0.0", "org.eclipse.ditto:f2-base:1.0.0"],
+      "properties": { "value": 12.5 },
+      "desiredProperties": { "value": 20.0 }
+    },
+    "f3": {
+      "definition": ["org.eclipse.ditto:f3:3.1.0"],
+      "properties": { "status": "idle", "nested": { "a": 1, "b": [1, 2] } },
+      "desiredProperties": { "status": "running" }
+    }
+  }
+}

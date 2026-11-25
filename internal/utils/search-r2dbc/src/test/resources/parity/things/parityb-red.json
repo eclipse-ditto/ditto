@@ -1,0 +1,8 @@
+{
+  "thingId": "org.eclipse.ditto.parityb:thing-red",
+  "_namespace": "org.eclipse.ditto.parityb",
+  "_revision": 1,
+  "_modified": "2026-05-01T10:00:00Z",
+  "policyId": "org.eclipse.ditto.parity:policy-full",
+  "attributes": { "color": "red", "size": 999 }
+}

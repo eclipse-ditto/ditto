@@ -23,14 +23,14 @@ import org.eclipse.ditto.base.service.config.supervision.DefaultSupervisorConfig
 import org.eclipse.ditto.base.service.config.supervision.SupervisorConfig;
 import org.eclipse.ditto.internal.utils.config.ConfigWithFallback;
 import org.eclipse.ditto.internal.utils.config.ScopedConfig;
-import org.eclipse.ditto.internal.utils.persistence.mongo.config.ActivityCheckConfig;
-import org.eclipse.ditto.internal.utils.persistence.mongo.config.DefaultActivityCheckConfig;
-import org.eclipse.ditto.internal.utils.persistence.mongo.config.DefaultEventConfig;
+import org.eclipse.ditto.internal.utils.persistence.api.config.ActivityCheckConfig;
+import org.eclipse.ditto.internal.utils.persistence.api.config.DefaultActivityCheckConfig;
+import org.eclipse.ditto.internal.utils.persistence.api.config.DefaultEventConfig;
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.DefaultNamespaceActivityCheckConfig;
-import org.eclipse.ditto.internal.utils.persistence.mongo.config.DefaultSnapshotConfig;
-import org.eclipse.ditto.internal.utils.persistence.mongo.config.EventConfig;
+import org.eclipse.ditto.internal.utils.persistence.api.config.DefaultSnapshotConfig;
+import org.eclipse.ditto.internal.utils.persistence.api.config.EventConfig;
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.NamespaceActivityCheckConfig;
-import org.eclipse.ditto.internal.utils.persistence.mongo.config.SnapshotConfig;
+import org.eclipse.ditto.internal.utils.persistence.api.config.SnapshotConfig;
 import org.eclipse.ditto.internal.utils.persistentactors.cleanup.CleanupConfig;
 
 import com.typesafe.config.Config;

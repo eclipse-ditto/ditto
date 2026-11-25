@@ -1,0 +1,19 @@
+{
+  "thingId": "golden:nested-scalars",
+  "_namespace": "golden",
+  "_revision": 10,
+  "policyId": "golden:nested-scalars",
+  "attributes": {
+    "info": {
+      "str": "hello world",
+      "intVal": 42,
+      "longVal": 123456789012345,
+      "doubleVal": 3.14159,
+      "boolVal": true,
+      "nullVal": null,
+      "emptyStr": ""
+    },
+    "emptyObj": {},
+    "emptyArr": []
+  }
+}

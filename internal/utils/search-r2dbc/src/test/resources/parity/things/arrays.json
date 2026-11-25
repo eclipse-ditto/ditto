@@ -1,0 +1,13 @@
+{
+  "thingId": "org.eclipse.ditto.parity:arrays",
+  "_namespace": "org.eclipse.ditto.parity",
+  "_revision": 1,
+  "_modified": "2026-04-01T10:00:00Z",
+  "policyId": "org.eclipse.ditto.parity:policy-full",
+  "attributes": {
+    "tags": ["alpha", "beta", "gamma"],
+    "nums": [1, 2, 3],
+    "matrix": [[1, 2], [3, 4]],
+    "items": [ { "n": 1, "inner": [5, 6] }, { "n": 2, "inner": [] } ]
+  }
+}

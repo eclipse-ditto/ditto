@@ -1,0 +1,11 @@
+{
+  "thingId": "org.eclipse.ditto.parity:zzempty-split",
+  "_namespace": "org.eclipse.ditto.parity",
+  "_revision": 1,
+  "_modified": "2026-11-09T10:05:00Z",
+  "policyId": "org.eclipse.ditto.parity:policy-full",
+  "features": {
+    "f1": { "properties": { "obj": {} }, "desiredProperties": {} },
+    "f2": { "properties": { "obj": { "a": 1 } }, "desiredProperties": { "target": 1 } }
+  }
+}

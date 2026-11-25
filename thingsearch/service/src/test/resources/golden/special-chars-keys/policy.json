@@ -1,0 +1,21 @@
+{
+  "policyId": "golden:special-chars-keys",
+  "entries": {
+    "ROOT": {
+      "subjects": {
+        "g:root": { "type": "generated" }
+      },
+      "resources": {
+        "thing:/": { "grant": ["READ"], "revoke": [] }
+      }
+    },
+    "SPECIAL": {
+      "subjects": {
+        "g:special": { "type": "generated" }
+      },
+      "resources": {
+        "thing:/attributes/a.b": { "grant": ["READ"], "revoke": [] }
+      }
+    }
+  }
+}

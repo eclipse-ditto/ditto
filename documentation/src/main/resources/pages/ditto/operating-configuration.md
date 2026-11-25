@@ -153,7 +153,8 @@ ditto.connectivity.connection.encryption {
 
 **Behavior:**
 - **Encryption:** Always uses `symmetrical-key` for encrypting new data
-- **Decryption:** Tries `symmetrical-key` first, falls back to `old-symmetrical-key` if decryption fails
+- **Decryption:** Tries `symmetrical-key` first, falls back to `old-symmetrical-key` if decryption fails; with no
+  `symmetrical-key`, `old-symmetrical-key` alone is used
 - **Migration:** Explicit DevOps command re-encrypts existing data from old key to new key
 
 **Migration Decision Logic:**
@@ -161,7 +162,7 @@ ditto.connectivity.connection.encryption {
 The migration command automatically detects the intended workflow based on configuration:
 
 - **Encryption enabled + both keys set** → Key rotation (decrypt with old, encrypt with new)
-- **Encryption enabled + only current key** → Error (nothing to migrate)
+- **Encryption enabled + only current key** → Initial encryption (encrypt existing plaintext values with the current key)
 - **Encryption disabled + old key set** → Disable workflow (decrypt with old, write plaintext)
 - **Encryption disabled + no keys** → Error (cannot migrate)
 
@@ -275,7 +276,7 @@ To rotate an encryption key:
   {% include note.html content="If the previous migration already completed, was never started, or only ran as a dry run (which does not persist progress), the resume command returns `200 OK` with `phase: \"already_completed\"` instead of starting a new migration. This makes resume safe to call idempotently." %}
 
 **Migration details:**
-- The migration processes both connection snapshots and journal events in MongoDB
+- The migration processes both the stored connection snapshots and the stored journal events
 - Progress is persisted to allow resuming after abort or service restart
 - Migration runs in batches to avoid overwhelming the database
 - The batch size can be configured via `ditto.connectivity.connection.encryption.migration.batch-size`

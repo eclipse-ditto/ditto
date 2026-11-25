@@ -29,7 +29,6 @@ import org.apache.pekko.actor.ActorSystem;
 import org.apache.pekko.actor.Props;
 import org.apache.pekko.stream.javadsl.Source;
 import org.apache.pekko.testkit.javadsl.TestKit;
-import org.bson.Document;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.connectivity.model.ConnectivityInternalErrorException;
 import org.eclipse.ditto.connectivity.model.signals.commands.ConnectivityErrorResponse;
@@ -39,7 +38,10 @@ import org.eclipse.ditto.connectivity.model.signals.events.ConnectionCreated;
 import org.eclipse.ditto.connectivity.model.signals.events.ConnectionDeleted;
 import org.eclipse.ditto.connectivity.service.config.ConnectionIdsRetrievalConfig;
 import org.eclipse.ditto.connectivity.service.messaging.persistence.ConnectionPersistenceActor;
+import org.eclipse.ditto.internal.utils.persistence.api.JournalEntry;
+import org.eclipse.ditto.internal.utils.persistence.api.SnapshotEntry;
 import org.eclipse.ditto.internal.utils.persistence.mongo.streaming.MongoReadJournal;
+import org.eclipse.ditto.json.JsonObject;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -50,13 +52,13 @@ import org.junit.Test;
  */
 public final class ConnectionIdsRetrievalActorTest {
 
-    private static final List<Document> JOURNAL_ENTRIES =
+    private static final List<JournalEntry> JOURNAL_ENTRIES =
             List.of(document(pid("connection-1"), ConnectionCreated.TYPE),
                     document(pid("connection-2"), ConnectionCreated.TYPE),
                     document(pid("connection-3"), ConnectionDeleted.TYPE),
                     document(pid("connection-4"), ConnectionCreated.TYPE));
 
-    private static final List<Document> SNAPSHOT_IDS =
+    private static final List<SnapshotEntry> SNAPSHOT_IDS =
             // connection-3 and connection-4 is a duplicate by intention
             List.of(doc("connection-3"), doc("connection-4"), doc("connection-5"));
 
@@ -123,18 +125,16 @@ public final class ConnectionIdsRetrievalActorTest {
         }};
     }
 
-    private static Document doc(final String id) {
-        return new Document("_id", pid(id)).append(MongoReadJournal.LIFECYCLE, "ACTIVE");
+    private static SnapshotEntry doc(final String id) {
+        return SnapshotEntry.of(pid(id), null, "ACTIVE", JsonObject.empty());
     }
 
     private static String pid(final String id) {
         return ConnectionPersistenceActor.PERSISTENCE_ID_PREFIX + id;
     }
 
-    private static Document document(final String pid, final String manifest) {
-        return new Document()
-                .append("pid", pid)
-                .append("manifest", manifest);
+    private static JournalEntry document(final String pid, final String manifest) {
+        return JournalEntry.of(pid, manifest, JsonObject.empty());
     }
 
 }

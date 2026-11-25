@@ -19,7 +19,7 @@ import java.util.List;
 
 import org.bson.Document;
 import org.eclipse.ditto.base.model.entity.id.EntityId;
-import org.eclipse.ditto.internal.utils.persistence.operations.EntityPersistenceOperations;
+import org.eclipse.ditto.internal.utils.persistence.api.operations.EntityPersistenceOperations;
 import org.eclipse.ditto.internal.utils.persistence.mongo.ops.MongoOpsUtil;
 
 import com.mongodb.reactivestreams.client.MongoCollection;

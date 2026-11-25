@@ -16,6 +16,7 @@ import java.util.List;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.base.model.common.LikeHelper;
 import org.eclipse.ditto.rql.query.criteria.Predicate;
 
 /**
@@ -40,5 +41,35 @@ public interface PredicateVisitor<T> {
     T visitILike(@Nullable String value);
 
     T visitIn(List<?> values);
+
+    /**
+     * Visits a "like" predicate passing the original, not yet converted, wildcard expression
+     * (using {@code *} and {@code ?} wildcards) instead of the regular expression derived from it.
+     * The default implementation preserves the previous behavior by converting the passed
+     * {@code wildcardExpression} to a regular expression via {@link LikeHelper#convertToRegexSyntax(String)}
+     * and delegating to {@link #visitLike(String)}.
+     *
+     * @param wildcardExpression the original wildcard expression, or {@code null}.
+     * @return the result of visiting the "like" predicate.
+     * @since 4.0.0
+     */
+    default T visitLikeWithWildcards(@Nullable final String wildcardExpression) {
+        return visitLike(LikeHelper.convertToRegexSyntax(wildcardExpression));
+    }
+
+    /**
+     * Visits an "ilike" predicate passing the original, not yet converted, wildcard expression
+     * (using {@code *} and {@code ?} wildcards) instead of the regular expression derived from it.
+     * The default implementation preserves the previous behavior by converting the passed
+     * {@code wildcardExpression} to a regular expression via {@link LikeHelper#convertToRegexSyntax(String)}
+     * and delegating to {@link #visitILike(String)}.
+     *
+     * @param wildcardExpression the original wildcard expression, or {@code null}.
+     * @return the result of visiting the "ilike" predicate.
+     * @since 4.0.0
+     */
+    default T visitILikeWithWildcards(@Nullable final String wildcardExpression) {
+        return visitILike(LikeHelper.convertToRegexSyntax(wildcardExpression));
+    }
 
 }

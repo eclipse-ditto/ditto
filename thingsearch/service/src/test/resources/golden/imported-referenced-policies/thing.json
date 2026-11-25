@@ -1,0 +1,9 @@
+{
+  "thingId": "golden:imported-referenced-policies",
+  "_namespace": "golden",
+  "_revision": 12,
+  "policyId": "golden:imported-referenced-policies",
+  "attributes": {
+    "x": 1
+  }
+}

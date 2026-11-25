@@ -44,10 +44,8 @@ import org.eclipse.ditto.internal.utils.health.DefaultHealthCheckingActorFactory
 import org.eclipse.ditto.internal.utils.health.HealthCheckingActorOptions;
 import org.eclipse.ditto.internal.utils.namespaces.BlockedNamespaces;
 import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
-import org.eclipse.ditto.internal.utils.persistence.mongo.MongoClientWrapper;
-import org.eclipse.ditto.internal.utils.persistence.mongo.MongoHealthChecker;
-import org.eclipse.ditto.internal.utils.persistence.mongo.config.MongoDbConfig;
-import org.eclipse.ditto.internal.utils.persistence.mongo.streaming.MongoReadJournal;
+import org.eclipse.ditto.internal.utils.persistence.api.DittoReadJournal;
+import org.eclipse.ditto.internal.utils.persistence.api.PersistenceBackendProvider;
 import org.eclipse.ditto.internal.utils.persistentactors.cleanup.PersistenceCleanupActor;
 import org.eclipse.ditto.internal.utils.pubsub.DistributedAcks;
 import org.eclipse.ditto.internal.utils.pubsub.DistributedPub;
@@ -93,6 +91,11 @@ public final class ThingsRootActor extends DittoRootActor {
      */
     private static final String REVISION_FIELD = "_revision";
 
+    /**
+     * Entity type of the WoT validation configs, under which the persistence backend resolves their journal.
+     */
+    private static final String WOT_VALIDATION_CONFIG_ENTITY_TYPE = "wot-validation-config";
+
     private final DiagnosticLoggingAdapter log = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
 
     private final RetrieveStatisticsDetailsResponseSupplier retrieveStatisticsDetailsResponseSupplier;
@@ -119,7 +122,18 @@ public final class ThingsRootActor extends DittoRootActor {
 
         final BlockedNamespaces blockedNamespaces = BlockedNamespaces.of(actorSystem);
         final PolicyEnforcerProvider policyEnforcerProvider = PolicyEnforcerProviderExtension.get(actorSystem).getPolicyEnforcerProvider();
-        final var mongoReadJournal = newMongoReadJournal(thingsConfig.getMongoDbConfig(), actorSystem);
+        final PersistenceBackendProvider backendProvider =
+                PersistenceBackendProvider.get(actorSystem, ScopedConfig.dittoExtension(actorSystem.settings().config()));
+        // Boot-time plugin-wiring check, before anything touches the database: a backend that owns one (PostgreSQL)
+        // refuses to boot when the deployment HOCON still wires another backend's journal/snapshot plugins; the
+        // default backend (MongoDB) runs no check.
+        backendProvider.verifyPluginWiring(ThingsService.SERVICE_NAME);
+        // Bootstrap the persistence backend's schema BEFORE the read journal / persistent-actor shard region start.
+        // Mongo is a no-op (default); Postgres creates+verifies its tables, waits a bounded, configured time while the
+        // database is not reachable yet, and throws on any other failure, so the service never serves traffic against
+        // a database whose tables are absent and were never bootstrapped.
+        backendProvider.bootstrapSchema();
+        final DittoReadJournal readJournal = backendProvider.getReadJournal();
         final EnforcementConfig enforcementConfig = DefaultEnforcementConfig.of(
                 DefaultScopedConfig.dittoScoped(actorSystem.settings().config())
         );
@@ -131,7 +145,7 @@ public final class ThingsRootActor extends DittoRootActor {
                 propsFactory,
                 blockedNamespaces,
                 policyEnforcerProvider,
-                mongoReadJournal
+                readJournal
         );
 
         final ActorRef thingsShardRegion =
@@ -141,7 +155,7 @@ public final class ThingsRootActor extends DittoRootActor {
         // Create WoT validation config supervisor actor
         final Props wotValidationConfigSupervisorProps = WotValidationConfigSupervisorActor.props(
                 pubSubMediator,
-                mongoReadJournal
+                wotValidationConfigReadJournal(backendProvider)
         );
         final ActorRef wotValidationConfigShardRegion =
                 ShardRegionCreator.start(
@@ -158,8 +172,8 @@ public final class ThingsRootActor extends DittoRootActor {
         wotValidationConfigShardRegion.tell(retrieveCmd, ActorRef.noSender());
 
         startChildActor(ThingPersistenceOperationsActor.ACTOR_NAME,
-                ThingPersistenceOperationsActor.props(pubSubMediator, thingsConfig.getMongoDbConfig(),
-                        actorSystem.settings().config(), thingsConfig.getPersistenceOperationsConfig()));
+                ThingPersistenceOperationsActor.props(pubSubMediator, backendProvider,
+                        thingsConfig.getPersistenceOperationsConfig()));
 
         final ThingsAggregatorConfig thingsAggregatorConfig = DefaultThingsAggregatorConfig.of(
                 DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config())
@@ -193,13 +207,14 @@ public final class ThingsRootActor extends DittoRootActor {
         final var metricsReporterConfig =
                 healthCheckConfig.getPersistenceConfig().getMetricsReporterConfig();
         final ActorRef healthCheckingActor = startChildActor(DefaultHealthCheckingActorFactory.ACTOR_NAME,
-                DefaultHealthCheckingActorFactory.props(healthCheckingActorOptions, MongoHealthChecker.props()));
+                DefaultHealthCheckingActorFactory.props(healthCheckingActorOptions, backendProvider.healthCheck()));
 
         final ActorRef snapshotStreamingActor =
-                ThingsPersistenceStreamingActorCreator.startPersistenceStreamingActor(this::startChildActor);
+                ThingsPersistenceStreamingActorCreator.startPersistenceStreamingActor(backendProvider,
+                        this::startChildActor);
 
         final var cleanupConfig = thingsConfig.getThingConfig().getCleanupConfig();
-        final Props cleanupActorProps = PersistenceCleanupActor.props(cleanupConfig, mongoReadJournal, CLUSTER_ROLE);
+        final Props cleanupActorProps = PersistenceCleanupActor.props(cleanupConfig, readJournal, CLUSTER_ROLE);
         startChildActor(PersistenceCleanupActor.ACTOR_NAME, cleanupActorProps);
 
         pubSubMediator.tell(DistPubSubAccess.put(getSelf()), getSelf());
@@ -326,6 +341,17 @@ public final class ThingsRootActor extends DittoRootActor {
         return configs.stream().max(Comparator.comparingLong(ThingsRootActor::extractRevision));
     }
 
+    /**
+     * Returns the read journal the WoT validation config supervisor answers historical queries with: the one bound to
+     * the journal of the WoT validation configs, not the shared read journal of the things.
+     *
+     * @param provider the persistence backend provider.
+     * @return the read journal of the WoT validation config entity type.
+     */
+    static DittoReadJournal wotValidationConfigReadJournal(final PersistenceBackendProvider provider) {
+        return provider.getReadJournal(WOT_VALIDATION_CONFIG_ENTITY_TYPE);
+    }
+
     private static long extractRevision(final JsonObject configJson) {
         return configJson.getValue(REVISION_FIELD)
                 .filter(JsonValue::isNumber)
@@ -341,18 +367,10 @@ public final class ThingsRootActor extends DittoRootActor {
             final ThingPersistenceActorPropsFactory propsFactory,
             final BlockedNamespaces blockedNamespaces,
             final PolicyEnforcerProvider policyEnforcerProvider,
-            final MongoReadJournal mongoReadJournal) {
+            final DittoReadJournal readJournal) {
         return ThingSupervisorActor.props(pubSubMediator, thingsConfig, enforcementConfig,
                 distributedPubThingEventsForTwin, liveSignalPub, propsFactory, blockedNamespaces,
-                policyEnforcerProvider, mongoReadJournal);
-    }
-
-    private static MongoReadJournal newMongoReadJournal(final MongoDbConfig mongoDbConfig,
-            final ActorSystem actorSystem) {
-        final var config = actorSystem.settings().config();
-        final var mongoClient = MongoClientWrapper.newInstance(mongoDbConfig);
-
-        return MongoReadJournal.newInstance(config, mongoClient, mongoDbConfig.getReadJournalConfig(), actorSystem);
+                policyEnforcerProvider, readJournal);
     }
 
     private void initializeWotValidationConfig() {

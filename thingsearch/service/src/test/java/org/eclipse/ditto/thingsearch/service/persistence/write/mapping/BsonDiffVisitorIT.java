@@ -38,7 +38,7 @@ import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.policies.model.SubjectType;
 import org.eclipse.ditto.things.model.ThingId;
-import org.eclipse.ditto.thingsearch.service.persistence.write.model.Metadata;
+import org.eclipse.ditto.thingsearch.persistence.api.model.Metadata;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;

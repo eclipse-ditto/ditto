@@ -14,7 +14,7 @@ package org.eclipse.ditto.things.api;
 
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.internal.utils.persistence.mongo.SnapshotStreamingActor;
+import org.eclipse.ditto.internal.utils.persistence.api.streaming.SnapshotStreamingActor;
 
 /**
  * Constants for the Things messaging.

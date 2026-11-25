@@ -62,11 +62,11 @@ import org.eclipse.ditto.thingsearch.service.common.config.SearchConfig;
 import org.eclipse.ditto.thingsearch.service.common.config.StreamCacheConfig;
 import org.eclipse.ditto.thingsearch.service.common.config.StreamConfig;
 import org.eclipse.ditto.thingsearch.service.persistence.write.mapping.EnforcedThingMapper;
-import org.eclipse.ditto.thingsearch.service.persistence.write.model.AbstractWriteModel;
-import org.eclipse.ditto.thingsearch.service.persistence.write.model.Metadata;
-import org.eclipse.ditto.thingsearch.service.persistence.write.model.ThingDeleteModel;
-import org.eclipse.ditto.thingsearch.service.persistence.write.model.ThingWriteModel;
-import org.eclipse.ditto.thingsearch.service.updater.actors.MongoWriteModel;
+import org.eclipse.ditto.thingsearch.persistence.api.model.AbstractWriteModel;
+import org.eclipse.ditto.thingsearch.persistence.api.model.Metadata;
+import org.eclipse.ditto.thingsearch.persistence.api.model.ThingDeleteModel;
+import org.eclipse.ditto.thingsearch.persistence.api.model.ThingWriteModel;
+import org.eclipse.ditto.thingsearch.persistence.api.write.UpdaterData;
 import org.eclipse.ditto.thingsearch.service.updater.actors.SearchUpdateObserver;
 import org.eclipse.ditto.thingsearch.service.updater.actors.ThingUpdater;
 import org.slf4j.Logger;
@@ -203,7 +203,7 @@ final class EnforcementFlow {
      * @param mapper The search-update mapper.
      * @return The enforcement flow.
      */
-    public Flow<ThingUpdater.Data, MongoWriteModel, NotUsed> create(final SearchUpdateMapper mapper) {
+    public Flow<ThingUpdater.Data, UpdaterData, NotUsed> create(final SearchUpdateMapper mapper) {
         return Flow.<ThingUpdater.Data>create()
                 .flatMapConcat(data -> retrieveThingFromCachingFacade(data.metadata().getThingId(), data.metadata(), 3)
                         .flatMapConcat(pair -> {
@@ -212,6 +212,7 @@ final class EnforcementFlow {
                             return computeWriteModel(data.metadata(), thing);
                         })
                         .flatMapConcat(writeModel -> mapper.processWriteModel(writeModel, data.lastWriteModel())
+                                .<UpdaterData>map(mapped -> new UpdaterData(mapped, data.lastWriteModel()))
                                 .orElse(Source.lazySource(() -> {
                                     data.metadata().sendWeakAck(null);
                                     return Source.empty();

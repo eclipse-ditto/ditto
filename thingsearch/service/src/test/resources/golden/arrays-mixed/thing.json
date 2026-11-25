@@ -1,0 +1,14 @@
+{
+  "thingId": "golden:arrays-mixed",
+  "_namespace": "golden",
+  "_revision": 3,
+  "policyId": "golden:arrays-mixed",
+  "attributes": {
+    "tags": ["a", "b", "c"],
+    "objects": [ {"x": 1}, {"x": 2} ],
+    "nestedUnderArrayOfObjects": [ {"list": [1, 2, 3]}, {"list": [4, 5]} ],
+    "matrix": [ [1, 2], [3, 4] ],
+    "mixedArray": [1, "two", true, null, {"k": "v"}, [9, 9]],
+    "emptyArray": []
+  }
+}

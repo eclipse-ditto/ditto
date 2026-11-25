@@ -35,11 +35,13 @@ import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.namespaces.signals.commands.PurgeNamespace;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
+import org.eclipse.ditto.internal.utils.config.ScopedConfig;
+import org.eclipse.ditto.internal.utils.persistence.api.PersistenceBackendProvider;
 import org.eclipse.ditto.internal.utils.persistence.mongo.MongoClientWrapper;
 import org.eclipse.ditto.internal.utils.persistence.mongo.ops.eventsource.MongoEventSourceITAssertions;
 import org.eclipse.ditto.internal.utils.persistence.mongo.streaming.MongoReadJournal;
-import org.eclipse.ditto.internal.utils.persistence.operations.EntityPersistenceOperations;
-import org.eclipse.ditto.internal.utils.persistence.operations.NamespacePersistenceOperations;
+import org.eclipse.ditto.internal.utils.persistence.api.operations.EntityPersistenceOperations;
+import org.eclipse.ditto.internal.utils.persistence.api.operations.NamespacePersistenceOperations;
 import org.eclipse.ditto.internal.utils.pubsub.DistributedPub;
 import org.eclipse.ditto.internal.utils.tracing.DittoTracingInitResource;
 import org.eclipse.ditto.policies.enforcement.PolicyEnforcerProvider;
@@ -225,7 +227,9 @@ public final class PolicyPersistenceOperationsActorIT extends MongoEventSourceIT
     protected ActorRef startActorUnderTest(final ActorSystem actorSystem, final ActorRef pubSubMediator,
             final Config config) {
 
-        final Props opsActorProps = PolicyPersistenceOperationsActor.props(pubSubMediator, mongoDbConfig, config,
+        final PersistenceBackendProvider backendProvider = PersistenceBackendProvider.get(actorSystem,
+                ScopedConfig.dittoExtension(actorSystem.settings().config()));
+        final Props opsActorProps = PolicyPersistenceOperationsActor.props(pubSubMediator, backendProvider,
                 persistenceOperationsConfig);
 
         return actorSystem.actorOf(opsActorProps, PolicyPersistenceOperationsActor.ACTOR_NAME);

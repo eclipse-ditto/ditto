@@ -38,7 +38,15 @@
         <module>json</module>
         <module>jwt</module>
         <module>namespaces</module>
+        <module>persistence-api</module>
+        <module>postgres-client</module>
+        <module>postgres-client-extension</module>
+        <module>persistence-r2dbc</module>
+        <module>postgres-persistence-extension</module>
         <module>persistence</module>
+        <module>search-r2dbc</module>
+        <module>postgres-search-extension</module>
+        <module>postgres-extension-it</module>
         <module>pubsub</module>
         <module>pubsub-policies</module>
         <module>pubsub-things</module>

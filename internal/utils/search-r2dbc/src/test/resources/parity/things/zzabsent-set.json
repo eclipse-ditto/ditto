@@ -1,0 +1,17 @@
+{
+  "thingId": "org.eclipse.ditto.parity:zzabsent-set",
+  "_namespace": "org.eclipse.ditto.parity",
+  "_revision": 1,
+  "_modified": "2026-03-20T10:00:00Z",
+  "policyId": "org.eclipse.ditto.parity:policy-absent",
+  "attributes": {
+    "foo": "bar"
+  },
+  "features": {
+    "bulb": {
+      "properties": {
+        "x": "on"
+      }
+    }
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "thingId": "golden:unicode-keys-values",
+  "_namespace": "golden",
+  "_revision": 4,
+  "policyId": "golden:unicode-keys-values",
+  "attributes": {
+    "Ärger": "Öl und Übung",
+    "emoji": "🚀🔥",
+    "cjk": "日本語のテスト",
+    "mixedUnicodeKey✓": "check"
+  }
+}

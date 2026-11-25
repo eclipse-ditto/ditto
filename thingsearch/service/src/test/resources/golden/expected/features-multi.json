@@ -1,0 +1,171 @@
+{
+  "_id": "golden:features-multi",
+  "_namespace": "golden",
+  "gr": [
+    "g:0"
+  ],
+  "_revision": {
+    "$numberLong": "7"
+  },
+  "policyId": "golden:features-multi",
+  "__policyRev": {
+    "$numberLong": "1"
+  },
+  "__referencedPolicies": [
+    {
+      "type": "policy",
+      "id": "golden:features-multi",
+      "revision": {
+        "$numberInt": "1"
+      }
+    }
+  ],
+  "t": {
+    "thingId": "golden:features-multi",
+    "_namespace": "golden",
+    "_revision": {
+      "$numberInt": "7"
+    },
+    "policyId": "golden:features-multi",
+    "definition": "org.eclipse.ditto:golden-thing:1.0.0",
+    "features": {
+      "f1": {
+        "definition": [
+          "org.eclipse.ditto:f1:1.0.0"
+        ],
+        "properties": {
+          "p1": {
+            "$numberInt": "1"
+          },
+          "p2": "on"
+        },
+        "desiredProperties": {
+          "p1": {
+            "$numberInt": "2"
+          }
+        }
+      },
+      "f2": {
+        "definition": [
+          "org.eclipse.ditto:f2:2.0.0",
+          "org.eclipse.ditto:f2-base:1.0.0"
+        ],
+        "properties": {
+          "value": {
+            "$numberDouble": "12.5"
+          }
+        },
+        "desiredProperties": {
+          "value": {
+            "$numberInt": "20"
+          }
+        }
+      },
+      "f3": {
+        "definition": [
+          "org.eclipse.ditto:f3:3.1.0"
+        ],
+        "properties": {
+          "status": "idle",
+          "nested": {
+            "a": {
+              "$numberInt": "1"
+            },
+            "b": [
+              {
+                "$numberInt": "1"
+              },
+              {
+                "$numberInt": "2"
+              }
+            ]
+          }
+        },
+        "desiredProperties": {
+          "status": "running"
+        }
+      }
+    }
+  },
+  "p": {
+    "·g": [
+      "g:0"
+    ]
+  },
+  "f": [
+    {
+      "id": "f1",
+      "definition": [
+        "org.eclipse.ditto:f1:1.0.0"
+      ],
+      "properties": {
+        "p1": {
+          "$numberInt": "1"
+        },
+        "p2": "on"
+      },
+      "desiredProperties": {
+        "p1": {
+          "$numberInt": "2"
+        }
+      },
+      "p": {
+        "·g": [
+          "g:0"
+        ]
+      }
+    },
+    {
+      "id": "f2",
+      "definition": [
+        "org.eclipse.ditto:f2:2.0.0",
+        "org.eclipse.ditto:f2-base:1.0.0"
+      ],
+      "properties": {
+        "value": {
+          "$numberDouble": "12.5"
+        }
+      },
+      "desiredProperties": {
+        "value": {
+          "$numberInt": "20"
+        }
+      },
+      "p": {
+        "·g": [
+          "g:0"
+        ]
+      }
+    },
+    {
+      "id": "f3",
+      "definition": [
+        "org.eclipse.ditto:f3:3.1.0"
+      ],
+      "properties": {
+        "status": "idle",
+        "nested": {
+          "a": {
+            "$numberInt": "1"
+          },
+          "b": [
+            {
+              "$numberInt": "1"
+            },
+            {
+              "$numberInt": "2"
+            }
+          ]
+        }
+      },
+      "desiredProperties": {
+        "status": "running"
+      },
+      "p": {
+        "·g": [
+          "g:0"
+        ]
+      }
+    }
+  ]
+}

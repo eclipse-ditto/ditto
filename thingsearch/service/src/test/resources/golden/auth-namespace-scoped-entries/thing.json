@@ -1,0 +1,9 @@
+{
+  "thingId": "acme:namespace-test",
+  "_namespace": "acme",
+  "_revision": 11,
+  "policyId": "acme:namespace-test",
+  "attributes": {
+    "x": 1
+  }
+}

@@ -34,12 +34,14 @@ import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.model.signals.commands.Command;
+import org.eclipse.ditto.internal.utils.config.ScopedConfig;
 import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.pekko.logging.ThreadSafeDittoLogger;
-import org.eclipse.ditto.internal.utils.persistence.mongo.config.ActivityCheckConfig;
+import org.eclipse.ditto.internal.utils.persistence.api.DittoReadJournal;
+import org.eclipse.ditto.internal.utils.persistence.api.PersistenceBackendProvider;
+import org.eclipse.ditto.internal.utils.persistence.api.config.ActivityCheckConfig;
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.NamespaceActivityCheckConfigProvider;
-import org.eclipse.ditto.internal.utils.persistence.mongo.config.SnapshotConfig;
-import org.eclipse.ditto.internal.utils.persistence.mongo.streaming.MongoReadJournal;
+import org.eclipse.ditto.internal.utils.persistence.api.config.SnapshotConfig;
 import org.eclipse.ditto.internal.utils.persistentactors.AbstractPersistenceActor;
 import org.eclipse.ditto.internal.utils.persistentactors.commands.CommandStrategy;
 import org.eclipse.ditto.internal.utils.persistentactors.commands.DefaultContext;
@@ -81,16 +83,6 @@ public final class ThingPersistenceActor
      */
     static final String PERSISTENCE_ID_PREFIX = ThingConstants.ENTITY_TYPE + ":";
 
-    /**
-     * The ID of the journal plugin this persistence actor uses.
-     */
-    static final String JOURNAL_PLUGIN_ID = "pekko-contrib-mongodb-persistence-things-journal";
-
-    /**
-     * The ID of the snapshot plugin this persistence actor uses.
-     */
-    static final String SNAPSHOT_PLUGIN_ID = "pekko-contrib-mongodb-persistence-things-snapshots";
-
     private static final AckExtractor<ThingEvent<?>> ACK_EXTRACTOR =
             AckExtractor.of(ThingEvent::getEntityId, ThingEvent::getDittoHeaders);
 
@@ -105,13 +97,13 @@ public final class ThingPersistenceActor
 
     @SuppressWarnings("unused")
     private ThingPersistenceActor(final ThingId thingId,
-            final MongoReadJournal mongoReadJournal,
+            final DittoReadJournal readJournal,
             final ThingConfig thingConfig,
             final DistributedPub<ThingEvent<?>> distributedPub,
             @Nullable final ActorRef searchShardRegionProxy,
             final PolicyEnforcerProvider policyEnforcerProvider) {
 
-        super(thingId, mongoReadJournal);
+        super(thingId, readJournal);
         this.thingConfig = thingConfig;
         this.activityCheckConfigProvider = NamespaceActivityCheckConfigProvider.of(
                 thingConfig.getNamespaceActivityCheckConfigs(),
@@ -130,7 +122,7 @@ public final class ThingPersistenceActor
      * Creates Pekko configuration object {@link Props} for this ThingPersistenceActor.
      *
      * @param thingId the Thing ID this Actor manages.
-     * @param mongoReadJournal the ReadJournal used for gaining access to historical values of the thing.
+     * @param readJournal the ReadJournal used for gaining access to historical values of the thing.
      * @param thingConfig the Thing configuration - only created once to save memory
      * @param distributedPub the distributed-pub access to publish thing events.
      * @param searchShardRegionProxy the proxy of the shard region of search updaters.
@@ -139,13 +131,13 @@ public final class ThingPersistenceActor
      * @return the Pekko configuration Props object
      */
     public static Props props(final ThingId thingId,
-            final MongoReadJournal mongoReadJournal,
+            final DittoReadJournal readJournal,
             final ThingConfig thingConfig,
             final DistributedPub<ThingEvent<?>> distributedPub,
             @Nullable final ActorRef searchShardRegionProxy,
             final PolicyEnforcerProvider policyEnforcerProvider
     ) {
-        return Props.create(ThingPersistenceActor.class, thingId, mongoReadJournal, thingConfig, distributedPub,
+        return Props.create(ThingPersistenceActor.class, thingId, readJournal, thingConfig, distributedPub,
                 searchShardRegionProxy, policyEnforcerProvider);
     }
 
@@ -201,12 +193,17 @@ public final class ThingPersistenceActor
 
     @Override
     public String journalPluginId() {
-        return JOURNAL_PLUGIN_ID;
+        return backendProvider().getJournalPluginId(ThingConstants.ENTITY_TYPE.toString());
     }
 
     @Override
     public String snapshotPluginId() {
-        return SNAPSHOT_PLUGIN_ID;
+        return backendProvider().getSnapshotPluginId(ThingConstants.ENTITY_TYPE.toString());
+    }
+
+    private PersistenceBackendProvider backendProvider() {
+        final var system = context().system();
+        return PersistenceBackendProvider.get(system, ScopedConfig.dittoExtension(system.settings().config()));
     }
 
     @Override

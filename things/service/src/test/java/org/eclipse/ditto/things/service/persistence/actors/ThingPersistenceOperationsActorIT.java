@@ -21,6 +21,8 @@ import org.apache.pekko.actor.Props;
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
+import org.eclipse.ditto.internal.utils.config.ScopedConfig;
+import org.eclipse.ditto.internal.utils.persistence.api.PersistenceBackendProvider;
 import org.eclipse.ditto.internal.utils.persistence.mongo.ops.eventsource.MongoEventSourceITAssertions;
 import org.eclipse.ditto.internal.utils.persistence.mongo.streaming.MongoReadJournal;
 import org.eclipse.ditto.internal.utils.pubsub.DistributedPub;
@@ -128,7 +130,9 @@ public final class ThingPersistenceOperationsActorIT extends MongoEventSourceITA
     @Override
     protected ActorRef startActorUnderTest(final ActorSystem actorSystem, final ActorRef pubSubMediator,
             final Config config) {
-        final Props opsActorProps = ThingPersistenceOperationsActor.props(pubSubMediator, mongoDbConfig, config,
+        final PersistenceBackendProvider backendProvider = PersistenceBackendProvider.get(actorSystem,
+                ScopedConfig.dittoExtension(actorSystem.settings().config()));
+        final Props opsActorProps = ThingPersistenceOperationsActor.props(pubSubMediator, backendProvider,
                 persistenceOperationsConfig);
 
         return actorSystem.actorOf(opsActorProps, ThingPersistenceOperationsActor.ACTOR_NAME);

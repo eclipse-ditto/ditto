@@ -15,13 +15,13 @@ package org.eclipse.ditto.thingsearch.service.starter.actors;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
+import org.eclipse.ditto.thingsearch.persistence.api.SearchPersistenceProvider;
 import org.eclipse.ditto.thingsearch.service.common.config.SearchConfig;
 import org.eclipse.ditto.thingsearch.service.updater.actors.SearchUpdaterRootActor;
 import org.eclipse.ditto.internal.utils.health.AbstractHealthCheckingActor;
 import org.eclipse.ditto.internal.utils.health.CompositeCachingHealthCheckingActor;
 import org.eclipse.ditto.internal.utils.health.SingletonStatusReporter;
 import org.eclipse.ditto.internal.utils.health.config.HealthCheckConfig;
-import org.eclipse.ditto.internal.utils.persistence.mongo.MongoHealthChecker;
 
 import org.apache.pekko.actor.ActorRef;
 import org.apache.pekko.actor.Props;
@@ -48,16 +48,18 @@ final class SearchHealthCheckingActorFactory {
      *
      * @param searchConfig the configuration settings.
      * @param backgroundSyncActorProxy proxy actor for RetrieveHealth messages to the background sync actor.
+     * @param searchPersistenceProvider the backend provider supplying the persistence health-check prober props.
      * @return the Pekko configuration Props object.
      */
-    public static Props props(final SearchConfig searchConfig, final ActorRef backgroundSyncActorProxy) {
+    public static Props props(final SearchConfig searchConfig, final ActorRef backgroundSyncActorProxy,
+            final SearchPersistenceProvider searchPersistenceProvider) {
 
         final Map<String, Props> childActorProps = new LinkedHashMap<>();
 
         final HealthCheckConfig healthCheckConfig = searchConfig.getHealthCheckConfig();
         final boolean healthCheckEnabled = healthCheckConfig.isEnabled();
         if (healthCheckEnabled) {
-            childActorProps.put(PERSISTENCE_LABEL, MongoHealthChecker.props());
+            childActorProps.put(PERSISTENCE_LABEL, searchPersistenceProvider.healthCheckProps());
         }
 
         childActorProps.put(BACKGROUND_SYNC_LABEL,

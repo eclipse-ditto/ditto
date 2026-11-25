@@ -24,6 +24,9 @@ entries:
           - title: Running Ditto
             url: /installation-running.html
             output: web
+          - title: Running Ditto on PostgreSQL
+            url: /installation-postgresql.html
+            output: web
 
       - title: Core Concepts
         output: web
@@ -303,6 +306,9 @@ entries:
                     output: web
                   - title: MongoDB
                     url: /operating-mongodb.html
+                    output: web
+                  - title: PostgreSQL
+                    url: /operating-postgresql.html
                     output: web
                   - title: Monitoring & Tracing
                     url: /operating-monitoring.html

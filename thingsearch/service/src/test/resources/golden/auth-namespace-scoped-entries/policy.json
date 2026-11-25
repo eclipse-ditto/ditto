@@ -1,0 +1,31 @@
+{
+  "policyId": "acme:namespace-test",
+  "entries": {
+    "GLOBAL": {
+      "subjects": {
+        "g:global": { "type": "generated" }
+      },
+      "resources": {
+        "thing:/": { "grant": ["READ"], "revoke": [] }
+      }
+    },
+    "WRONG_NS": {
+      "subjects": {
+        "g:wrongns": { "type": "generated" }
+      },
+      "resources": {
+        "thing:/attributes": { "grant": ["READ"], "revoke": [] }
+      },
+      "namespaces": ["other.ns"]
+    },
+    "RIGHT_NS": {
+      "subjects": {
+        "g:rightns": { "type": "generated" }
+      },
+      "resources": {
+        "thing:/attributes": { "grant": ["READ"], "revoke": [] }
+      },
+      "namespaces": ["acme"]
+    }
+  }
+}

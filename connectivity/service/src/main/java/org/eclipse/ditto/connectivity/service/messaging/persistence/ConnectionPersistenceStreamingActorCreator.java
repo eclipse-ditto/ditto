@@ -15,8 +15,10 @@ package org.eclipse.ditto.connectivity.service.messaging.persistence;
 import org.eclipse.ditto.connectivity.api.ConnectionTag;
 import org.eclipse.ditto.connectivity.model.ConnectionId;
 import org.eclipse.ditto.internal.models.streaming.EntityIdWithRevision;
-import org.eclipse.ditto.internal.utils.persistence.mongo.DefaultPersistenceStreamingActor;
-import org.eclipse.ditto.internal.utils.persistence.mongo.streaming.PidWithSeqNr;
+import org.eclipse.ditto.internal.utils.persistence.api.DittoReadJournal;
+import org.eclipse.ditto.internal.utils.persistence.api.streaming.DefaultPersistenceStreamingActor;
+import org.eclipse.ditto.internal.utils.persistence.api.streaming.NoOpCloseable;
+import org.eclipse.ditto.internal.utils.persistence.api.streaming.PidWithSeqNr;
 
 import org.apache.pekko.actor.Props;
 
@@ -37,13 +39,19 @@ public final class ConnectionPersistenceStreamingActorCreator {
 
     /**
      * Creates Pekko configuration object Props for this PersistenceQueriesActor.
+     * <p>
+     * The backend-neutral {@link DefaultPersistenceStreamingActor} is wired with the active backend's shared read
+     * journal; it owns no backend resource, so it is given a {@link NoOpCloseable}.
      *
+     * @param readJournal the active backend's read journal.
      * @return the Pekko configuration Props object.
      */
-    public static Props props() {
+    public static Props props(final DittoReadJournal readJournal) {
         return DefaultPersistenceStreamingActor.props(ConnectionTag.class,
                 ConnectionPersistenceStreamingActorCreator::createElement,
-                ConnectionPersistenceStreamingActorCreator::createPidWithSeqNr);
+                ConnectionPersistenceStreamingActorCreator::createPidWithSeqNr,
+                readJournal,
+                NoOpCloseable.getInstance());
     }
 
     private static ConnectionTag createElement(final PidWithSeqNr pidWithSeqNr) {
