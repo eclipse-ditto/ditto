@@ -132,7 +132,8 @@ public final class MongoSearchUpdaterFlow implements SearchUpdaterFlow {
      *
      * @param updaterData the write model together with the last write model to compute the incremental update from.
      * @return the MongoDB write model, or an empty optional if there is no change or the write model could not be
-     * computed. A failure is logged and skips the update; it does not fail the stream.
+     * computed. Both cases send a weak acknowledgement. A failure is logged and skips the update; it does not fail
+     * the stream.
      */
     private Optional<MongoWriteModel> toIncrementalMongo(final UpdaterData updaterData) {
         final AbstractWriteModel model = updaterData.writeModel();
@@ -154,6 +155,7 @@ public final class MongoSearchUpdaterFlow implements SearchUpdaterFlow {
             } catch (final Exception e) {
                 // tolerate stopping stopped timers
             }
+            model.getMetadata().sendWeakAck(null);
             return Optional.empty();
         }
     }

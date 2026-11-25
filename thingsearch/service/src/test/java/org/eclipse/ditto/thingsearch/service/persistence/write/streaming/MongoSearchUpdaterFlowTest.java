@@ -30,9 +30,12 @@ import org.apache.pekko.actor.ActorSystem;
 import org.apache.pekko.stream.javadsl.AsPublisher;
 import org.apache.pekko.stream.javadsl.Sink;
 import org.apache.pekko.stream.javadsl.Source;
+import org.apache.pekko.testkit.TestProbe;
 import org.apache.pekko.testkit.javadsl.TestKit;
 import org.bson.BsonDocument;
 import org.bson.BsonString;
+import org.eclipse.ditto.base.model.acks.DittoAcknowledgementLabel;
+import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
 import org.eclipse.ditto.internal.utils.metrics.instruments.timer.StartedTimer;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
@@ -117,6 +120,30 @@ public final class MongoSearchUpdaterFlowTest {
         assertThat(results).isEmpty();
         verify(timer).stop();
         verify(collection, never()).bulkWrite(anyList(), any(BulkWriteOptions.class));
+    }
+
+    @Test
+    public void failureToEncodeTheWriteModelSendsAWeakAcknowledgement() throws Exception {
+        final TestProbe ackRecipient = TestProbe.apply(actorSystem);
+        final var writeModel = ThingWriteModel.of(metadataWithAckRecipient(2L, ackRecipient), unencodableDocument());
+        final var lastWriteModel = ThingDeleteModel.of(Metadata.ofDeleted(THING_ID));
+
+        final List<UpdaterResult> results = runFlow(new UpdaterData(writeModel, lastWriteModel));
+
+        assertThat(results).isEmpty();
+        assertWeakSearchPersistedAcknowledgement(ackRecipient);
+    }
+
+    @Test
+    public void failureToEncodeTheLastWriteModelSendsAWeakAcknowledgement() throws Exception {
+        final TestProbe ackRecipient = TestProbe.apply(actorSystem);
+        final var writeModel = ThingWriteModel.of(metadataWithAckRecipient(2L, ackRecipient), document(2L));
+        final var lastWriteModel = ThingWriteModel.of(metadata(1L, null), unencodableDocument());
+
+        final List<UpdaterResult> results = runFlow(new UpdaterData(writeModel, lastWriteModel));
+
+        assertThat(results).isEmpty();
+        assertWeakSearchPersistedAcknowledgement(ackRecipient);
     }
 
     @Test
@@ -262,6 +289,18 @@ public final class MongoSearchUpdaterFlowTest {
 
     private static Metadata metadata(final long revision, final StartedTimer timer) {
         return Metadata.of(THING_ID, revision, null, null, Set.of(), timer);
+    }
+
+    private Metadata metadataWithAckRecipient(final long revision, final TestProbe ackRecipient) {
+        return Metadata.of(THING_ID, revision, null, null, Set.of(), List.of(), null,
+                actorSystem.actorSelection(ackRecipient.ref().path()));
+    }
+
+    private static void assertWeakSearchPersistedAcknowledgement(final TestProbe ackRecipient) {
+        final Acknowledgement acknowledgement = ackRecipient.expectMsgClass(Acknowledgement.class);
+        assertThat(acknowledgement.isWeak()).isTrue();
+        assertThat((CharSequence) acknowledgement.getLabel()).isEqualTo(DittoAcknowledgementLabel.SEARCH_PERSISTED);
+        assertThat((CharSequence) acknowledgement.getEntityId()).isEqualTo(THING_ID);
     }
 
     private static SearchIndexDocument document(final long revision) {
