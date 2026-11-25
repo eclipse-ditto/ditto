@@ -44,8 +44,8 @@ import org.apache.pekko.testkit.javadsl.TestKit;
  * <ul>
  *     <li>ID order, read in windows of {@code batchSize} pids: completeness, bytewise pid order and no duplicates
  *     across many windows, for both variants;</li>
- *     <li>priority order, the same windows sorted in memory: the same pids and order as the single statement of the
- *     former implementation, ties in pid order;</li>
+ *     <li>priority order, the same windows sorted in memory: the same pids and order as a single statement that
+ *     sorts the whole journal, ties in pid order;</li>
  *     <li>what a walk sees of changes made while it runs;</li>
  *     <li>the plan of each statement.</li>
  * </ul>
@@ -145,7 +145,7 @@ public final class PostgresKeysetPidStreamsIT {
     }
 
     @Test
-    public void aboveWithTagStartsStrictlyAfterTheBoundAcrossWindowsWithRetries() {
+    public void aboveWithTagStartsStrictlyAfterTheBoundAcrossWindows() {
         final String entity = "things";
         final String prefix = "thing:above:";
         final String tag = "above";
@@ -189,7 +189,7 @@ public final class PostgresKeysetPidStreamsIT {
     // =================================================================================================
 
     @Test
-    public void priorityWalkReturnsWhatTheFormerSingleStatementReturnedWithTiesInPidOrder() {
+    public void priorityWalkReturnsWhatASingleStatementReturnsWithTiesInPidOrder() {
         final String prefix = "connection:prio-char:";
         final String tag = "prio-char";
         final int seeded = 300;
@@ -213,7 +213,7 @@ public final class PostgresKeysetPidStreamsIT {
                 final List<String> streamed = run(fixture.readJournal("connections")
                         .getJournalPidsWithTagOrderedByPriorityTag(walkTag, window, TIMEOUT));
                 assertThat(streamed)
-                        .as("tag '%s', window %s: the former statement's pids in its priority order, ties in pid "
+                        .as("tag '%s', window %s: the reference statement's pids in its priority order, ties in pid "
                                 + "order", walkTag, window)
                         .containsExactlyElementsOf(referencePids);
             }

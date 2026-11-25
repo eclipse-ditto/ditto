@@ -222,8 +222,9 @@ final class GetEmptySqlVisitor extends AbstractFieldSqlCreator implements Exists
 
     /**
      * {@code SELECT 1 FROM search_flat c WHERE c.thing_id = a.thing_id AND c.f_id = a.f_id AND
-     * starts_with(c.wpath, $wpath || '/')}: a deeper row of the SAME feature under the wildcard wpath (every row of a
-     * feature subtree carries its {@code /features/*} wpath twin, so the wildcard address is complete).
+     * starts_with(c.wpath, $wpath || '/')}: a deeper row of the SAME feature under the wildcard wpath (every node of
+     * a feature subtree has a row with the {@code /features/*} wpath, which for a feature named {@code *} is its only
+     * row, so the wildcard address is complete).
      */
     private static Select sameFeatureDeeperPathProbe(final String wpath) {
         return Sql.select().column(Sql.raw("1")).from(FLAT_TABLE, DEEPER_ALIAS)

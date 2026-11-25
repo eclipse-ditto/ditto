@@ -141,6 +141,40 @@ public final class PostgresReadJournalKeysetPagingTest {
     }
 
     @Test
+    public void walkAboveABoundStartsStrictlyAfterItAndRetriesAFailedWindowFromItsCursor() {
+        final List<String> journal = pids(25);
+        final AtomicBoolean failedOnce = new AtomicBoolean();
+        final RecordingConnectionFactory factory = new RecordingConnectionFactory()
+                .respondTo(WINDOW, binds -> {
+                    if (journal.get(14).equals(binds.get(0)) && failedOnce.compareAndSet(false, true)) {
+                        throw statementTimeout();
+                    }
+                    return windowRows(journal, binds, pid -> true);
+                });
+
+        final List<String> streamed = run(readJournal(factory)
+                .getJournalPidsAboveWithTag(journal.get(4), TAG, BATCH_SIZE, ONE_RETRY, mat));
+
+        assertThat(streamed).containsExactlyElementsOf(journal.subList(5, 25));
+        assertThat(cursors(factory))
+                .as("the first window is read after the bound, the failed second window again after its cursor")
+                .containsExactly(journal.get(4), journal.get(14), journal.get(14), journal.get(24));
+    }
+
+    @Test
+    public void walkAboveABoundWithoutMaxIdleTimeDoesNotRetry() {
+        final List<String> journal = pids(25);
+        final RecordingConnectionFactory factory = new RecordingConnectionFactory()
+                .respondTo(WINDOW, binds -> {
+                    throw statementTimeout();
+                });
+
+        assertThat(catchThrowable(() -> run(readJournal(factory)
+                .getJournalPidsAboveWithTag(journal.get(4), TAG, BATCH_SIZE, mat)))).isNotNull();
+        assertThat(cursors(factory)).containsExactly(journal.get(4));
+    }
+
+    @Test
     public void streamFailsWithTheWindowErrorOnceTheRetriesAreExhausted() {
         final List<String> journal = pids(25);
         final RecordingConnectionFactory factory = new RecordingConnectionFactory()

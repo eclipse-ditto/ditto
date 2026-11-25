@@ -208,14 +208,22 @@ public final class PostgresSearchReadIT {
         final JsonObject on = JsonObject.newBuilder()
                 .set("properties", JsonObject.newBuilder().set("on", true).build())
                 .build();
+        final JsonObject asterisk = JsonObject.newBuilder()
+                .set("properties", JsonObject.newBuilder().set("on", true).set("mark", "asterisk").build())
+                .build();
         final SearchIndexDocument document =
-                featuresDoc("star", JsonObject.newBuilder().set("*", on).set("lamp", on).build());
+                featuresDoc("star", JsonObject.newBuilder().set("*", asterisk).set("lamp", on).build());
 
         assertThat(write(document, 1L).result().classify()).isEqualTo(SearchWriteResultStatus.OK);
         assertThat(sudoFind(cf.fieldCriteria(fef.filterByFeatureProperty("*", "on"), cf.eq(true))))
                 .containsExactly("star");
         assertThat(sudoFind(cf.fieldCriteria(fef.filterByFeatureProperty("lamp", "on"), cf.eq(true))))
                 .containsExactly("star");
+        // only the feature named "*" has this property: its own rows answer the wildcard
+        assertThat(sudoFind(cf.fieldCriteria(fef.filterByFeatureProperty("*", "mark"), cf.eq("asterisk"))))
+                .containsExactly("star");
+        assertThat(sudoFind(cf.fieldCriteria(fef.filterByFeatureProperty("lamp", "mark"), cf.eq("asterisk"))))
+                .isEmpty();
     }
 
     // ============================================================================================ auth granted/revoked
