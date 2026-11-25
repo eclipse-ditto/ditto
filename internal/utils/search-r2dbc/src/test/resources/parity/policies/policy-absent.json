@@ -1,0 +1,125 @@
+{
+  "policyId": "org.eclipse.ditto.parity:policy-absent",
+  "entries": {
+    "ATTRIBUTES": {
+      "subjects": {
+        "parity:abs-attributes": {
+          "type": "generated"
+        }
+      },
+      "resources": {
+        "thing:/thingId": {
+          "grant": [
+            "READ"
+          ],
+          "revoke": []
+        },
+        "thing:/attributes": {
+          "grant": [
+            "READ"
+          ],
+          "revoke": []
+        }
+      }
+    },
+    "FOO": {
+      "subjects": {
+        "parity:abs-foo": {
+          "type": "generated"
+        }
+      },
+      "resources": {
+        "thing:/thingId": {
+          "grant": [
+            "READ"
+          ],
+          "revoke": []
+        },
+        "thing:/attributes/foo": {
+          "grant": [
+            "READ"
+          ],
+          "revoke": []
+        }
+      }
+    },
+    "PROPERTY": {
+      "subjects": {
+        "parity:abs-property": {
+          "type": "generated"
+        }
+      },
+      "resources": {
+        "thing:/thingId": {
+          "grant": [
+            "READ"
+          ],
+          "revoke": []
+        },
+        "thing:/features/bulb/properties/x": {
+          "grant": [
+            "READ"
+          ],
+          "revoke": []
+        }
+      }
+    },
+    "REVOKED": {
+      "subjects": {
+        "parity:abs-revoked": {
+          "type": "generated"
+        }
+      },
+      "resources": {
+        "thing:/": {
+          "grant": [
+            "READ"
+          ],
+          "revoke": []
+        },
+        "thing:/attributes": {
+          "grant": [],
+          "revoke": [
+            "READ"
+          ]
+        }
+      }
+    },
+    "ABSENT_ONLY": {
+      "subjects": {
+        "parity:abs-only": {
+          "type": "generated"
+        }
+      },
+      "resources": {
+        "thing:/attributes/foo": {
+          "grant": [
+            "READ"
+          ],
+          "revoke": []
+        }
+      }
+    },
+    "FEATURE_ID": {
+      "subjects": {
+        "parity:abs-feature-id": {
+          "type": "generated"
+        }
+      },
+      "resources": {
+        "thing:/thingId": {
+          "grant": [
+            "READ"
+          ],
+          "revoke": []
+        },
+        "thing:/features/bulb/id": {
+          "grant": [
+            "READ"
+          ],
+          "revoke": []
+        }
+      }
+    }
+  }
+}

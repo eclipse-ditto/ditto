@@ -9,6 +9,12 @@
     "limited": ["parity:limited"],
     "deep": ["parity:deep"],
     "nobody": ["parity:nobody"],
-    "multi": ["parity:attr", "parity:feature"]
+    "multi": ["parity:attr", "parity:feature"],
+    "absAttributes": ["parity:abs-attributes"],
+    "absFoo": ["parity:abs-foo"],
+    "absProperty": ["parity:abs-property"],
+    "absRevoked": ["parity:abs-revoked"],
+    "absOnly": ["parity:abs-only"],
+    "absFeatureId": ["parity:abs-feature-id"]
   }
 }

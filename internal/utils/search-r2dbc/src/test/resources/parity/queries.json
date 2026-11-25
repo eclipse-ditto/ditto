@@ -1,5 +1,5 @@
 {
-  "comment": "The parity-matrix RQL battery. Unless a case names auth situations, the engine crosses it with EVERY situation from auth-subjects.json (sudo + 8 subject lists). mode: find (default) | count | cursorWalk. Cases carrying a 'divergence' id exercise exactly one frozen allowlist entry and PIN each backend's observed behavior; all other cases assert strict Mongo==Postgres parity.",
+  "comment": "The parity-matrix RQL battery. Unless a case names auth situations, the engine crosses it with EVERY situation from auth-subjects.json (sudo + 14 subject lists). mode: find (default) | count | cursorWalk. Cases carrying a 'divergence' id exercise exactly one frozen allowlist entry and PIN each backend's observed behavior; all other cases assert strict Mongo==Postgres parity.",
   "cases": [
     {
       "name": "eq-attr-color-red",
@@ -1599,6 +1599,9 @@
             "org.eclipse.ditto.parity:zsort-c",
             "org.eclipse.ditto.parity:zsort-d",
             "org.eclipse.ditto.parity:zsort-e",
+            "org.eclipse.ditto.parity:zzabsent-empty",
+            "org.eclipse.ditto.parity:zzabsent-missing",
+            "org.eclipse.ditto.parity:zzabsent-set",
             "org.eclipse.ditto.parity:zzempty-full",
             "org.eclipse.ditto.parity:zzempty-graded-seen",
             "org.eclipse.ditto.parity:zzempty-graded-unseen",
@@ -1659,6 +1662,9 @@
             "org.eclipse.ditto.parity:zsort-c",
             "org.eclipse.ditto.parity:zsort-d",
             "org.eclipse.ditto.parity:zsort-e",
+            "org.eclipse.ditto.parity:zzabsent-empty",
+            "org.eclipse.ditto.parity:zzabsent-missing",
+            "org.eclipse.ditto.parity:zzabsent-set",
             "org.eclipse.ditto.parity:zzempty-full",
             "org.eclipse.ditto.parity:zzempty-graded-seen",
             "org.eclipse.ditto.parity:zzempty-graded-unseen",
@@ -1719,6 +1725,9 @@
             "org.eclipse.ditto.parity:zsort-c",
             "org.eclipse.ditto.parity:zsort-d",
             "org.eclipse.ditto.parity:zsort-e",
+            "org.eclipse.ditto.parity:zzabsent-empty",
+            "org.eclipse.ditto.parity:zzabsent-missing",
+            "org.eclipse.ditto.parity:zzabsent-set",
             "org.eclipse.ditto.parity:zzempty-full",
             "org.eclipse.ditto.parity:zzempty-graded-seen",
             "org.eclipse.ditto.parity:zzempty-graded-unseen",
@@ -1779,6 +1788,9 @@
             "org.eclipse.ditto.parity:zsort-c",
             "org.eclipse.ditto.parity:zsort-d",
             "org.eclipse.ditto.parity:zsort-e",
+            "org.eclipse.ditto.parity:zzabsent-empty",
+            "org.eclipse.ditto.parity:zzabsent-missing",
+            "org.eclipse.ditto.parity:zzabsent-set",
             "org.eclipse.ditto.parity:zzempty-full",
             "org.eclipse.ditto.parity:zzempty-graded-seen",
             "org.eclipse.ditto.parity:zzempty-graded-unseen",
@@ -2135,6 +2147,86 @@
       "comment": "empty() wildcard Mongo-parity battery, a property-level REVOKE in the wildcard auth chain ([<root>, /features, /id, /properties, /properties/secretcode] on a.f_id): under 'feature' (policy-graded, /features/lamp/properties/secretcode revoked) scalars-green matches through f1 (lacks secretcode; its lamp holds \"s3cr3t\", not empty), feature-agree/-disagree and the zzempty-graded-* through their visible f1; policy-full things are invisible to that subject. Under sudo every feature-bearing thing has a feature lacking secretcode.",
       "expectNonEmptySudo": true,
       "expectNonEmptyAuth": "feature"
+    },
+    {
+      "name": "abs-empty-attributes-granted",
+      "filter": "empty(attributes)",
+      "auth": ["absAttributes"],
+      "comment": "Absent-path battery (policy-absent, the zzabsent-* things; upstream #2658): grants and revokes on a path that a thing lacks are part of the indexed authorization, and the global readers count existing paths only. READ on attributes: a missing attributes object (zzabsent-missing) and an empty one (zzabsent-empty) match.",
+      "expectNonEmptyAuth": "absAttributes"
+    },
+    {
+      "name": "abs-not-empty-attributes-granted",
+      "filter": "not(empty(attributes))",
+      "auth": ["absAttributes"],
+      "comment": "Absent-path battery (policy-absent, the zzabsent-* things; upstream #2658): grants and revokes on a path that a thing lacks are part of the indexed authorization, and the global readers count existing paths only. READ on attributes, the complement: zzabsent-set.",
+      "expectNonEmptyAuth": "absAttributes"
+    },
+    {
+      "name": "abs-empty-attribute-granted",
+      "filter": "empty(attributes/foo)",
+      "auth": ["absFoo"],
+      "comment": "Absent-path battery (policy-absent, the zzabsent-* things; upstream #2658): grants and revokes on a path that a thing lacks are part of the indexed authorization, and the global readers count existing paths only. READ on attributes/foo only: the things without that attribute match through the grant on the absent path.",
+      "expectNonEmptyAuth": "absFoo"
+    },
+    {
+      "name": "abs-not-empty-attribute-granted",
+      "filter": "not(empty(attributes/foo))",
+      "auth": ["absFoo"],
+      "comment": "Absent-path battery (policy-absent, the zzabsent-* things; upstream #2658): grants and revokes on a path that a thing lacks are part of the indexed authorization, and the global readers count existing paths only. READ on attributes/foo only, the complement: zzabsent-set.",
+      "expectNonEmptyAuth": "absFoo"
+    },
+    {
+      "name": "abs-empty-wildcard-property-granted",
+      "filter": "empty(features/*/properties/x)",
+      "auth": ["absProperty"],
+      "comment": "Absent-path battery (policy-absent, the zzabsent-* things; upstream #2658): grants and revokes on a path that a thing lacks are part of the indexed authorization, and the global readers count existing paths only. READ on features/bulb/properties/x only, wildcard form: zzabsent-missing, whose bulb lacks x; the per-feature authorization tree holds the grant on the absent property.",
+      "expectNonEmptyAuth": "absProperty"
+    },
+    {
+      "name": "abs-empty-feature-property-granted",
+      "filter": "empty(features/bulb/properties/x)",
+      "auth": ["absProperty"],
+      "comment": "Absent-path battery (policy-absent, the zzabsent-* things; upstream #2658): grants and revokes on a path that a thing lacks are part of the indexed authorization, and the global readers count existing paths only. READ on features/bulb/properties/x only, concrete form: zzabsent-missing.",
+      "expectNonEmptyAuth": "absProperty"
+    },
+    {
+      "name": "abs-empty-attributes-revoked",
+      "filter": "empty(attributes)",
+      "auth": ["absRevoked"],
+      "comment": "Absent-path battery (policy-absent, the zzabsent-* things; upstream #2658): grants and revokes on a path that a thing lacks are part of the indexed authorization, and the global readers count existing paths only. READ on the thing, revoked on attributes: the revoke applies whether attributes exist or not, nothing matches."
+    },
+    {
+      "name": "abs-not-empty-attributes-revoked",
+      "filter": "not(empty(attributes))",
+      "auth": ["absRevoked"],
+      "comment": "Absent-path battery (policy-absent, the zzabsent-* things; upstream #2658): grants and revokes on a path that a thing lacks are part of the indexed authorization, and the global readers count existing paths only. READ on the thing, revoked on attributes, the complement: all three things.",
+      "expectNonEmptyAuth": "absRevoked"
+    },
+    {
+      "name": "abs-ne-attribute-revoked",
+      "filter": "ne(attributes/foo,\"x\")",
+      "auth": ["absRevoked"],
+      "comment": "Absent-path battery (policy-absent, the zzabsent-* things; upstream #2658): grants and revokes on a path that a thing lacks are part of the indexed authorization, and the global readers count existing paths only. ne does not match a thing without attributes/foo, and the revoke hides attributes/foo of the others: nothing matches."
+    },
+    {
+      "name": "abs-empty-attribute-grant-only-on-absent-path",
+      "filter": "empty(attributes/foo)",
+      "auth": ["absOnly"],
+      "comment": "Absent-path battery (policy-absent, the zzabsent-* things; upstream #2658): grants and revokes on a path that a thing lacks are part of the indexed authorization, and the global readers count existing paths only. The subject's only grant is on attributes/foo: it is no global reader of the things that lack the attribute, so nothing matches."
+    },
+    {
+      "name": "abs-empty-wildcard-property-feature-id-grant",
+      "filter": "empty(features/*/properties/x)",
+      "auth": ["absFeatureId"],
+      "comment": "Absent-path battery (policy-absent, the zzabsent-* things; upstream #2658): grants and revokes on a path that a thing lacks are part of the indexed authorization, and the global readers count existing paths only. A grant on features/bulb/id is no grant on the feature (a feature has no id field): nothing matches."
+    },
+    {
+      "name": "abs-count-grant-only-on-absent-path",
+      "mode": "count",
+      "auth": ["absOnly"],
+      "comment": "Absent-path battery (policy-absent, the zzabsent-* things; upstream #2658): grants and revokes on a path that a thing lacks are part of the indexed authorization, and the global readers count existing paths only. The subject's only grant is on attributes/foo: it reads zzabsent-set, where the attribute exists, and no other thing.",
+      "expectNonEmptyAuth": "absOnly"
     }
   ]
 }
