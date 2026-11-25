@@ -199,10 +199,20 @@ public final class PostgresJournalOpsWriteOrderTest {
     }
 
     @Test
-    public void nonPositiveCallTimeoutIsRefused() {
-        assertThatThrownBy(() -> PostgresJournalOps.of(operations, JsonTextPayloadCodec.INSTANCE, Duration.ZERO))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("callTimeout");
+    public void zeroCallTimeoutMeansNoDeadlineForLaterWrites() throws Exception {
+        final CompletableFuture<Void> first = handCompleted("thing:a", 1);
+
+        final CompletionStage<Iterable<Optional<Exception>>> result = journalOps(Duration.ZERO)
+                .writeMessages(List.of(write("thing:a", 1, SERIALIZABLE), write("thing:a", 2, SERIALIZABLE)));
+        Thread.sleep(50);
+        first.complete(null);
+
+        assertThat(slots(result)).containsExactly(Optional.empty(), Optional.empty());
+        assertThat(calls).containsExactly("thing:a:1", "thing:a:2");
+    }
+
+    @Test
+    public void negativeCallTimeoutIsRefused() {
         assertThatThrownBy(() -> PostgresJournalOps.of(operations, JsonTextPayloadCodec.INSTANCE,
                 Duration.ofMillis(-1)))
                 .isInstanceOf(IllegalArgumentException.class)

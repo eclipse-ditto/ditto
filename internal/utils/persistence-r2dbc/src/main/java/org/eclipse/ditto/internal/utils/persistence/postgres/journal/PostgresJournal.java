@@ -61,8 +61,9 @@ import scala.jdk.javaapi.FutureConverters;
  *     unchanged.</li>
  *     <li><strong>Write order.</strong> The {@code AtomicWrite}s of a batch run one after the other in their order;
  *     a failed write stops the later ones, and a later write is not started once the plugin's
- *     {@code circuit-breaker.call-timeout} has passed since the batch began. Pekko has then already reported the
- *     batch as failed, and its circuit breaker does not cancel the work.</li>
+ *     {@code circuit-breaker.call-timeout} has passed since the batch began. Pekko's circuit breaker reports the
+ *     batch as failed at that deadline and does not cancel the work. A timeout of zero switches the deadline off,
+ *     as it switches off the timeout of the circuit breaker.</li>
  * </ul>
  */
 @NotThreadSafe

@@ -126,18 +126,18 @@ public final class PostgresJournalOps {
      * @param operations the shared persistence operations bound to the journal's entity tables.
      * @param codec turns each event into the stored JSON text and back.
      * @param callTimeout the circuit-breaker call timeout Pekko applies to {@code asyncWriteMessages} of this plugin.
-     * A later write of a batch is not started once it has passed.
+     * A later write of a batch is not started once it has passed. Zero means no timeout, as for the circuit breaker.
      * @return journal ops storing the events through {@code codec}.
      * @throws NullPointerException if any argument is {@code null}.
-     * @throws IllegalArgumentException if {@code callTimeout} is zero or negative.
+     * @throws IllegalArgumentException if {@code callTimeout} is negative.
      */
     public static PostgresJournalOps of(final PostgresPersistenceOperations operations,
             final PostgresPayloadCodec codec, final Duration callTimeout) {
         checkNotNull(operations, "operations");
         checkNotNull(codec, "codec");
         checkNotNull(callTimeout, "callTimeout");
-        if (callTimeout.isZero() || callTimeout.isNegative()) {
-            throw new IllegalArgumentException("The callTimeout must be positive but was <" + callTimeout + ">.");
+        if (callTimeout.isNegative()) {
+            throw new IllegalArgumentException("The callTimeout must not be negative but was <" + callTimeout + ">.");
         }
         return new PostgresJournalOps(operations, codec, callTimeout);
     }
@@ -147,7 +147,7 @@ public final class PostgresJournalOps {
      * in input order. The writes run one after the other: a write starts only when the previous one has completed
      * (succeeded or been rejected). A failed write fails the returned stage and no later write starts. Once the call
      * timeout has passed since this call began, no later write starts either, and the returned stage fails with a
-     * {@link TimeoutException}.
+     * {@link TimeoutException}. A call timeout of zero sets no such deadline.
      */
     public CompletionStage<Iterable<Optional<Exception>>> writeMessages(final Iterable<AtomicWrite> messages) {
         final long start = System.nanoTime();
@@ -159,7 +159,7 @@ public final class PostgresJournalOps {
             final int index = i;
             final AtomicWrite atomicWrite = writes.get(i);
             acc = acc.thenCompose(slots -> {
-                if (index > 0 && System.nanoTime() - start >= callTimeout.toNanos()) {
+                if (index > 0 && !callTimeout.isZero() && System.nanoTime() - start >= callTimeout.toNanos()) {
                     return CompletableFuture.failedFuture(notStarted(atomicWrite, writes.size() - index));
                 }
                 return writeAtomic(atomicWrite).thenApply(slot -> {
@@ -174,7 +174,8 @@ public final class PostgresJournalOps {
     private TimeoutException notStarted(final AtomicWrite atomicWrite, final int notStartedCount) {
         final String pid = atomicWrite.persistenceId();
         final long sequenceNr = atomicWrite.lowestSequenceNr();
-        // Pekko has already reported the batch as failed: this line is the only sign these events were never written.
+        // Pekko reports the batch as failed at this deadline: this line is the only sign that these events were
+        // never written.
         LOGGER.warn("Not starting {} journal write(s) of the batch, the first of pid <{}> at sequence number <{}>: the "
                 + "call timeout of <{}> passed since the batch began.", notStartedCount, pid, sequenceNr, callTimeout);
         return new TimeoutException("Not starting the journal write of pid <" + pid + "> at sequence number "
