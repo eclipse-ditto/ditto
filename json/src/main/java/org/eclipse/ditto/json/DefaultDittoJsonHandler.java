@@ -114,7 +114,12 @@ public final class DefaultDittoJsonHandler extends DittoJsonHandler<List<JsonVal
     }
 
     private static ImmutableJsonDouble parseToDouble(final String string) {
-        return ImmutableJsonDouble.of(Double.parseDouble(string));
+        final double doubleValue = Double.parseDouble(string);
+        if (Double.isInfinite(doubleValue)) {
+            // JSON has no literal for infinity, so such a value could not be written as valid JSON again
+            throw new NumberFormatException("The number <" + string + "> does not fit in a double!");
+        }
+        return ImmutableJsonDouble.of(doubleValue);
     }
 
     private static JsonNumber parseToIntegerOrLong(final String string) {
