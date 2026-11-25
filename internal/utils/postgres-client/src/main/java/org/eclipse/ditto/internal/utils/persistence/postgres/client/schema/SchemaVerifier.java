@@ -68,7 +68,7 @@ public final class SchemaVerifier {
      *   schema this code is not compatible with)</td></tr>
      * </table>
      * A {@code NULL} {@code min_compatible_version} (a row written before the column existed) counts as
-     * {@code min_compatible_version = version}, i.e. a newer legacy row is never compatible.
+     * {@code min_compatible_version = version}, i.e. a newer row without it is never compatible.
      *
      * @param component the logical component identifier (for the diagnostic message).
      * @param expectedChecksum the current code checksum (computed over the effective DDL for the component).

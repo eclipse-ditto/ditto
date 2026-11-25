@@ -53,7 +53,7 @@ public final class SchemaVerifierVersionDecisionTest {
     }
 
     @Test
-    public void bootWithOlderLegacyStoredVersionApplies() {
+    public void bootWithOlderStoredVersionWithoutMinCompatibleVersionApplies() {
         // A row written without the min_compatible_version column (NULL) that is older than the code is a plain
         // upgrade.
         assertThat(SchemaVerifier.verifyStoredVersion(COMPONENT, CODE_CHECKSUM, 3, "old-checksum", 2, null))
@@ -67,7 +67,7 @@ public final class SchemaVerifierVersionDecisionTest {
     }
 
     @Test
-    public void bootWithSameVersionLegacyRowApplies() {
+    public void bootWithSameVersionWithoutMinCompatibleVersionApplies() {
         // A row without min_compatible_version at the same version: NULL min is treated as the version (2 <= 2),
         // checksum matches -> APPLY, and the caller's upsert then back-fills this code's min_compatible_version.
         assertThat(SchemaVerifier.verifyStoredVersion(COMPONENT, CODE_CHECKSUM, 2, CODE_CHECKSUM, 2, null))
@@ -117,7 +117,7 @@ public final class SchemaVerifierVersionDecisionTest {
     }
 
     @Test
-    public void bootWithNewerLegacyStoredVersionTreatsNullMinCompatibleVersionAsTheStoredVersion() {
+    public void bootWithNewerStoredVersionTreatsNullMinCompatibleVersionAsTheStoredVersion() {
         // A row written without the column (missing -> added as NULL): NULL means min_compatible_version =
         // version = 3 > 2 -> refuse, exactly the downgrade guard of schema code without that column.
         assertThatThrownBy(() -> SchemaVerifier.verifyStoredVersion(COMPONENT, CODE_CHECKSUM, 2, "newer-checksum", 3,
@@ -133,7 +133,7 @@ public final class SchemaVerifierVersionDecisionTest {
 
     @Test
     public void healWithoutStoredRowApplies() {
-        // a wiped database (row gone too): heal recreates the tables, as before.
+        // a wiped database (row gone too): heal recreates the tables.
         assertThat(SchemaVerifier.verifyStoredVersionForHeal(COMPONENT, 2, null, null))
                 .isEqualTo(SchemaVersionDecision.APPLY);
     }
@@ -164,7 +164,7 @@ public final class SchemaVerifierVersionDecisionTest {
     }
 
     @Test
-    public void healWithNewerLegacyStoredVersionFails() {
+    public void healWithNewerStoredVersionWithoutMinCompatibleVersionFails() {
         assertThatThrownBy(() -> SchemaVerifier.verifyStoredVersionForHeal(COMPONENT, 2, 3, null))
                 .isInstanceOf(SchemaBootException.class)
                 .hasMessageContaining("min_compatible_version 3");

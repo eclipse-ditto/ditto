@@ -33,7 +33,7 @@ import org.junit.Test;
 /**
  * Golden-SQL unit tests for the candidate and preference rule of {@link SelectiveLegCte}: which conjunct becomes the
  * selective leg (point or range) with and without range legs, and the shape of the range leg (with its multi-valued
- * branch) only next to a point leg: a range alone renders the statement as before range legs, and the shape of the
+ * branch) only next to a point leg: a range alone renders the statement of point mode, and the shape of the
  * runtime pick between a point and a range leg. Rendered through
  * {@link SearchQueryAssembler#count(Criteria, List, long, long, SelectiveLegs)} (sudo, plain count) so every assertion
  * is on real SQL. No database.
@@ -49,7 +49,7 @@ public final class SelectiveLegCteTest {
     private static final String POINT_ONLY = "WITH sel_leg AS MATERIALIZED (SELECT sfc.thing_id FROM search_flat sfc "
             + "WHERE (sfc.wpath = $1 AND sfc.val_text = $2)) " + SEMI_JOIN;
 
-    /** A lone two-sided range, with or without range legs: the statement as before range legs (no CTE). */
+    /** A lone two-sided range, with or without range legs: the statement of point mode (no CTE). */
     private static final String RANGE_ALONE = "SELECT count(*) FROM search_things st WHERE (EXISTS (SELECT 1 FROM "
             + "search_flat sf WHERE (sf.thing_id = st.thing_id AND sf.wpath = $1 AND sf.val_num >= $2)) AND EXISTS "
             + "(SELECT 1 FROM search_flat sf WHERE (sf.thing_id = st.thing_id AND sf.wpath = $3 AND "
@@ -72,7 +72,7 @@ public final class SelectiveLegCteTest {
     private final CriteriaFactory cf = CriteriaFactory.getInstance();
 
     @Test
-    public void pointModeIsTheOldOverloadAndNeverRendersARangeLeg() {
+    public void pointModeEqualsTheOverloadWithoutModeAndNeverRendersARangeLeg() {
         for (final Criteria criteria : List.of(
                 eq("c", "x"), in("n", 1, 2), range("p", 5, 9), and(gt("p", 5), lt("p", 9)), range("p", 9, 5),
                 and(eq("c", "x"), ge("p", 5), le("p", 9)), and(eq("c", "x"), range("p", 5, 9)),
@@ -83,16 +83,16 @@ public final class SelectiveLegCteTest {
                 and(ge("a", 1), le("b", 2)), and(eq("c", null), ge("p", 5), le("p", 9)),
                 and(field("c", cf.ne("x")), ge("p", 5), le("p", 9)), rootRange("a", "z"))) {
             final RenderedSql point = count(criteria, POINT);
-            final RenderedSql today = SearchQueryAssembler.count(criteria, null, 0L, 0L);
+            final RenderedSql withoutMode = SearchQueryAssembler.count(criteria, null, 0L, 0L);
 
-            assertThat(point.sql()).as("%s", criteria).isEqualTo(today.sql())
+            assertThat(point.sql()).as("%s", criteria).isEqualTo(withoutMode.sql())
                     .doesNotContain("UNION").doesNotContain("sel_pick");
-            assertThat(binds(point)).isEqualTo(binds(today));
+            assertThat(binds(point)).isEqualTo(binds(withoutMode));
         }
     }
 
     @Test
-    public void pointModeRendersTheStatementAsBeforeRangeLegs() {
+    public void pointModeRendersTheStatementWithoutRangeLegs() {
         assertThat(count(in("n", 1, 2), POINT).sql()).isEqualTo("WITH sel_leg AS MATERIALIZED (SELECT sfc.thing_id "
                 + "FROM search_flat sfc WHERE (sfc.wpath = $1 AND sfc.val_num = ANY($2::numeric[]))) SELECT count(*) "
                 + "FROM search_things st WHERE (EXISTS (SELECT 1 FROM sel_leg sl WHERE sl.thing_id = st.thing_id) AND "
@@ -109,18 +109,18 @@ public final class SelectiveLegCteTest {
     }
 
     @Test
-    public void eqAloneIsUnchangedWithRangeLegs() {
+    public void eqAloneIsTheSameInBothModes() {
         assertSameInBothModes(eq("c", "x"));
         assertThat(count(eq("c", "x"), RANGE).sql()).startsWith(POINT_ONLY);
     }
 
     @Test
-    public void inAloneIsUnchangedWithRangeLegs() {
+    public void inAloneIsTheSameInBothModes() {
         assertSameInBothModes(in("n", 1, 2));
     }
 
     @Test
-    public void aTwoSidedRangeAloneKeepsTheStatementBeforeRangeLegs() {
+    public void aTwoSidedRangeAloneRendersThePointModeStatement() {
         for (final Criteria lone : List.of(range("p", 5, 9), and(gt("p", 5), lt("p", 9)), range("p", 9, 5),
                 featureRange("env", 1, 2), and(ge("a", 1), ge("b", 1), le("b", 2), ge("a", 5), le("a", 9)))) {
             assertSameInBothModes(lone);
@@ -317,7 +317,7 @@ public final class SelectiveLegCteTest {
             final RenderedSql next = count(and(inNullable("c", "x", null), eq("d", "y")), legs);
             assertThat(next.sql()).as("%s", legs).startsWith(POINT_ONLY);
             assertThat(next.bindValues().subList(0, 2)).as("%s", legs).containsExactly("/attributes/d", "y");
-            // without the null member the same in() is a point leg as before
+            // without the null member the same in() is a point leg
             assertThat(count(inNullable("c", "x"), legs).sql()).as("%s", legs)
                     .startsWith("WITH sel_leg AS MATERIALIZED (SELECT sfc.thing_id FROM search_flat sfc WHERE "
                             + "(sfc.wpath = $1 AND sfc.val_text = ANY($2::text[]))) ");

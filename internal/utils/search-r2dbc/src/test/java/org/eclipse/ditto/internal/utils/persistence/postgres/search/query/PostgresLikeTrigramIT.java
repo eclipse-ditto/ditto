@@ -89,7 +89,7 @@ public final class PostgresLikeTrigramIT {
      * The trigram-free translation of {@code like} on a flat path (sudo form): the plain {@code COLLATE "C"} column.
      * The wildcard-feature form differs only in the alias, which does not change the result set.
      */
-    private static final String LEGACY_LIKE_SQL = "SELECT st.thing_id FROM search_things st WHERE EXISTS "
+    private static final String PLAIN_LIKE_SQL = "SELECT st.thing_id FROM search_things st WHERE EXISTS "
             + "(SELECT 1 FROM search_flat sf WHERE sf.thing_id = st.thing_id AND sf.wpath = $1 "
             + "AND sf.val_text LIKE $2 ESCAPE '\\') ORDER BY st.thing_id";
 
@@ -269,16 +269,16 @@ public final class PostgresLikeTrigramIT {
                 final String description = field + " like " + entry.getKey();
                 final RenderedSql translated = selectThingIds(criteria);
 
-                final Set<String> legacy = legacyThingIds(translated);
+                final Set<String> plainLike = plainLikeThingIds(translated);
                 final Set<String> heapPath = thingIds(translated, NO_BITMAP_SCANS);
                 final Set<String> trigramPath = withoutCompetingBtrees(connection -> rows(connection, translated))
                         .stream()
                         .filter(id -> id.startsWith("parity:"))
                         .collect(Collectors.toCollection(TreeSet::new));
 
-                assertThat(legacy).as("legacy %s", description).isEqualTo(entry.getValue());
-                assertThat(heapPath).as("translated, no bitmap scans: %s", description).isEqualTo(legacy);
-                assertThat(trigramPath).as("translated, sf_trgm only: %s", description).isEqualTo(legacy);
+                assertThat(plainLike).as("plain like: %s", description).isEqualTo(entry.getValue());
+                assertThat(heapPath).as("translated, no bitmap scans: %s", description).isEqualTo(plainLike);
+                assertThat(trigramPath).as("translated, sf_trgm only: %s", description).isEqualTo(plainLike);
                 if (translated.sql().contains("COLLATE \"C.utf8\" LIKE")) {
                     // the sf_trgm-only path really went through the trigram index (lossy match + recheck)
                     final String plan = String.join("\n", withoutCompetingBtrees(connection ->
@@ -447,10 +447,10 @@ public final class PostgresLikeTrigramIT {
     }
 
     /** Runs the plain-collation predicate with the translated statement's wpath and pattern binds. */
-    private static Set<String> legacyThingIds(final RenderedSql translated) {
+    private static Set<String> plainLikeThingIds(final RenderedSql translated) {
         final List<Object> binds = translated.bindValues();
         assertThat(binds).hasSize(2);
-        return query(connection -> Flux.from(connection.createStatement(LEGACY_LIKE_SQL)
+        return query(connection -> Flux.from(connection.createStatement(PLAIN_LIKE_SQL)
                         .bind("$1", binds.get(0))
                         .bind("$2", binds.get(1))
                         .execute())

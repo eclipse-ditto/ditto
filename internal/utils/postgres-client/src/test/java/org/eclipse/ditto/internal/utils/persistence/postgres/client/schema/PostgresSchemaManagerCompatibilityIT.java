@@ -261,8 +261,8 @@ public final class PostgresSchemaManagerCompatibilityIT {
     // ---------------------------------------------------------------------------------------------------------------
 
     @Test
-    public void legacyRowWithoutTheColumnGetsTheColumnAddedAndBackfilled() {
-        createLegacySchemaVersionRow(1, PostgresSchemaManager.checksum(V1));
+    public void rowWithoutTheColumnGetsTheColumnAddedAndBackfilled() {
+        createSchemaVersionRowWithoutTheColumn(1, PostgresSchemaManager.checksum(V1));
         assertThat(columnExists("schema_version", "min_compatible_version")).isFalse();
 
         bootstrap(V1);
@@ -272,10 +272,10 @@ public final class PostgresSchemaManagerCompatibilityIT {
     }
 
     @Test
-    public void legacyNewerRowTreatsMissingMinCompatibleVersionAsTheStoredVersion() {
+    public void newerRowWithoutTheColumnTreatsMissingMinCompatibleVersionAsTheStoredVersion() {
         // Written by a v2 pod whose schema code has no min_compatible_version column. NULL counts as
         // min = version = 2 > 1 -> refuse.
-        createLegacySchemaVersionRow(2, PostgresSchemaManager.checksum(V2_COMPATIBLE));
+        createSchemaVersionRowWithoutTheColumn(2, PostgresSchemaManager.checksum(V2_COMPATIBLE));
 
         assertThatThrownBy(() -> bootstrap(V1))
                 .isInstanceOf(SchemaBootException.class)
@@ -332,7 +332,7 @@ public final class PostgresSchemaManagerCompatibilityIT {
 
     @Test
     public void healOnAWipedDatabaseRecreatesTheTablesAndTheCompatibilityColumn() {
-        // Nothing exists (not even schema_version): heal recreates everything, as before, and leaves no row.
+        // Nothing exists (not even schema_version): heal recreates everything and leaves no row.
         heal(V1);
 
         assertThat(tableExists(TABLE)).isTrue();
@@ -449,7 +449,7 @@ public final class PostgresSchemaManagerCompatibilityIT {
     }
 
     /** The schema_version table as schema code without the min_compatible_version column creates it + one row. */
-    private static void createLegacySchemaVersionRow(final int version, final String checksum) {
+    private static void createSchemaVersionRowWithoutTheColumn(final int version, final String checksum) {
         runSql(PostgresSchemaManager.SCHEMA_VERSION_DDL);
         runSql("INSERT INTO schema_version (component, version, checksum) VALUES ('" + COMPONENT + "', " + version
                 + ", '" + checksum + "')");

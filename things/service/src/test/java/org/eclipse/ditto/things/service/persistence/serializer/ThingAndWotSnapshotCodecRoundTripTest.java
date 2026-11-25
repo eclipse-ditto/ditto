@@ -121,7 +121,7 @@ public final class ThingAndWotSnapshotCodecRoundTripTest {
     }
 
     @Test
-    public void thingSerializerFedAWotConfigStillThrows_documentingTheOriginalBug() {
+    public void thingSerializerFedAWotConfigThrowsClassCastException() {
         // A WotValidationConfigPersistenceActor that inherited the Thing serializer would hit this exact
         // ClassCastException on a WoT snapshot. This pins WHY the WoT serializer is needed.
         final SnapshotCodec codec = MongoSnapshotCodec.INSTANCE;

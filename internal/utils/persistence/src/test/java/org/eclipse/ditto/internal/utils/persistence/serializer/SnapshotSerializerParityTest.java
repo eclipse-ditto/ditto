@@ -124,17 +124,17 @@ public final class SnapshotSerializerParityTest {
     }
 
     @Test
-    public void neutralAdapterWithMongoCodecMatchesTheLegacyMongoAdapter() {
+    public void neutralAdapterWithMongoCodecMatchesTheMongoSnapshotAdapter() {
         final ThingSnapshotSerializer serializer = new ThingSnapshotSerializer();
         final NeutralSnapshotAdapter<Thing> neutral =
                 new NeutralSnapshotAdapter<>(serializer, MongoSnapshotCodec.INSTANCE);
         final Thing thing = sampleThing();
 
         final BsonValue viaNeutral = (BsonValue) neutral.toSnapshotStore(thing);
-        final BsonValue viaLegacy = (BsonValue) serializer.toSnapshotStore(thing);
+        final BsonValue viaMongoAdapter = (BsonValue) serializer.toSnapshotStore(thing);
 
-        assertThat(viaNeutral).isEqualTo(viaLegacy);
-        assertThat(neutral.fromSnapshotStore(snapshotOffer(viaLegacy))).isEqualTo(thing);
+        assertThat(viaNeutral).isEqualTo(viaMongoAdapter);
+        assertThat(neutral.fromSnapshotStore(snapshotOffer(viaMongoAdapter))).isEqualTo(thing);
     }
 
     @Test
