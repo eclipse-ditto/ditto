@@ -399,8 +399,9 @@ public final class PostgresParityMatrixIT {
     @Test
     public void checksumMismatchRefusesToBoot() {
         // Poison the stored checksum, then a bootstrap must refuse to boot on the code-vs-stored mismatch.
-        runDdl("INSERT INTO schema_version (component, version, checksum) "
-                + "VALUES ('ditto-postgres-persistence', 1, 'POISONED-CHECKSUM') "
+        runDdl("INSERT INTO schema_version (component, version, checksum, min_compatible_version) "
+                + "VALUES ('ditto-postgres-persistence', " + PostgresSchema.VERSION + ", 'POISONED-CHECKSUM', "
+                + PostgresSchema.MIN_COMPATIBLE_VERSION + ") "
                 + "ON CONFLICT (component) DO UPDATE SET checksum = 'POISONED-CHECKSUM'");
         try {
             assertThatThrownBy(() -> PostgresSchemaManager.of(POSTGRES.newConnectionFactory(), PostgresSchema.descriptor()).bootstrap())

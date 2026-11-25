@@ -53,33 +53,20 @@ a WARN naming the component, and is retried at the next start (the failed start 
 `bootstrap.exit-on-failure`, and its orchestrator restarts it). On large, busy tables a schema upgrade may therefore
 need several start attempts; cancelling the blocking autovacuum worker (`pg_cancel_backend`) lets the next one through.
 
-A row written before the `min_compatible_version` column existed has it `NULL`, which counts as
-`min_compatible_version = version`. The first start of an image with this check adds the column and fills it in: the
-schema check inspects the catalog first and issues `ALTER TABLE schema_version ADD COLUMN IF NOT EXISTS
-min_compatible_version INT` only while the column is missing. That statement is not part of the checksummed DDL, so no
-stored checksum changes. This one-time `ALTER TABLE` needs **ownership** of `schema_version`. With the default
-provisioning the DDL role created the table and owns it. If a component's DDL role does not own `schema_version`, start
-a component whose role owns it first, or add the column once as the owner. Once the column exists, starts and heals need
-`CREATE` on the schema (every start and heal issues `CREATE TABLE IF NOT EXISTS schema_version`, and PostgreSQL checks
-the schema privilege even when the table exists) and `SELECT`, `INSERT`, `UPDATE` on `schema_version`, no ownership.
+The first component that starts creates `schema_version`, and its DDL role owns the table. For `schema_version` itself,
+starts and heals need `CREATE` on the schema (every start and heal issues `CREATE TABLE IF NOT EXISTS schema_version`,
+and PostgreSQL checks the schema privilege even when the table exists) and `SELECT`, `INSERT`, `UPDATE` on the table,
+no ownership.
 
 **Rolling upgrades.** As soon as the first upgraded instance advances the row, the not-yet-upgraded instances run
 against the newer schema. Instances that keep running are unaffected either way. A not-yet-upgraded instance that
 **restarts** mid-roll keeps starting if the new version declares it compatible (`min_compatible_version` ≤ its version),
 and refuses to start if it does not. Then complete the roll across all services that share the row promptly, and do not
-pin one service to an older image across such a bump. Images built before `min_compatible_version` existed do not read
-it: they treat any newer stored version as a downgrade, and their self-heal still runs their own DDL. So during the
-first schema bump after this change, an instance still on such an older image refuses to start if it restarts mid-roll.
-Roll every instance to an image with this check first (that roll needs no schema bump); later bumps then follow the
-table above.
+pin one service to an older image across such a bump.
 
 **Connectivity's remember-entities store.** Connectivity's cluster sharding remembers the ids of the running connections
-in an event-sourced store: on PostgreSQL in the `connection_remember_*` tables (schema version 4), as on MongoDB in its
-`connection_remember_*` collections. A connectivity cluster set up with a pre-release version of the PostgreSQL profile
-kept that state in Pekko's distributed-data (`ddata`) store instead. The two stores know nothing of each other, so
-switch with a **full restart of all connectivity instances**, not a rolling one: the first start on the event-sourced
-store remembers nothing yet and reopens the connections from their journal (connectivity's reconnect at start), while a
-rolling update would leave shards on new instances without the ids the old instances still hold in `ddata`.
+in an event-sourced store: on PostgreSQL in the `connection_remember_*` tables, as on MongoDB in its
+`connection_remember_*` collections.
 
 **Recovery from same-version drift** (manual DDL edits): reconcile the DDL, then
 `UPDATE schema_version SET checksum = '<expected-from-the-start-error>' WHERE component = 'ditto-postgres-persistence';`
@@ -374,7 +361,7 @@ A filter with a two-sided numeric range on one field (`ge` or `gt` together with
 * Results never change: the start only narrows the candidates, and the whole filter, including every authorization check, is still applied.
 * One-sided ranges, string ranges, `features/*` fields and ranges under `or`/`not` are planned without a range start.
 
-**Arrays.** Two range conditions may be met by different elements of an array, as on MongoDB: `[91621, 91214, 93186]` matches `and(ge(attributes/region,91700),le(attributes/region,93000))`. A range start therefore also includes every thing with more than one value at that field. These things are found with the index `sf_multi ON search_flat (wpath, thing_id) WHERE ord = 1`, which belongs to search schema version 3.
+**Arrays.** Two range conditions may be met by different elements of an array, as on MongoDB: `[91621, 91214, 93186]` matches `and(ge(attributes/region,91700),le(attributes/region,93000))`. A range start therefore also includes every thing with more than one value at that field. These things are found with the index `sf_multi ON search_flat (wpath, thing_id) WHERE ord = 1`.
 
 **How the index is built.**
 

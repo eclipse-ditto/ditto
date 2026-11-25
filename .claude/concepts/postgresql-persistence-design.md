@@ -279,23 +279,20 @@ Per entity (`things`, `policies`, `connections`, `wot`) and for connectivity's r
   (`always-alive`, `priority-<n>`).
 - `<e>_journal_seq` keeps the highest sequence number independent of journal rows, so it survives cleanup.
 - The snapshot key includes `written_at` so a re-snapshot at the same `sn` is allowed; `DELETED` snapshots are
-  filtered in the application after the newest-per-pid pick (schema v2 dropped the `(pid, sn DESC)` index, v3 the
-  partial `lifecycle` index — neither served a query).
-- Autovacuum storage parameters are set in the bootstrap transaction: scale factor 0.01 on every table (since v2);
-  schema **v3** (`MIN_COMPATIBLE_VERSION = 2`) adds cost limit 2000 on the two pruned tables `<e>_journal` and
-  `<e>_snaps` (§8).
-- Schema **v4** (`MIN_COMPATIBLE_VERSION` stays 2) appends the `connection_remember` table set after the four entity
-  sets: v3's statements stay byte-identical, and v2/v3 code never touches the new tables, so a rolling upgrade is safe.
-- Schema **v5** (`MIN_COMPATIBLE_VERSION` stays 2) appends `connections_encryption_migration`, the one row
-  (`id = 'current'`) in which connectivity's encryption migration keeps its progress record (what MongoDB keeps in the
-  `connection_encryption_migration` collection); no `pid`, no autovacuum storage parameters. v4's 45 statements stay
-  byte-identical, and v2–v4 code never touches the table.
+  filtered in the application after the newest-per-pid pick, so the snapshot tables have no index besides the primary
+  key: neither a `(pid, sn DESC)` nor a partial `lifecycle` index would serve a query.
+- Autovacuum storage parameters are set in the bootstrap transaction: scale factor 0.01 on every table, plus cost
+  limit 2000 on the two pruned tables `<e>_journal` and `<e>_snaps` (§8).
+- `connections_encryption_migration` holds the one row (`id = 'current'`) in which connectivity's encryption
+  migration keeps its progress record (what MongoDB keeps in the `connection_encryption_migration` collection); no
+  `pid`, no autovacuum storage parameters.
+- The persistence schema is at version 1 (`MIN_COMPATIBLE_VERSION = 1`).
 
 ### 3.2 Schema lifecycle
 
 - One `schema_version(component, version, checksum, min_compatible_version)` table is shared by the persistence
-  and the search component (the compatibility column was added later by a one-time, un-checksummed
-  `ALTER TABLE … ADD COLUMN IF NOT EXISTS`, which needs table ownership). The checksum is a SHA-256 over the
+  and the search component; its `CREATE TABLE` is the first statement of every component's checksummed DDL. The
+  checksum is a SHA-256 over the
   whitespace-normalised DDL statements themselves, so it cannot drift from what is executed. The bootstrap also
   verifies the live catalog (PK definition, column types, collations) against `TableContract`s, because
   `CREATE TABLE IF NOT EXISTS` would silently keep a divergent table.
@@ -307,8 +304,7 @@ Per entity (`things`, `policies`, `connections`, `wot`) and for connectivity's r
   change (column type, rename, `NOT NULL` without default) cannot be expressed: `CREATE TABLE IF NOT EXISTS` keeps the
   old shape and the catalog verification refuses to boot, so such a change needs an out-of-band migration. Things,
   policies and connectivity share one row, so an incompatible bump is rolled across all three together, with no
-  service pinned to an older image. A row written before the compatibility column existed has it `NULL`, which
-  counts as equal to `version`. A same-version checksum mismatch (manual DDL edits) refuses to boot; recovery is to
+  service pinned to an older image. A same-version checksum mismatch (manual DDL edits) refuses to boot; recovery is to
   reconcile the DDL and set the stored checksum to the value the boot error names.
 - **Rules for a DDL change:** any change to a component's DDL changes its checksum and therefore bumps `VERSION`;
   each bump declares `MIN_COMPATIBLE_VERSION`. A change older code can run against (a new or dropped index, storage
@@ -483,7 +479,7 @@ serve `exists()`), and every node under `/features/<id>/…` is stored twice —
 side table holds about twice the node count of the feature subtrees. A two-predicate `and`
 then uses an index on *both* legs, which a MongoDB wildcard index cannot do.
 
-### 4.2 Data model (search schema v3, `MIN_COMPATIBLE_VERSION = 1`)
+### 4.2 Data model (search schema version 1, `MIN_COMPATIBLE_VERSION = 1`)
 
 | Table           | Columns (abridged)                                                                                                                                                                                  | Key / indexes                                                                                                                                                                                                                 |
 |-----------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
@@ -719,7 +715,7 @@ Persistence, 250 k things / 35 M events, PostgreSQL 16 vs MongoDB 7.0, driver le
 | Cleanup page p95 (payload-free, minAge 0)        | 1.22 cold / 0.51 warm                                | 1.66 ms (not re-run) | formerly an order of magnitude slower (TOAST payload reads after a fresh load); closed by the payload-free page |
 | Single-entity cleanup, longest histories         | 1,820 ms                                             | 633 ms               | open: PG 2.9× slower; tolerable because Ditto paces cleanup                                                     |
 | Unthrottled sweep of 22 M rows                   | 838 s                                                | 298 s                | identical rows deleted on both                                                                                  |
-| Autovacuum settle after a mass prune (own loads) | 70 s at cost limit 2000 vs 3,172 s at server default | —                    | schema v3 sets the limit; 2000 raises snapshot-write p95 2–10× while it runs, kept on purpose                   |
+| Autovacuum settle after a mass prune (own loads) | 70 s at cost limit 2000 vs 3,172 s at server default | —                    | the schema sets the limit; 2000 raises snapshot-write p95 2–10× while it runs, kept on purpose                  |
 | Ping walk window, 1 M entities × 2 events        | ~1 ms per window, 2–3 s per walk (warm cache)        | —                    | ID order, 500 ids per window; flat across the id space, every entity tagged or 1 % tagged clustered at the end  |
 | Ping walk window, 250 k things × ~140 events     | 572 ms median / 1.04 s max (87 % untagged, 8 GiB)    | —                    | a window reads every journal row of its untagged entities; basis of the runbook's batch-size advice             |
 | Priority-order ping walk, 1 M ids × 2 events     | 3.3 s per walk (2,001 statements)                    | —                    | windows of 500 ids, then an in-memory sort; before, one statement over all tagged rows hit statement_timeout    |

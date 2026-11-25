@@ -240,9 +240,8 @@ public final class PostgresSchemaManagerCompatibilityIT {
         bootstrap(V1);
         bootstrap(V2_COMPATIBLE);
         final Row v2Row = storedRow();
-        // A role that may create in the schema and read/write schema_version (all a boot of schema code without the
-        // min_compatible_version column needs) but owns neither table. ALTER TABLE checks ownership before
-        // IF NOT EXISTS, so it must not even be issued once the column exists.
+        // A role that may create in the schema and read/write schema_version but owns neither table: a boot or heal
+        // against a newer compatible schema issues nothing that needs ownership.
         runSql("CREATE ROLE " + READER_ROLE + " LOGIN PASSWORD '" + READER_PASSWORD + "'");
         runSql("GRANT USAGE, CREATE ON SCHEMA public TO " + READER_ROLE);
         runSql("GRANT SELECT, INSERT, UPDATE ON schema_version TO " + READER_ROLE);
@@ -254,32 +253,6 @@ public final class PostgresSchemaManagerCompatibilityIT {
 
         assertThat(indexExists(V1_INDEX)).isFalse();
         assertThat(storedRow()).isEqualTo(v2Row);
-    }
-
-    // ---------------------------------------------------------------------------------------------------------------
-    // schema_version table without the min_compatible_version column
-    // ---------------------------------------------------------------------------------------------------------------
-
-    @Test
-    public void rowWithoutTheColumnGetsTheColumnAddedAndBackfilled() {
-        createSchemaVersionRowWithoutTheColumn(1, PostgresSchemaManager.checksum(V1));
-        assertThat(columnExists("schema_version", "min_compatible_version")).isFalse();
-
-        bootstrap(V1);
-
-        assertThat(columnExists("schema_version", "min_compatible_version")).isTrue();
-        assertThat(storedRow()).isEqualTo(new Row(1, PostgresSchemaManager.checksum(V1), 1));
-    }
-
-    @Test
-    public void newerRowWithoutTheColumnTreatsMissingMinCompatibleVersionAsTheStoredVersion() {
-        // Written by a v2 pod whose schema code has no min_compatible_version column. NULL counts as
-        // min = version = 2 > 1 -> refuse.
-        createSchemaVersionRowWithoutTheColumn(2, PostgresSchemaManager.checksum(V2_COMPATIBLE));
-
-        assertThatThrownBy(() -> bootstrap(V1))
-                .isInstanceOf(SchemaBootException.class)
-                .hasMessageContaining("min_compatible_version 2");
     }
 
     // ---------------------------------------------------------------------------------------------------------------
@@ -331,7 +304,7 @@ public final class PostgresSchemaManagerCompatibilityIT {
     }
 
     @Test
-    public void healOnAWipedDatabaseRecreatesTheTablesAndTheCompatibilityColumn() {
+    public void healOnAWipedDatabaseRecreatesTheTablesAndSchemaVersionWithoutARow() {
         // Nothing exists (not even schema_version): heal recreates everything and leaves no row.
         heal(V1);
 
@@ -446,13 +419,6 @@ public final class PostgresSchemaManagerCompatibilityIT {
         runSql("DO $$ BEGIN IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = '" + READER_ROLE + "') THEN "
                 + "EXECUTE 'DROP OWNED BY " + READER_ROLE + "'; EXECUTE 'DROP ROLE " + READER_ROLE + "'; "
                 + "END IF; END $$");
-    }
-
-    /** The schema_version table as schema code without the min_compatible_version column creates it + one row. */
-    private static void createSchemaVersionRowWithoutTheColumn(final int version, final String checksum) {
-        runSql(PostgresSchemaManager.SCHEMA_VERSION_DDL);
-        runSql("INSERT INTO schema_version (component, version, checksum) VALUES ('" + COMPONENT + "', " + version
-                + ", '" + checksum + "')");
     }
 
     @Nullable

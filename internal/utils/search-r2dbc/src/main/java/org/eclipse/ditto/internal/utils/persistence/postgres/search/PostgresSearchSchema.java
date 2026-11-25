@@ -65,7 +65,7 @@ import org.eclipse.ditto.internal.utils.persistence.postgres.client.schema.Table
  * The operator-configured per-path indexes ({@code ditto.postgresql.search.path-indexes}) are deliberately NOT part of
  * this DDL: they are built with {@code CREATE INDEX CONCURRENTLY} (which cannot run in the bootstrap transaction) by
  * {@code PathIndexMaintenance} after a successful bootstrap, so the path list never changes the checksum; nor is the
- * system index {@code sf_multi} (search schema v3), which the same maintenance builds the same way.
+ * system index {@code sf_multi}, which the same maintenance builds the same way.
  * </p>
  */
 @Immutable
@@ -76,22 +76,22 @@ public final class PostgresSearchSchema {
 
     /**
      * Bumped on any DDL change (the checksum covers every statement), per the schema-evolution policy; each bump also
-     * declares {@link #MIN_COMPATIBLE_VERSION} and adds a literal test fixture of the version it replaces (see
-     * {@code SearchSchemaChecksumPreservationTest}).
-     * v2: {@code autovacuum_vacuum_scale_factor = 0.01} on {@code search_things} and {@code search_flat}.
-     * v3: the system index {@code sf_multi} ({@link
-     * org.eclipse.ditto.internal.utils.persistence.postgres.search.pathindex.SystemSearchIndex#MULTI_VALUED}). It is
-     * built with {@code CREATE INDEX CONCURRENTLY} by {@code PathIndexMaintenance} after the bootstrap, not by this DDL
-     * (a plain {@code CREATE INDEX} in the bootstrap transaction would block writes for the whole build on an existing
-     * table), so the v3 DDL and checksum equal v2's.
+     * declares {@link #MIN_COMPATIBLE_VERSION}, adds a literal test fixture of the version it replaces (see
+     * {@code SearchSchemaChecksumPreservationTest}) and records here what it changed.
+     * <p>
+     * The system index {@code sf_multi} ({@link
+     * org.eclipse.ditto.internal.utils.persistence.postgres.search.pathindex.SystemSearchIndex#MULTI_VALUED}) is
+     * built with {@code CREATE INDEX CONCURRENTLY} by {@code PathIndexMaintenance} after the bootstrap, not by this
+     * DDL: a plain {@code CREATE INDEX} in the bootstrap transaction blocks writes for the whole build when the table
+     * already holds rows.
+     * </p>
      */
-    public static final int VERSION = 3;
+    public static final int VERSION = 1;
 
     /**
      * The oldest code schema version that can run against the {@link #VERSION} schema (stored as
      * {@code schema_version.min_compatible_version}); see {@code PostgresSchemaDescriptor#minCompatibleVersion()} for
-     * the bump rules. Still 1: v2 only adds reloptions, which v1 code runs against unchanged; v3 only adds an index
-     * older code ignores.
+     * the bump rules.
      */
     public static final int MIN_COMPATIBLE_VERSION = 1;
 
@@ -229,8 +229,7 @@ public final class PostgresSearchSchema {
 
         statements.add(createSearchSyncTable());
 
-        // v2: autovacuum tuning of the two write-heavy tables. Appended after every v1 statement, so the v1 DDL stays
-        // a prefix of this list. Catalog-only (no table rewrite); search_sync (one bookmark row) keeps the defaults.
+        // autovacuum tuning of the two write-heavy tables; search_sync (one bookmark row) keeps the defaults
         statements.add(autovacuum("search_things"));
         statements.add(autovacuum("search_flat"));
 

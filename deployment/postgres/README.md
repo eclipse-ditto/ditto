@@ -546,17 +546,12 @@ schema version bump or a self-heal that runs the DDL. Which storage parameters t
 changes a DDL run sets back: "Autovacuum settings applied by the schema" in
 `documentation/src/main/resources/pages/ditto/operating-postgresql.md`.
 
-A row written before the `min_compatible_version` column existed has it `NULL`, which counts as
-`min_compatible_version = version`. The first boot of an image with this check adds the column and
-fills it in: the bootstrap checks the catalog first and issues
-`ALTER TABLE schema_version ADD COLUMN IF NOT EXISTS min_compatible_version INT` only while the
-column is missing. That statement is not part of the checksummed DDL, so no stored checksum changes.
-
-Privileges: this one-time `ALTER TABLE` needs **ownership** of `schema_version`. With the default
-provisioning (`provisioning/01-roles-and-grants.sql`) the DDL role created the table and owns it.
-If a component's DDL role does not own `schema_version`, boot a component whose role owns it first,
-or add the column once as the owner. Once the column exists, boots and heals need only `SELECT`,
-`INSERT` and `UPDATE` on `schema_version`, no ownership.
+Privileges: the first component that boots creates `schema_version`, and its DDL role owns the
+table (with the default provisioning, `provisioning/01-roles-and-grants.sql`, that is the DDL role
+all components share). For `schema_version` itself, boots and heals need `CREATE` on the schema
+(every boot and heal issues `CREATE TABLE IF NOT EXISTS schema_version`, and PostgreSQL checks the
+schema privilege even when the table exists) and `SELECT`, `INSERT` and `UPDATE` on the table, no
+ownership.
 
 The runtime self-heal (re-creating a missing table on SQLSTATE `42P01`) follows the same rule: if the
 stored version is newer, it runs no DDL. With a compatible newer schema the heal is a no-op and the
@@ -579,12 +574,6 @@ mid-roll:
 - refuses to boot if it does not. Then complete the roll across all services that share the row
   promptly, and don't pin one service to an older image across such a bump.
 
-**One-time window for existing databases:** images built before `min_compatible_version` existed don't
-read it. They treat any newer stored version as a downgrade, and their self-heal still runs their own
-DDL. So during the first schema bump of such a database, a pod still on such an older image refuses to
-boot if it restarts mid-roll. Roll every pod to an image with this check first (that roll needs no
-schema bump); later bumps then follow the table above.
-
 ### Rules for schema bumps (developers)
 
 Any change to a component's DDL changes its checksum, so it must bump the component's `VERSION`, and
@@ -597,11 +586,13 @@ each bump declares its `MIN_COMPATIBLE_VERSION` (`PostgresSchemaDescriptor#minCo
   still uses.
 - Both versions run side by side during a roll, so a "compatible" change must also let the new code
   cope with rows the old code writes.
-
+- Each bump moves the checksum pinned in the component's `*SchemaChecksumPreservationTest` and adds
+  a literal test fixture of the version it replaces (its DDL, table contracts and checksum), so that
+  the upgrade from it stays testable.
 - An index whose plain build would block writes on a populated table is not part of the DDL: it is
-  built `CONCURRENTLY` after the bootstrap (search: the per-path indexes; since search schema v3 the
-  system index `sf_multi`). Introducing one still bumps `VERSION` (search v3 kept v2's DDL and
-  checksum, `MIN_COMPATIBLE_VERSION` 1), so that older code mid-roll leaves it to the newer code.
+  built `CONCURRENTLY` after the bootstrap (search: the per-path indexes and the system index
+  `sf_multi`). Introducing one still bumps `VERSION`, with an unchanged DDL and checksum, so that
+  older code mid-roll leaves it to the newer code.
 
 `CREATE TABLE IF NOT EXISTS` never changes an *existing* table's shape: a version that adds columns
 to an already-created table must ship `ALTER TABLE … ADD COLUMN IF NOT EXISTS …` statements for

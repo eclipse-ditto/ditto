@@ -48,16 +48,18 @@ public final class PostgresSchemaManagerTest {
     };
 
     @Test
-    public void compatibilityColumnDdlIsNotPartOfTheChecksummedEffectiveDdl() {
+    public void schemaVersionTableDeclaresTheCompatibilityColumnAndIsTheFirstChecksummedStatement() {
         final PostgresSchemaDescriptor descriptor = descriptor(2, 1);
 
+        assertThat(PostgresSchemaManager.SCHEMA_VERSION_DDL).isEqualTo("CREATE TABLE IF NOT EXISTS schema_version ("
+                + "component TEXT PRIMARY KEY, version INT NOT NULL, checksum TEXT NOT NULL, "
+                + "min_compatible_version INT NOT NULL)");
+        assertThat(PostgresSchemaManager.effectiveDdl(descriptor).get(0))
+                .isEqualTo(PostgresSchemaManager.SCHEMA_VERSION_DDL);
         assertThat(PostgresSchemaManager.effectiveDdl(descriptor))
-                .as("the manager-owned min_compatible_version ALTER must stay outside the checksummed DDL")
-                .doesNotContain(PostgresSchemaManager.SCHEMA_VERSION_COMPATIBILITY_DDL)
-                .noneMatch(statement -> statement.contains("min_compatible_version"));
-        assertThat(PostgresSchemaManager.SCHEMA_VERSION_DDL).doesNotContain("min_compatible_version");
-        assertThat(PostgresSchemaManager.SCHEMA_VERSION_COMPATIBILITY_DDL)
-                .isEqualTo("ALTER TABLE schema_version ADD COLUMN IF NOT EXISTS min_compatible_version INT");
+                .as("no statement changes schema_version after its creation")
+                .filteredOn(statement -> statement.contains("schema_version"))
+                .containsExactly(PostgresSchemaManager.SCHEMA_VERSION_DDL);
     }
 
     @Test

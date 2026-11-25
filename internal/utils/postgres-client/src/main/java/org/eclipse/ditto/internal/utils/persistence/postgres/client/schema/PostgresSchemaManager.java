@@ -64,8 +64,7 @@ import reactor.core.publisher.Mono;
  *     {@code pg_advisory_lock}, which is unsafe over a pooled connection because the lock could be acquired and
  *     released on different physical connections); auto-released on commit. The key is SHARED across every component so
  *     concurrent first-boot DDL against one fresh database is serialised.</li>
- *     <li>the shared {@code schema_version} table ({@link #SCHEMA_VERSION_DDL}) plus, only while it is missing, the
- *     manager-owned {@code min_compatible_version} column ({@link #SCHEMA_VERSION_COMPATIBILITY_DDL}).</li>
+ *     <li>the shared {@code schema_version} table ({@link #SCHEMA_VERSION_DDL}).</li>
  *     <li><strong>read the component's {@code schema_version} row and decide</strong>
  *     ({@link SchemaVerifier#verifyStoredVersion}) before any component DDL runs: apply, run against a newer compatible
  *     schema without touching it, or refuse to boot (same-version checksum drift, or a newer incompatible schema).</li>
@@ -101,10 +100,7 @@ import reactor.core.publisher.Mono;
  * <h2>Checksum semantics</h2>
  * The {@code schema_version} checksum is computed over the <em>effective</em> DDL — the shared {@code schema_version}
  * table statement followed by the descriptor's own statements ({@link #effectiveDdl(PostgresSchemaDescriptor)}), i.e.
- * exactly the DDL the bootstrap executes — so the checksum can never drift away from what is actually run. The one
- * deliberate exception is the manager-owned {@link #SCHEMA_VERSION_COMPATIBILITY_DDL}: it is bookkeeping for the
- * {@code schema_version} table itself and is kept <strong>out</strong> of the checksum, so it changes no deployed
- * component's checksum.
+ * exactly the DDL the bootstrap executes — so the checksum can never drift away from what is actually run.
  */
 public final class PostgresSchemaManager {
 
@@ -118,42 +114,18 @@ public final class PostgresSchemaManager {
     static final long ADVISORY_LOCK_KEY = 0x0D17_70_5C_4E_4AL;
 
     /**
-     * The single, shared {@code schema_version(component, version, checksum)} table DDL, owned by the manager and
-     * prepended to every descriptor's own statements. Each component owns one row (keyed by {@code component}) that
-     * backs the refuse-to-boot checksum/version guard.
+     * The single, shared {@code schema_version(component, version, checksum, min_compatible_version)} table DDL, owned
+     * by the manager and prepended to every descriptor's own statements. Each component owns one row (keyed by
+     * {@code component}) that backs the refuse-to-boot checksum/version guard; {@code min_compatible_version} is the
+     * oldest code version that may run against the stored schema (rolling upgrades, see
+     * {@link PostgresSchemaDescriptor#minCompatibleVersion()}). The statement is part of every component's checksum.
      */
     public static final String SCHEMA_VERSION_DDL = "CREATE TABLE IF NOT EXISTS schema_version ("
             + "component TEXT PRIMARY KEY, "
             + "version INT NOT NULL, "
-            + "checksum TEXT NOT NULL"
+            + "checksum TEXT NOT NULL, "
+            + "min_compatible_version INT NOT NULL"
             + ")";
-
-    /**
-     * Adds the {@code min_compatible_version} column to the shared {@code schema_version} table (rolling upgrades, see
-     * {@link PostgresSchemaDescriptor#minCompatibleVersion()}). Executed by the manager right after
-     * {@link #SCHEMA_VERSION_DDL} in both the boot and the self-heal transaction, but deliberately <strong>not</strong>
-     * part of {@link #effectiveDdl(PostgresSchemaDescriptor)}: {@link #SCHEMA_VERSION_DDL} is part of every component's
-     * pinned checksum, so changing it (or adding to the checksummed list) would make every deployed database refuse to
-     * boot with checksum drift. Rows written before the column existed read as {@code NULL}, which counts as
-     * {@code min_compatible_version = version}.
-     * <p>
-     * Issued <strong>only while the column is missing</strong> (probed in {@code pg_attribute} under the same advisory
-     * lock): PostgreSQL checks table ownership and takes an {@code ACCESS EXCLUSIVE} lock before it evaluates
-     * {@code IF NOT EXISTS}, so an unconditional statement would make every boot and heal need ownership of
-     * {@code schema_version}. The one-time addition itself needs ownership (the DDL role that created the table).
-     * </p>
-     */
-    public static final String SCHEMA_VERSION_COMPATIBILITY_DDL =
-            "ALTER TABLE schema_version ADD COLUMN IF NOT EXISTS min_compatible_version INT";
-
-    /**
-     * Whether {@code schema_version} (resolved through the {@code search_path}, exactly like the unqualified name in
-     * {@link #SCHEMA_VERSION_COMPATIBILITY_DDL}) already has the {@code min_compatible_version} column. Reads
-     * {@code pg_attribute}, which needs no privilege on the table.
-     */
-    private static final String COMPATIBILITY_COLUMN_EXISTS_SQL = "SELECT EXISTS (SELECT 1 FROM pg_attribute "
-            + "WHERE attrelid = to_regclass('schema_version') AND attname = 'min_compatible_version' "
-            + "AND NOT attisdropped)";
 
     /**
      * How long each statement of a component's DDL may wait for a lock: below PostgreSQL's default
@@ -253,9 +225,7 @@ public final class PostgresSchemaManager {
 
     /**
      * The effective DDL executed by (and checksummed for) a component: the shared {@code schema_version} table followed
-     * by the descriptor's own statements. With the {@code schema_version} statement as element 0 this is the statement
-     * list that already deployed checksums were computed over, so a persisted checksum keeps matching.
-     * {@link #SCHEMA_VERSION_COMPATIBILITY_DDL} is deliberately not part of it.
+     * by the descriptor's own statements.
      *
      * @param descriptor the component schema.
      * @return the ordered effective DDL statements.
@@ -405,7 +375,7 @@ public final class PostgresSchemaManager {
                 // Same advisory xact lock as the boot bootstrap -> a hot heal serialises against a concurrent first-boot
                 // DDL cluster-wide; auto-released on commit.
                 .then(executeUpdate(connection, "SELECT pg_advisory_xact_lock($1)", ADVISORY_LOCK_KEY))
-                // The shared schema_version table (+ compatibility column), then the row decides whether this code's
+                // The shared schema_version table, then the row decides whether this code's
                 // DDL may run at all. No catalog verification / row upsert (see Javadoc).
                 .then(ensureSchemaVersionTable(connection))
                 .then(readStoredVersion(connection))
@@ -444,7 +414,7 @@ public final class PostgresSchemaManager {
                 .then(Mono.defer(() -> Mono.from(connection.beginTransaction())))
                 // 1) transaction-scoped advisory lock — serialises concurrent first-boot DDL across the cluster.
                 .then(executeUpdate(connection, "SELECT pg_advisory_xact_lock($1)", ADVISORY_LOCK_KEY))
-                // 2) the shared schema_version table + the manager-owned compatibility column.
+                // 2) the shared schema_version table.
                 .then(ensureSchemaVersionTable(connection))
                 // 3) read the row and decide BEFORE any component DDL runs (refuses on drift / incompatible newer).
                 .then(readStoredVersion(connection))
@@ -516,24 +486,12 @@ public final class PostgresSchemaManager {
     }
 
     /**
-     * {@link #SCHEMA_VERSION_DDL} (element 0 of the checksummed effective DDL) followed, only while the column is
-     * missing, by the manager-owned, non-checksummed {@link #SCHEMA_VERSION_COMPATIBILITY_DDL}. On
-     * {@link SchemaVersionDecision#APPLY}, together with {@link #runComponentDdl(Connection, String)}, the checksummed
-     * DDL executed is still exactly {@link #effectiveDdl(PostgresSchemaDescriptor)}, in order.
+     * {@link #SCHEMA_VERSION_DDL}, element 0 of the checksummed effective DDL. On {@link SchemaVersionDecision#APPLY},
+     * together with {@link #runComponentDdl(Connection, String)}, the DDL executed is exactly
+     * {@link #effectiveDdl(PostgresSchemaDescriptor)}, in order.
      */
     private static Mono<Void> ensureSchemaVersionTable(final Connection connection) {
-        return executeUpdate(connection, SCHEMA_VERSION_DDL)
-                .then(Mono.defer(() -> compatibilityColumnExists(connection)))
-                .flatMap(exists -> exists
-                        ? Mono.<Void>empty()
-                        : executeUpdate(connection, SCHEMA_VERSION_COMPATIBILITY_DDL));
-    }
-
-    private static Mono<Boolean> compatibilityColumnExists(final Connection connection) {
-        return Flux.from(connection.createStatement(COMPATIBILITY_COLUMN_EXISTS_SQL).execute())
-                .flatMap(result -> result.map((row, meta) -> Boolean.TRUE.equals(row.get(0, Boolean.class))))
-                .next()
-                .defaultIfEmpty(false);
+        return executeUpdate(connection, SCHEMA_VERSION_DDL);
     }
 
     /**
@@ -690,7 +648,6 @@ public final class PostgresSchemaManager {
 
     /**
      * The {@code schema_version} row for the bootstrapped component, or {@link #ABSENT} on first boot (no row yet).
-     * {@code minCompatibleVersion} is {@code null} for a row written before the column existed.
      */
     private record StoredSchemaVersion(@Nullable Integer version, @Nullable String checksum,
             @Nullable Integer minCompatibleVersion) {

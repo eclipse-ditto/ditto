@@ -31,8 +31,7 @@ public final class PostgresSearchSchemaTest {
     @Test
     public void descriptorIdentity() {
         assertThat(PostgresSearchSchema.descriptor().component()).isEqualTo("ditto-postgres-search");
-        assertThat(PostgresSearchSchema.descriptor().version()).isEqualTo(3);
-        // v2 only adds reloptions, v3 only an index built outside the DDL: v1 code runs against both unchanged
+        assertThat(PostgresSearchSchema.descriptor().version()).isEqualTo(1);
         assertThat(PostgresSearchSchema.descriptor().minCompatibleVersion()).isEqualTo(1);
         assertThat(PostgresSearchSchema.COMPONENT).isEqualTo("ditto-postgres-search");
     }
@@ -113,7 +112,7 @@ public final class PostgresSearchSchemaTest {
 
     @Test
     public void theSystemIndexIsNotPartOfTheChecksummedDdl() {
-        // sf_multi (search schema v3) is built by PathIndexMaintenance with CREATE INDEX CONCURRENTLY after the
+        // sf_multi is built by PathIndexMaintenance with CREATE INDEX CONCURRENTLY after the
         // bootstrap: a plain build in the bootstrap transaction would block writes for the whole build.
         assertThat(PostgresSearchSchema.ddlStatements())
                 .noneMatch(statement -> statement.contains(SystemSearchIndex.MULTI_VALUED.indexName()))

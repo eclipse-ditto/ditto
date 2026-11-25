@@ -146,7 +146,7 @@ public final class SchemaVerifierTest {
     @Test
     public void canonicalContractsRequireCollatedPidOnEveryTableThatHasOne() {
         // Every canonical table with a pid — journal, journal_seq, and snaps — must mark pid as a COLLATE "C" column;
-        // the one table without a pid (the v5 encryption-migration progress table, keyed by id) collates nothing.
+        // the one table without a pid (the encryption-migration progress table, keyed by id) collates nothing.
         assertThat(PostgresSchema.tableContracts())
                 .filteredOn(c -> c.columns().containsKey("pid"))
                 .hasSize(15)

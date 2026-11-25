@@ -29,7 +29,7 @@ import org.junit.Test;
  * journal, the high-water-mark table, and the snapshot table) uses {@code COLLATE "C"} for byte-ordered comparisons,
  * the tags column is backed by a GIN index, the snapshot table
  * carries its full primary key and no secondary index, the per-entity high-water-mark table exists, autovacuum is
- * tuned per table, and the encryption-migration progress table (v5) is the last statement with its own contract.
+ * tuned per table, and the encryption-migration progress table is the last statement with its own contract.
  */
 public final class PostgresSchemaTest {
 
@@ -39,8 +39,8 @@ public final class PostgresSchemaTest {
 
     @Test
     public void descriptorDeclaresVersionAndMinCompatibleVersion() {
-        assertThat(PostgresSchema.descriptor().version()).isEqualTo(5);
-        assertThat(PostgresSchema.descriptor().minCompatibleVersion()).isEqualTo(2);
+        assertThat(PostgresSchema.descriptor().version()).isEqualTo(1);
+        assertThat(PostgresSchema.descriptor().minCompatibleVersion()).isEqualTo(1);
     }
 
     @Test
@@ -66,7 +66,6 @@ public final class PostgresSchemaTest {
 
     @Test
     public void encryptionMigrationProgressTableIsAppendedLastWithItsContract() {
-        // v5: appended after the five table sets, so a v4 database upgrades by one CREATE TABLE and nothing else
         final List<String> own = PostgresSchema.ddlStatements();
         assertThat(own.get(own.size() - 1)).isEqualTo("CREATE TABLE IF NOT EXISTS connections_encryption_migration ("
                 + "id TEXT PRIMARY KEY, progress JSONB NOT NULL, updated_at TIMESTAMPTZ NOT NULL)");
@@ -125,14 +124,10 @@ public final class PostgresSchemaTest {
         final String snaps = stmtContaining("things_snaps (");
         assertThat(snaps).contains("snapshot JSONB NOT NULL");
         assertThat(snaps).contains("PRIMARY KEY (pid, sn, written_at)");
-        // v2 dropped the (pid, sn DESC) index, v3 the partial lifecycle = 'DELETED' index: no query filters on
-        // lifecycle (DELETED snapshots are filtered after the newest-per-pid pick), so the PK serves every snaps access
-        // path. Older databases converge via DROP INDEX IF EXISTS.
+        // no query filters on lifecycle (DELETED snapshots are filtered after the newest-per-pid pick), so the PK
+        // serves every snaps access path
         assertThat(DDL).noneMatch(s -> s.startsWith("CREATE INDEX") && s.contains("_snaps"));
-        for (final String e : PostgresSchema.ENTITIES) {
-            assertThat(DDL).contains("DROP INDEX IF EXISTS " + e + "_snaps_pid_sn_desc_idx",
-                    "DROP INDEX IF EXISTS " + e + "_snaps_lifecycle_idx");
-        }
+        assertThat(DDL).noneMatch(s -> s.startsWith("DROP"));
     }
 
     @Test
@@ -150,7 +145,7 @@ public final class PostgresSchemaTest {
     @Test
     public void everyReloptionIsKnownToPostgresql10() {
         // The persistence backend still boots on PostgreSQL 10+; an unknown storage parameter (e.g.
-        // autovacuum_vacuum_insert_scale_factor, PostgreSQL 13+) would fail the upgrade boot there.
+        // autovacuum_vacuum_insert_scale_factor, PostgreSQL 13+) would fail the boot there.
         final Set<String> pg10 = Set.of("autovacuum_vacuum_scale_factor", "autovacuum_vacuum_threshold",
                 "autovacuum_vacuum_cost_limit", "autovacuum_vacuum_cost_delay", "autovacuum_analyze_scale_factor",
                 "autovacuum_analyze_threshold", "fillfactor");
@@ -173,7 +168,8 @@ public final class PostgresSchemaTest {
 
     @Test
     public void schemaVersionTablePresent() {
-        assertThat(stmtContaining("schema_version (")).contains("checksum TEXT NOT NULL");
+        assertThat(stmtContaining("schema_version (")).contains("checksum TEXT NOT NULL")
+                .contains("min_compatible_version INT NOT NULL");
     }
 
     @Test

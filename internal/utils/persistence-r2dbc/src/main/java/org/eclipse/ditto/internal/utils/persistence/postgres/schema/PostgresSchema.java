@@ -41,12 +41,12 @@ import org.eclipse.ditto.internal.utils.persistence.postgres.client.schema.Table
  *     deleted.</li>
  *     <li>{@code <e>_snaps} — {@code pid TEXT COLLATE "C"}, {@code sn}, {@code snapshot JSONB}, {@code lifecycle},
  *     {@code written_at}; {@code PRIMARY KEY (pid, sn, written_at)} (so a re-snapshot at the same sequence number is
- *     allowed) and no other index: the primary key serves every snapshot access path (v2 dropped v1's
- *     {@code (pid, sn DESC)} index), and {@code DELETED} snapshots are filtered in the application after the
- *     newest-per-pid pick, which no index on {@code lifecycle} could serve (v3 dropped that partial index).</li>
+ *     allowed) and no other index: the primary key serves every snapshot access path, and {@code DELETED} snapshots
+ *     are filtered in the application after the newest-per-pid pick, which no index on {@code lifecycle} could
+ *     serve.</li>
  * </ul>
  * <p>
- * One more table, {@value #ENCRYPTION_MIGRATION_TABLE} (since v5), holds the progress record of connectivity's
+ * One more table, {@value #ENCRYPTION_MIGRATION_TABLE}, holds the progress record of connectivity's
  * connection-secret encryption migration as a single JSONB row ({@code id TEXT PRIMARY KEY}, {@code progress JSONB},
  * {@code updated_at TIMESTAMPTZ}): what MongoDB keeps in its {@code connection_encryption_migration} collection. Only
  * the {@code connections} table set has one; it gets no autovacuum storage parameters (one row).
@@ -76,40 +76,29 @@ public final class PostgresSchema {
 
     /**
      * Bumped on any DDL change (the checksum covers every statement), per the schema-evolution policy; each bump also
-     * declares {@link #MIN_COMPATIBLE_VERSION} and adds a literal test fixture of the version it replaces (see
-     * {@code SchemaChecksumPreservationTest}).
-     * v2: v1's {@code (pid, sn DESC)} snaps index dropped — redundant under the loose-index-scan queries.
-     * v3: the unused partial snaps index on {@code lifecycle = 'DELETED'} dropped; the journal and snapshot tables get
-     * a larger autovacuum cost budget.
-     * v4: the fifth table set {@code connection_remember_*} appended (connectivity's remember-entities store, which
-     * MongoDB keeps in its own {@code connection_remember_*} collections); the first 36 statements are v3's verbatim.
-     * v5: {@code connections_encryption_migration} appended — the progress record of connectivity's encryption
-     * migration, which MongoDB keeps in {@code connection_encryption_migration}; the first 45 statements are v4's
-     * verbatim.
+     * declares {@link #MIN_COMPATIBLE_VERSION}, adds a literal test fixture of the version it replaces (see
+     * {@code SchemaChecksumPreservationTest}) and records here what it changed.
      */
-    public static final int VERSION = 5;
+    public static final int VERSION = 1;
 
     /**
      * The oldest code schema version that can run against the {@link #VERSION} schema (stored as
      * {@code schema_version.min_compatible_version}); see {@code PostgresSchemaDescriptor#minCompatibleVersion()} for
-     * the bump rules. v2 is the first version that declares one; it is 2 because v1 code predates the compatibility
-     * check. v3 keeps 2: an index drop and changed storage parameters leave v2 code working against the v3 schema. v4
-     * keeps 2: appended tables leave v2 and v3 code working against the v4 schema (they never touch them). v5 keeps 2:
-     * an appended table leaves v2–v4 code working against the v5 schema.
+     * the bump rules.
      */
-    public static final int MIN_COMPATIBLE_VERSION = 2;
+    public static final int MIN_COMPATIBLE_VERSION = 1;
 
     /** The table-set prefixes of the four entity types — the only sets a read journal may bind to. */
     public static final List<String> ENTITY_TABLE_SETS = List.of("things", "policies", "connections", "wot");
 
     /**
-     * The table set of connectivity's cluster-sharding remember-entities store (since v4): Pekko envelopes under
+     * The table set of connectivity's cluster-sharding remember-entities store: Pekko envelopes under
      * {@code /sharding/…} persistence ids, never Ditto events — no read journal, ping or cleanup binds to it.
      */
     public static final String REMEMBER_TABLE_SET = "connection_remember";
 
     /**
-     * The progress table of connectivity's connection-secret encryption migration (since v5): one JSONB row
+     * The progress table of connectivity's connection-secret encryption migration: one JSONB row
      * ({@code id = 'current'}) per migration, read and written by the PostgreSQL {@code PersistedPayloadStore} of the
      * {@code connections} table set. The only table outside the journal/journal_seq/snaps sets, and the only one
      * without a {@code pid} column.
@@ -117,9 +106,8 @@ public final class PostgresSchema {
     public static final String ENCRYPTION_MIGRATION_TABLE = "connections_encryption_migration";
 
     /**
-     * The prefixes that get a full journal/journal_seq/snaps table set: {@link #ENTITY_TABLE_SETS}, then (since v4)
-     * {@link #REMEMBER_TABLE_SET}. Append only: the order is the DDL order, and the checksum of every shipped version
-     * covers its prefix of this list.
+     * The prefixes that get a full journal/journal_seq/snaps table set: {@link #ENTITY_TABLE_SETS}, then
+     * {@link #REMEMBER_TABLE_SET}. The order is the DDL order, which the checksum covers.
      */
     public static final List<String> ENTITIES = List.of("things", "policies", "connections", "wot",
             REMEMBER_TABLE_SET);
@@ -224,8 +212,8 @@ public final class PostgresSchema {
 
     /**
      * @return this component's own ordered list of DDL statements (CREATE TABLE / CREATE INDEX /
-     * DROP INDEX IF EXISTS / ALTER TABLE … autovacuum), <strong>excluding</strong> the shared {@code schema_version}
-     * table (owned by {@code PostgresSchemaManager}). Order is stable so the checksum is deterministic.
+     * ALTER TABLE … autovacuum), <strong>excluding</strong> the shared {@code schema_version} table (owned by
+     * {@code PostgresSchemaManager}). Order is stable so the checksum is deterministic.
      */
     public static List<String> ddlStatements() {
         final List<String> statements = new ArrayList<>();
@@ -234,14 +222,11 @@ public final class PostgresSchema {
             statements.add(createJournalTagsIndex(entity));
             statements.add(createJournalSeqTable(entity));
             statements.add(createSnapsTable(entity));
-            statements.add(dropSnapsPidSnIndex(entity));
-            statements.add(dropSnapsLifecycleIndex(entity));
             // autovacuum tuning — transactional ALTER in the SAME bootstrap txn.
             statements.add(autovacuum(entity + "_journal", PRUNED_TABLE_RELOPTIONS));
             statements.add(autovacuum(entity + "_journal_seq", JOURNAL_SEQ_RELOPTIONS));
             statements.add(autovacuum(entity + "_snaps", PRUNED_TABLE_RELOPTIONS));
         }
-        // v5: appended AFTER the five table sets, so the first 45 statements stay v4's verbatim
         statements.add(createEncryptionMigrationTable());
         return List.copyOf(statements);
     }
@@ -260,7 +245,7 @@ public final class PostgresSchema {
             contracts.add(new TableContract(entity + "_snaps", "PRIMARY KEY (pid, sn, written_at)", SNAPS_COLUMNS,
                     COLLATED_PID_COLUMNS));
         }
-        // v5: no pid column, so no collated column to verify
+        // no pid column, so no collated column to verify
         contracts.add(new TableContract(ENCRYPTION_MIGRATION_TABLE, "PRIMARY KEY (id)", ENCRYPTION_MIGRATION_COLUMNS,
                 Set.of()));
         return List.copyOf(contracts);
@@ -303,22 +288,8 @@ public final class PostgresSchema {
                 + ")";
     }
 
-    private static String dropSnapsPidSnIndex(final String entity) {
-        // v2 upgrade: the v1 (pid, sn DESC) index never satisfied the newest-per-pid sort (it lacks the
-        // written_at tiebreak column) and the loose-index-scan rewrite left no query that needs it — the
-        // PK (pid, sn, written_at) serves every snaps access path, including per-pid backward scans.
-        return "DROP INDEX IF EXISTS " + entity + "_snaps_pid_sn_desc_idx";
-    }
-
-    private static String dropSnapsLifecycleIndex(final String entity) {
-        // v3 upgrade: the partial index on lifecycle = 'DELETED' served no query. DELETED snapshots are filtered in the
-        // application after the newest-per-pid pick ("exclude the pid if its newest snapshot is DELETED"), which no
-        // index on lifecycle can serve, and cleanup reads with includeDeleted = true.
-        return "DROP INDEX IF EXISTS " + entity + "_snaps_lifecycle_idx";
-    }
-
     private static String createEncryptionMigrationTable() {
-        // v5: the single progress row of connectivity's encryption migration; one row, so no autovacuum reloptions
+        // the single progress row of connectivity's encryption migration; one row, so no autovacuum reloptions
         return "CREATE TABLE IF NOT EXISTS " + ENCRYPTION_MIGRATION_TABLE + " ("
                 + "id TEXT PRIMARY KEY, "
                 + "progress JSONB NOT NULL, "

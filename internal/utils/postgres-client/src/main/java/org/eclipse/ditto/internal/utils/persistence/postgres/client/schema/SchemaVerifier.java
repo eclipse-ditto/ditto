@@ -14,6 +14,7 @@ package org.eclipse.ditto.internal.utils.persistence.postgres.client.schema;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 
 import javax.annotation.Nullable;
@@ -67,8 +68,6 @@ public final class SchemaVerifier {
      *   <tr><td>{@code version > code} and {@code min_compatible_version > code}</td><td>refuse (downgrade against a
      *   schema this code is not compatible with)</td></tr>
      * </table>
-     * A {@code NULL} {@code min_compatible_version} (a row written before the column existed) counts as
-     * {@code min_compatible_version = version}, i.e. a newer row without it is never compatible.
      *
      * @param component the logical component identifier (for the diagnostic message).
      * @param expectedChecksum the current code checksum (computed over the effective DDL for the component).
@@ -76,7 +75,7 @@ public final class SchemaVerifier {
      * @param storedChecksum the checksum read from {@code schema_version}, or {@code null} on first boot (no row yet).
      * @param storedVersion the version read from {@code schema_version}, or {@code null} on first boot (no row yet).
      * @param storedMinCompatibleVersion the {@code min_compatible_version} read from {@code schema_version}, or
-     * {@code null} when there is no row or the row predates the column.
+     * {@code null} when there is no row.
      * @return {@link SchemaVersionDecision#APPLY} or {@link SchemaVersionDecision#COMPATIBLE_NEWER}.
      * @throws SchemaBootException on a same-version checksum mismatch (drift) or a newer stored version whose
      * {@code min_compatible_version} exceeds the current code version.
@@ -115,7 +114,7 @@ public final class SchemaVerifier {
      * @param currentVersion the current code schema version for the component.
      * @param storedVersion the version read from {@code schema_version}, or {@code null} when there is no row.
      * @param storedMinCompatibleVersion the {@code min_compatible_version} read from {@code schema_version}, or
-     * {@code null} when there is no row or the row predates the column.
+     * {@code null} when there is no row.
      * @return {@link SchemaVersionDecision#APPLY} or {@link SchemaVersionDecision#COMPATIBLE_NEWER}.
      * @throws SchemaBootException on a newer stored version whose {@code min_compatible_version} exceeds the current
      * code version.
@@ -178,9 +177,9 @@ public final class SchemaVerifier {
 
     private static SchemaVersionDecision decideNewer(final String refusal, final String component,
             final int currentVersion, final int storedVersion, @Nullable final Integer storedMinCompatibleVersion) {
-        // A row written before min_compatible_version existed is compatible with nothing older than itself.
-        final int minCompatibleVersion =
-                storedMinCompatibleVersion != null ? storedMinCompatibleVersion : storedVersion;
+        // the column is NOT NULL, so a stored row always declares it
+        final int minCompatibleVersion = Objects.requireNonNull(storedMinCompatibleVersion,
+                "storedMinCompatibleVersion of a stored schema_version row");
         if (minCompatibleVersion <= currentVersion) {
             return SchemaVersionDecision.COMPATIBLE_NEWER;
         }

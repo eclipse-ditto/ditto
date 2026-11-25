@@ -16,11 +16,11 @@ import java.util.Arrays;
 import java.util.Optional;
 
 /**
- * The system indexes of {@code search_flat}: part of the search schema (since search schema version 3), but not of its
- * checksummed DDL. A plain {@code CREATE INDEX} in the bootstrap transaction would block writes for the whole build on
- * a populated table, so {@link PathIndexMaintenance} builds them with {@code CREATE INDEX CONCURRENTLY} after every
- * successful bootstrap and repairs INVALID leftovers. They are maintained whether or not per-path indexes are
- * configured, and never dropped except to repair an INVALID one.
+ * The system indexes of {@code search_flat}: part of the search schema, but not of its checksummed DDL. A plain
+ * {@code CREATE INDEX} in the bootstrap transaction would block writes for the whole build on a populated table, so
+ * {@link PathIndexMaintenance} builds them with {@code CREATE INDEX CONCURRENTLY} after every successful bootstrap and
+ * repairs INVALID leftovers. They are maintained whether or not per-path indexes are configured, and never dropped
+ * except to repair an INVALID one.
  */
 public enum SystemSearchIndex {
 
