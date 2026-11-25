@@ -138,6 +138,10 @@ This string must then be used in [policies](basic-policy.html#subjects) as "Subj
 
 The gateway only reads the pre-authenticated subject from this HTTP header, a query parameter of the same name is
 ignored.
+The reverse proxy must never forward a client-supplied `x-ditto-pre-authenticated` header: it has to set the header
+from a verified identity or clear it (`proxy_set_header x-ditto-pre-authenticated "";`) in **every** location which
+forwards requests to the gateway, also in locations without proxy authentication, such as `/api/2/connections` or
+`/devops`.
 
 Example for a nginx "proxy" configuration:
 ```text

@@ -15,21 +15,31 @@ sections: `Added`, `Changed`, `Deprecated`, `Removed`, `Fixed`, `Security`.
 
 ## [Unreleased]
 
+### Security
+- Fixed an unauthenticated impersonation of policy subjects
+  ([GHSA-f779-cv8j-4p59](https://github.com/eclipse-ditto/ditto/security/advisories/GHSA-f779-cv8j-4p59),
+  CVE-2026-135150):
+  - The bundled nginx now clears the `x-ditto-pre-authenticated` header in all locations which proxy to the gateway
+    without nginx authentication (`/api/2/connections`, `/health`, `/status`, `/stats`, `/devops`), so a
+    client-supplied header is never forwarded to the gateway.
+  - Rendering the chart now fails if `ingress.enabled` is `true` while Ditto pre-authentication is enabled
+    (`global.jwtOnly: false` or `gateway.config.authentication.enablePreAuthentication: true`), as the Ingress routes
+    requests directly to the gateway. **Action required** for such installations: either set `global.jwtOnly: true`
+    (recommended), or make sure the ingress controller sets the header from a verified identity or removes it on every
+    path and confirm that with the new `ingress.preAuthenticationHeaderSanitized: true`.
+    Although this requires user action on upgrade, it is intentionally released as a minor version, as an exception
+    for this security fix.
+
 ### Added
 - New `global.featureFlags.hideInaccessibleEntityExistenceEnabled` (default `true`), passed to the things and
   policies services. When enabled, requesters without any permission on a thing or policy get the same "not found"
   error for every rejected request, regardless of whether the entity exists. Set it to `false` to restore the
   previous, resource-specific errors (e.g. `403 things:thing.notmodifiable`) which allow to determine whether an
   entity exists ([#2596](https://github.com/eclipse-ditto/ditto/pull/2596))
-
-## [4.10.0]
-
-Adds the Helm side of the opt-in PostgreSQL persistence and search backends. Everything PostgreSQL is off by default.
-A deployment on MongoDB renders the same manifests as with the previous chart version, except for the seven new
-`ENFORCEMENT_CREATED_POLICY_ROLLBACK_*` environment variables of the things Deployment, whose defaults equal the
-service's built-in defaults; it needs no change.
-
-### Added
+- The Helm side of the opt-in PostgreSQL persistence and search backends: the two entries that follow. Everything
+  PostgreSQL is off by default. A deployment on MongoDB renders the same manifests as before, except for the seven
+  new `ENFORCEMENT_CREATED_POLICY_ROLLBACK_*` environment variables of the things Deployment (the last entry), whose
+  defaults equal the service's built-in defaults; it needs no change.
 - New `postgres.tls` block (default `enabled: false`) for Ditto services on the opt-in PostgreSQL backend: `caCert`
   (PEM, may be a multi-CA bundle for staged CA rotation) is rendered into a new managed `<fullname>-postgres-tls`
   Secret (i.e. `<release>-ditto-postgres-tls` unless the release name contains `ditto` or `fullnameOverride` is set)

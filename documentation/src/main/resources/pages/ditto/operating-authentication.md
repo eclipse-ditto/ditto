@@ -43,6 +43,16 @@ ignored. The proxy must set the header from a verified identity on every request
 without the header so that the gateway has to authenticate it by other means, e.g. by validating a
 [JWT](#openid-connect).
 
+This applies to **every** proxy location that forwards to the gateway, including locations that intentionally skip
+proxy authentication because the gateway authenticates them itself (e.g. `/api/2/connections`, `/devops`, `/health`,
+`/status` and `/stats`). Clear the header in such locations, e.g. with nginx:
+`proxy_set_header x-ditto-pre-authenticated "";`. In nginx, this has to be done in each `location` which defines its
+own `proxy_set_header` directives, as those do not inherit the ones of the enclosing `server` block.
+
+Proxies may interpret a request path differently than the gateway does, e.g. nginx decodes `%2f` before it resolves
+dot segments, while the gateway does not. The gateway therefore rejects requests whose path contains dot segments
+(`.` or `..`, also percent-encoded or delimited by a percent-encoded slash `%2f`) with status `400`.
+
 ### Example: nginx configuration
 
 ```nginx

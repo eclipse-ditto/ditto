@@ -13,6 +13,11 @@
 
 # profile for installing Ditto
 # - with Ingress enabled and low cpu requests
+# - with JWT authentication only, as the Ingress routes requests directly to the gateway (no pre-authentication)
+
+## global configuration
+global:
+  jwtOnly: true
 
 ## ingress configuration
 ingress:
