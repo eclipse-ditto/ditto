@@ -507,7 +507,7 @@ Things-search on Helm works like the other services: the overlay ConfigMap (`sea
 `HOSTING_ENVIRONMENT_FILE_LOCATION=/opt/ditto/search-postgres.conf` and the `POSTGRES_*` variables,
 `thingsSearch.extraVolumes` / `extraVolumeMounts` for the overlay and the `ditto-extensions` volume, and
 `thingsSearch.extraInitContainers` staging `ditto-postgres-client-extension` plus `ditto-postgres-search-extension`
-(`values.yaml` carries the example; chart 4.11.0 or newer). `postgres.tls.enabled` mounts the CA into the
+(`values.yaml` carries the example; chart 4.10.0 or newer). `postgres.tls.enabled` mounts the CA into the
 things-search pod as well.
 
 Chart-native `postgres.*` values that render the activation themselves are not part of this version.

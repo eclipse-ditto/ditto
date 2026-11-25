@@ -104,7 +104,8 @@ import org.eclipse.ditto.internal.utils.pekko.controlflow.Filter;
 import org.eclipse.ditto.internal.utils.pekko.controlflow.LimitRateByRejection;
 import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.pekko.logging.ThreadSafeDittoLogger;
-import org.eclipse.ditto.internal.utils.protocol.AdaptablePartialAccessFilter;
+import org.eclipse.ditto.internal.utils.protocol.PartialAccessSignalFilter;
+import org.eclipse.ditto.internal.utils.protocol.ReadableSignalView;
 import org.eclipse.ditto.internal.utils.pubsub.StreamingType;
 import org.eclipse.ditto.internal.utils.tracing.DittoTracing;
 import org.eclipse.ditto.internal.utils.tracing.span.SpanOperationName;
@@ -771,44 +772,28 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
                     .orElse(null);
 
             final Adaptable adaptable = jsonifiableToAdaptable(jsonifiable, adapter, subscriberAuthContext);
+            @Nullable final ReadableSignalView view;
+            if (jsonifiable instanceof Signal<?> signal) {
+                final Optional<ReadableSignalView> readableView =
+                        PartialAccessSignalFilter.viewFor(signal, adaptable, subscriberAuthContext);
+                if (readableView.isEmpty()) {
+                    issuePotentialWeakAcknowledgements(sessionedJsonifiable);
+                    sessionedJsonifiable.finishSpan();
+                    return CompletableFuture.completedFuture(Collections.emptyList());
+                }
+                view = readableView.get();
+            } else {
+                view = null;
+            }
 
-            final CompletionStage<JsonObject> extraFuture = sessionedJsonifiable.retrieveExtraFields(facade);
+            final CompletionStage<JsonObject> extraFuture = view == null
+                    ? CompletableFuture.completedFuture(JsonObject.empty())
+                    : sessionedJsonifiable.retrieveExtraFields(facade, view.getSignal());
             return extraFuture.<Collection<String>>thenApply(extra -> {
-                if (matchesFilter(sessionedJsonifiable, extra)) {
-                    final Adaptable filteredAdaptable = AdaptablePartialAccessFilter.filterAdaptableForPartialAccess(
-                            adaptable, subscriberAuthContext);
-
-                    final boolean isThingEvent = TopicPath.Group.THINGS.equals(filteredAdaptable.getTopicPath().getGroup()) &&
-                            TopicPath.Criterion.EVENTS.equals(filteredAdaptable.getTopicPath().getCriterion());
-
-                    final boolean partialAccessFilteringApplied = adaptable.getDittoHeaders()
-                            .get(DittoHeaderDefinition.PARTIAL_ACCESS_PATHS.getKey()) != null;
-
-                    final boolean isEmptyPayload = filteredAdaptable.getPayload().getValue()
-                            .map(value -> {
-                                if (value.isObject() && !value.isNull()) {
-                                    return value.asObject().isEmpty();
-                                }
-                                return false;
-                            })
-                            .orElse(false);
-
-                    final boolean isEmptyOriginalPayload = adaptable.getPayload().getValue()
-                            .map(value -> {
-                                if (value.isObject() && !value.isNull()) {
-                                    return value.asObject().isEmpty();
-                                }
-                                return false;
-                            })
-                            .orElse(false);
-
-                    if (isThingEvent && partialAccessFilteringApplied && isEmptyPayload && !isEmptyOriginalPayload) {
-                        issuePotentialWeakAcknowledgements(sessionedJsonifiable);
-                        sessionedJsonifiable.finishSpan();
-                        return Collections.emptyList();
-                    }
-
-                    return Collections.singletonList(toJsonStringWithExtra(filteredAdaptable, extra));
+                final JsonObject readableExtra = view == null ? extra : view.filterThingJson(extra);
+                if (matchesFilter(sessionedJsonifiable, view == null ? null : view.getSignal(), readableExtra)) {
+                    return Collections.singletonList(
+                            toJsonStringWithExtra(view == null ? adaptable : view.getAdaptable(), readableExtra));
                 }
                 issuePotentialWeakAcknowledgements(sessionedJsonifiable);
                 sessionedJsonifiable.finishSpan();
@@ -884,15 +869,14 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
      * @param extra extra fields from signal enrichment.
      * @return whether the Jsonifiable passes filter defined in the session together with the extra fields.
      */
-    private static boolean matchesFilter(final SessionedJsonifiable sessionedJsonifiable, final JsonObject extra) {
-        final Jsonifiable.WithPredicate<JsonObject, JsonField> jsonifiable = sessionedJsonifiable.getJsonifiable();
+    private static boolean matchesFilter(final SessionedJsonifiable sessionedJsonifiable,
+            @Nullable final Signal<?> readableSignal,
+            final JsonObject extra) {
         return sessionedJsonifiable.getSession()
-                .filter(session -> jsonifiable instanceof Signal)
-                .map(session -> {
-                    // evaluate to false if filter is present but does not match or has insufficient info to match
-                    final Signal<?> signal = (Signal<?>) jsonifiable;
-                    return session.matchesFilter(session.mergeThingWithExtra(signal, extra), signal);
-                })
+                .filter(session -> readableSignal != null)
+                // evaluate to false if filter is present but does not match or has insufficient info to match
+                .map(session -> session.matchesFilter(session.mergeThingWithExtra(readableSignal, extra),
+                        readableSignal))
                 .orElse(true);
     }
 

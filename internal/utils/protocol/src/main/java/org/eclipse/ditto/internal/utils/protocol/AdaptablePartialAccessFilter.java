@@ -12,17 +12,12 @@
  */
 package org.eclipse.ditto.internal.utils.protocol;
 
+import java.util.EnumSet;
 import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
-import javax.annotation.Nullable;
-
-import org.eclipse.ditto.base.model.auth.AuthorizationContext;
-import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
-import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.entity.metadata.Metadata;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
@@ -34,17 +29,17 @@ import org.eclipse.ditto.protocol.ProtocolFactory;
 import org.eclipse.ditto.protocol.TopicPath;
 
 /**
- * Utility for filtering {@link Adaptable} payloads based on partial access paths.
+ * Utility for filtering {@link Adaptable} payloads based on partial access paths and revoked access paths.
  */
-public final class AdaptablePartialAccessFilter {
+final class AdaptablePartialAccessFilter {
 
     /**
      * Thing identity and audit fields ({@code thingId}, {@code _namespace}, {@code _revision},
      * {@code _modified}, {@code _created}) that must remain visible to any subscriber holding at
-     * least partial read access on the thing. These are field names from the Ditto Protocol
-     * (see {@code org.eclipse.ditto.things.model.Thing.JsonFields}) — they are hardcoded here
-     * rather than imported to keep the {@code internal/utils/protocol} module free of a
-     * dependency on {@code things/model}.
+     * least partial read access on the thing; if READ on the thing root is revoked for it, only {@code thingId},
+     * which is part of the topic anyway. These are field names from the Ditto Protocol
+     * (see {@code org.eclipse.ditto.things.model.Thing.JsonFields}) — they are hardcoded here rather than imported to
+     * keep the {@code internal/utils/protocol} module free of a dependency on {@code things/model}.
      */
     public static final Set<JsonPointer> ALWAYS_INCLUDED_THING_FIELDS = Set.of(
             JsonPointer.of("thingId"),
@@ -54,152 +49,192 @@ public final class AdaptablePartialAccessFilter {
             JsonPointer.of("_created")
     );
 
+    private static final Set<JsonPointer> THING_ID_FIELD = Set.of(JsonPointer.of("thingId"));
+    private static final JsonPointer METADATA_POINTER = JsonPointer.of("_metadata");
+    private static final Set<TopicPath.Action> PAYLOAD_CHANGING_ACTIONS = EnumSet.of(TopicPath.Action.CREATE,
+            TopicPath.Action.MODIFY, TopicPath.Action.MERGE, TopicPath.Action.DELETE, TopicPath.Action.MIGRATE);
+
     private AdaptablePartialAccessFilter() {
         // No instantiation
     }
 
-    /**
-     * Filters an {@link Adaptable} payload based on partial access paths.
-     *
-     * @param adaptable the adaptable to filter
-     * @param subscriberAuthContext the authorization context of the subscriber (may be null)
-     * @return filtered adaptable, or original if no filtering is needed
-     */
-    public static Adaptable filterAdaptableForPartialAccess(
-            final Adaptable adaptable,
-            @Nullable final AuthorizationContext subscriberAuthContext) {
-
-        final DittoHeaders headers = adaptable.getDittoHeaders();
-        final String partialAccessPathsHeader = headers.get(DittoHeaderDefinition.PARTIAL_ACCESS_PATHS.getKey());
-        if (partialAccessPathsHeader == null || partialAccessPathsHeader.isEmpty()) {
-            return adaptable;
-        }
-
+    static Adaptable filter(final Adaptable adaptable, final SubscriberAccess access) {
         final TopicPath topicPath = adaptable.getTopicPath();
-        if (!TopicPath.Group.THINGS.equals(topicPath.getGroup()) ||
-                !TopicPath.Criterion.EVENTS.equals(topicPath.getCriterion())) {
+        if (access.isUnrestricted() || !TopicPath.Group.THINGS.equals(topicPath.getGroup())) {
             return adaptable;
         }
-
-        final Map<String, List<JsonPointer>> partialAccessPaths =
-                PartialAccessPathResolver.parsePartialAccessPathsAsMap(partialAccessPathsHeader);
-        return filterAdaptableForPartialAccess(adaptable, subscriberAuthContext, partialAccessPaths);
-    }
-
-    /**
-     * Filters an {@link Adaptable} payload based on partial access paths that are already parsed.
-     *
-     * @param adaptable the adaptable to filter
-     * @param subscriberAuthContext the authorization context of the subscriber (may be null)
-     * @param partialAccessPaths parsed partial access paths (subject ID -> paths)
-     * @return filtered adaptable, or original if no filtering is needed
-     */
-    public static Adaptable filterAdaptableForPartialAccess(
-            final Adaptable adaptable,
-            @Nullable final AuthorizationContext subscriberAuthContext,
-            final Map<String, List<JsonPointer>> partialAccessPaths) {
-
-        if (partialAccessPaths.isEmpty()) {
-            return adaptable;
-        }
-
-        final TopicPath topicPath = adaptable.getTopicPath();
-        if (!TopicPath.Group.THINGS.equals(topicPath.getGroup()) ||
-                !TopicPath.Criterion.EVENTS.equals(topicPath.getCriterion())) {
-            return adaptable;
-        }
-
-        final PartialAccessPathResolver.AccessiblePathsResult result =
-                PartialAccessPathResolver.resolveAccessiblePaths(
-                        partialAccessPaths, subscriberAuthContext, adaptable.getDittoHeaders().getReadGrantedSubjects());
-
-        return filterAdaptableWithResult(adaptable, result);
-    }
-
-    /**
-     * Filters an {@link Adaptable} payload based on a pre-resolved {@link PartialAccessPathResolver.AccessiblePathsResult}.
-     * This method is useful when you want to filter based on all partial-access subjects (union of paths)
-     * rather than a specific subscriber's context.
-     *
-     * @param adaptable the adaptable to filter
-     * @param result the pre-resolved accessible paths result
-     * @return filtered adaptable, or original if no filtering is needed
-     */
-    public static Adaptable filterAdaptableWithResult(
-            final Adaptable adaptable,
-            final PartialAccessPathResolver.AccessiblePathsResult result) {
-
-        final TopicPath topicPath = adaptable.getTopicPath();
-        if (!TopicPath.Group.THINGS.equals(topicPath.getGroup()) ||
-                !TopicPath.Criterion.EVENTS.equals(topicPath.getCriterion())) {
-            return adaptable;
-        }
-
-        if (result.hasUnrestrictedAccess()) {
-            return adaptable;
-        }
-
-        if (!result.shouldFilter()) {
-            return createEmptyPayloadAdaptable(adaptable);
-        }
-
-        final Set<JsonPointer> accessiblePaths = result.getAccessiblePaths();
-        final boolean isPayloadObject = adaptable.getPayload().getValue()
-                // JsonNull reports isObject()==true (and can be coerced to JsonObjectNull),
-                // but we must not treat "null" payloads as objects for filtering purposes.
-                .map(value -> value.isObject() && !value.isNull())
-                .orElse(false);
-        final JsonPointer eventPath = JsonPointer.of(adaptable.getPayload().getPath().toString());
-
-        if (!isPayloadObject) {
-            final boolean isPathAccessible = isPathWhollyAccessible(eventPath, accessiblePaths);
-            if (!isPathAccessible) {
-                return createEmptyPayloadAdaptable(adaptable);
+        final Payload payload = adaptable.getPayload();
+        final PayloadBuilder payloadBuilder = Payload.newBuilder(payload);
+        boolean changed = false;
+        if (isPayloadFilterable(topicPath)) {
+            final JsonPointer eventPath = eventPath(adaptable);
+            final Optional<JsonValue> value = payload.getValue();
+            if (value.isPresent()) {
+                final JsonValue filteredValue = filterPayloadJson(value.get(), eventPath, access);
+                if (filteredValue != value.get()) {
+                    payloadBuilder.withValue(filteredValue);
+                    changed = true;
+                }
             }
-            return filterExtraFields(adaptable, accessiblePaths);
+            final Optional<Metadata> metadata = payload.getMetadata();
+            if (metadata.isPresent()) {
+                final JsonValue filteredMetadata = filterPayloadJson(metadata.get(), eventPath, access);
+                if (filteredMetadata != metadata.get()) {
+                    payloadBuilder.withMetadata(filteredMetadata.isObject() && !filteredMetadata.asObject().isEmpty()
+                            ? Metadata.newMetadata(filteredMetadata.asObject())
+                            : null);
+                    changed = true;
+                }
+            }
         }
-
-        // An event payload is relative to the event's own path, whereas the accessible paths are
-        // thing-absolute. Both must be expressed in the same frame of reference before filtering,
-        // otherwise a payload below a granted path matches nothing and is wrongly emptied.
-        if (isPathWhollyAccessible(eventPath, accessiblePaths)) {
-            // The event is rooted at or below a granted path: the entire payload is readable.
-            return filterExtraFields(adaptable, accessiblePaths);
+        final Optional<JsonObject> extra = payload.getExtra();
+        if (extra.isPresent()) {
+            final JsonObject filteredExtra = filterThingJson(extra.get(), access);
+            if (filteredExtra != extra.get()) {
+                payloadBuilder.withExtra(filteredExtra);
+                changed = true;
+            }
         }
-        final Set<JsonPointer> payloadRelativePaths = rebaseOnEventPath(eventPath, accessiblePaths);
-        if (payloadRelativePaths.isEmpty()) {
-            return filterExtraFields(createEmptyPayloadAdaptable(adaptable), accessiblePaths);
+        if (!changed) {
+            return adaptable;
         }
-        return filterAdaptablePayload(adaptable, payloadRelativePaths, accessiblePaths, eventPath.isEmpty());
+        return ProtocolFactory.newAdaptableBuilder(adaptable)
+                .withPayload(payloadBuilder.build())
+                .build();
     }
 
     /**
-     * Re-expresses the thing-absolute {@code accessiblePaths} relative to {@code eventPath}, keeping only those
-     * which can occur at all within a payload rooted at {@code eventPath}.
-     *
-     * @param eventPath the path the payload is rooted at.
-     * @param accessiblePaths the thing-absolute accessible paths.
-     * @return the accessible paths relative to {@code eventPath}, empty if none of them lie below it.
+     * Filters thing-rooted JSON, e.g. the extra fields or a whole thing.
      */
-    private static Set<JsonPointer> rebaseOnEventPath(final JsonPointer eventPath,
-            final Set<JsonPointer> accessiblePaths) {
-
-        if (eventPath.isEmpty()) {
-            return new HashSet<>(accessiblePaths);
+    static JsonObject filterThingJson(final JsonObject thingJson, final SubscriberAccess access) {
+        if (access.isUnrestricted()) {
+            return thingJson;
         }
+        if (access.isMalformed()) {
+            return JsonFactory.newObject();
+        }
+        final Set<JsonPointer> keptFields = keptThingFields(access);
+        JsonObject result = thingJson;
+        final PartialAccessPathResolver.AccessiblePathsResult partial = access.getPartial();
+        if (!partial.hasUnrestrictedAccess()) {
+            final Set<JsonPointer> readablePaths = new HashSet<>(keptFields);
+            readablePaths.addAll(partial.getAccessiblePaths());
+            result = JsonPartialAccessFilter.filterJsonByPaths(result, readablePaths);
+        }
+        if (!access.getRevokedPaths().isEmpty()) {
+            final Set<JsonPointer> removedPaths = new HashSet<>(access.getRevokedPaths());
+            access.getRevokedPaths().forEach(path -> removedPaths.add(METADATA_POINTER.append(path)));
+            result = JsonPartialAccessFilter.removePaths(result, removedPaths, keptFields);
+        }
+        return result;
+    }
+
+    /**
+     * @return whether the payload (value and metadata) of signals with this topic is relative to a path of the thing
+     * and must be filtered, i.e. thing events and live thing commands which change the thing.
+     */
+    static boolean isPayloadFilterable(final TopicPath topicPath) {
+        if (!TopicPath.Group.THINGS.equals(topicPath.getGroup())) {
+            return false;
+        }
+        if (TopicPath.Criterion.EVENTS.equals(topicPath.getCriterion())) {
+            return true;
+        }
+        return TopicPath.Channel.LIVE.equals(topicPath.getChannel()) &&
+                TopicPath.Criterion.COMMANDS.equals(topicPath.getCriterion()) &&
+                topicPath.getAction().filter(PAYLOAD_CHANGING_ACTIONS::contains).isPresent();
+    }
+
+    /**
+     * @return whether the topic is the one of a live thing command, which must never be altered in transit.
+     */
+    static boolean isLiveCommand(final TopicPath topicPath) {
+        return TopicPath.Channel.LIVE.equals(topicPath.getChannel()) &&
+                TopicPath.Criterion.COMMANDS.equals(topicPath.getCriterion());
+    }
+
+    /**
+     * @return whether filtering changed the payload value or metadata, not counting the extra fields.
+     */
+    static boolean isPayloadChanged(final Adaptable original, final Adaptable filtered) {
+        final Payload originalPayload = original.getPayload();
+        final Payload filteredPayload = filtered.getPayload();
+        return !originalPayload.getValue().equals(filteredPayload.getValue()) ||
+                !originalPayload.getMetadata().equals(filteredPayload.getMetadata());
+    }
+
+    /**
+     * @return the thing fields a subscriber with at least partial READ access always gets.
+     */
+    static Set<JsonPointer> keptThingFields(final SubscriberAccess access) {
+        return access.isRootRevoked() ? THING_ID_FIELD : ALWAYS_INCLUDED_THING_FIELDS;
+    }
+
+    static JsonPointer eventPath(final Adaptable adaptable) {
+        return JsonPointer.of(adaptable.getPayload().getPath().toString());
+    }
+
+    static boolean isPathReadable(final JsonPointer eventPath, final SubscriberAccess access) {
+        if (access.isMalformed() ||
+                access.getRevokedPaths().stream().anyMatch(revoked -> isDescendantOrSelf(eventPath, revoked))) {
+            return false;
+        }
+        final PartialAccessPathResolver.AccessiblePathsResult partial = access.getPartial();
+        if (partial.hasUnrestrictedAccess()) {
+            return true;
+        }
+        return partial.shouldFilter() && partial.getAccessiblePaths().stream()
+                .anyMatch(path -> isDescendantOrSelf(eventPath, path) || isDescendantOrSelf(path, eventPath));
+    }
+
+    /**
+     * Filters a payload value or payload metadata, both relative to {@code eventPath}.
+     *
+     * @return the filtered JSON, the same instance if nothing was removed.
+     */
+    private static JsonValue filterPayloadJson(final JsonValue json, final JsonPointer eventPath,
+            final SubscriberAccess access) {
+
+        if (access.isMalformed() || !isPathReadable(eventPath, access)) {
+            return JsonFactory.newObject();
+        }
+        final PartialAccessPathResolver.AccessiblePathsResult partial = access.getPartial();
+        final boolean wholePathAccessible = partial.hasUnrestrictedAccess() ||
+                partial.getAccessiblePaths().stream().anyMatch(path -> isDescendantOrSelf(eventPath, path));
+        if (!json.isObject() || json.isNull()) {
+            final boolean revokedBelow = access.getRevokedPaths().stream()
+                    .anyMatch(revoked -> isDescendantOrSelf(revoked, eventPath));
+            return wholePathAccessible && !revokedBelow ? json : JsonFactory.newObject();
+        }
+        final Set<JsonPointer> keptFields = eventPath.isEmpty() ? keptThingFields(access) : Set.of();
+        JsonObject result = json.asObject();
+        if (!wholePathAccessible) {
+            final Set<JsonPointer> readablePaths = rebaseOnEventPath(eventPath, partial.getAccessiblePaths());
+            if (readablePaths.isEmpty()) {
+                return JsonFactory.newObject();
+            }
+            readablePaths.addAll(keptFields);
+            result = JsonPartialAccessFilter.filterJsonByPaths(result, readablePaths);
+        }
+        return JsonPartialAccessFilter.removePaths(result, rebaseOnEventPath(eventPath, access.getRevokedPaths()),
+                keptFields);
+    }
+
+    /**
+     * Re-expresses the thing-absolute {@code paths} relative to {@code eventPath}, keeping only those which can occur
+     * at all within a payload rooted at {@code eventPath}.
+     */
+    private static Set<JsonPointer> rebaseOnEventPath(final JsonPointer eventPath, final Set<JsonPointer> paths) {
         final Set<JsonPointer> rebased = new HashSet<>();
-        for (final JsonPointer accessiblePath : accessiblePaths) {
-            if (isDescendantOrSelf(accessiblePath, eventPath)) {
-                rebased.add(accessiblePath.getSubPointer(eventPath.getLevelCount()).orElse(JsonPointer.empty()));
+        for (final JsonPointer path : paths) {
+            if (isDescendantOrSelf(path, eventPath)) {
+                rebased.add(path.getSubPointer(eventPath.getLevelCount()).orElse(JsonPointer.empty()));
             }
         }
         return rebased;
     }
 
     /**
-     * The single pointer-prefix predicate for this class: both the "is the payload wholly readable" check and the
-     * rebasing of accessible paths are expressed through it, so they cannot drift apart.
-     *
      * @return whether {@code path} is {@code base} itself or lies below it. Compared level by level rather than by
      * string prefix, so {@code /features/foo} is not treated as lying below {@code /features/fo}. An empty
      * {@code base} (the thing root) is an ancestor of everything.
@@ -215,105 +250,6 @@ public final class AdaptablePartialAccessFilter {
             }
         }
         return true;
-    }
-
-    private static Adaptable createEmptyPayloadAdaptable(final Adaptable adaptable) {
-        return ProtocolFactory.newAdaptableBuilder(adaptable)
-                .withPayload(Payload.newBuilder(adaptable.getPayload())
-                        .withValue(JsonFactory.newObject())
-                        .build())
-                .build();
-    }
-
-    /**
-     * @param payloadRelativePaths accessible paths expressed relative to the event path, for filtering the value.
-     * @param accessiblePaths thing-absolute accessible paths, for filtering the (thing-rooted) extra fields.
-     * @param payloadIsThingRooted whether the payload is the thing itself, i.e. the event path is {@code "/"}.
-     */
-    private static Adaptable filterAdaptablePayload(
-            final Adaptable adaptable,
-            final Set<JsonPointer> payloadRelativePaths,
-            final Set<JsonPointer> accessiblePaths,
-            final boolean payloadIsThingRooted) {
-
-        final JsonObject originalPayload = adaptable.getPayload().getValue()
-                .filter(JsonValue::isObject)
-                .map(JsonValue::asObject)
-                .orElse(JsonFactory.newObject());
-
-        // ThingCreated/ThingModified/ThingMerged events at path "/" carry the full thing JSON here;
-        // stripping the identity/audit fields would make the protocol message hard to use for the
-        // partial reader. The allowlist is thing-rooted, so it must only be applied to a thing-rooted
-        // payload — against a payload rooted deeper it would match same-named nested fields instead.
-        final JsonObject filteredPayload = payloadIsThingRooted
-                ? filterJsonByPathsWithAllowlist(originalPayload, payloadRelativePaths)
-                : JsonPartialAccessFilter.filterJsonByPaths(originalPayload, payloadRelativePaths);
-
-        final PayloadBuilder payloadBuilder = Payload.newBuilder(adaptable.getPayload())
-                .withValue(filteredPayload);
-        filterExtraFieldsIntoBuilder(adaptable, accessiblePaths, payloadBuilder);
-
-        return ProtocolFactory.newAdaptableBuilder(adaptable)
-                .withPayload(payloadBuilder.build())
-                .build();
-    }
-
-    /**
-     * Filters {@code jsonObject} by {@code accessiblePaths}, with the thing-identity/audit
-     * allowlist ({@link #ALWAYS_INCLUDED_THING_FIELDS}) implicitly added. Used for both the
-     * payload value of full-thing events and for user-requested extra fields.
-     */
-    private static JsonObject filterJsonByPathsWithAllowlist(final JsonObject jsonObject,
-            final Set<JsonPointer> accessiblePaths) {
-        final Set<JsonPointer> pathsWithAllowlist = new HashSet<>(accessiblePaths);
-        pathsWithAllowlist.addAll(ALWAYS_INCLUDED_THING_FIELDS);
-        return JsonPartialAccessFilter.filterJsonByPaths(jsonObject, pathsWithAllowlist);
-    }
-
-
-    private static Adaptable filterExtraFields(
-            final Adaptable adaptable,
-            final Set<JsonPointer> accessiblePaths) {
-
-        final PayloadBuilder payloadBuilder = Payload.newBuilder(adaptable.getPayload());
-        filterExtraFieldsIntoBuilder(adaptable, accessiblePaths, payloadBuilder);
-
-        return ProtocolFactory.newAdaptableBuilder(adaptable)
-                .withPayload(payloadBuilder.build())
-                .build();
-    }
-
-
-    private static void filterExtraFieldsIntoBuilder(
-            final Adaptable adaptable,
-            final Set<JsonPointer> accessiblePaths,
-            final PayloadBuilder payloadBuilder) {
-
-        final Optional<JsonObject> originalExtra = adaptable.getPayload().getExtra();
-        if (originalExtra.isEmpty()) {
-            return;
-        }
-
-        // The user explicitly opted into receiving these extra fields via the extraFields/fields
-        // parameter; identity and audit fields the subscriber would otherwise lose to per-path
-        // filtering must still come through (matches the SSE Thing-JSON contract and pre-3.9.0
-        // behaviour for WebSocket extras).
-        final JsonObject filteredExtra = filterJsonByPathsWithAllowlist(originalExtra.get(), accessiblePaths);
-
-        // Always write the filtered result back, including when it is empty: the builder was seeded from
-        // the original payload and therefore still carries the *unfiltered* extra, which would otherwise
-        // be handed to the partial reader in full exactly when none of it is accessible.
-        payloadBuilder.withExtra(filteredExtra);
-    }
-
-    /**
-     * @return whether {@code eventPath} is itself granted or lies below a granted path, in which case everything
-     * at that path is readable and no filtering of the payload value is required.
-     */
-    private static boolean isPathWhollyAccessible(final JsonPointer eventPath,
-            final Set<JsonPointer> accessiblePaths) {
-
-        return accessiblePaths.stream().anyMatch(accessiblePath -> isDescendantOrSelf(eventPath, accessiblePath));
     }
 
 }

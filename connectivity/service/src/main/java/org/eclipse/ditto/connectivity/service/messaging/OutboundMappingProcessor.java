@@ -28,7 +28,6 @@ import org.apache.pekko.actor.ActorSystem;
 import org.eclipse.ditto.base.model.acks.AcknowledgementLabel;
 import org.eclipse.ditto.base.model.acks.AcknowledgementRequest;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
-import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.base.model.signals.Signal;
@@ -48,9 +47,8 @@ import org.eclipse.ditto.connectivity.service.mapping.MessageMapperRegistry;
 import org.eclipse.ditto.connectivity.service.messaging.mappingoutcome.MappingOutcome;
 import org.eclipse.ditto.base.model.auth.AuthorizationContext;
 import org.eclipse.ditto.internal.utils.pekko.logging.ThreadSafeDittoLoggingAdapter;
-import org.eclipse.ditto.internal.utils.protocol.AdaptablePartialAccessFilter;
-import org.eclipse.ditto.internal.utils.protocol.PartialAccessPathResolver;
-import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.internal.utils.protocol.PartialAccessSignalFilter;
+import org.eclipse.ditto.internal.utils.protocol.ReadableSignalView;
 import org.eclipse.ditto.protocol.Adaptable;
 import org.eclipse.ditto.protocol.ProtocolFactory;
 import org.eclipse.ditto.protocol.TopicPath;
@@ -164,6 +162,18 @@ public final class OutboundMappingProcessor extends AbstractMappingProcessor<Out
      */
     @Override
     List<MappingOutcome<OutboundSignal.Mapped>> process(final OutboundSignal outboundSignal) {
+        return process(outboundSignal, null);
+    }
+
+    /**
+     * Like {@link #process(OutboundSignal)}, for a signal whose view for its only target is already computed.
+     *
+     * @param outboundSignal the outboundSignal to be processed.
+     * @param readableView the view of the signal for its only target, or {@code null} to compute it per target.
+     * @return the list of mapping outcomes.
+     */
+    List<MappingOutcome<OutboundSignal.Mapped>> process(final OutboundSignal outboundSignal,
+            @Nullable final ReadableSignalView readableView) {
         // DIVERSION FLOW:
         //  1. Check if diversion is enabled
         //  2. Check if response is already diverted
@@ -232,22 +242,18 @@ public final class OutboundMappingProcessor extends AbstractMappingProcessor<Out
                             e.getKey()))
                     .toList();
         }
-        return processMappableSignals(outboundSignal, mappableSignals);
+        return processMappableSignals(outboundSignal, mappableSignals, readableView);
     }
 
     private List<MappingOutcome<OutboundSignal.Mapped>> processMappableSignals(
             final OutboundSignal outboundSignal,
-            final List<OutboundSignal.Mappable> mappableSignals
+            final List<OutboundSignal.Mappable> mappableSignals,
+            @Nullable final ReadableSignalView readableView
     ) {
         final var outboundSignalSource = outboundSignal.getSource();
         final var dittoHeaders = outboundSignalSource.getDittoHeaders();
-        final String partialAccessPathsHeader =
-                dittoHeaders.get(DittoHeaderDefinition.PARTIAL_ACCESS_PATHS.getKey());
-        final Map<String, List<JsonPointer>> partialAccessPaths =
-                PartialAccessPathResolver.parsePartialAccessPathsAsMap(partialAccessPathsHeader);
-
         final var mappingTimer = MappingTimer.outbound(connectionId, connectionType, dittoHeaders);
-        final boolean hasPartialAccessPaths = partialAccessPathsHeader != null && !partialAccessPathsHeader.isEmpty();
+        final boolean hasAccessRestrictions = PartialAccessSignalFilter.hasAccessRestrictions(dittoHeaders);
         final Map<PayloadMapping, List<MessageMapper>> mappersByPayloadMapping = new LinkedHashMap<>();
         for (final OutboundSignal.Mappable mappableSignal : mappableSignals) {
             mappersByPayloadMapping.computeIfAbsent(mappableSignal.getPayloadMapping(), this::getMappers);
@@ -262,16 +268,27 @@ public final class OutboundMappingProcessor extends AbstractMappingProcessor<Out
                     logger.withCorrelationId(source)
                             .debug("Resolved mappers for message {} to targets {}: {}", source, targets, mappers);
 
+                    @Nullable final ReadableSignalView viewOfOnlyTarget = targets.size() == 1 ? readableView : null;
                     final TargetMappingStrategy mappingStrategy;
-                    if (hasPartialAccessPaths && !targets.isEmpty()) {
+                    if (hasAccessRestrictions && isAnyTargetRestricted(source, targets, viewOfOnlyTarget)) {
                         mappingStrategy = new PartialAccessTargetMapping(mappableSignal, source, targets, outboundSignal,
-                                mappingTimer, mappers, partialAccessPathsHeader, partialAccessPaths);
+                                mappingTimer, mappers);
                     } else {
                         mappingStrategy = new DefaultTargetMapping(mappableSignal, source, outboundSignal, mappingTimer, mappers);
                     }
                     return mappingStrategy.map();
                 })
                 .toList());
+    }
+
+    private static boolean isAnyTargetRestricted(final Signal<?> source, final List<Target> targets,
+            @Nullable final ReadableSignalView viewOfOnlyTarget) {
+        if (viewOfOnlyTarget != null) {
+            return viewOfOnlyTarget.isRestricted();
+        }
+        return targets.stream()
+                .map(target -> PartialAccessSignalFilter.viewFor(source, target.getAuthorizationContext()))
+                .anyMatch(view -> view.map(ReadableSignalView::isRestricted).orElse(true));
     }
 
     private Stream<MappingOutcome<OutboundSignal.Mapped>> processWithoutPartialAccessPaths(
@@ -310,58 +327,42 @@ public final class OutboundMappingProcessor extends AbstractMappingProcessor<Out
             final List<Target> targets,
             final OutboundSignal outboundSignal,
             final MappingTimer mappingTimer,
-            final List<MessageMapper> mappers,
-            @Nullable final String partialAccessPathsHeader,
-            final Map<String, List<JsonPointer>> partialAccessPaths) {
-        final DittoHeaders dittoHeaders = source.getDittoHeaders();
-        
+            final List<MessageMapper> mappers) {
+
         return targets.stream()
                 .flatMap(target -> {
                     final AuthorizationContext targetAuthContext = target.getAuthorizationContext();
-                    Adaptable baseAdaptable = createBaseAdaptable(source, targetAuthContext, outboundSignal, mappingTimer);
-                    
-                    if (partialAccessPathsHeader != null &&
-                            !baseAdaptable.getDittoHeaders().containsKey(DittoHeaderDefinition.PARTIAL_ACCESS_PATHS.getKey())) {
-                        baseAdaptable = baseAdaptable.setDittoHeaders(
-                                baseAdaptable.getDittoHeaders().toBuilder()
-                                        .putHeader(DittoHeaderDefinition.PARTIAL_ACCESS_PATHS.getKey(), partialAccessPathsHeader)
-                                        .build());
+                    // the view of the actor is not reused: its adaptable is not created by the connection's adapter
+                    final Adaptable targetAdaptable = toTargetAdaptable(source, targetAuthContext, mappingTimer);
+                    final Optional<ReadableSignalView> view = mappingTimer.protocol(() ->
+                            PartialAccessSignalFilter.viewFor(source, targetAdaptable, targetAuthContext));
+                    if (view.isEmpty()) {
+                        logger.withCorrelationId(source)
+                                .debug("Skipping signal for target {} - it may read nothing of it",
+                                        target.getAddress());
+                        return Stream.empty();
                     }
-                    
-                    final Adaptable effective = AdaptablePartialAccessFilter.filterAdaptableForPartialAccess(
-                            baseAdaptable, targetAuthContext, partialAccessPaths);
-
-                    final TopicPath topicPath = effective.getTopicPath();
-                    final boolean isThingEvent = TopicPath.Group.THINGS.equals(topicPath.getGroup()) &&
-                            TopicPath.Criterion.EVENTS.equals(topicPath.getCriterion());
-
-                    if (isThingEvent) {
-                        final boolean hasPartialAccessHeader = partialAccessPathsHeader != null &&
-                                !partialAccessPathsHeader.isEmpty();
-                        
-                        if (hasPartialAccessHeader) {
-                            final PartialAccessPathResolver.AccessiblePathsResult targetPathsResult =
-                                    PartialAccessPathResolver.resolveAccessiblePaths(
-                                            partialAccessPaths, targetAuthContext, dittoHeaders.getReadGrantedSubjects());
-                            
-                            final boolean filteringOccurred = !targetPathsResult.hasUnrestrictedAccess() &&
-                                    targetPathsResult.shouldFilter();
-                            final boolean filteredEmpty = isEmptyPayloadForDrop(effective);
-                            final boolean originalEmpty = isEmptyPayloadForDrop(baseAdaptable);
-
-                            if (filteringOccurred && filteredEmpty && !originalEmpty) {
-                                logger.withCorrelationId(source)
-                                        .debug("Skipping event for target {} - filtered payload is empty (no access)",
-                                                target.getAddress());
-                                return Stream.empty();
-                            }
-                        }
+                    final Adaptable readableAdaptable;
+                    if (view.get().isRestricted()) {
+                        readableAdaptable =
+                                readableAdaptable(view.get(), view.get().getAdaptable(), outboundSignal, source);
+                    } else {
+                        readableAdaptable = withExtraAndCorrelationId(targetAdaptable, outboundSignal, source);
                     }
-                    
-                    return processTargetMapping(effective, target, source, mappableSignal, mappers, mappingTimer);
+                    // header mappings and mapper conditions must resolve placeholders from the readable signal
+                    return processTargetMapping(readableAdaptable, target, view.get().getSignal(), mappableSignal,
+                            mappers, mappingTimer);
                 });
     }
-    
+
+    private static Adaptable readableAdaptable(final ReadableSignalView view, final Adaptable adaptable,
+            final OutboundSignal outboundSignal, final Signal<?> source) {
+        final Adaptable adaptableWithExtra = outboundSignal.getExtra()
+                .map(extra -> ProtocolFactory.setExtra(adaptable, view.filterThingJson(extra)))
+                .orElse(adaptable);
+        return setInternalCorrelationIdToAdaptable(adaptableWithExtra, source);
+    }
+
     private interface TargetMappingStrategy {
         Stream<MappingOutcome<OutboundSignal.Mapped>> map();
     }
@@ -398,31 +399,24 @@ public final class OutboundMappingProcessor extends AbstractMappingProcessor<Out
         private final OutboundSignal outboundSignal;
         private final MappingTimer mappingTimer;
         private final List<MessageMapper> mappers;
-        @Nullable private final String partialAccessPathsHeader;
-        private final Map<String, List<JsonPointer>> partialAccessPaths;
 
         private PartialAccessTargetMapping(final OutboundSignal.Mappable mappableSignal,
                 final Signal<?> source,
                 final List<Target> targets,
                 final OutboundSignal outboundSignal,
                 final MappingTimer mappingTimer,
-                final List<MessageMapper> mappers,
-                @Nullable final String partialAccessPathsHeader,
-                final Map<String, List<JsonPointer>> partialAccessPaths) {
+                final List<MessageMapper> mappers) {
             this.mappableSignal = mappableSignal;
             this.source = source;
             this.targets = targets;
             this.outboundSignal = outboundSignal;
             this.mappingTimer = mappingTimer;
             this.mappers = mappers;
-            this.partialAccessPathsHeader = partialAccessPathsHeader;
-            this.partialAccessPaths = partialAccessPaths;
         }
 
         @Override
         public Stream<MappingOutcome<OutboundSignal.Mapped>> map() {
-            return processWithPartialAccessPaths(mappableSignal, source, targets, outboundSignal, mappingTimer, mappers,
-                    partialAccessPathsHeader, partialAccessPaths);
+            return processWithPartialAccessPaths(mappableSignal, source, targets, outboundSignal, mappingTimer, mappers);
         }
     }
 
@@ -455,15 +449,6 @@ public final class OutboundMappingProcessor extends AbstractMappingProcessor<Out
     }
 
 
-    private static boolean isEmptyPayloadForDrop(final Adaptable adaptable) {
-        final var valueOpt = adaptable.getPayload().getValue();
-        final boolean emptyObject = valueOpt
-                .map(v -> v.isObject() && !v.isNull() && v.asObject().isEmpty())
-                .orElse(true);
-        final boolean emptyPrimitive = valueOpt.isEmpty();
-        return emptyObject || emptyPrimitive;
-    }
-
     /**
      * Creates a base Adaptable with extra fields and correlation ID set.
      * This method centralizes the common logic for creating Adaptables to avoid duplication.
@@ -473,12 +458,22 @@ public final class OutboundMappingProcessor extends AbstractMappingProcessor<Out
             @Nullable final AuthorizationContext targetAuthContext,
             final OutboundSignal outboundSignal,
             final MappingTimer mappingTimer) {
+        return withExtraAndCorrelationId(toTargetAdaptable(source, targetAuthContext, mappingTimer), outboundSignal,
+                source);
+    }
+
+    private Adaptable toTargetAdaptable(final Signal<?> source,
+            @Nullable final AuthorizationContext targetAuthContext,
+            final MappingTimer mappingTimer) {
         final TopicPath.Channel channel = ProtocolAdapter.determineChannel(source);
-        final Adaptable adaptableForTarget = mappingTimer.protocol(() ->
-                protocolAdapter.toAdaptable(source, channel, targetAuthContext));
+        return mappingTimer.protocol(() -> protocolAdapter.toAdaptable(source, channel, targetAuthContext));
+    }
+
+    private static Adaptable withExtraAndCorrelationId(final Adaptable adaptable, final OutboundSignal outboundSignal,
+            final Signal<?> source) {
         final Adaptable adaptableWithExtra = outboundSignal.getExtra()
-                .map(extra -> ProtocolFactory.setExtra(adaptableForTarget, extra))
-                .orElse(adaptableForTarget);
+                .map(extra -> ProtocolFactory.setExtra(adaptable, extra))
+                .orElse(adaptable);
         return setInternalCorrelationIdToAdaptable(adaptableWithExtra, source);
     }
 

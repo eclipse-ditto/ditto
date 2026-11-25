@@ -19,13 +19,16 @@ import java.util.function.Function;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.base.model.entity.id.EntityId;
+import org.eclipse.ditto.base.model.entity.id.WithEntityId;
 import org.eclipse.ditto.base.model.entity.type.EntityType;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
+import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.model.signals.commands.ErrorResponse;
 import org.eclipse.ditto.edge.service.headers.DittoHeadersValidator;
+import org.eclipse.ditto.policies.model.PolicyConstants;
 import org.eclipse.ditto.policies.model.PolicyException;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.policies.model.signals.commands.PolicyErrorResponse;
@@ -53,9 +56,31 @@ final class DittoRuntimeExceptionToErrorResponseFunction
     public ErrorResponse<?> apply(final DittoRuntimeException exception, @Nullable final TopicPath topicPath) {
         final ErrorResponse<?> result;
         if (isPolicyException(exception, topicPath)) {
-            result = getPolicyErrorResponse(exception, topicPath);
+            result = getPolicyErrorResponse(exception, getEntityId(exception, topicPath).orElse(null));
         } else {
-            result = getThingErrorResponse(exception, topicPath);
+            result = getThingErrorResponse(exception, getEntityId(exception, topicPath).orElse(null));
+        }
+        return result;
+    }
+
+    /**
+     * Converts the exception to an error response matching the entity type of the signal the exception was thrown
+     * for.
+     *
+     * @param exception the exception to convert.
+     * @param rejectedSignal the signal which was rejected because of the exception.
+     * @return the error response.
+     */
+    ErrorResponse<?> applyForRejectedSignal(final DittoRuntimeException exception,
+            final Signal<?> rejectedSignal) {
+        final ErrorResponse<?> result;
+        @Nullable final var entityId = WithEntityId.getEntityId(rejectedSignal).orElse(null);
+        if (null == entityId) {
+            result = apply(exception, null);
+        } else if (isPolicyExceptionByErrorCode(exception.getErrorCode()) || isPolicyEntityId(entityId)) {
+            result = getPolicyErrorResponse(exception, entityId);
+        } else {
+            result = getThingErrorResponse(exception, entityId);
         }
         return result;
     }
@@ -74,10 +99,14 @@ final class DittoRuntimeExceptionToErrorResponseFunction
         return null != topicPath && topicPath.isGroup(TopicPath.Group.POLICIES);
     }
 
-    private PolicyErrorResponse getPolicyErrorResponse(final DittoRuntimeException exception,
-            @Nullable final TopicPath topicPath) {
+    private static boolean isPolicyEntityId(final EntityId entityId) {
+        return PolicyConstants.ENTITY_TYPE.equals(entityId.getEntityType());
+    }
 
-        return getEntityId(exception, topicPath)
+    private PolicyErrorResponse getPolicyErrorResponse(final DittoRuntimeException exception,
+            @Nullable final EntityId entityId) {
+
+        return Optional.ofNullable(entityId)
                 .flatMap(constructEntityIdSafely(PolicyId::of))
                 .map(policyId -> PolicyErrorResponse.of(policyId, exception,
                         dittoHeadersValidator.truncate(exception.getDittoHeaders())))
@@ -89,9 +118,9 @@ final class DittoRuntimeExceptionToErrorResponseFunction
     }
 
     private ThingErrorResponse getThingErrorResponse(final DittoRuntimeException exception,
-            @Nullable final TopicPath topicPath) {
+            @Nullable final EntityId entityId) {
 
-        return getEntityId(exception, topicPath)
+        return Optional.ofNullable(entityId)
                 .flatMap(constructEntityIdSafely(ThingId::of))
                 .map(thingId -> ThingErrorResponse.of(thingId, exception,
                         dittoHeadersValidator.truncate(exception.getDittoHeaders())))

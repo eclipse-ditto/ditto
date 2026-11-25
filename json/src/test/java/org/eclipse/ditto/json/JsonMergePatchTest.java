@@ -558,5 +558,60 @@ public final class JsonMergePatchTest {
         Assertions.assertThat(mergedObject).isEqualTo(expectedObject);
     }
 
+    @Test
+    public void isDeletionByRegexForBothDelimitersWithNullValue() {
+        assertThat(JsonMergePatch.isDeletionByRegex(JsonKey.of("{{ ~2023-.*~ }}"), JsonValue.nullLiteral()))
+                .isTrue();
+        assertThat(JsonMergePatch.isDeletionByRegex(JsonKey.of("{{ /2023-.*/ }}"), JsonValue.nullLiteral()))
+                .isTrue();
+        assertThat(JsonMergePatch.isDeletionByRegex(JsonKey.of("{{~.*~}}"), JsonValue.nullLiteral())).isTrue();
+        assertThat(JsonMergePatch.isDeletionByRegex(JsonKey.of("{{   ~a~   }}"), JsonValue.nullLiteral())).isTrue();
+        assertThat(JsonMergePatch.isDeletionByRegex(JsonKey.of("{{ ~~ }}"), JsonValue.nullLiteral())).isTrue();
+        assertThat(JsonMergePatch.isDeletionByRegex(JsonKey.of("{{ ~.*~ }}"), JsonFactory.nullObject())).isTrue();
+    }
+
+    @Test
+    public void isNoDeletionByRegexForNonNullValue() {
+        assertThat(JsonMergePatch.isDeletionByRegex(JsonKey.of("{{ ~.*~ }}"), JsonValue.of("x"))).isFalse();
+        assertThat(JsonMergePatch.isDeletionByRegex(JsonKey.of("{{ /.*/ }}"), JsonValue.of(42))).isFalse();
+        assertThat(JsonMergePatch.isDeletionByRegex(JsonKey.of("{{ ~.*~ }}"), JsonObject.empty())).isFalse();
+    }
+
+    @Test
+    public void isNoDeletionByRegexForOtherKeys() {
+        assertThat(JsonMergePatch.isDeletionByRegex(JsonKey.of("firmware"), JsonValue.nullLiteral())).isFalse();
+        assertThat(JsonMergePatch.isDeletionByRegex(JsonKey.of("~firmware~"), JsonValue.nullLiteral())).isFalse();
+        assertThat(JsonMergePatch.isDeletionByRegex(JsonKey.of("{{ thing:id }}"), JsonValue.nullLiteral())).isFalse();
+        assertThat(JsonMergePatch.isDeletionByRegex(JsonKey.of("{{ ~firmware }}"), JsonValue.nullLiteral()))
+                .isFalse();
+        assertThat(JsonMergePatch.isDeletionByRegex(JsonKey.of("{{ ~firmware/ }}"), JsonValue.nullLiteral()))
+                .isFalse();
+        assertThat(JsonMergePatch.isDeletionByRegex(JsonKey.of("{{ ~ }}"), JsonValue.nullLiteral())).isFalse();
+        assertThat(JsonMergePatch.isDeletionByRegex(JsonKey.of("{{}}"), JsonValue.nullLiteral())).isFalse();
+    }
+
+    @Test
+    public void isDeletionByRegexWithNullArguments() {
+        Assertions.assertThatNullPointerException()
+                .isThrownBy(() -> JsonMergePatch.isDeletionByRegex(null, JsonValue.nullLiteral()));
+        Assertions.assertThatNullPointerException()
+                .isThrownBy(() -> JsonMergePatch.isDeletionByRegex(JsonKey.of("{{ ~.*~ }}"), null));
+    }
+
+    @Test
+    public void singleDelimiterKeyWithNullValueIsNoRegexDeletion() {
+        final JsonObject originalObject = JsonFactory.newObjectBuilder()
+                .set("a", 1)
+                .set("b", 2)
+                .build();
+        final JsonObject objectToPatch = JsonFactory.newObjectBuilder()
+                .set("{{ ~ }}", JsonValue.nullLiteral())
+                .set("{{ / }}", JsonValue.nullLiteral())
+                .build();
+
+        final JsonValue mergedObject = JsonMergePatch.of(objectToPatch).applyOn(originalObject);
+
+        Assertions.assertThat(mergedObject).isEqualTo(originalObject);
+    }
 
 }

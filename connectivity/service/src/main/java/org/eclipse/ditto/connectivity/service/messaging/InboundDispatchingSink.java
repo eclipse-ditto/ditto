@@ -99,7 +99,6 @@ import org.eclipse.ditto.protocol.adapter.ProtocolAdapter;
 import org.eclipse.ditto.protocol.mappingstrategies.IllegalAdaptableException;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.commands.ThingCommand;
-import org.eclipse.ditto.things.model.signals.commands.ThingErrorResponse;
 import org.eclipse.ditto.thingsearch.model.signals.commands.WithSubscriptionId;
 import org.eclipse.ditto.thingsearch.model.signals.commands.subscription.CreateSubscription;
 
@@ -529,7 +528,8 @@ public final class InboundDispatchingSink
                                     sender.tell(headerInvalidException, ActorRef.noSender());
                                     // publish the error response
                                     outboundMessageMappingProcessorActor.tell(
-                                            ThingErrorResponse.of(headerInvalidException),
+                                            toErrorResponseFunction.applyForRejectedSignal(
+                                                    headerInvalidException, baseSignal),
                                             ActorRef.noSender());
                                     return Stream.empty();
                                 }))

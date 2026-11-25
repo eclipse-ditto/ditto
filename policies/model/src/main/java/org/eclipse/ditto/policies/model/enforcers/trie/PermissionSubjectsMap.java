@@ -17,9 +17,7 @@ import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 import java.util.AbstractMap;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -75,60 +73,32 @@ final class PermissionSubjectsMap extends AbstractMap<String, Map<String, Intege
     }
 
     /**
-     * If <em>some</em> of the given permissions are related to some of the given subject IDs, then return the maximum
-     * weight of related permission-subject pairs among the given. Mathematically, intersect this relation with the
-     * Cartesian product of {@code permissions} and {@code subjectIds}, then return the maximum weight in the resulting
-     * relation.
+     * If the given permission is related to some of the given subject IDs, then return the maximum weight of the
+     * related permission-subject pairs among the given subject IDs; otherwise return {@code Optional.empty()}.
      *
      * @param subjectIds The set of subject IDs to check.
-     * @param permissions The set of permissions to check.
-     * @return Either the maximum weight of given subject IDs related to the given permissions or
+     * @param permission The permission to check.
+     * @return Either the maximum weight of given subject IDs related to the given permission or
      * {@code Optional.empty()}.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    Optional<Integer> getMaxWeightForAllPermissions(final Collection<String> subjectIds,
-            final Collection<String> permissions) {
-
+    Optional<Integer> getMaxWeight(final Collection<String> subjectIds, final String permission) {
         validateSubjectIds(subjectIds);
-        validatePermissions(permissions);
+        validatePermissions(permission);
 
-        return permissions.stream()
-                .flatMap(permission -> {
-                    final Map<String, Integer> permittedSubjects = getOrDefault(permission, Collections.emptyMap());
-                    return intersect(subjectIds, permittedSubjects.keySet()).map(permittedSubjects::get);
-                })
-                .max(Comparator.naturalOrder());
-    }
-
-    /**
-     * If <em>all</em>of the given permissions are related to some of the given subject IDs, then return the maximum
-     * weight of the related subject IDs among the given subject IDs; otherwise return {@code Optional.empty()}.
-     *
-     * @param subjectIds The set of subject IDs to check.
-     * @param permissions The set of permissions to check.
-     * @return Either the maximum weight of given subject IDs related to the given permissions, or
-     * {@code Optional.empty()}.
-     * @throws NullPointerException if any argument is {@code null}.
-     */
-    Optional<Integer> getMaxNonemptyWeightForAllPermissions(final Collection<String> subjectIds,
-            final Collection<String> permissions) {
-
-        validateSubjectIds(subjectIds);
-        validatePermissions(permissions);
-
-        final List<Optional<Integer>> permissionWeights = permissions.stream()
-                .map(permission -> {
-                    final Map<String, Integer> permittedSubjects = getOrDefault(permission, Collections.emptyMap());
-                    return intersect(subjectIds, permittedSubjects.keySet())
-                            .map(permittedSubjects::get)
-                            .max(Comparator.naturalOrder());
-                })
-                .collect(Collectors.toList());
-        if (permissionWeights.stream().anyMatch(maybeWeight -> !maybeWeight.isPresent())) {
+        final Map<String, Integer> relatedSubjects = data.get(permission);
+        if (null == relatedSubjects || relatedSubjects.isEmpty()) {
             return Optional.empty();
-        } else {
-            return permissionWeights.stream().map(Optional::get).max(Comparator.naturalOrder());
         }
+
+        Integer maxWeight = null;
+        for (final String subjectId : subjectIds) {
+            final Integer weight = relatedSubjects.get(subjectId);
+            if (null != weight && (null == maxWeight || weight > maxWeight)) {
+                maxWeight = weight;
+            }
+        }
+        return Optional.ofNullable(maxWeight);
     }
 
     /**
@@ -159,7 +129,11 @@ final class PermissionSubjectsMap extends AbstractMap<String, Map<String, Intege
     Map<String, Integer> getSubjectIntersect(final Set<String> permissions) {
         validatePermissions(permissions);
 
-        final Stream<Map<String, Integer>> subjectsOfPermissions = intersect(keySet(), permissions).map(this::get);
+        if (!data.keySet().containsAll(permissions)) {
+            // a permission which is not related to any subject leaves no subject related to all permissions
+            return Collections.emptyMap();
+        }
+        final Stream<Map<String, Integer>> subjectsOfPermissions = permissions.stream().map(data::get);
 
         final Optional<Map<String, Integer>> reduceResult = subjectsOfPermissions.reduce((map1, map2) ->
                 intersect(map1.keySet(), map2.keySet())

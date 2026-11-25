@@ -14,7 +14,10 @@ package org.eclipse.ditto.policies.model.enforcers.trie;
 
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
+import java.util.Collection;
 import java.util.Collections;
+import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
 import org.eclipse.ditto.base.model.auth.AuthorizationContext;
@@ -133,15 +136,63 @@ public final class TrieBasedPolicyEnforcer implements Enforcer {
      * bottomUpGrantTrie} to detect whether any permission is <em>granted</em> on a sub-resource. If the given resource
      * is not mentioned in the policy, then its grants/revokes are inherited from a super-resource, and we use {@code
      * inheritedTrie} to locate the inherited grants/revokes.
+     * <p>
+     * {@code bottomUpGrantTrie} pushes up the grants of each subject on its own. For an authorization context with
+     * several subjects, the revoke of one subject on a sub-resource therefore does not cancel the grant of another
+     * subject on the same sub-resource. If any subject of the authorization context has a permission revoked on one of
+     * the sub-resources, the resource and its sub-resources in {@code inheritedTrie} are checked one by one instead,
+     * stopping at the first one granting the permission.
      */
     @Override
     public boolean hasPartialPermissions(final ResourceKey resourceKey, final AuthorizationContext authorizationContext,
             final Permissions permissions) {
 
-        final PolicyTrie policyTrie = seekWithFallback(resourceKey, bottomUpGrantTrie, inheritedTrie);
-        final GrantRevokeIndex grantRevokeIndex = policyTrie.getGrantRevokeIndex();
+        final List<String> subjectIds = authorizationContext.getAuthorizationSubjectIds();
+        final Optional<PolicyTrie> bottomUpGrantNode =
+                bottomUpGrantTrie.seekToExactNode(PolicyTrie.getJsonKeyIterator(resourceKey));
+        if (!bottomUpGrantNode.isPresent()) {
+            return inheritedTrie.seekToLeastAncestor(PolicyTrie.getJsonKeyIterator(resourceKey))
+                    .getGrantRevokeIndex()
+                    .hasPermissions(subjectIds, permissions);
+        }
 
-        return grantRevokeIndex.hasPermissions(authorizationContext.getAuthorizationSubjectIds(), permissions);
+        final boolean hasPermissions = bottomUpGrantNode.get().getGrantRevokeIndex()
+                .hasPermissions(subjectIds, permissions);
+        if (!hasPermissions || subjectIds.size() < 2) {
+            return hasPermissions;
+        }
+        return hasPartialPermissionsOfSeveralSubjects(resourceKey, subjectIds, permissions);
+    }
+
+    private boolean hasPartialPermissionsOfSeveralSubjects(final ResourceKey resourceKey,
+            final Collection<String> subjectIds, final Permissions permissions) {
+
+        final PermissionSubjectsMap revokedOnSelfOrDescendants =
+                bottomUpRevokeTrie.seekToLeastAncestor(PolicyTrie.getJsonKeyIterator(resourceKey))
+                        .getGrantRevokeIndex()
+                        .getRevoked();
+        final PolicyTrie inheritedNode = inheritedTrie.seekToLeastAncestor(PolicyTrie.getJsonKeyIterator(resourceKey));
+        for (final String permission : permissions) {
+            if (isRevokedOnAnyDescendant(revokedOnSelfOrDescendants, subjectIds, permission) &&
+                    !inheritedNode.hasPermissionOnSelfOrAnyDescendant(subjectIds, permission)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /*
+     * bottomUpRevokeTrie contains the revokes inherited from super-resources (negative weight), the revokes on the
+     * resource itself (weight 0) and the revokes on its sub-resources (positive weight). Only the latter can cancel the
+     * grant of another subject on the same sub-resource, which bottomUpGrantTrie does not take into account: all other
+     * revokes are compared with the grants by their weight in bottomUpGrantTrie already.
+     */
+    private static boolean isRevokedOnAnyDescendant(final PermissionSubjectsMap revokedOnSelfOrDescendants,
+            final Collection<String> subjectIds, final String permission) {
+
+        return revokedOnSelfOrDescendants.getMaxWeight(subjectIds, permission)
+                .filter(weight -> weight > 0)
+                .isPresent();
     }
 
     @Override

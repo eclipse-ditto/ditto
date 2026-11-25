@@ -25,6 +25,9 @@ import javax.annotation.concurrent.Immutable;
 @Immutable
 final class ImmutableJsonKey implements JsonKey {
 
+    private static final int MAX_CACHED_KEY_LENGTH = 64;
+    private static final ImmutableJsonKey[] KEY_CACHE = new ImmutableJsonKey[4096];
+
     private final String keyValue;
 
     private ImmutableJsonKey(final String theKeyValue) {
@@ -32,10 +35,11 @@ final class ImmutableJsonKey implements JsonKey {
     }
 
     /**
-     * Returns a new JSON Key based on the provided string.
+     * Returns a JSON Key based on the provided string. Instances of short keys are shared, so the returned key may
+     * be the same instance as one returned before for an equal string.
      *
      * @param keyValue the character sequence forming the keyValue's value.
-     * @return a new JSON Key.
+     * @return the JSON Key.
      * @throws NullPointerException if {@code keyValue} is {@code null}.
      * @throws IllegalArgumentException if {@code keyValue} is empty.
      */
@@ -48,7 +52,21 @@ final class ImmutableJsonKey implements JsonKey {
             throw new IllegalArgumentException("The key string must not be empty!");
         }
 
-        return new ImmutableJsonKey(keyValue.toString());
+        final String keyString = keyValue.toString();
+        if (keyString.length() > MAX_CACHED_KEY_LENGTH) {
+            return new ImmutableJsonKey(keyString);
+        }
+        // Keys repeat across all parsed objects of the same kind: share their instances via a small direct-mapped
+        // cache instead of creating one per field. Races are benign, the cached keys are immutable.
+        final int hash = keyString.hashCode();
+        final int slot = (hash ^ (hash >>> 16)) & (KEY_CACHE.length - 1);
+        final ImmutableJsonKey cached = KEY_CACHE[slot];
+        if (null != cached && cached.keyValue.equals(keyString)) {
+            return cached;
+        }
+        final ImmutableJsonKey result = new ImmutableJsonKey(keyString);
+        KEY_CACHE[slot] = result;
+        return result;
     }
 
     @Override
@@ -85,7 +103,7 @@ final class ImmutableJsonKey implements JsonKey {
 
     @Override
     public int hashCode() {
-        return Objects.hash(keyValue);
+        return 31 + keyValue.hashCode(); // = Objects.hash(keyValue), without the varargs array
     }
 
     @Override

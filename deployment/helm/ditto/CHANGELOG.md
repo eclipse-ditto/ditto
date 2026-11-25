@@ -15,7 +15,14 @@ sections: `Added`, `Changed`, `Deprecated`, `Removed`, `Fixed`, `Security`.
 
 ## [Unreleased]
 
-## [4.11.0]
+### Added
+- New `global.featureFlags.hideInaccessibleEntityExistenceEnabled` (default `true`), passed to the things and
+  policies services. When enabled, requesters without any permission on a thing or policy get the same "not found"
+  error for every rejected request, regardless of whether the entity exists. Set it to `false` to restore the
+  previous, resource-specific errors (e.g. `403 things:thing.notmodifiable`) which allow to determine whether an
+  entity exists ([#2596](https://github.com/eclipse-ditto/ditto/pull/2596))
+
+## [4.10.0]
 
 Adds the Helm side of the opt-in PostgreSQL persistence and search backends. Everything PostgreSQL is off by default.
 A deployment on MongoDB renders the same manifests as with the previous chart version, except for the seven new
@@ -43,21 +50,35 @@ service's built-in defaults; it needs no change.
   the things service as `ENFORCEMENT_CREATED_POLICY_ROLLBACK_*`. It configures the bounded retries of the deletion of
   a policy that the things service created for a thing whose creation then failed.
 
-## [4.10.0]
+## [4.9.0]
+
+Bumped Ditto `appVersion` to `3.9.9`.
 
 ### Added
 - New `gateway.config.streaming.maxSessionLag` (default `0s`, disabled), passed to the gateway as
   `GATEWAY_STREAMING_MAX_SESSION_LAG`. When set, a websocket or SSE session whose mailbox delays messages longer
-  than this is closed instead of letting its backlog grow until the gateway runs out of heap.
+  than this is closed instead of letting its backlog grow until the gateway runs out of heap
+  ([#2630](https://github.com/eclipse-ditto/ditto/pull/2630))
+- New `policiesEnforcer.cache.expireAfterWriteJitter` for `things`, `policies` and `connectivity` (default `0.0`,
+  disabled), passed as `DITTO_POLICIES_ENFORCER_CACHE_EXPIRE_AFTER_WRITE_JITTER`. When set to e.g. `0.2`, the
+  `expireAfterWrite` of each loaded policy enforcer is randomly varied by +/-20%, so enforcers loaded at the same time
+  (e.g. after a restart) are no longer all reloaded at the same time every `expireAfterWrite`
+  ([#2650](https://github.com/eclipse-ditto/ditto/pull/2650))
 
-## [4.9.0]
-
-### Added
-- New `global.featureFlags.hideInaccessibleEntityExistenceEnabled` (default `true`), passed to the things and
-  policies services. When enabled, requesters without any permission on a thing or policy get the same "not found"
-  error for every rejected request, regardless of whether the entity exists. Set it to `false` to restore the
-  previous, resource-specific errors (e.g. `403 things:thing.notmodifiable`) which allow to determine whether an
-  entity exists.
+### Security
+- The nginx detection of `Authorization: Bearer ...` requests, which skip nginx Basic auth and are forwarded to the
+  gateway without the `x-ditto-pre-authenticated` header, is anchored to the start of the header (`~^Bearer `).
+  `values.yaml` documents that `global.jwtOnly: false` implicitly enables pre-authentication in the gateway.
+  Together with the gateway fix in Ditto 3.9.9, which only reads the pre-authenticated subject from the header and no
+  longer from a query parameter, this fixes the impersonation of arbitrary subjects by unauthenticated clients in the
+  chart's default configuration (`global.jwtOnly: false`). Part of the fix for the vulnerability
+  [CVE-2026-120753](https://nvd.nist.gov/vuln/detail/CVE-2026-120753) /
+  [GHSA-chwq-wg27-qvfr](https://github.com/eclipse-ditto/ditto/security/advisories/GHSA-chwq-wg27-qvfr)
+- `-XX:-UseBASE64Intrinsics` is added to the default `global.jvmOptions`, mitigating the JDK vulnerability
+  [CVE-2026-114938](https://nvd.nist.gov/vuln/detail/CVE-2026-114938) ("Java4Shell", heap overflow in the Base64
+  decoder intrinsic on x86-64 CPUs with AVX-512 VBMI) of the JDK `25.0.5` shipped in the Ditto `3.9.9` Docker images.
+  The option only makes Base64 encoding and decoding slower. Installations overriding `global.jvmOptions` must add it
+  themselves. It will be removed again once the Docker images are based on a fixed JDK (`25.0.5.1` or later)
 
 ## [4.8.0]
 

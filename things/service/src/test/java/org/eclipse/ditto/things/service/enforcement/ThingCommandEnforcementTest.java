@@ -35,11 +35,13 @@ import org.eclipse.ditto.base.model.auth.AuthorizationContext;
 import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
 import org.eclipse.ditto.base.model.auth.DittoAuthorizationContextType;
 import org.eclipse.ditto.base.model.common.HttpStatus;
+import org.eclipse.ditto.base.model.exceptions.DittoHeaderInvalidException;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
+import org.eclipse.ditto.base.model.headers.contenttype.ContentType;
 import org.eclipse.ditto.base.model.headers.entitytag.EntityTagMatcher;
 import org.eclipse.ditto.base.model.headers.entitytag.EntityTagMatchers;
 import org.eclipse.ditto.base.model.json.FieldType;
@@ -99,6 +101,7 @@ import org.eclipse.ditto.things.model.signals.commands.modify.ModifyPolicyIdResp
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveAttribute;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveAttributeResponse;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveAttributes;
+import org.eclipse.ditto.things.model.signals.commands.query.RetrieveFeature;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThing;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThingResponse;
 import org.eclipse.ditto.wot.validation.WotThingModelPayloadValidationException;
@@ -681,6 +684,36 @@ public final class ThingCommandEnforcementTest extends AbstractThingEnforcementT
 
             // THEN: The command is rejected
             expectMsgClass(ThingConditionFailedException.class);
+
+            // WHEN: Condition is set on a readable feature and live channel condition on an unreadable feature
+            final var conditionalRetrieveThing4 = getRetrieveThing(builder ->
+                    builder.condition("exists(features/grantedFeature)")
+                            .liveChannelCondition("eq(features/revokedFeature/properties/right,\"revoked\")"));
+            supervisor.tell(conditionalRetrieveThing4, getRef());
+
+            // THEN: The command is rejected without reaching the persistence
+            expectMsgClass(ThingConditionFailedException.class);
+            thingPersistenceActorProbe.expectNoMessage();
+
+            // WHEN: Condition is set on an unreadable feature and live channel condition on a readable feature
+            final var conditionalRetrieveThing5 = getRetrieveThing(builder ->
+                    builder.condition("exists(features/revokedFeature)")
+                            .liveChannelCondition("exists(features/grantedFeature)"));
+            supervisor.tell(conditionalRetrieveThing5, getRef());
+
+            // THEN: The command is rejected without reaching the persistence
+            expectMsgClass(ThingConditionFailedException.class);
+            thingPersistenceActorProbe.expectNoMessage();
+
+            // WHEN: Condition and live channel condition are set on a readable feature
+            final var conditionalRetrieveThing6 = getRetrieveThing(builder ->
+                    builder.condition("exists(features/grantedFeature)")
+                            .liveChannelCondition("exists(features/grantedFeature)"));
+            supervisor.tell(conditionalRetrieveThing6, getRef());
+
+            // THEN: The command is authorized
+            thingPersistenceActorProbe.expectMsg(addReadSubjectHeader(conditionalRetrieveThing6,
+                    SubjectId.newInstance(GOOGLE, TestSetup.SUBJECT_ID)));
         }};
     }
 
@@ -719,6 +752,53 @@ public final class ThingCommandEnforcementTest extends AbstractThingEnforcementT
 
             Assertions.assertThat(WithDittoHeaders.getCorrelationId(response))
                     .isEqualTo(WithDittoHeaders.getCorrelationId(modifyCommand));
+        }};
+    }
+
+    @Test
+    public void rejectConditionHeadersOnWotThingDescriptionRequests() {
+        final PolicyId policyId = mockReadWritePolicy();
+        final String tdContentType = ContentType.APPLICATION_TD_JSON.getValue();
+
+        new TestKit(system) {{
+            // WHEN: a TD is requested with a condition
+            supervisor.tell(getRetrieveThing(builder -> builder.accept(tdContentType)
+                    .condition("eq(attributes/testAttr,\"testString\")")), getRef());
+            expectAndAnswerSudoRetrieveThing(
+                    SudoRetrieveThingResponse.of(TestSetup.newThingWithPolicyId(policyId), DittoHeaders.empty()));
+
+            // THEN: the command is rejected without reaching the persistence
+            final DittoHeaderInvalidException conditionError = expectMsgClass(DittoHeaderInvalidException.class);
+            assertThat(conditionError.getMessage()).contains(DittoHeaderDefinition.CONDITION.getKey());
+            thingPersistenceActorProbe.expectNoMessage();
+
+            // WHEN: a TD is requested with a live channel condition
+            supervisor.tell(getRetrieveThing(builder -> builder.accept(tdContentType)
+                    .liveChannelCondition("eq(attributes/testAttr,\"testString\")")), getRef());
+
+            // THEN: the command is rejected without reaching the persistence
+            final DittoHeaderInvalidException liveChannelConditionError =
+                    expectMsgClass(DittoHeaderInvalidException.class);
+            assertThat(liveChannelConditionError.getMessage())
+                    .contains(DittoHeaderDefinition.LIVE_CHANNEL_CONDITION.getKey());
+            thingPersistenceActorProbe.expectNoMessage();
+
+            // WHEN: a feature TD is requested with a condition
+            supervisor.tell(RetrieveFeature.of(THING_ID, "x", headers().toBuilder()
+                    .accept(tdContentType)
+                    .condition("exists(features/x)")
+                    .build()), getRef());
+
+            // THEN: the command is rejected without reaching the persistence
+            expectMsgClass(DittoHeaderInvalidException.class);
+            thingPersistenceActorProbe.expectNoMessage();
+
+            // WHEN: a TD is requested without conditions
+            final RetrieveThing tdRequest = getRetrieveThing(builder -> builder.accept(tdContentType));
+            supervisor.tell(tdRequest, getRef());
+
+            // THEN: the command is forwarded to the persistence
+            thingPersistenceActorProbe.expectMsgClass(RetrieveThing.class);
         }};
     }
 

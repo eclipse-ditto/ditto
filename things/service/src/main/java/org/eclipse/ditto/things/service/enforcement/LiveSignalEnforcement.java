@@ -14,13 +14,17 @@ package org.eclipse.ditto.things.service.enforcement;
 
 import static org.eclipse.ditto.policies.api.Permission.WRITE;
 
+import java.text.MessageFormat;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
 import org.eclipse.ditto.base.model.entity.id.EntityId;
 import org.eclipse.ditto.base.model.entity.id.WithEntityId;
+import org.eclipse.ditto.base.model.exceptions.DittoHeaderInvalidException;
 import org.eclipse.ditto.base.model.exceptions.DittoInternalErrorException;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.base.model.signals.FeatureToggle;
 import org.eclipse.ditto.base.model.signals.Signal;
@@ -49,6 +53,7 @@ import org.eclipse.ditto.things.model.signals.commands.ThingCommand;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.EventSendNotAllowedException;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingNotAccessibleException;
 import org.eclipse.ditto.things.model.signals.events.ThingEvent;
+import org.eclipse.ditto.things.service.utils.LiveSignalAccessPaths;
 
 /**
  * Enforces live commands (including message commands) and live events.
@@ -58,9 +63,11 @@ final class LiveSignalEnforcement
         implements ThingEnforcementStrategy {
 
     private final boolean partialAccessEventsEnabled;
+    private final LiveSignalAccessPaths liveSignalAccessPaths;
 
     LiveSignalEnforcement(final boolean partialAccessEventsEnabled) {
         this.partialAccessEventsEnabled = partialAccessEventsEnabled;
+        liveSignalAccessPaths = new LiveSignalAccessPaths(partialAccessEventsEnabled);
     }
 
     @Override
@@ -88,12 +95,17 @@ final class LiveSignalEnforcement
         if (correlationIdOpt.isPresent()) {
             final Enforcer enforcer = policyEnforcer.getEnforcer();
             if (liveSignal instanceof SendClaimMessage) {
-                // claim messages require no enforcement, publish them right away:
+                // claim messages require no enforcement, publish them right away - a condition would however be
+                // evaluated against the full thing without any permission:
+                rejectConditionHeaderOfClaimMessage(liveSignal.getDittoHeaders());
                 result = publishMessageCommand((MessageCommand<?, ?>) liveSignal, enforcer);
             } else {
                 final var streamingType = StreamingType.fromSignal(liveSignal);
                 if (streamingType.isPresent()) {
                     result = enforceLiveSignal(streamingType.get(), liveSignal, policyEnforcer);
+                    // the condition is evaluated against the full thing before publishing the live signal:
+                    ThingCommandEnforcement.enforceReadPermissionOnConditionHeader(enforcer,
+                            liveSignal.getDittoHeaders());
                 } else {
                     LOGGER.withCorrelationId(liveSignal)
                             .error("Unsupported Signal in LiveSignalEnforcement: <{}>", liveSignal);
@@ -162,6 +174,19 @@ final class LiveSignalEnforcement
         return CompletableFuture.completedFuture(result);
     }
 
+    private static void rejectConditionHeaderOfClaimMessage(final DittoHeaders dittoHeaders) {
+        if (dittoHeaders.getCondition().isPresent()) {
+            final String headerKey = DittoHeaderDefinition.CONDITION.getKey();
+            throw DittoHeaderInvalidException.newBuilder()
+                    .withInvalidHeaderKey(headerKey)
+                    .message(MessageFormat.format("The header ''{0}'' is not supported for claim messages.",
+                            headerKey))
+                    .description(MessageFormat.format("Remove the ''{0}'' header and try again.", headerKey))
+                    .dittoHeaders(dittoHeaders)
+                    .build();
+        }
+    }
+
     private Signal<?> enforceLiveSignal(final StreamingType streamingType, final Signal<?> liveSignal,
             final PolicyEnforcer enforcer) {
 
@@ -175,8 +200,9 @@ final class LiveSignalEnforcement
                         enforcer,
                         (ThingCommand<?>) liveSignal,
                         partialAccessEventsEnabled);
-                final var withReadSubjects = addEffectedReadSubjectsToThingLiveSignal((ThingCommand<?>) liveSignal,
-                        enforcer.getEnforcer());
+                final var withReadSubjects = liveSignalAccessPaths.addTo(
+                        addEffectedReadSubjectsToThingLiveSignal((ThingCommand<?>) liveSignal, enforcer.getEnforcer()),
+                        enforcer);
 
                 LOGGER.withCorrelationId(withReadSubjects)
                         .info("Live Command was authorized: <{}>", withReadSubjects.getType());
@@ -220,9 +246,11 @@ final class LiveSignalEnforcement
                         liveSignal.getDittoHeaders().getAuthorizationContext(), WRITE)) {
             LOGGER.withCorrelationId(liveSignal)
                     .info("Live Event was authorized: <{}>", liveSignal);
-            return ThingCommandEnforcement.addEffectedReadSubjectsToThingSignal((ThingEvent<?>) liveSignal,
-                    policyEnforcer,
-                    partialAccessEventsEnabled);
+            return liveSignalAccessPaths.addTo(
+                    ThingCommandEnforcement.addEffectedReadSubjectsToThingSignal((ThingEvent<?>) liveSignal,
+                            policyEnforcer,
+                            partialAccessEventsEnabled),
+                    policyEnforcer);
         } else {
             LOGGER.withCorrelationId(liveSignal)
                     .info("Live Event was NOT authorized: <{}>", liveSignal);

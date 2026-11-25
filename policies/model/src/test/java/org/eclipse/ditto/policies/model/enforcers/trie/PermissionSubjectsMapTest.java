@@ -127,47 +127,52 @@ public final class PermissionSubjectsMapTest {
     }
 
     @Test
-    public void getMaxWeightForAllPermissionsReturnsEmptyOptionalForEmptySubjectsMap() {
-        final Optional<Integer> maxWeightForAllPermissions =
-                underTest.getMaxWeightForAllPermissions(subjectIds, permissions);
+    public void getMaxWeightReturnsEmptyOptionalForEmptySubjectsMap() {
+        final Optional<Integer> maxWeight = underTest.getMaxWeight(subjectIds, "READ");
 
-        assertThat(maxWeightForAllPermissions).isEmpty();
+        assertThat(maxWeight).isEmpty();
     }
 
     @Test
-    public void getMaxWeightForAllPermissionsReturnsExpected() {
-        final int maxWeight = 42;
-        underTest.put("READ", Collections.singletonMap(subjectId, 0));
-        underTest.put("READ", Collections.singletonMap(anotherSubjectId, maxWeight));
+    public void getMaxWeightReturnsEmptyOptionalIfPermissionIsNotRelated() {
+        underTest.put("READ", weighSubjectIds(42));
 
-        final Optional<Integer> maxWeightForAllPermissions =
-                underTest.getMaxWeightForAllPermissions(subjectIds, permissions);
+        final Optional<Integer> maxWeight = underTest.getMaxWeight(subjectIds, "WRITE");
 
-        assertThat(maxWeightForAllPermissions).contains(maxWeight);
+        assertThat(maxWeight).isEmpty();
     }
 
     @Test
-    public void getMaxNonemptyWeightForAllPermissionsReturnsEmptyOptionalIfNotAllPermissionsAreRelated() {
-        final int maxWeight = 42;
-        underTest.put("READ", Collections.singletonMap(subjectId, 0));
-        underTest.put("READ", Collections.singletonMap(anotherSubjectId, maxWeight));
+    public void getMaxWeightReturnsEmptyOptionalIfNoneOfTheSubjectIdsIsRelated() {
+        underTest.put("READ", Collections.singletonMap(anotherSubjectId, 42));
 
-        final Optional<Integer> maxNonemptyWeightForAllPermissions =
-                underTest.getMaxNonemptyWeightForAllPermissions(subjectIds, permissions);
+        final Optional<Integer> maxWeight = underTest.getMaxWeight(Collections.singleton(subjectId), "READ");
 
-        assertThat(maxNonemptyWeightForAllPermissions).isEmpty();
+        assertThat(maxWeight).isEmpty();
     }
 
     @Test
-    public void getMaxNonemptyWeightForAllPermissionsReturnsExpectedIfAllPermissionsAreRelated() {
+    public void getMaxWeightReturnsMaxWeightOfGivenSubjectIds() {
         final int maxWeight = 42;
+        final Map<String, Integer> readSubjects = new HashMap<>();
+        readSubjects.put(subjectId, -1);
+        readSubjects.put(anotherSubjectId, maxWeight);
+        readSubjects.put("unrelated:subject", maxWeight + 1);
+        underTest.put("READ", readSubjects);
+
+        final Optional<Integer> result = underTest.getMaxWeight(subjectIds, "READ");
+
+        assertThat(result).contains(maxWeight);
+    }
+
+    @Test
+    public void getMaxWeightIgnoresWeightsOfOtherPermissions() {
         underTest.put("READ", Collections.singletonMap(subjectId, 0));
-        underTest.put("READ", Collections.singletonMap(anotherSubjectId, maxWeight));
+        underTest.put("WRITE", Collections.singletonMap(anotherSubjectId, 42));
 
-        final Optional<Integer> maxNonemptyWeightForAllPermissions =
-                underTest.getMaxNonemptyWeightForAllPermissions(subjectIds, Collections.singleton("READ"));
+        final Optional<Integer> result = underTest.getMaxWeight(subjectIds, "READ");
 
-        assertThat(maxNonemptyWeightForAllPermissions).contains(maxWeight);
+        assertThat(result).contains(0);
     }
 
     @Test
@@ -202,10 +207,23 @@ public final class PermissionSubjectsMapTest {
     }
 
     @Test
+    public void getSubjectIntersectReturnsEmptyMapIfAPermissionIsNotRelatedToAnySubject() {
+        underTest.put("READ", Collections.singletonMap(subjectId, 0));
+        underTest.put("READ", Collections.singletonMap(anotherSubjectId, 23));
+
+        final Map<String, Integer> subjectIntersect = underTest.getSubjectIntersect(permissions);
+
+        assertThat(subjectIntersect).isEmpty();
+    }
+
+    @Test
     public void getSubjectIntersectReturnsExpected() {
         final int maxWeight = 23;
-        underTest.put("READ", Collections.singletonMap(subjectId, 0));
-        underTest.put("READ", Collections.singletonMap(anotherSubjectId, maxWeight));
+        final Map<String, Integer> readSubjects = new HashMap<>();
+        readSubjects.put(subjectId, 0);
+        readSubjects.put(anotherSubjectId, maxWeight);
+        underTest.put("READ", readSubjects);
+        underTest.put("WRITE", Collections.singletonMap(anotherSubjectId, 1));
 
         final Map<String, Integer> subjectIntersect = underTest.getSubjectIntersect(permissions);
 

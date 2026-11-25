@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.things.service.enforcement;
 
+import java.text.MessageFormat;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -26,6 +27,7 @@ import org.apache.pekko.Done;
 import org.apache.pekko.actor.ActorRef;
 import org.apache.pekko.actor.ActorSystem;
 import org.eclipse.ditto.base.model.auth.AuthorizationContext;
+import org.eclipse.ditto.base.model.exceptions.DittoHeaderInvalidException;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
@@ -41,6 +43,7 @@ import org.eclipse.ditto.internal.utils.pekko.logging.ThreadSafeDittoLogger;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonKey;
+import org.eclipse.ditto.json.JsonMergePatch;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonPointerInvalidException;
@@ -113,6 +116,7 @@ final class ThingCommandEnforcement
     private final ActorRef policiesShardRegion;
     private final AskWithRetryConfig createdPolicyRollbackConfig;
     private final boolean partialAccessEventsEnabled;
+    private final boolean wotTdPermissionFilteringEnabled;
 
     /**
      * Creates a new instance of the thing command enforcer.
@@ -128,10 +132,22 @@ final class ThingCommandEnforcement
             final EnforcementConfig enforcementConfig,
             final boolean partialAccessEventsEnabled) {
 
+        this(actorSystem, policiesShardRegion, enforcementConfig, partialAccessEventsEnabled,
+                FeatureToggle.isWotTdPermissionFilteringEnabled());
+    }
+
+    ThingCommandEnforcement(
+            final ActorSystem actorSystem,
+            final ActorRef policiesShardRegion,
+            final EnforcementConfig enforcementConfig,
+            final boolean partialAccessEventsEnabled,
+            final boolean wotTdPermissionFilteringEnabled) {
+
         this.actorSystem = actorSystem;
         this.policiesShardRegion = policiesShardRegion;
         this.createdPolicyRollbackConfig = enforcementConfig.getCreatedPolicyRollbackConfig();
         this.partialAccessEventsEnabled = partialAccessEventsEnabled;
+        this.wotTdPermissionFilteringEnabled = wotTdPermissionFilteringEnabled;
         enforcementConfig.getSpecialLoggingInspectedNamespaces()
                 .forEach(loggedNamespace -> NAMESPACE_INSPECTION_LOGGERS.put(
                         loggedNamespace,
@@ -170,14 +186,19 @@ final class ThingCommandEnforcement
         final ThingCommand<?> authorizedCommand;
         if (isWotTdRequestingThingQueryCommand(command)) {
             FeatureToggle.checkWotIntegrationFeatureEnabled(command.getType(), command.getDittoHeaders());
-            if (FeatureToggle.isWotTdPermissionFilteringEnabled()) {
+            // conditions would be evaluated against the full thing, even when the TD itself is public information,
+            // so they are rejected for TD requests
+            if (wotTdPermissionFilteringEnabled) {
                 // user needs at least partial READ permission; TD will be filtered in filterResponse()
                 final var commandWithReadSubjects =
                         authorizeByPolicyOrThrow(policyEnforcer, command, partialAccessEventsEnabled);
+                // rejected only after authorization in order to not reveal the thing's existence:
+                rejectConditionHeadersOfWotTdRequest(command.getDittoHeaders());
                 authorizedCommand = prepareThingCommandBeforeSendingToPersistence(
                         ensureTwinChannel((ThingQueryCommand<?>) commandWithReadSubjects));
             } else {
                 // legacy behavior: TD is public information, no authorization check
+                rejectConditionHeadersOfWotTdRequest(command.getDittoHeaders());
                 authorizedCommand = prepareThingCommandBeforeSendingToPersistence(command);
             }
         } else {
@@ -238,7 +259,7 @@ final class ThingCommandEnforcement
             final PolicyEnforcer policyEnforcer) {
 
         if (commandResponse instanceof RetrieveWotThingDescriptionResponse tdResponse
-                && FeatureToggle.isWotTdPermissionFilteringEnabled()) {
+                && wotTdPermissionFilteringEnabled) {
             try {
                 return WotThingDescriptionEnforcement.filterThingDescription(tdResponse,
                         policyEnforcer.getEnforcer())
@@ -269,6 +290,30 @@ final class ThingCommandEnforcement
                 thingCommand.getDittoHeaders().getAccept()
                         .filter(ContentType.APPLICATION_TD_JSON.getValue()::equals)
                         .isPresent();
+    }
+
+    private static void rejectConditionHeadersOfWotTdRequest(final DittoHeaders dittoHeaders) {
+        if (dittoHeaders.getCondition().isPresent()) {
+            throw conditionHeaderNotAllowedForWotTdRequest(DittoHeaderDefinition.CONDITION, dittoHeaders);
+        }
+        if (dittoHeaders.getLiveChannelCondition().isPresent()) {
+            throw conditionHeaderNotAllowedForWotTdRequest(DittoHeaderDefinition.LIVE_CHANNEL_CONDITION,
+                    dittoHeaders);
+        }
+    }
+
+    private static DittoHeaderInvalidException conditionHeaderNotAllowedForWotTdRequest(
+            final DittoHeaderDefinition headerDefinition, final DittoHeaders dittoHeaders) {
+
+        final String headerKey = headerDefinition.getKey();
+        return DittoHeaderInvalidException.newBuilder()
+                .withInvalidHeaderKey(headerKey)
+                .message(MessageFormat.format(
+                        "The header ''{0}'' is not supported when requesting a WoT Thing Description.", headerKey))
+                .description(MessageFormat.format("Remove the ''{0}'' header or request the Thing without " +
+                        "''Accept: {1}''.", headerKey, ContentType.APPLICATION_TD_JSON.getValue()))
+                .dittoHeaders(dittoHeaders)
+                .build();
     }
 
     /**
@@ -392,7 +437,9 @@ final class ThingCommandEnforcement
         if (!(command instanceof CreateThing) && condition.isPresent()) {
             enforceReadPermissionOnCondition(condition.get(), enforcer, dittoHeaders,
                     () -> ThingConditionFailedException.newBuilderForInsufficientPermission(dittoHeaders).build());
-        } else if ((command instanceof ThingQueryCommand)) {
+        }
+        // checked independently of the condition, as both are evaluated against the full thing:
+        if (command instanceof ThingQueryCommand) {
             dittoHeaders.getLiveChannelCondition()
                     .ifPresent(liveChannelCondition -> enforceReadPermissionOnCondition(liveChannelCondition, enforcer,
                             dittoHeaders,
@@ -523,6 +570,22 @@ final class ThingCommandEnforcement
         return signal.setDittoHeaders(newHeaders);
     }
 
+    /**
+     * Enforces READ permission on all resources referenced in the {@code condition} header of the passed headers, if
+     * present, as the condition is evaluated against the full thing.
+     *
+     * @param enforcer the enforcer to check the permissions with.
+     * @param dittoHeaders the headers containing the condition and the authorization context.
+     * @throws ThingConditionFailedException if the requester lacks READ permission on any referenced resource.
+     * @throws ThingConditionInvalidException if the condition could not be parsed.
+     */
+    static void enforceReadPermissionOnConditionHeader(final Enforcer enforcer, final DittoHeaders dittoHeaders) {
+        dittoHeaders.getCondition()
+                .ifPresent(condition -> enforceReadPermissionOnCondition(condition, enforcer, dittoHeaders,
+                        () -> ThingConditionFailedException.newBuilderForInsufficientPermission(dittoHeaders)
+                                .build()));
+    }
+
     private static void enforceReadPermissionOnCondition(final String condition,
             final Enforcer enforcer,
             final DittoHeaders dittoHeaders,
@@ -608,14 +671,23 @@ final class ThingCommandEnforcement
             final ResourceKey thingResourceKey,
             final AuthorizationContext authorizationContext) {
 
-        if (enforcer.hasUnrestrictedPermissions(thingResourceKey, authorizationContext, Permission.WRITE)) {
-            // unrestricted permissions at thingResourceKey level
+        final JsonValue mergeValue = command.getEntity().orElseGet(command::getValue);
+        final JsonPointer path = command.getPath();
+        // a regex deletion key as last path segment modifies the keys of its parent:
+        final boolean regexDeletionAtPath = !path.isEmpty() &&
+                path.getLeaf().filter(leaf -> JsonMergePatch.isDeletionByRegex(leaf, mergeValue)).isPresent();
+        final ResourceKey mergedResourceKey =
+                regexDeletionAtPath ? PoliciesResourceType.thingResource(path.cutLeaf()) : thingResourceKey;
+
+        if (enforcer.hasUnrestrictedPermissions(mergedResourceKey, authorizationContext, Permission.WRITE)) {
+            // unrestricted permissions at mergedResourceKey level
             return true;
-        } else if (enforcer.hasPartialPermissions(thingResourceKey, authorizationContext, Permission.WRITE)) {
-            // in case of partial permissions at thingResourceKey level check all leaves of merge patch for
-            // unrestricted permissions
-            final Set<ResourceKey> resourceKeys = calculateLeaves(command.getPath(),
-                    command.getEntity().orElseGet(command::getValue));
+        } else if (enforcer.hasPartialPermissions(mergedResourceKey, authorizationContext, Permission.WRITE)) {
+            // in case of partial permissions at mergedResourceKey level check all leaves of merge patch for
+            // unrestricted permissions - the leaves are calculated on the merge patch wrapped at its path, the same
+            // way as the merge patch is applied
+            final JsonValue mergePatch = path.isEmpty() ? mergeValue : JsonFactory.newObject(path, mergeValue);
+            final Set<ResourceKey> resourceKeys = calculateLeaves(JsonPointer.empty(), mergePatch);
             return enforcer.hasUnrestrictedPermissions(resourceKeys, authorizationContext, Permission.WRITE);
         } else {
             // not even partial permission
@@ -624,11 +696,15 @@ final class ThingCommandEnforcement
     }
 
     private static Set<ResourceKey> calculateLeaves(final JsonPointer path, final JsonValue value) {
-        if (value.isObject()) {
+        // a JSON null also is an (empty) JsonObject, so check for null first - deleting a field is writing it;
+        // an empty JsonObject is a leaf as well, as it replaces a non-object value or creates the field:
+        if (value.isNull() || !value.isObject() || value.asObject().isEmpty()) {
+            return Set.of(PoliciesResourceType.thingResource(path));
+        } else {
             return value.asObject().stream()
                     .map(f -> {
                         final JsonKey key = f.getKey();
-                        if (isMergeWithNulledKeysByRegex(key, f.getValue())) {
+                        if (JsonMergePatch.isDeletionByRegex(key, f.getValue())) {
                             // if regex is contained, writing all below that path must be granted in the policy:
                             return Set.of(PoliciesResourceType.thingResource(path));
                         } else {
@@ -636,25 +712,12 @@ final class ThingCommandEnforcement
                         }
                     })
                     .reduce(new HashSet<>(), ThingCommandEnforcement::addAll, ThingCommandEnforcement::addAll);
-        } else {
-            return Set.of(PoliciesResourceType.thingResource(path));
         }
     }
 
     private static Set<ResourceKey> addAll(final Set<ResourceKey> result, final Set<ResourceKey> toBeAdded) {
         result.addAll(toBeAdded);
         return result;
-    }
-
-    private static boolean isMergeWithNulledKeysByRegex(final JsonKey key, final JsonValue value) {
-        final String keyString = key.toString();
-        if (keyString.startsWith("{{") && keyString.endsWith("}}")) {
-            final String keyRegexWithoutCurly = keyString.substring(2, keyString.length() - 2).trim();
-            return keyRegexWithoutCurly.startsWith("/") && keyRegexWithoutCurly.endsWith("/") &&
-                    value.isNull();
-        } else {
-            return false;
-        }
     }
 
 }

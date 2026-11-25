@@ -38,7 +38,9 @@ import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.signals.FeatureToggle;
 import org.eclipse.ditto.internal.utils.cache.Cache;
 import org.eclipse.ditto.internal.utils.cache.CacheFactory;
+import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonKey;
+import org.eclipse.ditto.json.JsonMergePatch;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.things.model.Attributes;
@@ -907,12 +909,20 @@ public final class DefaultWotThingModelValidator implements WotThingModelValidat
             final ValidationContext context,
             final TmValidationConfig validationConfig
     ) {
-        final JsonValue mergeValue = mergeThing.getEntity().orElseGet(mergeThing::getValue);
-        final Set<JsonPointer> affectedLeaves = calculateLeaves(mergeThing.getResourcePath(), mergeValue);
+        final JsonValue mergePatch = toMergePatch(mergeThing.getResourcePath(),
+                mergeThing.getEntity().orElseGet(mergeThing::getValue));
+        if (isEmptyObject(mergePatch)) {
+            // an empty merge patch at Thing level does not modify anything
+            return success();
+        }
+        final Set<JsonPointer> affectedLeaves = calculateLeaves(JsonPointer.empty(), mergePatch);
 
         final boolean containsDefinition = affectedLeaves.contains(Thing.JsonFields.DEFINITION.getPointer());
-        if (containsDefinition &&
-                !mergeValue.asObject().getValue(Thing.JsonFields.DEFINITION)
+        if (affectsWholeThingOrAllFeatures(affectedLeaves)) {
+            // e.g. all features are deleted, we need to validate the whole thing
+            return doValidateThing(thingDefinition, thingModel, thing, context, validationConfig);
+        } else if (containsDefinition &&
+                !mergePatch.asObject().getValue(Thing.JsonFields.DEFINITION)
                         .equals(thing.getDefinition().map(ThingDefinition::toJson))
         ) {
             // if the definition is affected and is different then before, we need to validate the whole thing
@@ -1191,12 +1201,32 @@ public final class DefaultWotThingModelValidator implements WotThingModelValidat
         );
     }
 
-    private static Set<JsonPointer> calculateLeaves(final JsonPointer path, final JsonValue value) {
-        if (value.isObject()) {
+    /**
+     * Wraps the merge value at its path, the same way as the merge patch is applied.
+     */
+    static JsonValue toMergePatch(final JsonPointer mergePath, final JsonValue mergeValue) {
+        return mergePath.isEmpty() ? mergeValue : JsonFactory.newObject(mergePath, mergeValue);
+    }
+
+    static boolean affectsWholeThingOrAllFeatures(final Set<JsonPointer> affectedLeaves) {
+        return affectedLeaves.contains(JsonPointer.empty()) ||
+                affectedLeaves.contains(Thing.JsonFields.FEATURES.getPointer());
+    }
+
+    static boolean isEmptyObject(final JsonValue value) {
+        return !value.isNull() && value.isObject() && value.asObject().isEmpty();
+    }
+
+    static Set<JsonPointer> calculateLeaves(final JsonPointer path, final JsonValue value) {
+        // a JSON null also is an (empty) JsonObject, so check for null first - a deleted field is a leaf;
+        // an empty JsonObject is a leaf as well, as it replaces a non-object value or creates the field:
+        if (value.isNull() || !value.isObject() || value.asObject().isEmpty()) {
+            return Set.of(path);
+        } else {
             return value.asObject().stream()
                     .map(f -> {
                         final JsonKey key = f.getKey();
-                        if (isMergeWithNulledKeysByRegex(key, f.getValue())) {
+                        if (JsonMergePatch.isDeletionByRegex(key, f.getValue())) {
                             // if regex is contained, this path is a leaf
                             return Set.of(path);
                         } else {
@@ -1205,24 +1235,11 @@ public final class DefaultWotThingModelValidator implements WotThingModelValidat
                     })
                     .reduce(new HashSet<>(), DefaultWotThingModelValidator::addAll,
                             DefaultWotThingModelValidator::addAll);
-        } else {
-            return Set.of(path);
         }
     }
 
     private static Set<JsonPointer> addAll(final Set<JsonPointer> result, final Set<JsonPointer> toBeAdded) {
         result.addAll(toBeAdded);
         return result;
-    }
-
-    private static boolean isMergeWithNulledKeysByRegex(final JsonKey key, final JsonValue value) {
-        final String keyString = key.toString();
-        if (keyString.startsWith("{{") && keyString.endsWith("}}")) {
-            final String keyRegexWithoutCurly = keyString.substring(2, keyString.length() - 2).trim();
-            return keyRegexWithoutCurly.startsWith("/") && keyRegexWithoutCurly.endsWith("/") &&
-                    value.isNull();
-        } else {
-            return false;
-        }
     }
 }

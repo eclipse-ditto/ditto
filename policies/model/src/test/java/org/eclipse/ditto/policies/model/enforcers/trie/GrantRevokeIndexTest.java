@@ -165,6 +165,59 @@ public final class GrantRevokeIndexTest {
     }
 
     @Test
+    public void grantOfOnePermissionDoesNotHideRevokeOfAnotherPermission() {
+        final PermissionSubjectsMap granted = new PermissionSubjectsMap();
+        granted.put("READ", Collections.singletonMap(subjectId, 0));
+        granted.put("WRITE", Collections.singletonMap(subjectId, -2));
+        final PermissionSubjectsMap revoked = new PermissionSubjectsMap();
+        revoked.put("WRITE", Collections.singletonMap(anotherSubjectId, -1));
+        final GrantRevokeIndex grantRevokeIndex = new GrantRevokeIndex(granted, revoked);
+
+        final Set<String> bothSubjectIds = new HashSet<>();
+        Collections.addAll(bothSubjectIds, subjectId, anotherSubjectId);
+
+        assertThat(grantRevokeIndex.hasPermissions(bothSubjectIds, permissions)).isFalse();
+        assertThat(grantRevokeIndex.hasPermissions(bothSubjectIds, Collections.singleton("WRITE"))).isFalse();
+        assertThat(grantRevokeIndex.hasPermissions(bothSubjectIds, Collections.singleton("READ"))).isTrue();
+    }
+
+    @Test
+    public void revokeOfAnotherSubjectWithSameWeightWinsForMultiplePermissions() {
+        final PermissionSubjectsMap granted = new PermissionSubjectsMap();
+        granted.put("READ", Collections.singletonMap(subjectId, 1));
+        granted.put("WRITE", Collections.singletonMap(subjectId, 0));
+        final PermissionSubjectsMap revoked = new PermissionSubjectsMap();
+        revoked.put("WRITE", Collections.singletonMap(anotherSubjectId, 0));
+        final GrantRevokeIndex grantRevokeIndex = new GrantRevokeIndex(granted, revoked);
+
+        final Set<String> bothSubjectIds = new HashSet<>();
+        Collections.addAll(bothSubjectIds, subjectId, anotherSubjectId);
+
+        assertThat(grantRevokeIndex.hasPermissions(bothSubjectIds, permissions)).isFalse();
+    }
+
+    @Test
+    public void multiplePermissionsAreGrantedIfEachIsGrantedWithHigherWeightThanItsRevoke() {
+        final PermissionSubjectsMap granted = new PermissionSubjectsMap();
+        granted.put("READ", Collections.singletonMap(subjectId, 0));
+        granted.put("WRITE", Collections.singletonMap(anotherSubjectId, -1));
+        final PermissionSubjectsMap revoked = new PermissionSubjectsMap();
+        revoked.put("READ", Collections.singletonMap(anotherSubjectId, -1));
+        revoked.put("WRITE", Collections.singletonMap(subjectId, -2));
+        final GrantRevokeIndex grantRevokeIndex = new GrantRevokeIndex(granted, revoked);
+
+        final Set<String> bothSubjectIds = new HashSet<>();
+        Collections.addAll(bothSubjectIds, subjectId, anotherSubjectId);
+
+        assertThat(grantRevokeIndex.hasPermissions(bothSubjectIds, permissions)).isTrue();
+    }
+
+    @Test
+    public void emptyPermissionsAreNotGranted() {
+        assertThat(underTest.hasPermissions(Collections.singleton(subjectId), Collections.emptySet())).isFalse();
+    }
+
+    @Test
     public void getEffectedSubjectsForReadPermissionReturnsExpected() {
         final EffectedSubjects effectedSubjects = underTest.getEffectedSubjects(Collections.singleton("READ"));
         final Set<AuthorizationSubject> grantedSubjects = effectedSubjects.getGranted();

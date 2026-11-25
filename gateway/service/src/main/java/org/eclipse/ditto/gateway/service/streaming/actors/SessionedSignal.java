@@ -83,26 +83,28 @@ final class SessionedSignal implements SessionedJsonifiable {
     }
 
     @Override
-    public CompletionStage<JsonObject> retrieveExtraFields(@Nullable final SignalEnrichmentFacade facade) {
+    public CompletionStage<JsonObject> retrieveExtraFields(@Nullable final SignalEnrichmentFacade facade,
+            final Signal<?> readableSignal) {
         final ExpressionResolver expressionResolver = newExpressionResolver(
                 newPlaceholderResolver(newHeadersPlaceholder(), getDittoHeaders()),
                 newPlaceholderResolver(EntityIdPlaceholder.getInstance(),
-                        WithEntityId.getEntityIdOfType(EntityId.class, signal).orElse(null)),
+                        WithEntityId.getEntityIdOfType(EntityId.class, readableSignal).orElse(null)),
                 newPlaceholderResolver(ThingPlaceholder.getInstance(),
-                        WithEntityId.getEntityIdOfType(EntityId.class, signal).orElse(null)),
-                newPlaceholderResolver(FeaturePlaceholder.getInstance(), signal),
-                newPlaceholderResolver(TopicPathPlaceholder.getInstance(), PROTOCOL_ADAPTER.toTopicPath(signal)),
-                newPlaceholderResolver(ResourcePlaceholder.getInstance(), signal),
+                        WithEntityId.getEntityIdOfType(EntityId.class, readableSignal).orElse(null)),
+                newPlaceholderResolver(FeaturePlaceholder.getInstance(), readableSignal),
+                newPlaceholderResolver(TopicPathPlaceholder.getInstance(),
+                        PROTOCOL_ADAPTER.toTopicPath(readableSignal)),
+                newPlaceholderResolver(ResourcePlaceholder.getInstance(), readableSignal),
                 newPlaceholderResolver(TimePlaceholder.getInstance(), new Object()),
                 newPlaceholderResolver(RequestPlaceholder.getInstance(), getDittoHeaders().getAuthorizationContext())
         );
         final Optional<ThingFieldSelector> resolvedExtraFields = session.getExtraFields()
                 .flatMap(extraFields -> getExtraFields(expressionResolver, extraFields));
         if (resolvedExtraFields.isPresent()) {
-            final Optional<ThingId> thingIdOptional = WithEntityId.getEntityIdOfType(ThingId.class, signal);
+            final Optional<ThingId> thingIdOptional = WithEntityId.getEntityIdOfType(ThingId.class, readableSignal);
             if (facade != null && thingIdOptional.isPresent()) {
                 return facade.retrievePartialThing(thingIdOptional.get(), resolvedExtraFields.get(), sessionHeaders,
-                        signal);
+                        readableSignal);
             }
             final CompletableFuture<JsonObject> future = new CompletableFuture<>();
             future.completeExceptionally(SignalEnrichmentFailedException.newBuilder()

@@ -22,9 +22,12 @@ import org.eclipse.ditto.base.model.acks.DittoAcknowledgementLabel;
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingNotAccessibleException;
+import org.eclipse.ditto.things.model.signals.commands.modify.ModifyAttribute;
 import org.eclipse.ditto.things.model.signals.commands.modify.ModifyAttributeResponse;
+import org.junit.Assume;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -76,8 +79,17 @@ public final class HttpRequestActorHeaderInteractionTest extends AbstractHttpReq
         final var attributePointer = JsonPointer.of(attributeName);
 
         final var dittoHeaders = setHeadersByParameter(createAuthorizedHeaders());
-        final var probeResponse = getProbeResponse(thingId, attributePointer, dittoHeaders);
 
+        if (isTimeoutHeaderInvalid()) {
+            // the command is never forwarded, so is-success does not matter: run each combination only once
+            Assume.assumeFalse(isSuccess);
+            final var modifyAttribute =
+                    ModifyAttribute.of(thingId, attributePointer, JsonValue.of("bar"), dittoHeaders);
+            testCommandRejectedForInvalidTimeout(modifyAttribute, getHttpRequest(modifyAttribute));
+            return;
+        }
+
+        final var probeResponse = getProbeResponse(thingId, attributePointer, dittoHeaders);
         final var expectedHttpStatusCode = StatusCodes.get(getExpectedHttpStatus().getCode());
 
         testThingModifyCommand(thingId,
@@ -104,15 +116,16 @@ public final class HttpRequestActorHeaderInteractionTest extends AbstractHttpReq
                 : ThingNotAccessibleException.newBuilder(thingId).dittoHeaders(dittoHeaders).build();
     }
 
+    private boolean isTimeoutHeaderInvalid() {
+        return timeout.isZero() && (responseRequired || !requestedAcks.isEmpty());
+    }
+
     private HttpStatus getExpectedHttpStatus() {
         final HttpStatus status;
-        final boolean isAwaiting = responseRequired || !requestedAcks.isEmpty();
         final HttpStatus successCode = HttpStatus.NO_CONTENT;
         final HttpStatus errorCode = HttpStatus.NOT_FOUND;
         if (timeout.isZero()) {
-            if (isAwaiting) {
-                status = HttpStatus.BAD_REQUEST;
-            } else if (isSuccess) {
+            if (isSuccess) {
                 status = HttpStatus.ACCEPTED;
             } else {
                 // Fire-and-forget: enforcement/validation errors are now surfaced instead of returning 202

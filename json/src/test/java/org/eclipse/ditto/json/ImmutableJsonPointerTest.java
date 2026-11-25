@@ -107,6 +107,39 @@ public final class ImmutableJsonPointerTest {
     }
 
     @Test
+    public void getWithLevelOutOfBoundsReturnsEmptyOptional() {
+        final JsonPointer underTest = ImmutableJsonPointer.ofParsed("/foo/bar");
+
+        assertThat(underTest.get(-1)).isEmpty();
+        assertThat(underTest.get(Integer.MIN_VALUE)).isEmpty();
+        assertThat(underTest.get(2)).isEmpty();
+    }
+
+    @Test
+    public void getOnEmptyPointerReturnsEmptyOptional() {
+        final JsonPointer underTest = ImmutableJsonPointer.empty();
+
+        assertThat(underTest.get(-1)).isEmpty();
+        assertThat(underTest.get(0)).isEmpty();
+    }
+
+    @Test
+    public void getRootAndLeafOfEmptyPointerAreEmpty() {
+        final JsonPointer underTest = ImmutableJsonPointer.empty();
+
+        assertThat(underTest.getRoot()).isEmpty();
+        assertThat(underTest.getLeaf()).isEmpty();
+    }
+
+    @Test
+    public void getRootAndLeafOfSingleLevelPointerAreTheSame() {
+        final JsonPointer underTest = ImmutableJsonPointer.of(KNOWN_KEY_NAME);
+
+        assertThat(underTest.getRoot()).contains(KNOWN_KEY_NAME);
+        assertThat(underTest.getLeaf()).contains(KNOWN_KEY_NAME);
+    }
+
+    @Test
     public void getLevelsCountReturnsExpected() {
         final JsonPointer underTest = ImmutableJsonPointer.ofParsed("/foo/bar/baz");
 

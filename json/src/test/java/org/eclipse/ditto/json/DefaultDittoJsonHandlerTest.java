@@ -135,4 +135,49 @@ public final class DefaultDittoJsonHandlerTest {
         assertThat(value.asDouble()).isEqualTo(1e10d);
     }
 
+    @Test
+    public void parseDoubleMaxValueExactYieldsJsonDouble() {
+        final JsonValue value = parseValue(String.valueOf(Double.MAX_VALUE));
+        assertThat(value.isDouble()).isTrue();
+        assertThat(value.asDouble()).isEqualTo(Double.MAX_VALUE);
+    }
+
+    @Test
+    public void parseNegativeDoubleMaxValueExactYieldsJsonDouble() {
+        final JsonValue value = parseValue(String.valueOf(-Double.MAX_VALUE));
+        assertThat(value.isDouble()).isTrue();
+        assertThat(value.asDouble()).isEqualTo(-Double.MAX_VALUE);
+    }
+
+    @Test
+    public void parseValueAboveDoubleMaxValueThrowsJsonParseException() {
+        // would be parsed to Infinity, which can not be written as JSON again
+        assertThatExceptionOfType(JsonParseException.class)
+                .isThrownBy(() -> parseValue("1e400"))
+                .withCauseExactlyInstanceOf(NumberFormatException.class);
+    }
+
+    @Test
+    public void parseValueBelowNegativeDoubleMaxValueThrowsJsonParseException() {
+        assertThatExceptionOfType(JsonParseException.class)
+                .isThrownBy(() -> parseValue("-1E400"))
+                .withCauseExactlyInstanceOf(NumberFormatException.class);
+    }
+
+    @Test
+    public void parseTopLevelValueAboveDoubleMaxValueThrowsJsonParseException() {
+        assertThatExceptionOfType(JsonParseException.class)
+                .isThrownBy(() -> PARSER.apply("1.0e+309"))
+                .withMessage("Failed to parse JSON string '%s'!", "1.0e+309")
+                .withCauseExactlyInstanceOf(NumberFormatException.class);
+    }
+
+    @Test
+    public void parseValueBelowDoubleMinValueYieldsZero() {
+        // underflow loses precision but still gives a valid JSON number
+        final JsonValue value = parseValue("1e-400");
+        assertThat(value.isDouble()).isTrue();
+        assertThat(value.asDouble()).isEqualTo(0.0d);
+    }
+
 }

@@ -17,7 +17,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.util.HashSet;
 import java.util.Set;
 
+import org.eclipse.ditto.base.model.auth.AuthorizationContext;
 import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
+import org.eclipse.ditto.base.model.auth.DittoAuthorizationContextType;
 import org.eclipse.ditto.policies.model.Permissions;
 import org.eclipse.ditto.policies.model.PoliciesResourceType;
 import org.eclipse.ditto.policies.model.Policy;
@@ -153,6 +155,34 @@ public final class ClassifySubjectsVisitorTest {
         assertThat(classification.getUnrestricted()).isEmpty();
         assertThat(classification.getPartialOnly()).containsExactly(subject);
         assertThat(classification.getEffectedGranted()).isEmpty();
+    }
+
+    @Test
+    public void belowGrantRevokedOnSameLevelIsNotPartial() {
+        final AuthorizationSubject subject = AuthorizationSubject.newInstance("test:below-revoked");
+        final PolicyId policyId = PolicyId.of("ns", "below-revoked");
+        final Policy policy = Policy.newBuilder(policyId)
+                .forLabel("below-grant")
+                .setSubject(subject.getId(), SubjectType.GENERATED)
+                .setGrantedPermissions(
+                        PoliciesResourceType.thingResource("/features/sensor/properties/value"), READ)
+                .forLabel("below-revoke")
+                .setSubject(subject.getId(), SubjectType.GENERATED)
+                .setRevokedPermissions(
+                        PoliciesResourceType.thingResource("/features/sensor/properties/value"), READ)
+                .build();
+
+        final TreeBasedPolicyEnforcer enforcer = TreeBasedPolicyEnforcer.createInstance(policy);
+        final ResourceKey resourceKey = PoliciesResourceType.thingResource("/");
+
+        final SubjectClassification classification = enforcer.classifySubjects(resourceKey, READ);
+        assertMatchesIndividualVisitors(enforcer, resourceKey, READ, classification);
+
+        assertThat(classification.getUnrestricted()).isEmpty();
+        assertThat(classification.getPartialOnly()).isEmpty();
+        assertThat(enforcer.hasPartialPermissions(resourceKey,
+                AuthorizationContext.newInstance(DittoAuthorizationContextType.UNSPECIFIED, subject), READ))
+                .isFalse();
     }
 
     @Test

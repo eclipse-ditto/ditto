@@ -181,7 +181,10 @@ public final class AcknowledgementAggregatorActorStarter {
      * @param <T> type of the result.
      * @param signal the signal to start the aggregator actor for.
      * @param timeoutOverride duration to override the timeout of the signal.
-     * @param responseSignalConsumer consumer of the aggregated response or error.
+     * @param responseSignalConsumer consumer of the aggregated response or error. It is also called with the
+     * {@link DittoHeaderInvalidException} if the headers of the signal are invalid. In that case its result is
+     * returned as is (it may be {@code null}) and neither {@code ackregatorStartedFunction} nor
+     * {@code ackregatorNotStartedFunction} is called.
      * @param ackregatorStartedFunction what to do if the aggregator actor started. The first argument is
      * the signal after setting requested-acks and response-required.
      * @param ackregatorNotStartedFunction what to do if the aggregator actor did not start.
@@ -219,7 +222,8 @@ public final class AcknowledgementAggregatorActorStarter {
      * @param signal the signal for which an acknowledgement aggregator should start.
      * @param preprocessor what to do. The first parameter is the signal with requested-acks and response-required
      * set. The second parameter is whether an acknowledgement aggregator should start.
-     * @param onInvalidHeader what to do if the headers are invalid.
+     * @param onInvalidHeader what to do if the headers are invalid. Its result is returned as is (it may be
+     * {@code null}) and {@code preprocessor} is not called.
      * @param <T> the type of results.
      * @return the result.
      */
@@ -230,8 +234,10 @@ public final class AcknowledgementAggregatorActorStarter {
         final var signalToForward = ackRequestSetter.apply(signal);
         final var headerInvalid = getDittoHeaderInvalidException(signalToForward);
 
-        return headerInvalid.map(onInvalidHeader)
-                .orElseGet(() -> preprocessor.apply(signalToForward, shouldStartForIncoming(signalToForward)));
+        if (headerInvalid.isPresent()) {
+            return onInvalidHeader.apply(headerInvalid.get());
+        }
+        return preprocessor.apply(signalToForward, shouldStartForIncoming(signalToForward));
     }
 
     /**

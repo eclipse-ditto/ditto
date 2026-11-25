@@ -103,6 +103,20 @@ import org.eclipse.ditto.policies.model.enforcers.testbench.scenarios.scenario4.
 import org.eclipse.ditto.policies.model.enforcers.testbench.scenarios.scenario4.Scenario4MultipleSubjects8;
 import org.eclipse.ditto.policies.model.enforcers.testbench.scenarios.scenario4.Scenario4MultipleSubjects9;
 import org.eclipse.ditto.policies.model.enforcers.testbench.scenarios.scenario5.Scenario5Simple1;
+import org.eclipse.ditto.policies.model.enforcers.testbench.scenarios.scenario6.Scenario6MultiplePermissions1;
+import org.eclipse.ditto.policies.model.enforcers.testbench.scenarios.scenario6.Scenario6MultiplePermissions2;
+import org.eclipse.ditto.policies.model.enforcers.testbench.scenarios.scenario6.Scenario6MultiplePermissions3;
+import org.eclipse.ditto.policies.model.enforcers.testbench.scenarios.scenario6.Scenario6MultiplePermissions4;
+import org.eclipse.ditto.policies.model.enforcers.testbench.scenarios.scenario6.Scenario6MultiplePermissions5;
+import org.eclipse.ditto.policies.model.enforcers.testbench.scenarios.scenario6.Scenario6MultiplePermissions6;
+import org.eclipse.ditto.policies.model.enforcers.testbench.scenarios.scenario6.Scenario6MultiplePermissions7;
+import org.eclipse.ditto.policies.model.enforcers.testbench.scenarios.scenario6.Scenario6MultiplePermissions8;
+import org.eclipse.ditto.policies.model.enforcers.testbench.scenarios.scenario7.Scenario7PartialPermissions1;
+import org.eclipse.ditto.policies.model.enforcers.testbench.scenarios.scenario7.Scenario7PartialPermissions2;
+import org.eclipse.ditto.policies.model.enforcers.testbench.scenarios.scenario7.Scenario7PartialPermissions3;
+import org.eclipse.ditto.policies.model.enforcers.testbench.scenarios.scenario7.Scenario7PartialPermissions4;
+import org.eclipse.ditto.policies.model.enforcers.testbench.scenarios.scenario7.Scenario7PartialPermissions5;
+import org.eclipse.ditto.policies.model.enforcers.testbench.scenarios.scenario7.Scenario7PartialPermissions6;
 import org.eclipse.ditto.policies.model.enforcers.tree.TreeBasedPolicyEnforcer;
 import org.eclipse.ditto.policies.model.Permissions;
 import org.eclipse.ditto.policies.model.PoliciesResourceType;
@@ -428,6 +442,76 @@ public abstract class AbstractPolicyAlgorithmTest {
     @Test
     public void test_Scenario5() {
         testScenarioWithAlgorithm(new Scenario5Simple1());
+    }
+
+    @Test
+    public void test_Scenario6MultiplePermissions1() {
+        testScenarioWithAlgorithm(new Scenario6MultiplePermissions1());
+    }
+
+    @Test
+    public void test_Scenario6MultiplePermissions2() {
+        testScenarioWithAlgorithm(new Scenario6MultiplePermissions2());
+    }
+
+    @Test
+    public void test_Scenario6MultiplePermissions3() {
+        testScenarioWithAlgorithm(new Scenario6MultiplePermissions3());
+    }
+
+    @Test
+    public void test_Scenario6MultiplePermissions4() {
+        testScenarioWithAlgorithm(new Scenario6MultiplePermissions4());
+    }
+
+    @Test
+    public void test_Scenario6MultiplePermissions5() {
+        testScenarioWithAlgorithm(new Scenario6MultiplePermissions5());
+    }
+
+    @Test
+    public void test_Scenario6MultiplePermissions6() {
+        testScenarioWithAlgorithm(new Scenario6MultiplePermissions6());
+    }
+
+    @Test
+    public void test_Scenario6MultiplePermissions7() {
+        testScenarioWithAlgorithm(new Scenario6MultiplePermissions7());
+    }
+
+    @Test
+    public void test_Scenario6MultiplePermissions8() {
+        testScenarioWithAlgorithm(new Scenario6MultiplePermissions8());
+    }
+
+    @Test
+    public void test_Scenario7PartialPermissions1() {
+        testScenarioWithAlgorithm(new Scenario7PartialPermissions1());
+    }
+
+    @Test
+    public void test_Scenario7PartialPermissions2() {
+        testScenarioWithAlgorithm(new Scenario7PartialPermissions2());
+    }
+
+    @Test
+    public void test_Scenario7PartialPermissions3() {
+        testScenarioWithAlgorithm(new Scenario7PartialPermissions3());
+    }
+
+    @Test
+    public void test_Scenario7PartialPermissions4() {
+        testScenarioWithAlgorithm(new Scenario7PartialPermissions4());
+    }
+
+    @Test
+    public void test_Scenario7PartialPermissions5() {
+        testScenarioWithAlgorithm(new Scenario7PartialPermissions5());
+    }
+
+    @Test
+    public void test_Scenario7PartialPermissions6() {
+        testScenarioWithAlgorithm(new Scenario7PartialPermissions6());
     }
 
     @Test

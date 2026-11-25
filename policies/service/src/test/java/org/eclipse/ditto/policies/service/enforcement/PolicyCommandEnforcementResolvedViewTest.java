@@ -21,6 +21,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 
 import org.eclipse.ditto.base.model.auth.AuthorizationContext;
@@ -31,6 +32,7 @@ import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.json.JsonKey;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.policies.api.Permission;
 import org.eclipse.ditto.policies.enforcement.PolicyEnforcer;
 import org.eclipse.ditto.policies.enforcement.config.NamespacePoliciesConfig;
@@ -44,6 +46,7 @@ import org.eclipse.ditto.policies.model.PoliciesModelFactory;
 import org.eclipse.ditto.policies.model.PoliciesResourceType;
 import org.eclipse.ditto.policies.model.Permissions;
 import org.eclipse.ditto.policies.model.Policy;
+import org.eclipse.ditto.policies.model.PolicyBuilder;
 import org.eclipse.ditto.policies.model.PolicyEntry;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.policies.model.PolicyImport;
@@ -56,6 +59,7 @@ import org.eclipse.ditto.policies.model.SubjectId;
 import org.eclipse.ditto.policies.model.SubjectIssuer;
 import org.eclipse.ditto.policies.model.Subjects;
 import org.eclipse.ditto.policies.model.signals.commands.PolicyCommandResponse;
+import org.eclipse.ditto.policies.model.signals.commands.query.RetrievePolicyEntryResponse;
 import org.eclipse.ditto.policies.model.signals.commands.query.RetrievePolicyResponse;
 import org.junit.Test;
 import org.mockito.Mockito;
@@ -81,6 +85,7 @@ public final class PolicyCommandEnforcementResolvedViewTest {
 
     private static final PolicyId IMPORTING_ID = PolicyId.of("test.nsleak", "importing");
     private static final PolicyId DECLARED_SOURCE_ID = PolicyId.of("test.nsleak", "declared-source");
+    private static final PolicyId INTERMEDIATE_ID = PolicyId.of("test.nsleak", "intermediate");
     private static final PolicyId NS_ROOT_ID = PolicyId.of("test.nsleak", "ns-root");
     private static final String IMPORTING_NAMESPACE = "test.nsleak";
 
@@ -179,7 +184,7 @@ public final class PolicyCommandEnforcementResolvedViewTest {
      * prefix, that the EXPLICIT manager-only entry is not pulled into the leaf (leaf imports main with empty
      * entries list), and that none of these entries are dropped by the source-side READ filter — the viewer
      * has source-side READ on main via an IMPLICIT VIEWER entry that grants {@code policy:/ READ} to the
-     * caller subject.</p>
+     * caller subject, and on the template via a non-importable VIEWER entry.</p>
      */
     @Test
     public void resolvedViewMergesTransitiveImportAndReferencesEndToEnd() throws Exception {
@@ -216,6 +221,10 @@ public final class PolicyCommandEnforcementResolvedViewTest {
         final Policy template = PoliciesModelFactory.newPolicyBuilder(templateId)
                 .set(templateRoom)
                 .set(templateBuilding)
+                .set(PoliciesModelFactory.newPolicyEntry(viewerLabel, Subjects.newInstance(VIEWER),
+                        Resources.newInstance(Resource.newInstance(POLICY_ROOT, EffectedPermissions.newInstance(
+                                Permissions.newInstance(Permission.READ), Permissions.none()))),
+                        ImportableType.NEVER))
                 .build();
 
         // --- main: imports template; carries the manager subject in an EXPLICIT-only entry (not pulled
@@ -311,7 +320,7 @@ public final class PolicyCommandEnforcementResolvedViewTest {
                 .isNotPresent();
 
         // Source-side READ filter must NOT have dropped the imported entries — the viewer has READ on
-        // policy:/ via main's VIEWER entry, which passes hasSourceSideRead() for every entry in main.
+        // policy:/ via main's VIEWER entry, which grants the source-side READ view on every entry in main.
         assertThat(filteredEntries.toString())
                 .as("manager subject must be exposed because viewer has source-side READ on main")
                 .contains(managerSubjectId.toString());
@@ -327,10 +336,10 @@ public final class PolicyCommandEnforcementResolvedViewTest {
      *
      * <p>Root cause: {@link PolicyCommandEnforcement#resolveSourceEnforcer} built each source enforcer with
      * {@link PolicyEnforcer#withResolvedImports} — without namespace-root policies. The source-side READ filter
-     * inside {@link PolicyCommandEnforcement#mergeAndDropUnreadable} therefore evaluated the caller's
+     * inside {@link PolicyCommandEnforcement#mergeAndRestrictToSourceView} therefore evaluated the caller's
      * {@code policy:/entries/&lt;label&gt;} READ against the source's own subjects only. A caller whose READ on
      * main comes solely from the operator-configured namespace-root (e.g. a global devops admin) failed
-     * {@code hasSourceSideRead} for every entry in main, and every {@code imported-&lt;mainId&gt;-…} entry was
+     * the source-side READ check for every entry in main, and every {@code imported-&lt;mainId&gt;-…} entry was
      * stripped. Fix: source enforcers are now built with
      * {@link PolicyEnforcer#withResolvedImportsAndNamespacePolicies} so namespace-root subjects participate in
      * the source-side READ evaluation the same way they do in the importing-policy evaluation. The two existing
@@ -438,7 +447,7 @@ public final class PolicyCommandEnforcementResolvedViewTest {
         // EXPECTED (currently failing): main's IMPLICIT ROOM_ACCESS — with manager subject merged from the local
         // reference and template's resource merged from the import reference — must appear in the resolved view.
         // ACTUAL: stripped, because resolveSourceEnforcer builds main without namespace-policy merge so the caller's
-        // namespace-root-granted READ is invisible to hasSourceSideRead.
+        // namespace-root-granted READ is invisible to the source-side READ check.
         final String mainPrefixedRoom = "imported-" + mainId + "-" + roomAccessLabel;
         assertThat(filteredEntries.getField(mainPrefixedRoom))
                 .as("main's IMPLICIT ROOM_ACCESS must be exposed — caller has READ on every policy in the " +
@@ -459,6 +468,456 @@ public final class PolicyCommandEnforcementResolvedViewTest {
     }
 
     /**
+     * VIEWER owns the importing policy but may only read the {@code subjects} of SECRET in the declared-import
+     * source. The imported SECRET entry must be restricted to exactly what a direct read of the source returns,
+     * instead of being disclosed completely because VIEWER has READ on {@code policy:/} of the importing policy.
+     */
+    @Test
+    public void resolvedViewRestrictsImportedEntryToPartialReadGrantInSource() throws Exception {
+        final Policy importing = importingPolicy(true);
+        final Policy declaredSource = sourcePolicyWithViewerAccess(DECLARED_SOURCE_ID,
+                Resource.newInstance(PoliciesResourceType.policyResource("/entries/SECRET/subjects"),
+                        EffectedPermissions.newInstance(Permissions.newInstance(Permission.READ),
+                                Permissions.none())));
+        final Function<PolicyId, CompletionStage<Optional<Policy>>> resolver =
+                policyResolver(importing, declaredSource);
+
+        final JsonObject filteredEntries = runResolvedView(importing, resolver, emptyNamespacePoliciesConfig());
+
+        final JsonObject importedSecret = getEntry(filteredEntries, "imported-" + DECLARED_SOURCE_ID + "-SECRET");
+        assertThat(importedSecret.getKeys()).containsExactly(JsonKey.of("subjects"));
+        assertThat(importedSecret).isEqualTo(
+                directReadOfEntry(declaredSource, "SECRET", resolver, emptyNamespacePoliciesConfig()));
+        assertThat(filteredEntries.getValue(JsonKey.of("VIEWER")))
+                .as("own entries of the importing policy are not restricted by the source")
+                .contains(importing.getEntryFor("VIEWER").orElseThrow().toJson());
+    }
+
+    /**
+     * VIEWER may read the whole declared-import source except the {@code resources} of SECRET, which are revoked.
+     * The revoke must also apply to the imported SECRET entry in the resolved view.
+     */
+    @Test
+    public void resolvedViewRestrictsImportedEntryToRevokedReadInSource() throws Exception {
+        final Policy importing = importingPolicy(true);
+        final Policy declaredSource = sourcePolicyWithViewerAccess(DECLARED_SOURCE_ID,
+                Resource.newInstance(POLICY_ROOT, EffectedPermissions.newInstance(
+                        Permissions.newInstance(Permission.READ), Permissions.none())),
+                Resource.newInstance(PoliciesResourceType.policyResource("/entries/SECRET/resources"),
+                        EffectedPermissions.newInstance(Permissions.none(),
+                                Permissions.newInstance(Permission.READ))));
+        final Function<PolicyId, CompletionStage<Optional<Policy>>> resolver =
+                policyResolver(importing, declaredSource);
+
+        final JsonObject filteredEntries = runResolvedView(importing, resolver, emptyNamespacePoliciesConfig());
+
+        final JsonObject importedSecret = getEntry(filteredEntries, "imported-" + DECLARED_SOURCE_ID + "-SECRET");
+        assertThat(importedSecret.contains(JsonKey.of("resources")))
+                .as("revoked resources of SECRET must not be disclosed")
+                .isFalse();
+        assertThat(importedSecret.contains(JsonKey.of("subjects"))).isTrue();
+        assertThat(importedSecret).isEqualTo(
+                directReadOfEntry(declaredSource, "SECRET", resolver, emptyNamespacePoliciesConfig()));
+    }
+
+    /**
+     * Same as {@link #resolvedViewRestrictsImportedEntryToPartialReadGrantInSource()} for an entry contributed by
+     * a namespace-root policy instead of a declared import.
+     */
+    @Test
+    public void resolvedViewRestrictsNamespaceRootEntryToPartialReadGrantInSource() throws Exception {
+        final Policy importing = importingPolicy(false);
+        final Policy nsRoot = sourcePolicyWithViewerAccess(NS_ROOT_ID,
+                Resource.newInstance(PoliciesResourceType.policyResource("/entries/SECRET/subjects"),
+                        EffectedPermissions.newInstance(Permissions.newInstance(Permission.READ),
+                                Permissions.none())));
+        final Function<PolicyId, CompletionStage<Optional<Policy>>> resolver = policyResolver(importing, nsRoot);
+        final NamespacePoliciesConfig nsConfig = namespacePoliciesConfigBinding(IMPORTING_NAMESPACE, NS_ROOT_ID);
+
+        final JsonObject filteredEntries = runResolvedView(importing, resolver, nsConfig);
+
+        final JsonObject nsImportedSecret = getEntry(filteredEntries,
+                PoliciesModelFactory.newNsImportedLabel(NS_ROOT_ID, "SECRET").toString());
+        assertThat(nsImportedSecret.getKeys()).containsExactly(JsonKey.of("subjects"));
+        assertThat(nsImportedSecret).isEqualTo(directReadOfEntry(nsRoot, "SECRET", resolver, nsConfig));
+    }
+
+    /**
+     * VIEWER has READ only on a path below SECRET which does not exist in the entry. Nothing of the entry is
+     * readable, so the imported entry must be dropped completely, not shown as an empty object revealing its label.
+     */
+    @Test
+    public void resolvedViewDropsImportedEntryWithoutReadableField() throws Exception {
+        final Policy importing = importingPolicy(true);
+        final Policy declaredSource = sourcePolicyWithViewerAccess(DECLARED_SOURCE_ID,
+                Resource.newInstance(PoliciesResourceType.policyResource("/entries/SECRET/nonexistent"),
+                        EffectedPermissions.newInstance(Permissions.newInstance(Permission.READ),
+                                Permissions.none())));
+
+        final JsonObject filteredEntries = runResolvedView(importing,
+                policyResolver(importing, declaredSource), emptyNamespacePoliciesConfig());
+
+        assertThat(filteredEntries.contains(JsonKey.of("imported-" + DECLARED_SOURCE_ID + "-SECRET")))
+                .as("imported SECRET entry without any readable field must be dropped")
+                .isFalse();
+        assertThat(filteredEntries.toString()).doesNotContain(ADMIN_ID.toString());
+    }
+
+    /**
+     * A {@code fields} selector pointing directly to the non-readable part of an imported entry must not bypass the
+     * source-side view.
+     */
+    @Test
+    public void resolvedViewFieldsSelectorDoesNotBypassSourceView() throws Exception {
+        final Policy importing = importingPolicy(true);
+        final Policy declaredSource = sourcePolicyWithViewerAccess(DECLARED_SOURCE_ID,
+                Resource.newInstance(PoliciesResourceType.policyResource("/entries/SECRET/subjects"),
+                        EffectedPermissions.newInstance(Permissions.newInstance(Permission.READ),
+                                Permissions.none())));
+        final String secretLabel = "imported-" + DECLARED_SOURCE_ID + "-SECRET";
+        final DittoHeaders headersWithFields = RESOLVED_VIEW_HEADERS.toBuilder()
+                .putHeader(DittoHeaderDefinition.POLICY_VIEW_FIELDS_SELECTOR.getKey(),
+                        "entries/" + secretLabel + "/resources")
+                .build();
+
+        final JsonObject entity = runResolvedViewEntity(importing, policyResolver(importing, declaredSource),
+                emptyNamespacePoliciesConfig(), headersWithFields);
+
+        assertThat(entity.getValue(JsonPointer.of("entries").addLeaf(JsonKey.of(secretLabel))
+                .addLeaf(JsonKey.of("resources"))))
+                .as("resources of SECRET must not be returned via a fields selector")
+                .isEmpty();
+        assertThat(entity.toString()).doesNotContain("thing:/");
+    }
+
+    /**
+     * The importing policy imports an intermediate policy with {@code transitiveImports} of the source. The caller
+     * may read the intermediate policy completely, but the resources of SECRET are revoked in the source. The
+     * transitively imported SECRET entry must not disclose them.
+     */
+    @Test
+    public void resolvedViewRestrictsTransitivelyImportedEntryToSource() throws Exception {
+        final Policy source = sourcePolicyWithRevokedSecretResources(DECLARED_SOURCE_ID);
+        final Policy intermediate = viewerReadablePolicy(INTERMEDIATE_ID, importOf(DECLARED_SOURCE_ID));
+        final Policy importing = viewerReadablePolicy(IMPORTING_ID, PolicyImports.newInstance(
+                PoliciesModelFactory.newPolicyImport(INTERMEDIATE_ID, PoliciesModelFactory.newEffectedImportedLabels(
+                        Collections.emptyList(), Collections.singletonList(DECLARED_SOURCE_ID)))));
+
+        final JsonObject filteredEntries = runResolvedView(importing,
+                policyResolver(importing, intermediate, source), emptyNamespacePoliciesConfig());
+
+        final JsonObject transitiveSecret = getEntry(filteredEntries,
+                "imported-" + INTERMEDIATE_ID + "-imported-" + DECLARED_SOURCE_ID + "-SECRET");
+        assertThat(transitiveSecret.contains(JsonKey.of("subjects"))).isTrue();
+        assertNoResources(transitiveSecret);
+    }
+
+    /**
+     * A namespace-root policy imports the source. The caller may read the namespace-root policy completely, but the
+     * resources of SECRET are revoked in the source. The SECRET entry contributed via the namespace-root policy
+     * must not disclose them.
+     */
+    @Test
+    public void resolvedViewRestrictsImportsOfNamespaceRootToSource() throws Exception {
+        final Policy source = sourcePolicyWithRevokedSecretResources(DECLARED_SOURCE_ID);
+        final Policy nsRoot = Policy.newBuilder(NS_ROOT_ID)
+                .forLabel("VIEWER")
+                .setSubject(VIEWER)
+                .setGrantedPermissions(POLICY_ROOT, Permission.READ)
+                .setImportable(ImportableType.NEVER)
+                .setPolicyImports(importOf(DECLARED_SOURCE_ID))
+                .build();
+        final Policy importing = importingPolicy(false);
+
+        final JsonObject filteredEntries = runResolvedView(importing, policyResolver(importing, nsRoot, source),
+                namespacePoliciesConfigBinding(IMPORTING_NAMESPACE, NS_ROOT_ID));
+
+        final JsonObject secretViaNsRoot = getEntry(filteredEntries, PoliciesModelFactory.newNsImportedLabel(
+                NS_ROOT_ID, "imported-" + DECLARED_SOURCE_ID + "-SECRET").toString());
+        assertThat(secretViaNsRoot.contains(JsonKey.of("subjects"))).isTrue();
+        assertNoResources(secretViaNsRoot);
+    }
+
+    /**
+     * An own entry of the importing policy references SECRET of the source. Resolving the reference must only copy
+     * the content of SECRET the caller may read in the source.
+     */
+    @Test
+    public void resolvedViewRestrictsContentCopiedByReferencesToSource() throws Exception {
+        final Policy source = sourcePolicyWithRevokedSecretResources(DECLARED_SOURCE_ID);
+        final SubjectId localSubjectId = SubjectId.newInstance(SubjectIssuer.GOOGLE, "local");
+        final Policy importing = importingPolicy(true)
+                .setEntry(PoliciesModelFactory.newPolicyEntry(Label.of("LOCAL"),
+                        Subjects.newInstance(Subject.newInstance(localSubjectId)),
+                        PoliciesModelFactory.emptyResources(), null, ImportableType.NEVER, null,
+                        Collections.singletonList(
+                                PoliciesModelFactory.newEntryReference(DECLARED_SOURCE_ID, Label.of("SECRET")))));
+
+        final JsonObject filteredEntries = runResolvedView(importing, policyResolver(importing, source),
+                emptyNamespacePoliciesConfig());
+
+        final JsonObject local = getEntry(filteredEntries, "LOCAL");
+        assertThat(local.getValue(JsonKey.of("subjects")).map(JsonValue::asObject).orElseThrow().getKeys())
+                .as("own subject and the readable subject of SECRET are kept")
+                .containsExactlyInAnyOrder(JsonKey.of(localSubjectId), JsonKey.of(ADMIN_ID));
+        assertNoResources(local);
+        assertNoResources(getEntry(filteredEntries, "imported-" + DECLARED_SOURCE_ID + "-SECRET"));
+    }
+
+    /**
+     * An entry of an imported policy references SECRET of the source the imported policy imports. The caller may
+     * read the imported policy completely, but the resources of SECRET are revoked in the source. The referencing
+     * entry must not carry them into the resolved view.
+     */
+    @Test
+    public void resolvedViewRestrictsContentCopiedByReferencesWithinImportedPolicy() throws Exception {
+        final Policy source = sourcePolicyWithRevokedSecretResources(DECLARED_SOURCE_ID);
+        final Policy intermediate = viewerReadablePolicy(INTERMEDIATE_ID, importOf(DECLARED_SOURCE_ID))
+                .setEntry(PoliciesModelFactory.newPolicyEntry(Label.of("ACCESS"),
+                        PoliciesModelFactory.emptySubjects(), PoliciesModelFactory.emptyResources(), null,
+                        ImportableType.IMPLICIT, null, Collections.singletonList(
+                                PoliciesModelFactory.newEntryReference(DECLARED_SOURCE_ID, Label.of("SECRET")))));
+        final Policy importing = viewerReadablePolicy(IMPORTING_ID, PolicyImports.newInstance(
+                PoliciesModelFactory.newPolicyImport(INTERMEDIATE_ID, PoliciesModelFactory.newEffectedImportedLabels(
+                        Collections.emptyList(), Collections.singletonList(DECLARED_SOURCE_ID)))));
+
+        final JsonObject filteredEntries = runResolvedView(importing,
+                policyResolver(importing, intermediate, source), emptyNamespacePoliciesConfig());
+
+        final JsonObject access = getEntry(filteredEntries, "imported-" + INTERMEDIATE_ID + "-ACCESS");
+        assertThat(access.toString()).contains(ADMIN_ID.toString());
+        assertNoResources(access);
+    }
+
+    /**
+     * Every policy is loaded only once per resolved view, so a source which is not found cannot contribute entries
+     * which are then not restricted because the source is not found for the source-side view.
+     */
+    @Test
+    public void resolvedViewLoadsSourceOnlyOnceAndOmitsItIfNotFound() throws Exception {
+        final Policy source = sourcePolicyWithRevokedSecretResources(DECLARED_SOURCE_ID);
+        final Policy importing = importingPolicy(true);
+        final Function<PolicyId, CompletionStage<Optional<Policy>>> stableResolver =
+                policyResolver(importing, source);
+        final AtomicInteger sourceLookups = new AtomicInteger();
+        final Function<PolicyId, CompletionStage<Optional<Policy>>> resolverMissingSourceOnce = id -> {
+            if (DECLARED_SOURCE_ID.equals(id) && sourceLookups.incrementAndGet() == 1) {
+                return CompletableFuture.completedFuture(Optional.empty());
+            }
+            return stableResolver.apply(id);
+        };
+        final PolicyEnforcer importingEnforcer = PolicyEnforcer
+                .withResolvedImportsAndNamespacePolicies(importing, stableResolver, emptyNamespacePoliciesConfig())
+                .toCompletableFuture().get();
+
+        final PolicyCommandResponse<?> filtered =
+                new PolicyCommandEnforcement(resolverMissingSourceOnce, emptyNamespacePoliciesConfig())
+                        .filterResponse(RetrievePolicyResponse.of(IMPORTING_ID, importing.toJson(),
+                                RESOLVED_VIEW_HEADERS), importingEnforcer)
+                        .toCompletableFuture().get();
+
+        assertThat(sourceLookups).hasValue(1);
+        final JsonObject filteredEntries = ((RetrievePolicyResponse) filtered).getEntity().asObject()
+                .getValue("entries").orElseThrow().asObject();
+        assertThat(filteredEntries.contains(JsonKey.of("imported-" + DECLARED_SOURCE_ID + "-SECRET"))).isFalse();
+        assertThat(filteredEntries.toString()).doesNotContain(ADMIN_ID.toString());
+    }
+
+    /**
+     * An EXPLICIT importable entry which is not selected by the import must not appear in the resolved view, even
+     * if the caller may read it in the source.
+     */
+    @Test
+    public void resolvedViewOmitsUnselectedExplicitEntry() throws Exception {
+        final Policy source = Policy.newBuilder(DECLARED_SOURCE_ID)
+                .forLabel("VIEWER_ACCESS")
+                .setSubject(VIEWER)
+                .setGrantedPermissions(POLICY_ROOT, Permission.READ)
+                .setImportable(ImportableType.NEVER)
+                .forLabel("SECRET")
+                .setSubject(ADMIN)
+                .setGrantedPermissions(THING_ROOT, Permission.READ)
+                .setImportable(ImportableType.EXPLICIT)
+                .build();
+        final Policy importing = importingPolicy(true);
+
+        final JsonObject filteredEntries = runResolvedView(importing, policyResolver(importing, source),
+                emptyNamespacePoliciesConfig());
+
+        assertThat(filteredEntries.contains(JsonKey.of("imported-" + DECLARED_SOURCE_ID + "-SECRET"))).isFalse();
+        assertThat(filteredEntries.toString()).doesNotContain(ADMIN_ID.toString());
+    }
+
+    /**
+     * An own entry of the requested policy references another own entry, whose resources the caller may not read.
+     * Resolving the local reference must not copy them into the referencing entry.
+     */
+    @Test
+    public void resolvedViewRestrictsContentCopiedByLocalReferences() throws Exception {
+        final SubjectId localSubjectId = SubjectId.newInstance(SubjectIssuer.GOOGLE, "local");
+        final Policy importing = Policy.newBuilder(IMPORTING_ID)
+                .forLabel("VIEWER")
+                .setSubject(VIEWER)
+                .setGrantedPermissions(POLICY_ROOT, Permission.READ)
+                .setRevokedPermissions(PoliciesResourceType.policyResource("/entries/HIDDEN/resources"),
+                        Permission.READ)
+                .setImportable(ImportableType.NEVER)
+                .forLabel("HIDDEN")
+                .setSubject(ADMIN)
+                .setGrantedPermissions(THING_ROOT, Permission.READ, Permission.WRITE)
+                .setImportable(ImportableType.IMPLICIT)
+                .build()
+                .setEntry(PoliciesModelFactory.newPolicyEntry(Label.of("LOCAL"),
+                        Subjects.newInstance(Subject.newInstance(localSubjectId)),
+                        PoliciesModelFactory.emptyResources(), null, ImportableType.NEVER, null,
+                        Collections.singletonList(PoliciesModelFactory.newLocalEntryReference(Label.of("HIDDEN")))));
+
+        final JsonObject filteredEntries = runResolvedView(importing, policyResolver(importing),
+                emptyNamespacePoliciesConfig());
+
+        final JsonObject local = getEntry(filteredEntries, "LOCAL");
+        assertThat(local.getValue(JsonKey.of("subjects")).map(JsonValue::asObject).orElseThrow().getKeys())
+                .as("own subject and the readable subject of HIDDEN are kept")
+                .containsExactlyInAnyOrder(JsonKey.of(localSubjectId), JsonKey.of(ADMIN_ID));
+        assertNoResources(local);
+        assertNoResources(getEntry(filteredEntries, "HIDDEN"));
+    }
+
+    /**
+     * Own entries without {@code references} contain no content of other entries; the resolved view must return them
+     * exactly as the original view does, also when the caller may read only parts of a subject.
+     */
+    @Test
+    public void resolvedViewKeepsOwnEntriesWithoutReferencesAsInOriginalView() throws Exception {
+        final Policy importing = Policy.newBuilder(IMPORTING_ID)
+                .forLabel("VIEWER")
+                .setSubject(VIEWER)
+                .setGrantedPermissions(POLICY_ROOT, Permission.READ)
+                .setRevokedPermissions(PoliciesResourceType.policyResource("/entries/OWN/subjects/" + ADMIN_ID +
+                        "/type"), Permission.READ)
+                .setImportable(ImportableType.NEVER)
+                .forLabel("OWN")
+                .setSubject(ADMIN)
+                .setGrantedPermissions(THING_ROOT, Permission.READ)
+                .setImportable(ImportableType.NEVER)
+                .build();
+        final Function<PolicyId, CompletionStage<Optional<Policy>>> resolver = policyResolver(importing);
+        final PolicyEnforcer enforcer = PolicyEnforcer
+                .withResolvedImportsAndNamespacePolicies(importing, resolver, emptyNamespacePoliciesConfig())
+                .toCompletableFuture().get();
+        final DittoHeaders originalViewHeaders = RESOLVED_VIEW_HEADERS.toBuilder()
+                .removeHeader(DittoHeaderDefinition.POLICY_VIEW.getKey())
+                .build();
+        final PolicyCommandResponse<?> originalView =
+                new PolicyCommandEnforcement(resolver, emptyNamespacePoliciesConfig())
+                        .filterResponse(RetrievePolicyResponse.of(IMPORTING_ID, importing.toJson(),
+                                originalViewHeaders), enforcer)
+                        .toCompletableFuture().get();
+        final JsonObject originalEntries = ((RetrievePolicyResponse) originalView).getEntity().asObject()
+                .getValue("entries").orElseThrow().asObject();
+
+        final JsonObject filteredEntries = runResolvedView(importing, resolver, emptyNamespacePoliciesConfig());
+
+        assertThat(getEntry(filteredEntries, "OWN")).isEqualTo(getEntry(originalEntries, "OWN"));
+    }
+
+    private static Policy viewerReadablePolicy(final PolicyId policyId, final PolicyImports policyImports) {
+        return Policy.newBuilder(policyId)
+                .forLabel("VIEWER")
+                .setSubject(VIEWER)
+                .setGrantedPermissions(POLICY_ROOT, Permission.READ)
+                .setImportable(ImportableType.NEVER)
+                .setPolicyImports(policyImports)
+                .build();
+    }
+
+    private static PolicyImports importOf(final PolicyId importedPolicyId) {
+        return PolicyImports.newInstance(PoliciesModelFactory.newPolicyImport(importedPolicyId,
+                EffectedImports.newInstance(Collections.emptyList())));
+    }
+
+    /**
+     * Creates a source policy in which VIEWER may read everything except the resources of the SECRET entry.
+     */
+    private static Policy sourcePolicyWithRevokedSecretResources(final PolicyId sourceId) {
+        return sourcePolicyWithViewerAccess(sourceId,
+                Resource.newInstance(POLICY_ROOT, EffectedPermissions.newInstance(
+                        Permissions.newInstance(Permission.READ), Permissions.none())),
+                Resource.newInstance(PoliciesResourceType.policyResource("/entries/SECRET/resources"),
+                        EffectedPermissions.newInstance(Permissions.none(),
+                                Permissions.newInstance(Permission.READ))));
+    }
+
+    private static void assertNoResources(final JsonObject entry) {
+        assertThat(entry.getValue(JsonKey.of("resources")).map(JsonValue::asObject).orElseGet(JsonObject::empty))
+                .as("entry must not disclose resources: %s", entry)
+                .isEmpty();
+    }
+
+    private static Policy importingPolicy(final boolean withDeclaredImport) {
+        final PolicyBuilder builder = Policy.newBuilder(IMPORTING_ID)
+                .forLabel("VIEWER")
+                .setSubject(VIEWER)
+                .setGrantedPermissions(POLICY_ROOT, Permission.READ, Permission.WRITE)
+                .setImportable(ImportableType.NEVER)
+                .exitLabel();
+        if (withDeclaredImport) {
+            builder.setPolicyImports(PolicyImports.newInstance(PoliciesModelFactory.newPolicyImport(
+                    DECLARED_SOURCE_ID, EffectedImports.newInstance(Collections.emptyList()))));
+        }
+        return builder.build();
+    }
+
+    /**
+     * Creates a source policy with an IMPLICIT importable SECRET entry for ADMIN and a non-importable entry which
+     * gives VIEWER the passed access on the source policy.
+     */
+    private static Policy sourcePolicyWithViewerAccess(final PolicyId sourceId, final Resource... viewerAccess) {
+        return Policy.newBuilder(sourceId)
+                .forLabel("ADMIN")
+                .setSubject(ADMIN)
+                .setGrantedPermissions(POLICY_ROOT, Permission.READ, Permission.WRITE)
+                .setImportable(ImportableType.NEVER)
+                .forLabel("SECRET")
+                .setSubject(ADMIN)
+                .setGrantedPermissions(THING_ROOT, Permission.READ)
+                .setImportable(ImportableType.IMPLICIT)
+                .exitLabel()
+                .set(PoliciesModelFactory.newPolicyEntry("VIEWER_ACCESS", Subjects.newInstance(VIEWER),
+                        Resources.newInstance(Arrays.asList(viewerAccess)), ImportableType.NEVER))
+                .build();
+    }
+
+    private static JsonObject getEntry(final JsonObject entries, final String label) {
+        return entries.getValue(JsonKey.of(label))
+                .map(JsonValue::asObject)
+                .orElseThrow(() -> new AssertionError("Expected entry <" + label + "> in " + entries));
+    }
+
+    /**
+     * Returns the entry as VIEWER gets it from a direct {@code RetrievePolicyEntry} on the source policy.
+     */
+    private static JsonObject directReadOfEntry(final Policy source, final String label,
+            final Function<PolicyId, CompletionStage<Optional<Policy>>> resolver,
+            final NamespacePoliciesConfig namespacePoliciesConfig) throws Exception {
+        final PolicyCommandEnforcement enforcement =
+                new PolicyCommandEnforcement(resolver, namespacePoliciesConfig);
+        final PolicyEnforcer sourceEnforcer = PolicyEnforcer
+                .withResolvedImportsAndNamespacePolicies(source, resolver, namespacePoliciesConfig)
+                .toCompletableFuture().get();
+        final DittoHeaders originalViewHeaders = RESOLVED_VIEW_HEADERS.toBuilder()
+                .removeHeader(DittoHeaderDefinition.POLICY_VIEW.getKey())
+                .build();
+        final RetrievePolicyEntryResponse rawResponse = RetrievePolicyEntryResponse.of(
+                source.getEntityId().orElseThrow(), source.getEntryFor(label).orElseThrow(), originalViewHeaders);
+
+        final PolicyCommandResponse<?> filtered = enforcement.filterResponse(rawResponse, sourceEnforcer)
+                .toCompletableFuture().get();
+
+        return ((RetrievePolicyEntryResponse) filtered).getEntity().asObject();
+    }
+
+    /**
      * Drives {@link PolicyCommandEnforcement#filterResponse} end-to-end for a resolved-view request and returns the
      * filtered {@code entries} JSON object so each test can assert on it. The importing-policy enforcer passed to
      * {@code filterResponse} is built via {@link PolicyEnforcer#withResolvedImportsAndNamespacePolicies} with the
@@ -467,19 +926,27 @@ public final class PolicyCommandEnforcementResolvedViewTest {
     private static JsonObject runResolvedView(final Policy importing,
             final Function<PolicyId, CompletionStage<Optional<Policy>>> resolver,
             final NamespacePoliciesConfig namespacePoliciesConfig) throws Exception {
+        return runResolvedViewEntity(importing, resolver, namespacePoliciesConfig, RESOLVED_VIEW_HEADERS)
+                .getValue("entries").orElseThrow().asObject();
+    }
+
+    private static JsonObject runResolvedViewEntity(final Policy importing,
+            final Function<PolicyId, CompletionStage<Optional<Policy>>> resolver,
+            final NamespacePoliciesConfig namespacePoliciesConfig,
+            final DittoHeaders dittoHeaders) throws Exception {
         final PolicyCommandEnforcement enforcement =
                 new PolicyCommandEnforcement(resolver, namespacePoliciesConfig);
         final PolicyEnforcer importingEnforcer = PolicyEnforcer
                 .withResolvedImportsAndNamespacePolicies(importing, resolver, namespacePoliciesConfig)
                 .toCompletableFuture().get();
         final RetrievePolicyResponse rawResponse = RetrievePolicyResponse.of(IMPORTING_ID,
-                importing.toJson(), RESOLVED_VIEW_HEADERS);
+                importing.toJson(), dittoHeaders);
 
         final PolicyCommandResponse<?> filtered = enforcement.filterResponse(rawResponse, importingEnforcer)
                 .toCompletableFuture().get();
 
         final RetrievePolicyResponse retrieveResp = (RetrievePolicyResponse) filtered;
-        return retrieveResp.getEntity().asObject().getValue("entries").orElseThrow().asObject();
+        return retrieveResp.getEntity().asObject();
     }
 
     private static Function<PolicyId, CompletionStage<Optional<Policy>>> policyResolver(final Policy... policies) {

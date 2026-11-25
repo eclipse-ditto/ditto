@@ -38,6 +38,11 @@ When enabled, the reverse proxy must set the HTTP header `x-ditto-pre-authentica
 
 The `issuer` identifies the authenticating system, and the `subject` contains the user ID or username. Use this string as the "Subject ID" in [policies](basic-policy.html#subjects).
 
+The gateway reads the pre-authenticated subject **only** from this HTTP header. A query parameter of the same name is
+ignored. The proxy must set the header from a verified identity on every request it forwards, or forward the request
+without the header so that the gateway has to authenticate it by other means, e.g. by validating a
+[JWT](#openid-connect).
+
 ### Example: nginx configuration
 
 ```nginx

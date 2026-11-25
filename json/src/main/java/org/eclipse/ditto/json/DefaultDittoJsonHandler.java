@@ -15,9 +15,7 @@ package org.eclipse.ditto.json;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.function.UnaryOperator;
 
 import javax.annotation.concurrent.NotThreadSafe;
@@ -116,7 +114,12 @@ public final class DefaultDittoJsonHandler extends DittoJsonHandler<List<JsonVal
     }
 
     private static ImmutableJsonDouble parseToDouble(final String string) {
-        return ImmutableJsonDouble.of(Double.parseDouble(string));
+        final double doubleValue = Double.parseDouble(string);
+        if (Double.isInfinite(doubleValue)) {
+            // JSON has no literal for infinity, so such a value could not be written as valid JSON again
+            throw new NumberFormatException("The number <" + string + "> does not fit in a double!");
+        }
+        return ImmutableJsonDouble.of(doubleValue);
     }
 
     private static JsonNumber parseToIntegerOrLong(final String string) {
@@ -174,11 +177,7 @@ public final class DefaultDittoJsonHandler extends DittoJsonHandler<List<JsonVal
             stringBuilder.append('}');
             valueString = stringBuilder.toString();
         }
-        final Map<String, JsonField> fieldMap = new LinkedHashMap<>(jsonFields.size());
-        for (final JsonField jsonField : jsonFields) {
-            fieldMap.put(jsonField.getKeyName(), jsonField);
-        }
-        jsonValue = ImmutableJsonObject.ofTakingOwnership(fieldMap, valueString);
+        jsonValue = ImmutableJsonObject.ofParsedFields(jsonFields, valueString);
     }
 
     @Override

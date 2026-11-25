@@ -35,6 +35,7 @@ import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
 import org.eclipse.ditto.base.model.auth.DittoAuthorizationContextType;
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.common.ResponseType;
+import org.eclipse.ditto.base.model.exceptions.DittoHeaderInvalidException;
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.signals.Signal;
@@ -64,12 +65,18 @@ import org.eclipse.ditto.json.JsonParseOptions;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.placeholders.UnresolvedPlaceholderException;
+import org.eclipse.ditto.policies.model.PolicyId;
+import org.eclipse.ditto.policies.model.signals.commands.PolicyErrorResponse;
+import org.eclipse.ditto.policies.model.signals.commands.modify.DeletePolicy;
 import org.eclipse.ditto.protocol.JsonifiableAdaptable;
 import org.eclipse.ditto.protocol.ProtocolFactory;
 import org.eclipse.ditto.protocol.TopicPath;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingFieldSelector;
 import org.eclipse.ditto.things.model.ThingId;
+import org.eclipse.ditto.things.model.Attributes;
+import org.eclipse.ditto.things.model.signals.events.AttributeModified;
+import org.eclipse.ditto.things.model.signals.events.AttributesModified;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingNotAccessibleException;
 import org.eclipse.ditto.things.model.signals.commands.modify.DeleteThingResponse;
 import org.eclipse.ditto.things.model.signals.commands.modify.ModifyAttribute;
@@ -185,6 +192,116 @@ public final class MessageMappingProcessorActorTest extends AbstractMessageMappi
 
             // THEN: Receive an outbound signal without extra fields.
             expectPublishedMappedMessage(publishMappedMessage, i, signal, targetWithoutEnrichment);
+        }};
+    }
+
+    @Test
+    public void filtersAndExtraFieldsOfPartialReaderDoNotSeeUnreadableFieldsMergedIntoTheEnrichmentCache() {
+        resetActorSystemWithCachingSignalEnrichmentProvider();
+        final TestProbe proxyActorProbe = TestProbe.apply("mockEdgeForwarder", actorSystem);
+        setUpProxyActor(proxyActorProbe.ref());
+
+        new TestKit(actorSystem) {{
+            final ActorRef outboundMappingProcessorActor = createOutboundMappingProcessorActor(this);
+            final AuthorizationSubject carol = AuthorizationSubject.newInstance("nginx:carol");
+            final DittoHeaders partialForCarol = DittoHeaders.newBuilder()
+                    .putHeader(DittoHeaderDefinition.PARTIAL_ACCESS_PATHS.getKey(),
+                            "{\"subjects\":[\"nginx:carol\"],\"paths\":{\"attributes/pub\":[0]}}")
+                    .readGrantedSubjects(List.of(carol))
+                    .build();
+            final ThingFieldSelector extraFields =
+                    ThingFieldSelector.fromJsonFieldSelector(JsonFieldSelector.newInstance("attributes"));
+            final Target carolTarget = ConnectivityModelFactory.newTargetBuilder()
+                    .address("carol")
+                    .authorizationContext(AuthorizationContext.newInstance(DittoAuthorizationContextType.UNSPECIFIED,
+                            carol))
+                    .topics(ConnectivityModelFactory.newFilteredTopicBuilder(Topic.TWIN_EVENTS)
+                            .withExtraFields(extraFields)
+                            .build())
+                    .build();
+            final Target secretFilterTarget = ConnectivityModelFactory.newTargetBuilder(carolTarget)
+                    .address("carol/secret")
+                    .topics(ConnectivityModelFactory.newFilteredTopicBuilder(Topic.TWIN_EVENTS)
+                            .withExtraFields(extraFields)
+                            .withFilter("eq(attributes/secret,\"s2\")")
+                            .build())
+                    .build();
+            final Target pubFilterTarget = ConnectivityModelFactory.newTargetBuilder(carolTarget)
+                    .address("carol/pub")
+                    .topics(ConnectivityModelFactory.newFilteredTopicBuilder(Topic.TWIN_EVENTS)
+                            .withExtraFields(extraFields)
+                            .withFilter("eq(attributes/pub,\"p2\")")
+                            .build())
+                    .build();
+            final ThingId thingId = ThingId.of("org.eclipse.ditto:partial");
+            final Signal<?> rev3 = AttributeModified.of(thingId, JsonPointer.of("pub"), JsonValue.of("p0"), 3L,
+                    null, partialForCarol, null);
+            final Signal<?> rev4 = AttributesModified.of(thingId,
+                    Attributes.newBuilder().set("pub", "p2").set("secret", "s2").build(), 4L, null, partialForCarol,
+                    null);
+
+            // the round trip on behalf of carol only returns what carol may read
+            outboundMappingProcessorActor.tell(OutboundSignalFactory.newOutboundSignal(rev3, List.of(carolTarget)),
+                    getRef());
+            final RetrieveThing retrieveThing = proxyActorProbe.expectMsgClass(RetrieveThing.class);
+            proxyActorProbe.reply(RetrieveThingResponse.of(thingId,
+                    JsonObject.of("{\"_revision\":3,\"attributes\":{\"pub\":\"p0\"}}"),
+                    retrieveThing.getDittoHeaders()));
+            expectMsgClass(BaseClientActor.PublishMappedMessage.class);
+
+            outboundMappingProcessorActor.tell(
+                    OutboundSignalFactory.newOutboundSignal(rev4, List.of(secretFilterTarget)), getRef());
+            outboundMappingProcessorActor.tell(
+                    OutboundSignalFactory.newOutboundSignal(rev4, List.of(pubFilterTarget)), getRef());
+
+            final BaseClientActor.PublishMappedMessage published =
+                    expectMsgClass(BaseClientActor.PublishMappedMessage.class);
+            final OutboundSignal.Mapped mapped = published.getOutboundSignal().getMappedOutboundSignals().get(0);
+            assertThat(mapped.getTargets()).containsExactly(pubFilterTarget);
+            assertThat(mapped.getAdaptable().getPayload().getExtra())
+                    .contains(JsonObject.of("{\"attributes\":{\"pub\":\"p2\"}}"));
+            assertThat(mapped.getAdaptable().getPayload().getValue())
+                    .contains(JsonObject.of("{\"pub\":\"p2\"}"));
+            proxyActorProbe.expectNoMessage(scala.concurrent.duration.FiniteDuration.apply(200, "ms"));
+        }};
+    }
+
+    @Test
+    public void extraFieldSelectorPlaceholdersOfPartialReaderAreResolvedFromTheReadableSignal() {
+        resetActorSystemWithCachingSignalEnrichmentProvider();
+        final TestProbe proxyActorProbe = TestProbe.apply("mockEdgeForwarder", actorSystem);
+        setUpProxyActor(proxyActorProbe.ref());
+
+        new TestKit(actorSystem) {{
+            final ActorRef outboundMappingProcessorActor = createOutboundMappingProcessorActor(this);
+            final AuthorizationSubject carol = AuthorizationSubject.newInstance("nginx:carol");
+            final DittoHeaders partialForCarol = DittoHeaders.newBuilder()
+                    .putHeader(DittoHeaderDefinition.PARTIAL_ACCESS_PATHS.getKey(),
+                            "{\"subjects\":[\"nginx:carol\"],\"paths\":{\"attributes/pub\":[0]}}")
+                    .readGrantedSubjects(List.of(carol))
+                    .build();
+            final Target target = ConnectivityModelFactory.newTargetBuilder()
+                    .address("carol")
+                    .authorizationContext(AuthorizationContext.newInstance(DittoAuthorizationContextType.UNSPECIFIED,
+                            carol))
+                    .topics(ConnectivityModelFactory.newFilteredTopicBuilder(Topic.TWIN_EVENTS)
+                            .withExtraFields(ThingFieldSelector.fromString(
+                                    "attributes/{{ thing-json:attributes/pub }}," +
+                                            "attributes/{{ thing-json:attributes/secret }}"))
+                            .build())
+                    .build();
+            final ThingId thingId = ThingId.of("org.eclipse.ditto:partial-selector");
+            final Signal<?> event = AttributesModified.of(thingId,
+                    Attributes.newBuilder().set("pub", "readable").set("secret", "hidden").build(), 1L, null,
+                    partialForCarol, null);
+
+            outboundMappingProcessorActor.tell(OutboundSignalFactory.newOutboundSignal(event, List.of(target)),
+                    getRef());
+
+            final RetrieveThing retrieveThing = proxyActorProbe.expectMsgClass(RetrieveThing.class);
+            assertThat(retrieveThing.getSelectedFields().orElseThrow().toString())
+                    .contains("attributes/readable")
+                    .doesNotContain("hidden");
         }};
     }
 
@@ -786,6 +903,42 @@ public final class MessageMappingProcessorActorTest extends AbstractMessageMappi
 
             // THEN: the response collector actor is asked to acknowledge right away despite the ack request.
             expectMsg(ResponseCollectorActor.setCount(0));
+        }};
+    }
+
+    @Test
+    public void inboundPolicyCommandWithInvalidTimeoutIsAnsweredWithPolicyErrorResponse() {
+        new TestKit(actorSystem) {{
+            final TestProbe collectorProbe = TestProbe.apply("collector", actorSystem);
+            final ActorRef outboundMappingProcessorActor = createOutboundMappingProcessorActor(this);
+            final ActorRef inboundMappingProcessorActor =
+                    createInboundMappingProcessorActor(this, outboundMappingProcessorActor);
+            final PolicyId policyId = PolicyId.of("policy:id");
+
+            // WHEN: inbound mapping processor receives a policy command with a zero timeout requiring a response
+            final DeletePolicy deletePolicy = DeletePolicy.of(policyId, HEADERS_WITH_REPLY_INFORMATION.toBuilder()
+                    .timeout(Duration.ZERO)
+                    .responseRequired(true)
+                    .build());
+            inboundMappingProcessorActor.tell(
+                    new ExternalMessageWithSender(toExternalMessage(deletePolicy), collectorProbe.ref()),
+                    ActorRef.noSender()
+            );
+
+            // THEN: the command is rejected without being forwarded
+            collectorProbe.expectMsgClass(DittoHeaderInvalidException.class);
+            collectorProbe.expectMsg(ResponseCollectorActor.setCount(0));
+
+            // THEN: the published error response is a policy error response for the policy of the command
+            final BaseClientActor.PublishMappedMessage publish =
+                    fishForMsg(this, BaseClientActor.PublishMappedMessage.class);
+            final Signal<?> publishedSignal = publish.getOutboundSignal().getSource();
+            assertThat(publishedSignal).isInstanceOf(PolicyErrorResponse.class);
+            final PolicyErrorResponse policyErrorResponse = (PolicyErrorResponse) publishedSignal;
+            assertThat((Object) policyErrorResponse.getEntityId()).isEqualTo(policyId);
+            assertThat(policyErrorResponse.getHttpStatus()).isEqualTo(HttpStatus.BAD_REQUEST);
+            assertThat(policyErrorResponse.getDittoRuntimeException())
+                    .isInstanceOf(DittoHeaderInvalidException.class);
         }};
     }
 

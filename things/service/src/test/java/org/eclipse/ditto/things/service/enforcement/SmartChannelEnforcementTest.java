@@ -51,6 +51,8 @@ import org.eclipse.ditto.things.model.ThingIdInvalidException;
 import org.eclipse.ditto.things.model.signals.commands.ThingCommand;
 import org.eclipse.ditto.things.model.signals.commands.ThingErrorResponse;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingNotAccessibleException;
+import org.eclipse.ditto.things.model.signals.commands.query.RetrieveAttributes;
+import org.eclipse.ditto.things.model.signals.commands.query.RetrieveAttributesResponse;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThing;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThingResponse;
 import org.junit.Before;
@@ -73,6 +75,8 @@ public final class SmartChannelEnforcementTest extends AbstractThingEnforcementT
             DittoTracingInitResource.disableDittoTracing();
 
     public static final PolicyId POLICY_ID = PolicyId.of("policy:id");
+    private static final PolicyId RESTRICTED_POLICY_ID = PolicyId.of("policy:restricted");
+    private static final JsonPointer SECRET_POINTER = JsonPointer.of("/attributes/secret");
 
     @Rule
     public final TestName testName = new TestName();
@@ -97,6 +101,75 @@ public final class SmartChannelEnforcementTest extends AbstractThingEnforcementT
                 .thenReturn(CompletableFuture.completedFuture(Optional.of(PolicyEnforcer.of(policy))));
         when(policyEnforcerProvider.getPolicyEnforcer(null))
                 .thenReturn(CompletableFuture.completedFuture(Optional.empty()));
+    }
+
+    @Test
+    public void twinResponseOfLiveChannelConditionMismatchIsFilteredByPolicy() {
+        final JsonObject restrictedThing = mockRestrictedPolicyAndGetThing();
+
+        new TestKit(system) {{
+            final var retrieveThing =
+                    getRetrieveThing(headers -> headers.liveChannelCondition("eq(attributes/pub,\"zzz\")"));
+            supervisor.tell(retrieveThing, getRef());
+            expectAndAnswerSudoRetrieveThing(SudoRetrieveThingResponse.of(restrictedThing, DittoHeaders.empty()));
+
+            thingPersistenceActorProbe.expectMsgClass(RetrieveThing.class);
+            thingPersistenceActorProbe.reply(RetrieveThingResponse.of(retrieveThing.getEntityId(), restrictedThing,
+                    liveChannelConditionMatchedHeaders(retrieveThing, false)));
+
+            final var response = TestSetup.fishForMsgClass(this, RetrieveThingResponse.class);
+            assertTwinChannel(response);
+            Assertions.assertThat(response.getDittoHeaders().didLiveChannelConditionMatch()).isFalse();
+            Assertions.assertThat(response.getEntity().asObject().getValue(SECRET_POINTER)).isEmpty();
+            Assertions.assertThat(response.getEntity().asObject().getValue("attributes/pub")).isPresent();
+        }};
+    }
+
+    @Test
+    public void subResourceTwinResponseOfLiveChannelConditionMismatchIsFilteredByPolicy() {
+        final JsonObject restrictedThing = mockRestrictedPolicyAndGetThing();
+
+        new TestKit(system) {{
+            final var retrieveAttributes = RetrieveAttributes.of(TestSetup.THING_ID, headers().toBuilder()
+                    .liveChannelCondition("eq(attributes/pub,\"zzz\")")
+                    .build());
+            supervisor.tell(retrieveAttributes, getRef());
+            expectAndAnswerSudoRetrieveThing(SudoRetrieveThingResponse.of(restrictedThing, DittoHeaders.empty()));
+
+            thingPersistenceActorProbe.expectMsgClass(RetrieveAttributes.class);
+            thingPersistenceActorProbe.reply(RetrieveAttributesResponse.of(TestSetup.THING_ID,
+                    restrictedThing.getValue("attributes").orElseThrow().asObject(),
+                    retrieveAttributes.getDittoHeaders().toBuilder()
+                            .putHeader(DittoHeaderDefinition.LIVE_CHANNEL_CONDITION_MATCHED.getKey(), "false")
+                            .build()));
+
+            final var response = TestSetup.fishForMsgClass(this, RetrieveAttributesResponse.class);
+            Assertions.assertThat(response.getAttributes().getValue("secret")).isEmpty();
+            Assertions.assertThat(response.getAttributes().getValue("pub")).isPresent();
+        }};
+    }
+
+    @Test
+    public void twinFallbackResponseAfterLiveChannelTimeoutIsFilteredByPolicy() {
+        final JsonObject restrictedThing = mockRestrictedPolicyAndGetThing();
+
+        new TestKit(system) {{
+            final var retrieveThing = getRetrieveThing(headers -> headers.liveChannelCondition("exists(thingId)")
+                    .timeout(Duration.ofMillis(1))
+                    .putHeader(DittoHeaderDefinition.LIVE_CHANNEL_TIMEOUT_STRATEGY.getKey(), "use-twin"));
+            supervisor.tell(retrieveThing, getRef());
+            expectAndAnswerSudoRetrieveThing(SudoRetrieveThingResponse.of(restrictedThing, DittoHeaders.empty()));
+
+            thingPersistenceActorProbe.expectMsgClass(RetrieveThing.class);
+            thingPersistenceActorProbe.reply(RetrieveThingResponse.of(retrieveThing.getEntityId(), restrictedThing,
+                    liveChannelConditionMatchedHeaders(retrieveThing, true)));
+
+            expectLiveQueryCommandOnPubSub(retrieveThing);
+            final var response = TestSetup.fishForMsgClass(this, RetrieveThingResponse.class);
+            assertTwinChannel(response);
+            Assertions.assertThat(response.getEntity().asObject().getValue(SECRET_POINTER)).isEmpty();
+            Assertions.assertThat(response.getEntity().asObject().getValue("attributes/pub")).isPresent();
+        }};
     }
 
     @Test
@@ -293,6 +366,34 @@ public final class SmartChannelEnforcementTest extends AbstractThingEnforcementT
                         String.valueOf(liveChannelConditionMatched));
         headerModifier.accept(builder);
         return RetrieveThingResponse.of(retrieveThing.getEntityId(), thing, builder.build());
+    }
+
+    private JsonObject mockRestrictedPolicyAndGetThing() {
+        final Policy policy = PoliciesModelFactory.newPolicyBuilder(RESTRICTED_POLICY_ID)
+                .setRevision(1L)
+                .forLabel("restricted")
+                .setSubject(GOOGLE, TestSetup.SUBJECT_ID)
+                .setGrantedPermissions(PoliciesResourceType.thingResource(JsonPointer.empty()),
+                        Permissions.newInstance(Permission.READ))
+                .setRevokedPermissions(PoliciesResourceType.thingResource(SECRET_POINTER),
+                        Permissions.newInstance(Permission.READ))
+                .build();
+        when(policyEnforcerProvider.getPolicyEnforcer(RESTRICTED_POLICY_ID))
+                .thenReturn(CompletableFuture.completedFuture(Optional.of(PolicyEnforcer.of(policy))));
+        return TestSetup.newThingWithPolicyId(RESTRICTED_POLICY_ID).toBuilder()
+                .set(JsonPointer.of("/attributes/pub"), "p")
+                .set(SECRET_POINTER, "A7")
+                .build();
+    }
+
+    private static DittoHeaders liveChannelConditionMatchedHeaders(final RetrieveThing retrieveThing,
+            final boolean liveChannelConditionMatched) {
+
+        return retrieveThing.getDittoHeaders()
+                .toBuilder()
+                .putHeader(DittoHeaderDefinition.LIVE_CHANNEL_CONDITION_MATCHED.getKey(),
+                        String.valueOf(liveChannelConditionMatched))
+                .build();
     }
 
     private void assertTwinChannel(final Signal<?> signal) {

@@ -19,12 +19,15 @@ import static org.mockito.Mockito.when;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
 import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
+import org.eclipse.ditto.internal.utils.cache.entry.Entry;
 import org.eclipse.ditto.json.JsonArray;
+import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.policies.api.Permission;
 import org.eclipse.ditto.policies.enforcement.config.NamespacePoliciesConfig;
@@ -363,6 +366,75 @@ public final class PolicyEnforcerTest {
                         Arrays.asList("com.acme", "com.acme.*")))
                 .set(newScopedEntry("global", "google:global-user", Collections.emptyList()))
                 .build();
+    }
+
+    @Test
+    public void readRevokedThingResourcePathsArePerSubjectAndIgnoreOtherPermissionsAndResourceTypes() {
+        final Policy policy = Policy.newBuilder(PolicyId.of("test:policy"))
+                .setSubjectFor("alice", Subject.newInstance(SubjectId.newInstance("user:alice")))
+                .setGrantedPermissionsFor("alice", ResourceKey.newInstance("thing", "/"), Permission.READ)
+                .setRevokedPermissionsFor("alice", ResourceKey.newInstance("thing", "/attributes/a"), Permission.READ)
+                .setRevokedPermissionsFor("alice", ResourceKey.newInstance("thing", "/attributes/w"), Permission.WRITE)
+                .setRevokedPermissionsFor("alice", ResourceKey.newInstance("policy", "/"), Permission.READ)
+                .setSubjectFor("group", Subject.newInstance(SubjectId.newInstance("user:alice")))
+                .setSubjectFor("group", Subject.newInstance(SubjectId.newInstance("user:bob")))
+                .setRevokedPermissionsFor("group", ResourceKey.newInstance("thing", "/features"), Permission.READ)
+                .build();
+
+        final PolicyEnforcer underTest = PolicyEnforcer.of(policy);
+
+        assertThat(underTest.getReadRevokedThingResourcePathsBySubject())
+                .containsOnlyKeys(AuthorizationSubject.newInstance("user:alice"),
+                        AuthorizationSubject.newInstance("user:bob"));
+        assertThat(underTest.getReadRevokedThingResourcePathsBySubject()
+                .get(AuthorizationSubject.newInstance("user:alice")))
+                .containsExactlyInAnyOrder(JsonPointer.of("/attributes/a"), JsonPointer.of("/features"));
+        assertThat(underTest.getReadRevokedThingResourcePathsBySubject()
+                .get(AuthorizationSubject.newInstance("user:bob")))
+                .containsExactly(JsonPointer.of("/features"));
+    }
+
+    @Test
+    public void readRevokedThingResourcePathsOfNamespaceChildIgnoreEntriesOfOtherNamespaces() {
+        final Policy policy = PoliciesModelFactory.newPolicyBuilder(PolicyId.of("test:policy"))
+                .set(newRevokingEntry("acme", "user:acme", "/attributes/acme", Collections.singletonList("com.acme")))
+                .set(newRevokingEntry("global", "user:global", "/attributes/global", Collections.emptyList()))
+                .build();
+        final PolicyEnforcer parent = PolicyEnforcer.of(policy);
+
+        final PolicyEnforcer other = parent.forNamespace("org.example");
+        final PolicyEnforcer acme = parent.forNamespace("com.acme");
+
+        assertThat(other.getReadRevokedThingResourcePathsBySubject())
+                .containsOnly(Map.entry(AuthorizationSubject.newInstance("user:global"),
+                        Set.of(JsonPointer.of("/attributes/global"))));
+        assertThat(acme.getReadRevokedThingResourcePathsBySubject())
+                .containsOnlyKeys(AuthorizationSubject.newInstance("user:acme"),
+                        AuthorizationSubject.newInstance("user:global"));
+        assertThat(parent.getReadRevokedThingResourcePathsBySubject())
+                .containsOnlyKeys(AuthorizationSubject.newInstance("user:acme"),
+                        AuthorizationSubject.newInstance("user:global"));
+    }
+
+    @Test
+    public void readRevokedThingResourcePathsAreEmptyWithoutPolicy() {
+        final PolicyEnforcer underTest = PolicyEnforcer.embed(
+                Entry.of(1L, PolicyEnforcer.of(namespaceScopedPolicy()).getEnforcer())).getValueOrThrow();
+
+        assertThat(underTest.getReadRevokedThingResourcePathsBySubject()).isEmpty();
+    }
+
+    private static PolicyEntry newRevokingEntry(final String label, final String subjectId, final String path,
+            final List<String> namespaces) {
+        return PoliciesModelFactory.newPolicyEntry(label,
+                Collections.singletonList(Subject.newInstance(SubjectId.newInstance(subjectId))),
+                Collections.singletonList(PoliciesModelFactory.newResource("thing", path,
+                        EffectedPermissions.newInstance(
+                                PoliciesModelFactory.noPermissions(),
+                                PoliciesModelFactory.newPermissions(Permission.READ)))),
+                namespaces,
+                ImportableType.IMPLICIT,
+                Collections.<AllowedAddition>emptySet());
     }
 
     private static PolicyEntry newScopedEntry(final String label, final String subjectId, final List<String> namespaces) {
