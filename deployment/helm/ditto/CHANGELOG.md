@@ -15,6 +15,10 @@ sections: `Added`, `Changed`, `Deprecated`, `Removed`, `Fixed`, `Security`.
 
 ## [Unreleased]
 
+## [4.10.0]
+
+Bumped Ditto `appVersion` to `3.9.10`.
+
 ### Security
 - Fixed an unauthenticated impersonation of policy subjects
   ([GHSA-f779-cv8j-4p59](https://github.com/eclipse-ditto/ditto/security/advisories/GHSA-f779-cv8j-4p59),
