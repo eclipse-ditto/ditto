@@ -454,8 +454,8 @@ public final class ThingSupervisorActor extends AbstractPersistenceSupervisor<Th
     protected void decrementOpCounter(final Signal<?> signal) {
         super.decrementOpCounter(signal);
         if (shouldBecomeTwinSignalProcessingAwaiting(signal)) {
-            // the twin signal which may have created a policy is answered, its rollback included: forget that policy,
-            // so that a later CreateThing which fails does not delete it
+            // the twin signal which may have created a policy is answered and its rollback, if any, has the policy
+            // to delete: forget that policy, so that a later CreateThing which fails does not delete it
             policyCreatedEvent = null;
         }
     }

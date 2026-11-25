@@ -1345,7 +1345,8 @@ things:
           # randomFactor the randomization factor to apply to the backoff delay
           randomFactor: 0.5
       # createdPolicyRollback contains configuration of the deletion of a policy that the things service created for a
-      #  thing whose creation then failed; the reply to the failed creation waits for this deletion
+      #  thing whose creation then failed; the reply to the failed creation waits for this deletion, but for at most
+      #  the "askTimeout" of "askWithRetry" above where the thing's persistence answered the creation with an error
       createdPolicyRollback:
         # askTimeout the timeout for each deletion attempt - when no answer is returned after this, a retry is done
         askTimeout: 3s
