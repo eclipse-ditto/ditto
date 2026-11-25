@@ -407,9 +407,19 @@ dbconfig:
 ## ingress configures the Ingress resources
 ## Users must bring their own ingress controller (e.g. ingress-nginx, traefik, haproxy, etc.)
 ## Controller-specific behavior (auth, CORS, timeouts, etc.) should be configured via annotations
+## SECURITY: the Ingress routes requests directly to the gateway. If Ditto "pre-authentication" is enabled (which is the
+##  case when "global.jwtOnly" is false), the ingress controller must set the "x-ditto-pre-authenticated" header from a
+##  verified identity, or remove it, on every path - otherwise clients can impersonate arbitrary subjects.
+##  Rendering fails in that case unless "preAuthenticationHeaderSanitized" is set to true (see below).
 ingress:
   # enabled controls whether Ingress resources are created
   enabled: false
+  # preAuthenticationHeaderSanitized confirms that the ingress controller sets the "x-ditto-pre-authenticated" header
+  #  from a verified identity, or removes it, on every path routed to the gateway (api, ws and devops Ingress).
+  #  Only relevant if Ditto "pre-authentication" is enabled ("global.jwtOnly" false or
+  #  "gateway.config.authentication.enablePreAuthentication" true): rendering the chart with Ingress enabled fails
+  #  in that case unless this is set to true. Prefer "global.jwtOnly: true" when using the Ingress.
+  preAuthenticationHeaderSanitized: false
   # className is the IngressClass to use — set to your ingress controller's class name
   className: ""
   # host is the optional hostname for all Ingress resources — if empty, no host rule is set (catch-all)
@@ -2422,6 +2432,8 @@ gateway:
       # enablePreAuthentication whether Ditto "pre-authentication" should be enabled
       #  note: pre-authentication is always enabled if "global.jwtOnly" is false
       #  only enable it if the gateway is exclusively reachable via a proxy which sets the "x-ditto-pre-authenticated" header
+      #  from a verified identity, or clears it, on *every* route reaching the gateway - a client-supplied header must never
+      #  be forwarded to the gateway (with "global.jwtOnly: true", the nginx of this chart forwards the header unchanged)
       #  ref: https://www.eclipse.dev/ditto/installation-operating.html#pre-authentication
       enablePreAuthentication: false
       # oauth contains the OAuth2.0 / OpenID Connect related configuration

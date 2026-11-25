@@ -26,10 +26,12 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.http.javadsl.model.ContentTypes;
 import org.apache.pekko.http.javadsl.model.HttpRequest;
 import org.apache.pekko.http.javadsl.model.StatusCodes;
 import org.apache.pekko.http.javadsl.model.headers.Location;
 import org.apache.pekko.http.javadsl.model.headers.RawHeader;
+import org.apache.pekko.http.javadsl.model.headers.RawRequestURI;
 import org.apache.pekko.http.javadsl.testkit.TestRoute;
 import org.apache.pekko.http.javadsl.testkit.TestRouteResult;
 import org.apache.pekko.stream.SystemMaterializer;
@@ -318,6 +320,39 @@ public final class RootRouteTest extends EndpointTestBase {
     public void getThingsUrlWithoutIds() {
         final TestRouteResult result =
                 rootTestRoute.run(withHttps(withPreAuthenticatedAuthentication(HttpRequest.GET(THINGS_2_PATH))));
+
+        result.assertStatusCode(EndpointTestConstants.DUMMY_COMMAND_SUCCESS);
+    }
+
+    @Test
+    public void getThingWithDotSegmentPathConfusionIsRejected() {
+        // nginx resolves this raw path to "/api/2/connections", pekko to "/api/2/things/<id>/"
+        final String rawPath = THINGS_2_PATH + "/org.eclipse.ditto:dummy/x%2f..%2f..%2f..%2fconnections%2fy/..";
+        final TestRouteResult result = rootTestRoute.run(withHttps(withPreAuthenticatedAuthentication(
+                HttpRequest.GET(THINGS_2_PATH + "/org.eclipse.ditto:dummy/")
+                        .addHeader(RawRequestURI.create(rawPath)))));
+
+        result.assertStatusCode(StatusCodes.BAD_REQUEST);
+    }
+
+    @Test
+    public void modifyAttributeWithEncodedSlashDotSegmentPathConfusionIsRejected() {
+        // nginx resolves this raw path to "/api/2/connections", the gateway routes it to an attribute JSON pointer
+        final String rawPath =
+                THINGS_2_PATH + "/org.eclipse.ditto:dummy/attributes/a%2f..%2f..%2f..%2f..%2fconnections";
+        final TestRouteResult result = rootTestRoute.run(withHttps(withPreAuthenticatedAuthentication(
+                HttpRequest.PUT(rawPath)
+                        .withEntity(ContentTypes.APPLICATION_JSON, "42")
+                        .addHeader(RawRequestURI.create(rawPath)))));
+
+        result.assertStatusCode(StatusCodes.BAD_REQUEST);
+    }
+
+    @Test
+    public void getThingWithoutDotSegmentsInRawRequestUriIsAccepted() {
+        final String path = THINGS_2_PATH + "/org.eclipse.ditto:dummy";
+        final TestRouteResult result = rootTestRoute.run(withHttps(withPreAuthenticatedAuthentication(
+                HttpRequest.GET(path).addHeader(RawRequestURI.create(path)))));
 
         result.assertStatusCode(EndpointTestConstants.DUMMY_COMMAND_SUCCESS);
     }

@@ -171,6 +171,7 @@ data:
           proxy_set_header              X-Real-IP                 $remote_addr;
           proxy_set_header              X-Forwarded-For           $proxy_add_x_forwarded_for;
           proxy_set_header              X-Forwarded-User          $remote_user;
+          proxy_set_header              x-ditto-pre-authenticated ""; # never forward a client-supplied pre-authentication header
         }
 
         # status
@@ -186,6 +187,7 @@ data:
           proxy_set_header              X-Real-IP                 $remote_addr;
           proxy_set_header              X-Forwarded-For           $proxy_add_x_forwarded_for;
           proxy_set_header              X-Forwarded-User          $remote_user;
+          proxy_set_header              x-ditto-pre-authenticated ""; # never forward a client-supplied pre-authentication header
         }
 
         # stats
@@ -201,6 +203,7 @@ data:
           proxy_set_header              X-Real-IP                 $remote_addr;
           proxy_set_header              X-Forwarded-For           $proxy_add_x_forwarded_for;
           proxy_set_header              X-Forwarded-User          $remote_user;
+          proxy_set_header              x-ditto-pre-authenticated ""; # never forward a client-supplied pre-authentication header
         }
 
         # devops
@@ -213,6 +216,7 @@ data:
           proxy_set_header              X-Real-IP                 $remote_addr;
           proxy_set_header              X-Forwarded-For           $proxy_add_x_forwarded_for;
           proxy_set_header              X-Forwarded-User          $remote_user;
+          proxy_set_header              x-ditto-pre-authenticated ""; # never forward a client-supplied pre-authentication header
         }
 
         # connections api using devops user configured in Ditto
@@ -225,6 +229,7 @@ data:
           proxy_set_header              X-Real-IP           $remote_addr;
           proxy_set_header              X-Forwarded-For     $proxy_add_x_forwarded_for;
           proxy_set_header              X-Forwarded-User    $remote_user;
+          proxy_set_header              x-ditto-pre-authenticated ""; # never forward a client-supplied pre-authentication header
         }
 
         {{ if .Values.dittoui.enabled -}}

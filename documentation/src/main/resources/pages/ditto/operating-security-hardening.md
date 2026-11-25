@@ -110,6 +110,14 @@ When you adapt this for production, make sure the proxy:
   client-supplied value. If a route intentionally skips proxy authentication (e.g. to pass through
   `Authorization: Bearer <JWT>` requests), make sure the header is not forwarded on that route, so the
   gateway has to validate the JWT.
+* **Clears** `x-ditto-pre-authenticated` (`proxy_set_header x-ditto-pre-authenticated "";`) in every
+  location that forwards to the gateway without setting the header itself, e.g. the `/api/2/connections`,
+  `/devops`, `/health`, `/status` and `/stats` locations, which are authenticated by the gateway. A
+  location with its own `proxy_set_header` directives does not inherit those of the `server` block. Do not
+  rely on location matching alone: a proxy which matches locations on the normalized path but forwards the
+  raw path (nginx `proxy_pass` without a URI part) can be tricked into routing an API request through such
+  a location, e.g. via `%2f` and `..` in the path. The gateway rejects paths with dot segments, but the
+  header must be cleared nevertheless.
 * Terminates TLS (see [section 8](#8-transport-security-tls)).
 
 #### Helm chart: mixed Basic auth and JWT mode
@@ -123,6 +131,16 @@ forwarded *without* that header, so that the gateway validates the JWT. In this 
 exclusively via that nginx. If you only use OpenID Connect, configure `global.jwtOnly: true`, which
 disables pre-authentication (as long as `gateway.config.authentication.enablePreAuthentication` stays
 `false`).
+
+#### Helm chart: Ingress
+
+With `ingress.enabled: true`, the Helm chart creates Ingress resources which route `/api`, `/ws`, `/devops` and
+the other gateway paths **directly to the gateway**, bypassing the bundled nginx. The chart cannot configure the
+handling of the `x-ditto-pre-authenticated` header for arbitrary ingress controllers, so with pre-authentication
+enabled any client could send the header itself. Rendering the chart therefore fails if an Ingress routing to the
+gateway is enabled while pre-authentication is enabled. Configure `global.jwtOnly: true` when using the Ingress
+(recommended), or make the ingress controller set the header from a verified identity or remove it on every path
+and confirm that by setting `ingress.preAuthenticationHeaderSanitized: true`.
 
 #### Replace the sample credentials
 

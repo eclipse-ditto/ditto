@@ -45,6 +45,7 @@ import org.eclipse.ditto.base.model.signals.commands.CommandNotSupportedExceptio
 import org.eclipse.ditto.edge.service.headers.DittoHeadersValidator;
 import org.eclipse.ditto.gateway.service.endpoints.directives.CorrelationIdEnsuringDirective;
 import org.eclipse.ditto.gateway.service.endpoints.directives.CorsEnablingDirective;
+import org.eclipse.ditto.gateway.service.endpoints.directives.DotSegmentRejectingDirective;
 import org.eclipse.ditto.gateway.service.endpoints.directives.EncodingEnsuringDirective;
 import org.eclipse.ditto.gateway.service.endpoints.directives.HttpsEnsuringDirective;
 import org.eclipse.ditto.gateway.service.endpoints.directives.RequestResultLoggingDirective;
@@ -246,18 +247,22 @@ public final class RootRoute extends AllDirectives {
 
         final Function<String, Route> innerRouteProvider = correlationId ->
                 EncodingEnsuringDirective.ensureEncoding(() ->
-                        httpsDirective.ensureHttps(correlationId, () ->
-                                corsDirective.enableCors(() ->
-                                        /* handling the rejections is done by pekko automatically, but if we
-                                           do it here explicitly, we are able to log the status code for the
-                                           rejection (e.g. 404 or 405) in a wrapping directive. */
-                                        handleRejections(rejectionHandler, () ->
-                                                /* the inner handleExceptions is for handling exceptions
-                                                   occurring in the route route. It makes sure that the
-                                                   wrapping directives such as addSecurityResponseHeaders are
-                                                   even called in an error case in the route route. */
-                                                handleExceptions(exceptionHandler, () ->
-                                                        rootRoute.apply(correlationId)
+                        /* dot segments are silently removed by pekko, so a proxy in front of the gateway could
+                           route the same raw path to a different location than the gateway does */
+                        DotSegmentRejectingDirective.rejectDotSegments(() ->
+                                httpsDirective.ensureHttps(correlationId, () ->
+                                        corsDirective.enableCors(() ->
+                                                /* handling the rejections is done by pekko automatically, but if we
+                                                   do it here explicitly, we are able to log the status code for the
+                                                   rejection (e.g. 404 or 405) in a wrapping directive. */
+                                                handleRejections(rejectionHandler, () ->
+                                                        /* the inner handleExceptions is for handling exceptions
+                                                           occurring in the route route. It makes sure that the
+                                                           wrapping directives such as addSecurityResponseHeaders
+                                                           are even called in an error case in the route route. */
+                                                        handleExceptions(exceptionHandler, () ->
+                                                                rootRoute.apply(correlationId)
+                                                        )
                                                 )
                                         )
                                 )
