@@ -134,7 +134,7 @@ public final class MongoThingsSearchPersistenceRecoveryTest {
     }
 
     @Test
-    public void documentWithAWrongTypedMetadataFieldFailsRecoveryAsOnMaster() {
+    public void documentWithAWrongTypedMetadataFieldFailsRecovery() {
         final BsonDocument bson = storedBson();
         bson.put(PersistenceConstants.FIELD_REVISION, new BsonString("7"));
         final Document document = toDocument(bson);

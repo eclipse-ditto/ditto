@@ -16,7 +16,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.eclipse.ditto.thingsearch.persistence.api.mapping.SearchIndexFields.FIELD_GRANTED;
 import static org.eclipse.ditto.thingsearch.persistence.api.mapping.SearchIndexFields.FIELD_REVOKED;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import java.util.HashSet;
@@ -200,7 +199,7 @@ public class EvaluatedPolicyTest {
         final List<String> globalRead = evaluatedPolicy.getGlobalRead();
         final Set<String> expectedSubjects = Set.of(ADMIN, USER1, USER2, USER3, USER4, USER5, GRANTED);
 
-        assertEquals(expectedSubjects, new HashSet<>(globalRead));
+        assertThat(globalRead).containsExactlyInAnyOrderElementsOf(expectedSubjects);
     }
 
     @Test
@@ -292,7 +291,7 @@ public class EvaluatedPolicyTest {
 
         final EvaluatedPolicy evaluatedPolicy = EvaluatedPolicy.of(policy, thing, "com.acme");
 
-        assertFalse(evaluatedPolicy.getGlobalRead().contains("nginx:admin"));
+        assertThat(evaluatedPolicy.getGlobalRead()).isEmpty();
     }
 
     /**

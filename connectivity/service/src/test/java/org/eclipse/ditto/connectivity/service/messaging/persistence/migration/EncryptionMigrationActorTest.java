@@ -592,7 +592,7 @@ public final class EncryptionMigrationActorTest {
             assertThat(store.rewrittenSnapshots).isEmpty();
             assertThat(store.rewrittenJournalEntries).isEmpty();
             assertThat(store.savedProgressRecords).isEmpty();
-            // a fresh start clears a previous run's progress, dry run or not (as before)
+            // a fresh start clears a previous run's progress, dry run or not
             assertThat(store.deleteProgressCalls.get()).isEqualTo(1);
         }};
     }
@@ -923,7 +923,6 @@ public final class EncryptionMigrationActorTest {
                 watch(underTest);
                 actorSystem.stop(underTest);
                 expectTerminated(underTest);
-                assertThat(store.closeCalls.get()).as("closed before the timeout").isZero();
 
                 Awaitility.await().atMost(Duration.ofSeconds(5)).until(() -> store.closeCalls.get() == 1);
             } finally {

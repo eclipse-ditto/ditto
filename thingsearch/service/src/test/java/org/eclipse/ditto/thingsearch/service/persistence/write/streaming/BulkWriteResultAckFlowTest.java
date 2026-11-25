@@ -159,7 +159,7 @@ public final class BulkWriteResultAckFlowTest {
     }
 
     @Test
-    public void successEntryHasTheFormOfMaster() {
+    public void successEntryNamesTheCountsAndTheCorrelationId() {
         final List<AbstractWriteModel> writeModels = generate5WriteModels();
         final SearchWriteResult result =
                 SearchWriteResult.acknowledged(5, 2, 3, 1, 2, List.of()).withDiagnostics("abc", 0, 0);
