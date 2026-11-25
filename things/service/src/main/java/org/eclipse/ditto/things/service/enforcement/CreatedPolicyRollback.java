@@ -193,7 +193,7 @@ public final class CreatedPolicyRollback {
                     "Thing <{}> (attempt {}).", deletePolicy.getEntityId(), thingId, result.attempts());
             case REJECTED, GAVE_UP -> logger.error("Rollback of the creation of Thing <{}> failed: Policy <{}> " +
                             "could not be deleted in {} attempt(s) and remains without its Thing. Last answer: <{}>",
-                    thingId, deletePolicy.getEntityId(), result.attempts(), result.lastAnswer());
+                    thingId, deletePolicy.getEntityId(), result.attempts(), String.valueOf(result.lastAnswer()));
         }
         return result;
     }

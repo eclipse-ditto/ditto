@@ -132,9 +132,11 @@ public final class CreatedPolicyRollbackTest {
     public void rollbackThatStaysUnavailableGivesUpAndSaysSo() throws Exception {
         final CompletionStage<CreatedPolicyRollback.Result> rollback = start(config("BACKOFF_DELAY", 2));
 
+        final PolicyUnavailableException unavailable =
+                PolicyUnavailableException.newBuilder(POLICY_ID).dittoHeaders(HEADERS).build();
         for (int attempt = 0; attempt < 3; attempt++) {
             policies.expectMsg(DELETE_POLICY);
-            policies.reply(PolicyUnavailableException.newBuilder(POLICY_ID).dittoHeaders(HEADERS).build());
+            policies.reply(unavailable);
         }
 
         assertResult(rollback, CreatedPolicyRollback.Outcome.GAVE_UP, 3);
@@ -142,18 +144,27 @@ public final class CreatedPolicyRollbackTest {
         assertThat(logLines()).singleElement().asString()
                 .startsWith("ERROR Rollback of the creation of Thing <" + THING_ID + "> failed: Policy <" + POLICY_ID +
                         "> could not be deleted in 3 attempt(s)")
+                .endsWith("Last answer: <" + unavailable + ">")
                 .doesNotContain("deleted after rolling back");
+        assertThat(appender.list).singleElement()
+                .satisfies(event -> assertThat(event.getThrowableProxy()).isNull());
     }
 
     @Test
     public void clientErrorIsNotRetried() throws Exception {
         final CompletionStage<CreatedPolicyRollback.Result> rollback = start(config("BACKOFF_DELAY", 2));
 
+        final PolicyConflictException conflict =
+                PolicyConflictException.newBuilder(POLICY_ID).dittoHeaders(HEADERS).build();
         policies.expectMsg(DELETE_POLICY);
-        policies.reply(PolicyConflictException.newBuilder(POLICY_ID).dittoHeaders(HEADERS).build());
+        policies.reply(conflict);
 
         assertResult(rollback, CreatedPolicyRollback.Outcome.REJECTED, 1);
         policies.expectNoMessage(SHORT);
+        assertThat(logLines()).singleElement().asString()
+                .startsWith("ERROR Rollback of the creation of Thing <" + THING_ID + "> failed: Policy <" + POLICY_ID +
+                        "> could not be deleted in 1 attempt(s)")
+                .endsWith("Last answer: <" + conflict + ">");
     }
 
     @Test
