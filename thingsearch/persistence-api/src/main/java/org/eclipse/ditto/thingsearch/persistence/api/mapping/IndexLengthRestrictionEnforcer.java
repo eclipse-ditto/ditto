@@ -112,12 +112,11 @@ public final class IndexLengthRestrictionEnforcer {
         return thingId.length() + namespaceLength + authSubjectOverhead;
     }
 
-    // Package-private for the equivalence test in IndexLengthRestrictionEnforcerTest. Computes the exact byte
-    // length of the pointer's UTF-8 string representation (as produced by JsonPointer.toString()) without
-    // materialising that String or an intermediate byte[]. This runs per leaf field of every indexed thing, so
-    // avoiding the two throwaway allocations meaningfully cuts CPU and allocation churn on the search-write path.
-    // Public (not package-private as upstream) because this class lives in persistence-api while its unit test
-    // stays in the thingsearch service module.
+    // Computes the exact byte length of the pointer's UTF-8 string representation (as produced by
+    // JsonPointer.toString()) without materialising that String or an intermediate byte[]. This runs per leaf field
+    // of every indexed thing, so avoiding the two throwaway allocations meaningfully cuts CPU and allocation churn on
+    // the search-write path. Public for the equivalence test in IndexLengthRestrictionEnforcerTest: this class is
+    // in persistence-api, its unit test in the thingsearch service module.
     public static int jsonPointerBytes(final JsonPointer jsonPointer) {
         final int levelCount = jsonPointer.getLevelCount();
         if (levelCount == 0) {

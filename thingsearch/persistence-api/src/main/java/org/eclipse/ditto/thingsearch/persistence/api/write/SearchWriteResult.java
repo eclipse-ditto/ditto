@@ -20,11 +20,10 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 /**
- * Backend-neutral result of applying a batch of search write models, modelled on what the Mongo bulk-write
- * acknowledgement flow consumes (acknowledged flag, matched/upserted counts, per-element errors). The
- * {@link #classify()} method reproduces the Mongo flow's decision rules in a backend-agnostic way, including
- * its decision precedence (CONSISTENCY_ERROR &gt; INCORRECT_PATCH &gt; WRITE_ERROR &gt; OK) as implemented by
- * {@code BulkWriteResultAckFlow.checkForConsistencyError}.
+ * Backend-neutral result of applying a batch of search write models: what the bulk-write acknowledgement flow
+ * ({@code BulkWriteResultAckFlow}) consumes (acknowledged flag, matched/upserted counts, per-element errors). The
+ * {@link #classify()} method holds the decision rules in a backend-agnostic way, including their precedence
+ * (UNACKNOWLEDGED &gt; CONSISTENCY_ERROR &gt; INCORRECT_PATCH &gt; WRITE_ERROR &gt; OK).
  * <p>
  * A result may also carry diagnostic values (a correlation ID and the inserted and deleted counts), set through
  * {@link #withDiagnostics(String, int, int)}. They exist only for logging and play no part in {@link #classify()}.
@@ -69,10 +68,9 @@ public final class SearchWriteResult {
     /**
      * Create an acknowledged write result.
      * <p>
-     * The Mongo original ({@code BulkWriteResultAckFlow}) uses two DIFFERENT counts of the submitted batch
-     * depending on which check it feeds: {@code areAllIndexesWithinBounds} bounds-checks reported error
-     * indices against the FULL batch size ({@code getWriteModels().size()}, delete models included, since a
-     * delete model can legitimately occupy any index in the batch); {@code areUpdatesMissing} compares
+     * {@link #classify()} uses two DIFFERENT counts of the submitted batch, depending on the check: it
+     * bounds-checks reported error indices against the FULL batch size (delete models included, since a
+     * delete model can legitimately occupy any index in the batch), and it compares
      * {@code matchedCount + upsertedCount} against the batch size with delete models EXCLUDED, because a
      * Mongo delete reports through {@code deletedCount}, never through {@code matchedCount}/{@code
      * upsertedCount} &mdash; so counting deletes in that comparison would make every batch containing a
@@ -83,8 +81,7 @@ public final class SearchWriteResult {
      * used only to bounds-check reported error indices.
      * @param nonDeleteWriteModelCount the number of write models in the submitted batch EXCLUDING delete models (i.e.
      * the count a backend's write-result adapter must obtain by filtering out delete/removal write models before
-     * calling this factory, mirroring {@code BulkWriteResultAckFlow.areUpdatesMissing}); used only to detect missing
-     * patch updates.
+     * calling this factory); used only to detect missing patch updates.
      * @param matchedCount the number of documents matched.
      * @param modifiedCount the number of documents modified.
      * @param upsertedCount the number of documents upserted.
@@ -149,8 +146,7 @@ public final class SearchWriteResult {
     }
 
     /**
-     * @return the number of write models in the submitted batch EXCLUDING delete models; mirrors
-     * {@code BulkWriteResultAckFlow.areUpdatesMissing}'s non-delete count.
+     * @return the number of write models in the submitted batch EXCLUDING delete models.
      */
     public int getNonDeleteWriteModelCount() {
         return nonDeleteWriteModelCount;
@@ -214,13 +210,11 @@ public final class SearchWriteResult {
     }
 
     /**
-     * Classify this result into the neutral outcome vocabulary, reproducing the Mongo bulk-write
-     * acknowledgement flow's rules AND its decision precedence
-     * ({@code BulkWriteResultAckFlow.checkForConsistencyError}): unacknowledged wins first; then error
-     * indices outside the full batch are a consistency error; then missing matched+upserted counts (against
-     * the non-delete write-model count) indicate an incorrect patch &mdash; checked BEFORE write errors, so a
-     * batch exhibiting both symptoms classifies as an incorrect patch, not a write error, exactly as the
-     * Mongo original does; then any non duplicate-key error is a write error; otherwise the batch is OK
+     * Classify this result into the neutral outcome vocabulary, in this order of precedence: unacknowledged
+     * wins first; then error indices outside the full batch are a consistency error; then missing
+     * matched+upserted counts (against the non-delete write-model count) indicate an incorrect patch &mdash;
+     * checked BEFORE write errors, so a batch exhibiting both symptoms classifies as an incorrect patch, not a
+     * write error; then any non duplicate-key error is a write error; otherwise the batch is OK
      * (duplicate-key errors count as success).
      *
      * @return the classified outcome.

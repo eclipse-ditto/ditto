@@ -60,8 +60,7 @@ import scala.jdk.javaapi.FutureConverters;
  *     deadline expires commits anyway (scaled: an 800 ms write against a 400 ms deadline).</li>
  * </ul>
  * Kept apart from {@link PostgresJournalPoolOverloadTest} (the real journal chain) on purpose: it has its own actor
- * system and static stub state. Originally part of the 2026-08-21 pool-starvation investigation's
- * {@code PoolStarvationConsequenceProbeTest}.
+ * system and static stub state.
  */
 public final class PersistentActorWriteOutcomeCharacterisationTest {
 

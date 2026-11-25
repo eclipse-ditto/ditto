@@ -156,7 +156,7 @@ public final class MongoSearchPersistenceProvider implements SearchPersistencePr
 
     @Override
     public Object compositeSortResumeValue(final JsonValue previousValue) {
-        // MongoDB compares a composite sort key against its nested BSON form ({"$gt": {...}}), exactly as before.
+        // MongoDB compares a composite sort key against its nested BSON form ({"$gt": {...}}).
         return JsonToBson.convert(previousValue);
     }
 

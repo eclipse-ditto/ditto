@@ -12,7 +12,7 @@
 -->
 # Ditto PostgreSQL persistence backend — ops runbook
 
-Operational artifacts for the phase-2 PostgreSQL persistence backend (custom
+Operational artifacts for the PostgreSQL persistence backend (custom
 Pekko plugin on the r2dbc driver). For the design see
 `.claude/concepts/postgresql-persistence-design.md` — §6 (configuration at a
 glance), §3.2 (schema lifecycle: two roles, provisioning for managed
@@ -95,12 +95,12 @@ builds; to `ditto.postgresql.search.path-indexes.direct-uri` if set, else to
 `max_connections = 300`, about 20 of them kept for administration (280 left).
 The chart's `maxSurge: 1` adds one pool per service while it rolls:
 
-| Setup | Steady state | All four services rolling | Fits 280? |
-|---|---|---|---|
-| default `max-size = 25`, one replica each | 4 × 25 = 100 | 4 × (1 + 1) × 25 = 200 | yes |
+| Setup                                                     | Steady state               | All four services rolling  | Fits 280?                  |
+|-----------------------------------------------------------|----------------------------|----------------------------|----------------------------|
+| default `max-size = 25`, one replica each                 | 4 × 25 = 100               | 4 × (1 + 1) × 25 = 200     | yes                        |
 | things and policies ×3, things-search ×2, `max-size = 25` | (3 + 3 + 1 + 2) × 25 = 225 | (4 + 4 + 2 + 3) × 25 = 325 | no (only between upgrades) |
-| the same replicas, `max-size = 20` | 9 × 20 = 180 | 13 × 20 = 260 | yes |
-| the former default `max-size = 100`, one replica each | 4 × 100 = 400 | 4 × (1 + 1) × 100 = 800 | no |
+| the same replicas, `max-size = 20`                        | 9 × 20 = 180               | 13 × 20 = 260              | yes                        |
+| `max-size = 100`, one replica each                        | 4 × 100 = 400              | 4 × (1 + 1) × 100 = 800    | no                         |
 
 A stock PostgreSQL (`max_connections = 100`, 3 of them
 `superuser_reserved_connections`) holds the three persistence services at one
@@ -211,7 +211,7 @@ The order is load-bearing because PostgreSQL `ALTER DEFAULT PRIVILEGES` applies
 2. **App boots → schema manager runs bootstrap DDL as `ditto_ddl`.**
    On first boot `PostgresSchemaManager` connects with the `ddl-credentials`
    (DDL role) and runs all `CREATE TABLE`/`CREATE INDEX` inside one
-   `pg_advisory_xact_lock`'d transaction `[H2]`. Because step 1 already set the
+   `pg_advisory_xact_lock`'d transaction. Because step 1 already set the
    default privileges, every new table is born with the DML grant to `ditto_app`
    — no post-boot re-grant pass is needed. If PostgreSQL is not reachable yet,
    the service waits for it (`ditto.postgresql.bootstrap.retry.max-duration`,
@@ -248,12 +248,12 @@ Ditto also sends `ditto.postgresql.statement-timeout` (`POSTGRES_STATEMENT_TIMEO
 as a connection startup parameter. Which of the two a statement runs under depends
 on the path to PostgreSQL:
 
-| Path | Timeout in effect |
-|---|---|
-| Direct connection | the startup parameter; it overrides the role default |
+| Path                                                                                                                           | Timeout in effect                                                                                  |
+|--------------------------------------------------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------|
+| Direct connection                                                                                                              | the startup parameter; it overrides the role default                                               |
 | PgBouncer with `track_extra_parameters = statement_timeout` and `ignore_startup_parameters = extra_float_digits` (recommended) | the startup parameter: PgBouncer applies each client's value to the server connection it hands out |
-| PgBouncer with `ignore_startup_parameters = extra_float_digits,statement_timeout` | the role default only: PgBouncer drops the startup parameter |
-| PgBouncer with `statement_timeout` in neither | n/a: PgBouncer refuses the connection (`unsupported startup parameter: statement_timeout`) |
+| PgBouncer with `ignore_startup_parameters = extra_float_digits,statement_timeout`                                              | the role default only: PgBouncer drops the startup parameter                                       |
+| PgBouncer with `statement_timeout` in neither                                                                                  | n/a: PgBouncer refuses the connection (`unsupported startup parameter: statement_timeout`)         |
 
 **Recommended: `track_extra_parameters`.** It makes PgBouncer apply Ditto's
 values per client, as on a direct connection; `ignore_startup_parameters`
@@ -450,8 +450,8 @@ defaults are unchanged.
 The r2dbc-postgresql client runs `sslMode=verify-full` (validates the server
 cert chain **and** hostname). The Helm chart mounts the CA (and optional mTLS
 material) read-only into the persistence pods. File names map 1:1 to the
-persistence-backend `ssl.*` HOCON keys (spec §7) that `DittoPostgresClient`
-(WU4) reads:
+`ditto.postgresql.ssl.*` HOCON keys (design document §3.5, Pool, overload, TLS,
+PgBouncer) that the client's `ConnectionPoolFactory` reads:
 
 | Mounted file (`postgres.tls.mountPath`) | HOCON key       | r2dbc Option   |
 |-----------------------------------------|-----------------|----------------|
@@ -463,7 +463,7 @@ Set `POSTGRES_SSL_ROOT_CERT=/etc/ditto/pg-tls/ca.crt` (and the cert/key env vars
 for mTLS) so the HOCON `ssl.root-cert`/`ssl.cert`/`ssl.key` resolve to the mount.
 Keep `ssl.allow-system-truststore = false` (default) so a `verify-full`/`verify-ca`
 config with an unset `root-cert` fails fast at boot instead of silently falling
-back to the JVM truststore and failing at first connect `[G5]`.
+back to the JVM truststore and failing at first connect.
 
 If PgBouncer terminates TLS, mount the PgBouncer CA here (the `verify-full`
 checks are against whichever endpoint the r2dbc URI hits).
@@ -522,13 +522,13 @@ connectivity share the row `ditto-postgres-persistence`; the optional search bac
 The bootstrap runs in one transaction under a cluster-wide advisory lock. It reads the row **before**
 it runs any DDL and decides:
 
-| Stored row | What the booting pod does |
-|---|---|
-| none (first boot) | creates the schema, verifies the catalog, inserts the row |
-| `version` older than the code | upgrade: runs its idempotent DDL, verifies the catalog, advances the row (including its own `min_compatible_version`) |
-| `version` equal to the code | a checksum mismatch refuses to boot (drift). Checksum matches: if every table and index its DDL creates exists, runs **no** DDL (no lock on the component's tables), verifies the catalog and rewrites the row unchanged; otherwise runs its idempotent DDL (re-creating what is missing) and verifies the catalog |
-| `version` newer, `min_compatible_version` ≤ code | **compatible newer** (rolling upgrade in progress): runs **no** DDL and does **not** write the row; only verifies the catalog facts it needs (primary keys, column types, `COLLATE "C"`; extra columns or extra/dropped indexes are fine); logs an INFO line naming both versions |
-| `version` newer, `min_compatible_version` > code | refuses to boot; the message names `min_compatible_version` |
+| Stored row                                       | What the booting pod does                                                                                                                                                                                                                                                                                          |
+|--------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| none (first boot)                                | creates the schema, verifies the catalog, inserts the row                                                                                                                                                                                                                                                          |
+| `version` older than the code                    | upgrade: runs its idempotent DDL, verifies the catalog, advances the row (including its own `min_compatible_version`)                                                                                                                                                                                              |
+| `version` equal to the code                      | a checksum mismatch refuses to boot (drift). Checksum matches: if every table and index its DDL creates exists, runs **no** DDL (no lock on the component's tables), verifies the catalog and rewrites the row unchanged; otherwise runs its idempotent DDL (re-creating what is missing) and verifies the catalog |
+| `version` newer, `min_compatible_version` ≤ code | **compatible newer** (rolling upgrade in progress): runs **no** DDL and does **not** write the row; only verifies the catalog facts it needs (primary keys, column types, `COLLATE "C"`; extra columns or extra/dropped indexes are fine); logs an INFO line naming both versions                                  |
+| `version` newer, `min_compatible_version` > code | refuses to boot; the message names `min_compatible_version`                                                                                                                                                                                                                                                        |
 
 Every boot (and self-heal) that runs DDL first sets `SET LOCAL lock_timeout = '500ms'` in its transaction, after
 the advisory lock: each DDL statement waits at most 500 ms for a table lock, below PostgreSQL's default
@@ -555,8 +555,8 @@ column is missing. That statement is not part of the checksummed DDL, so no stor
 Privileges: this one-time `ALTER TABLE` needs **ownership** of `schema_version`. With the default
 provisioning (`provisioning/01-roles-and-grants.sql`) the DDL role created the table and owns it.
 If a component's DDL role does not own `schema_version`, boot a component whose role owns it first,
-or add the column once as the owner. Once the column exists, boots and heals need the same
-privileges on `schema_version` as before this change (`SELECT`, `INSERT`, `UPDATE`), no ownership.
+or add the column once as the owner. Once the column exists, boots and heals need only `SELECT`,
+`INSERT` and `UPDATE` on `schema_version`, no ownership.
 
 The runtime self-heal (re-creating a missing table on SQLSTATE `42P01`) follows the same rule: if the
 stored version is newer, it runs no DDL. With a compatible newer schema the heal is a no-op and the
@@ -581,9 +581,9 @@ mid-roll:
 
 **One-time window for existing databases:** images built before `min_compatible_version` existed don't
 read it. They treat any newer stored version as a downgrade, and their self-heal still runs their own
-DDL. So during the first schema bump after this change, a pod still on such an older image refuses to
-boot if it restarts mid-roll, the same window as before. Roll every pod to an image with this check
-first (that roll needs no schema bump); later bumps then follow the table above.
+DDL. So during the first schema bump of such a database, a pod still on such an older image refuses to
+boot if it restarts mid-roll. Roll every pod to an image with this check first (that roll needs no
+schema bump); later bumps then follow the table above.
 
 ### Rules for schema bumps (developers)
 

@@ -22,10 +22,9 @@ import java.util.Optional;
 import org.junit.Test;
 
 /**
- * Tests {@link SearchWriteResult#classify()} against the decision precedence of the Mongo original it must
- * preserve, {@code BulkWriteResultAckFlow.checkForConsistencyError}: CONSISTENCY_ERROR &gt; INCORRECT_PATCH &gt;
+ * Tests the decision precedence of {@link SearchWriteResult#classify()}: CONSISTENCY_ERROR &gt; INCORRECT_PATCH &gt;
  * WRITE_ERROR &gt; OK (with UNACKNOWLEDGED short-circuiting all of them), and the non-delete write-model count
- * used by {@code BulkWriteResultAckFlow.areUpdatesMissing}.
+ * of its incorrect-patch check.
  */
 public final class SearchWriteResultTest {
 
@@ -51,8 +50,8 @@ public final class SearchWriteResultTest {
     public void bothIncorrectPatchAndWriteErrorSymptomsClassifyAsIncorrectPatch() {
         // matchedCount + upsertedCount (1 + 0 = 1) < nonDeleteWriteModelCount (5): incorrect-patch symptom.
         // AND a non duplicate-key error at a valid index: write-error symptom.
-        // The ORIGINAL (BulkWriteResultAckFlow.checkForConsistencyError) checks areUpdatesMissing BEFORE
-        // checking for non-empty bulk write errors, so INCORRECT_PATCH must win, not WRITE_ERROR.
+        // classify() checks for missing updates BEFORE it checks for write errors, so INCORRECT_PATCH must
+        // win, not WRITE_ERROR.
         final SearchWriteResult result = SearchWriteResult.acknowledged(5, 5, 1, 1, 0,
                 List.of(new SearchWriteError(2, SearchWriteError.Category.OTHER, "boom")));
 
@@ -88,15 +87,14 @@ public final class SearchWriteResultTest {
 
     @Test
     public void deleteModelsAreExcludedFromTheIncorrectPatchCheck() {
-        // Batch of 5 write models submitted, but 2 of them are delete models (mirrors
-        // BulkWriteResultAckFlow.areUpdatesMissing filtering out ThingDeleteModel instances): a Mongo delete
+        // Batch of 5 write models submitted, but 2 of them are delete models: a Mongo delete
         // reports through deletedCount, never matchedCount/upsertedCount, so only the remaining 3 non-delete
         // write models are expected to show up in matched+upserted. Full batch size (5) is still used for
         // the index-bounds check.
         final SearchWriteResult result = SearchWriteResult.acknowledged(5, 3, 2, 2, 1, List.of());
 
-        // matched(2) + upserted(1) = 3 >= nonDeleteWriteModelCount(3): no incorrect patch, despite
-        // 3 < writeModelCount(5) which would have wrongly flagged INCORRECT_PATCH before this fix.
+        // matched(2) + upserted(1) = 3 >= nonDeleteWriteModelCount(3): no incorrect patch, although
+        // 3 < writeModelCount(5): the full batch size plays no part in this check.
         assertEquals(SearchWriteResultStatus.OK, result.classify());
     }
 

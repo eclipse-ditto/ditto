@@ -336,8 +336,9 @@ public final class MongoThingsSearchPersistence implements ThingsSearchPersisten
      * Recover a write model from the persistence.
      *
      * @param thingId the thing ID.
-     * @return the last write model if the thing exists in the search index, or a {@code ThingDeleteModel} if the thing
-     * does not exist.
+     * @return a {@code ThingDeleteModel} if the thing is not in the search index; else the write model of its stored
+     * document: an emptied-out write model if the document has no {@code __referencedPolicies} field, a
+     * {@code ThingDeleteModel} if the document cannot be decoded, otherwise the last write model.
      */
     @Override
     public Source<AbstractWriteModel, NotUsed> recoverLastWriteModel(final ThingId thingId) {
@@ -570,9 +571,11 @@ public final class MongoThingsSearchPersistence implements ThingsSearchPersisten
     }
 
     /**
-     * Maps a stored search index document to the write model it represents. A document that the decoder rejects
-     * yields a {@code ThingDeleteModel}, so that the next update of the thing is written in full. A recovered document
-     * carries the stored BSON as its encoding, so that the next update is diffed against the stored document as it is.
+     * Maps a stored search index document to the write model it represents. A document without the
+     * {@code __referencedPolicies} field yields an emptied-out write model built from its metadata, without the stored
+     * BSON. A document that the decoder rejects yields a {@code ThingDeleteModel}, so that the next update of the
+     * thing is written in full. Any other document yields a write model that carries the stored BSON as its encoding,
+     * so that the next update is diffed against the stored document as it is.
      *
      * @param document the stored search index document.
      * @return the write model of the stored document.
@@ -581,7 +584,7 @@ public final class MongoThingsSearchPersistence implements ThingsSearchPersisten
         final BsonDocument stored = document.toBsonDocument(Document.class, MongoClient.DEFAULT_CODEC_REGISTRY());
         final Metadata actualMetadata = readAsMetadata(document);
         if (!stored.containsKey(PersistenceConstants.FIELD_REFERENCED_POLICIES)) {
-            // historical "emptied out" shape, which omits the __referencedPolicies field
+            // the "emptied out" shape, which omits the __referencedPolicies field
             return ThingWriteModel.ofEmptiedOut(actualMetadata);
         }
         final SearchIndexDocument decoded;

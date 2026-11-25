@@ -219,4 +219,4 @@ None currently - concept is ready for implementation planning.
 - [Namespace Documentation](https://eclipse.dev/ditto/basic-namespaces-and-names.html)
 - [Policy Documentation](https://eclipse.dev/ditto/basic-policy.html)
 - [RegexPatterns](../../base/model/src/main/java/org/eclipse/ditto/base/model/entity/id/RegexPatterns.java)
-- [EvaluatedPolicy](../../thingsearch/service/src/main/java/org/eclipse/ditto/thingsearch/service/persistence/write/mapping/EvaluatedPolicy.java)
+- [EvaluatedPolicy](../../thingsearch/persistence-api/src/main/java/org/eclipse/ditto/thingsearch/persistence/api/mapping/EvaluatedPolicy.java)

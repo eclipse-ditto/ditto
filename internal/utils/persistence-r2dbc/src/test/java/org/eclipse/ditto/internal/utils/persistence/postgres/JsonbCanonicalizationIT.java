@@ -63,9 +63,9 @@ import reactor.core.publisher.Mono;
 
 /**
  * Testcontainers IT (PG 16) pinning the {@code jsonb} number / key canonicalisation contract for the journal
- * {@code event} column. Decision (probe 2026-06-15 vs PG16): option (i) — keep the column as {@code jsonb} and assert
- * the post-canonical form, rather than switching the column to {@code TEXT} (rejected: loses jsonb indexability,
- * increases storage, and blocks query-side jsonb predicates).
+ * {@code event} column. Decision: keep the column as {@code jsonb} and assert the post-canonical form, rather than
+ * switching the column to {@code TEXT} (rejected: loses jsonb indexability, increases storage, and blocks query-side
+ * jsonb predicates).
  * <p>
  * The four canonicalisation rules PG16 {@code jsonb} applies to a stored value are:
  * </p>
@@ -100,7 +100,7 @@ public final class JsonbCanonicalizationIT {
                     + "\"negexp\": -2.5E-3, \"keys\":{\"b\":1,\"a\":2}, \"  ws  \":\"x\"}";
 
     /**
-     * The documented canonical {@code event::text} form PG16 emits for {@link #PROBE_INPUT} (probe run 2026-06-15).
+     * The canonical {@code event::text} form PG16 emits for {@link #PROBE_INPUT}.
      * Note: jsonb reorders keys at every level (PG16: by length, then bytewise, so {@code keys} comes first and the
      * nested object becomes {@code {"a": 2, "b": 1}}). That order is NOT a contract — only the per-value
      * canonicalisation (rules 2-4) is; this snapshot pins PG16's exact output as a regression guard.

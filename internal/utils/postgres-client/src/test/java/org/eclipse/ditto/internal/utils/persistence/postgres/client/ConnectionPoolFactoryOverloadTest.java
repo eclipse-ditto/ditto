@@ -51,7 +51,7 @@ import reactor.pool.PoolAcquirePendingLimitException;
  * Fully offline: the pool configuration comes from the production {@code ditto-postgres-client.conf} (system
  * environment ignored) plus per-test overrides, and is built by the production
  * {@code ConnectionPoolFactory.buildPoolConfiguration} over the in-memory {@link StubConnectionFactory}. No PostgreSQL,
- * no Docker. Originally the 2026-08-21 pool-starvation investigation's {@code PoolStarvationProbeTest}.
+ * no Docker.
  * </p>
  */
 public final class ConnectionPoolFactoryOverloadTest {

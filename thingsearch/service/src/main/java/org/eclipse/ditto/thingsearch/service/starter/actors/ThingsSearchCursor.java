@@ -790,31 +790,30 @@ final class ThingsSearchCursor {
 
     /**
      * Converts a cursor sort value ({@link JsonValue}) to the plain Java scalar the resume-criteria predicate carries —
-     * a backend-neutral replacement for {@code JsonToBson.convert} on the resume path (the only place the cursor injects
-     * a value into a criteria predicate).
+     * backend-neutral, on the resume path (the only place the cursor injects a value into a criteria predicate).
      * <p>
-     * <b>MongoDB byte-identical.</b> The MongoDB driver's default codec encodes {@link Integer}/{@link Long}/{@link
-     * Double}/{@link Boolean}/{@link String} to exactly the BSON types {@code JsonToBson} produced from the same {@link
+     * <b>MongoDB.</b> The MongoDB driver's default codec encodes {@link Integer}/{@link Long}/{@link
+     * Double}/{@link Boolean}/{@link String} to exactly the BSON types {@code JsonToBson} produces from the same {@link
      * JsonValue} — {@code int32}/{@code int64}/{@code double}/{@code boolean}/{@code string} — so
-     * {@code Filters.gt(field, value)} yields the identical {@code Bson}. The int/long/double split mirrors {@code
-     * JsonToBson.number} ({@code isInt} → int32, else {@code isLong} → int64, else double), so the numeric type is
-     * preserved.
+     * {@code Filters.gt(field, value)} yields the same {@code Bson} with either. The int/long/double split mirrors
+     * {@code JsonToBson.number} ({@code isInt} → int32, else {@code isLong} → int64, else double), so the numeric type
+     * is preserved.
      * </p>
      * <p>
      * <b>Non-Mongo backends.</b> Their predicate translators route by {@code value instanceof Number}/{@code Boolean}
      * (e.g. the PostgreSQL search backend's {@code SqlValues}); a raw {@code org.bson.BsonValue} is neither, so it would
-     * be mis-bound as text. Emitting a plain Java scalar fixes that at the single shared choke point while keeping the
-     * MongoDB output unchanged. Null never reaches here: the {@code previousValue.isNull()} branches short-circuit
+     * be mis-bound as text. Emitting a plain Java scalar avoids that at the single shared choke point and gives
+     * MongoDB the same BSON. Null never reaches here: the {@code previousValue.isNull()} branches short-circuit
      * BEFORE conversion in {@link #getDimensionLtCriteria}/{@link #getNextDimensionCriteria}.
      * </p>
      * <p>
      * <b>Object / array sort values</b> (composite sort keys — see {@code GetSortBsonVisitor.sortValuesAsArray}) are
      * handed to the backend via {@link SearchPersistenceProvider#compositeSortResumeValue}, which decides the operand
-     * its criteria translator compares against. MongoDB converts with {@code JsonToBson} to a {@code BsonValue},
-     * exactly as before, so its nested {@code {"$gt": {...}}} stays byte-identical. PostgreSQL emits the
+     * its criteria translator compares against. MongoDB converts with {@code JsonToBson} to a {@code BsonValue}
+     * and compares against the nested {@code {"$gt": {...}}}. PostgreSQL emits the
      * object-boundary marker {@code {"typeRank":4}} for a whole-object boundary (objects tie there, so it resumes by
      * rank, then by thing id) and resolves that marker through this hook. Its null, empty-array and array-of-array
-     * boundaries are still encoded as JSON {@code null} and take the {@code previousValue.isNull()} short-circuit
+     * boundaries are encoded as JSON {@code null} and take the {@code previousValue.isNull()} short-circuit
      * above, as does a missing sort key.
      * </p>
      *
@@ -836,7 +835,7 @@ final class ThingsSearchCursor {
             }
             return previousValue.isLong() ? previousValue.asLong() : previousValue.asDouble();
         }
-        // Object / array boundary: the backend decides the resume operand (MongoDB: its BSON form, as before).
+        // Object / array boundary: the backend decides the resume operand (MongoDB: its BSON form).
         return provider.compositeSortResumeValue(previousValue);
     }
 

@@ -34,10 +34,12 @@ import org.eclipse.ditto.thingsearch.persistence.api.model.ThingWriteModel;
 /**
  * Map Thing with Enforcer to Document.
  * <p>
- * The mapping first produces a backend-neutral {@link org.eclipse.ditto.thingsearch.persistence.api.model.SearchIndexDocument}
- * via {@link SearchIndexDocumentFactory} and then encodes it into the Mongo {@link BsonDocument} via
- * {@link SearchIndexDocumentMongoEncoder}. The neutral document is the shared source of truth for all
- * persistence backends; the Mongo encoder reproduces the exact historical BSON wire format.
+ * {@link #toWriteModel} produces a backend-neutral
+ * {@link org.eclipse.ditto.thingsearch.persistence.api.model.SearchIndexDocument} via
+ * {@link SearchIndexDocumentFactory} and returns it in a {@link ThingWriteModel} without encoding it: the neutral
+ * document is the shared source of truth for all persistence backends. Only the package-private
+ * {@code toBsonDocument} methods encode it into the Mongo {@link BsonDocument} via
+ * {@link SearchIndexDocumentMongoEncoder}.
  */
 public final class EnforcedThingMapper {
 

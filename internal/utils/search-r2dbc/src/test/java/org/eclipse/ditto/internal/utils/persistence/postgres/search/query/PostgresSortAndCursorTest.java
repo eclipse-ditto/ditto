@@ -323,7 +323,7 @@ public final class PostgresSortAndCursorTest {
         assertThat(sudo(cf.fieldCriteria(sort, cf.lt(5))).sql()).contains("sf.val_num < $2");
     }
 
-    // ============================================================================ thing-id tiebreak guard (Finding 2)
+    // ============================================================================ thing-id tiebreak guard
 
     @Test
     public void thingIdTerminatedSortEmitsNoTiebreakWarning() {

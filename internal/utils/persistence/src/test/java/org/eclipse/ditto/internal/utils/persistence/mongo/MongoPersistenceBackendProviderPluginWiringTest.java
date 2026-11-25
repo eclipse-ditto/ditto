@@ -26,8 +26,8 @@ import com.typesafe.config.ConfigFactory;
 
 /**
  * Pins that the MongoDB provider runs no plugin-wiring check at boot: a MongoDB deployment that wires a journal plugin
- * class of its own (a wrapper or a fork of the MongoDB plugin), or an auto-start entry without a plugin block, keeps
- * booting exactly as on a Ditto without pluggable persistence. The check exists only on the PostgreSQL provider.
+ * class of its own (a wrapper or a fork of the MongoDB plugin), or an auto-start entry without a plugin block, boots:
+ * the provider inherits the no-op {@code verifyPluginWiring}. The check exists only on the PostgreSQL provider.
  * <p>
  * Each case gets its own actor system carrying only its condition, so each test fails on its own if a check were ever
  * introduced on the MongoDB provider. Pekko Persistence is not loaded by {@code ActorSystem.create}, so the block-less
@@ -42,7 +42,7 @@ public final class MongoPersistenceBackendProviderPluginWiringTest {
     public void customJournalPluginClassDoesNotFailTheBoot() {
         withProvider("pekko-contrib-mongodb-persistence-things-journal.class = \"" + CUSTOM_JOURNAL_CLASS + "\"",
                 provider -> assertThatCode(() -> provider.verifyPluginWiring("things"))
-                        .as("the MongoDB provider inherits the no-op: a custom plugin class must boot as before")
+                        .as("the MongoDB provider inherits the no-op: a custom plugin class must not fail the boot")
                         .doesNotThrowAnyException());
     }
 
@@ -50,7 +50,7 @@ public final class MongoPersistenceBackendProviderPluginWiringTest {
     public void autoStartEntryWithoutPluginBlockDoesNotFailTheBoot() {
         withProvider("pekko.persistence.journal.auto-start-journals = [ \"" + JOURNAL_WITHOUT_BLOCK + "\" ]",
                 provider -> assertThatCode(() -> provider.verifyPluginWiring("things"))
-                        .as("the MongoDB provider inherits the no-op: an entry without a block must boot as before")
+                        .as("the MongoDB provider inherits the no-op: an entry without a block must not fail the boot")
                         .doesNotThrowAnyException());
     }
 

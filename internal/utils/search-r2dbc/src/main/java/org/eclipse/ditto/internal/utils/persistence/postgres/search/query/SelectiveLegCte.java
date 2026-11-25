@@ -70,14 +70,14 @@ import org.eclipse.ditto.rql.query.expression.visitors.FilterFieldExpressionVisi
  * root-mapped and {@code features/*} fields are never legs.
  * </p>
  * <p>
- * <b>Choice.</b> A point leg alone is materialised. A range leg alone is never materialised: the statement keeps the
- * plan it had before range legs. Measured on the 1M-thing benchmark corpus, materialising a lone range was never
- * faster than that plan and much slower for wide ranges, because that plan stops early on a sorted sudo find and
- * probes only the readable things with authorization. A point and a range leg: decided in the statement, not by the
- * planner's estimates. A one-row {@code sel_pick} counts the point leg's index entries up to
- * {@value #POINT_COUNT_CAP} and the range leg's (both branches) up to that count + 1, and {@code sel_leg} materialises
- * the range leg only if it counted fewer (ties go to the point leg). The branch not chosen is skipped by a one-time
- * filter. At most one {@code sel_leg} per statement, one round trip.
+ * <b>Choice.</b> A point leg alone is materialised. A range leg alone is never materialised: the statement gets no
+ * CTE, as with {@link SelectiveLegs#POINT}. Measured on the 1M-thing benchmark corpus, materialising a lone range was
+ * never faster than the statement without the CTE and much slower for wide ranges, because the plan without it stops
+ * early on a sorted sudo find and probes only the readable things with authorization. A point and a range leg:
+ * decided in the statement, not by the planner's estimates. A one-row {@code sel_pick} counts the point leg's index
+ * entries up to {@value #POINT_COUNT_CAP} and the range leg's (both branches) up to that count + 1, and
+ * {@code sel_leg} materialises the range leg only if it counted fewer (ties go to the point leg). The branch not
+ * chosen is skipped by a one-time filter. At most one {@code sel_leg} per statement, one round trip.
  * </p>
  * <p>
  * <b>Estimate.</b> The pick's {@code sel_leg} returns its thing ids grouped
@@ -131,7 +131,7 @@ final class SelectiveLegCte {
         if (point.isPresent() && range.isPresent()) {
             return Optional.of(Prelude.picked(point.get(), range.get()));
         }
-        // a range leg alone is never materialised: the statement keeps the plan it had before range legs
+        // a range leg alone is never materialised: without a point leg the statement gets no CTE
         return point.map(Prelude::point);
     }
 
@@ -217,7 +217,7 @@ final class SelectiveLegCte {
         return Sql.eq(Sql.col(CTE_FLAT_ALIAS, AbstractFieldSqlCreator.WPATH), Sql.text(wpath));
     }
 
-    /** The point leg's body, byte for byte as before range legs: {@code (sfc.wpath = $ AND <value>)}. */
+    /** The point leg's body, the same with and without a range leg: {@code (sfc.wpath = $ AND <value>)}. */
     private static SqlExpression pointRows(final PointLeg point) {
         return Sql.and(onPath(point.wpath()), point.predicate().flatCondition(CTE_FLAT_ALIAS));
     }

@@ -24,15 +24,15 @@ import org.junit.Test;
 
 /**
  * Verifies that {@link LikePredicateImpl#accept(PredicateVisitor)} and
- * {@link ILikePredicateImpl#accept(PredicateVisitor)} delegate to the new
- * {@code visitLikeWithWildcards}/{@code visitILikeWithWildcards} default methods introduced on
+ * {@link ILikePredicateImpl#accept(PredicateVisitor)} delegate to the
+ * {@code visitLikeWithWildcards}/{@code visitILikeWithWildcards} default methods of
  * {@link PredicateVisitor}, and that:
  * <ul>
- *     <li>a visitor which does NOT override the new default methods receives the exact same regular
- *     expression that {@code visitLike}/{@code visitILike} received before this change (byte-identical,
- *     golden-string proven) &mdash; this is the binary/behavioral compatibility guarantee existing visitors
- *     (e.g. Mongo's {@code CreateBsonPredicateVisitor}) rely on;</li>
- *     <li>a visitor which DOES override the new default methods receives the raw, not yet converted,
+ *     <li>a visitor which does NOT override the default methods receives in {@code visitLike}/
+ *     {@code visitILike} the regular expression converted from the wildcard expression (golden-string
+ *     proven) &mdash; this is the binary/behavioral compatibility guarantee visitors that implement only
+ *     those two methods (e.g. Mongo's {@code CreateBsonPredicateVisitor}) rely on;</li>
+ *     <li>a visitor which DOES override the default methods receives the raw, not yet converted,
  *     wildcard expression verbatim.</li>
  * </ul>
  * <p>
@@ -167,8 +167,8 @@ public final class LikeWithWildcardsDelegationTest {
     /**
      * A {@link PredicateVisitor} that does NOT override {@code visitLikeWithWildcards}/
      * {@code visitILikeWithWildcards}, so it exercises the default-method delegation and records exactly
-     * what {@code visitLike}/{@code visitILike} received (i.e. what every pre-existing visitor implementation
-     * would still receive).
+     * what {@code visitLike}/{@code visitILike} received (i.e. what every visitor implementing only those two
+     * methods receives).
      */
     private static final class RecordingPredicateVisitor implements PredicateVisitor<Void> {
 

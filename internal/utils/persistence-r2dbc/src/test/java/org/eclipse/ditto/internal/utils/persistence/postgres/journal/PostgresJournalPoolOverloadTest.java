@@ -61,7 +61,6 @@ import reactor.pool.PoolAcquirePendingLimitException;
  * </ul>
  * What a failed write future then does to the persistent actor is Pekko behaviour, characterised separately in
  * {@link PersistentActorWriteOutcomeCharacterisationTest}. Fully offline, production durations scaled down.
- * Originally part of the 2026-08-21 pool-starvation investigation's {@code PoolStarvationConsequenceProbeTest}.
  */
 public final class PostgresJournalPoolOverloadTest {
 

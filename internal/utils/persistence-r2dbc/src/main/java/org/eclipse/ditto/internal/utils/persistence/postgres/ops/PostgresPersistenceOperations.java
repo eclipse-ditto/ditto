@@ -575,8 +575,7 @@ public final class PostgresPersistenceOperations {
      * written_at DESC LIMIT 1}), so only the page's winning snapshot payloads are ever detoasted.
      * Callers that need no payload use {@link #getNewestSnapshotHeadsAbove}, the same statement without it.
      * A single-query {@code DISTINCT ON (pid)} shape would seq-scan and externally sort
-     * every payload above the lower bound per page (21× slower than MongoDB at 250k pids; see the
-     * design document, Performance summary, in {@code .claude/concepts/postgresql-persistence-design.md}).
+     * every payload above the lower bound per page.
      * <p>
      * Semantics mirror {@code MongoReadJournal.listNewestActiveSnapshotsByBatch} STAGE ORDER exactly:
      * the pid lower bound, the optional pid regex and the optional min-age filter apply to the ROWS

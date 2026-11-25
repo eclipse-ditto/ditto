@@ -18,15 +18,15 @@ package org.eclipse.ditto.internal.utils.persistence.postgres.search.query;
 public enum SelectiveLegs {
 
     /**
-     * Only point legs ({@code eq(non-null)}, {@code in(non-empty)} without a null member): the rule before the system
-     * index sf_multi.
+     * Only point legs ({@code eq(non-null)}, {@code in(non-empty)} without a null member): the rule without the
+     * system index sf_multi.
      */
     POINT,
 
     /**
      * Point legs and same-path two-sided numeric ranges. When both are present, the statement counts their index
-     * entries and materialises the smaller one; a two-sided range alone is never materialised (the statement keeps the
-     * plan it had before range legs). Requires the valid system index {@code sf_multi}, which serves the range leg's
+     * entries and materialises the smaller one; a two-sided range alone is never materialised (the statement is the
+     * one of {@link #POINT}). Requires the valid system index {@code sf_multi}, which serves the range leg's
      * multi-valued branch.
      */
     POINT_AND_RANGE;

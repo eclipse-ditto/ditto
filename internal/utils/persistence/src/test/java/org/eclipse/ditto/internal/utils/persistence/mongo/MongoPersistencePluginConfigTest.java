@@ -30,17 +30,16 @@ import com.typesafe.config.ConfigFactory;
 /**
  * Unit tests for {@link MongoPersistencePluginConfig}.
  * <p>
- * These tests assert the exact shipped Mongo plugin IDs per service (auto-start sets) and the connectivity
- * remember-store IDs, and serve as the "auto-start set == shipped static list" check at the unit level.
- * Expected values are explicit literals that match the shipped HOCON:
+ * These tests assert the exact shipped Mongo plugin IDs per entity and per service (auto-start sets), and that no
+ * remember-store plugin IDs are returned (MongoDB leaves them to the configuration). They serve as the
+ * "auto-start set == shipped static list" check at the unit level. Expected values are explicit literals that match
+ * the shipped HOCON:
  * <ul>
  *     <li>things.conf {@code pekko.persistence.journal.auto-start-journals} /
  *     {@code pekko.persistence.snapshot-store.auto-start-snapshot-stores}: things journal + snapshot (WoT
  *     excluded).</li>
  *     <li>policies.conf, the same two keys: policies journal + snapshot.</li>
  *     <li>connectivity.conf, the same two keys: connection journal + snapshot.</li>
- *     <li>connectivity.conf {@code pekko.cluster.sharding.journal-plugin-id} / {@code snapshot-plugin-id}: connection
- *     remember-store journal + snapshot.</li>
  * </ul>
  *
  * @since 4.0.0

@@ -34,12 +34,12 @@ fi
 exec 3>&- 2>/dev/null || true
 
 # DEPS CLASSPATHS: generated WITHOUT org.eclipse.ditto artifacts (-DexcludeGroupIds — NOTE: the scope/group
-# filter properties of dependency:build-classpath carry NO `mdep.` prefix, unlike mdep.outputFile; the old
-# `-Dmdep.includeScope` spelling was silently ignored, which is how test-scope jars leaked in). Ditto classes must
+# filter properties of dependency:build-classpath carry NO `mdep.` prefix, unlike mdep.outputFile; a
+# `-Dmdep.includeScope` spelling is silently ignored and lets test-scope jars in). Ditto classes must
 # come from THIS worktree's target/ jars (module jar + allinone), never from ~/.m2 — the local repo's
 # 0-SNAPSHOT artifacts are shared across ALL worktrees, so a sibling-branch `mvn install` silently replaces
-# them with jars that predate this branch's code (observed: a stale .m2 thingsearch-service jar shadowed the
-# allinone and booted the search service on the MONGO backend despite the Postgres overlay). The deps list
+# them with jars built from other code (a stale .m2 thingsearch-service jar that shadows the
+# allinone boots the search service on the MONGO backend despite the Postgres overlay). The deps list
 # carries ONLY third-party jars (r2dbc stack, reactor-core 3.5.x, netty, scram, ...).
 # Caches are keyed by worktree path for the same reason (sibling worktrees share /tmp).
 POSTGRES_CLIENT_JAR="internal/utils/postgres-client/target/ditto-internal-utils-postgres-client-0-SNAPSHOT.jar"

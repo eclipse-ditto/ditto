@@ -135,7 +135,7 @@ public final class PostgresThingsSearchPersistence implements ThingsSearchPersis
     }
 
     /**
-     * Point legs only (no range legs): the read path as before search schema v3.
+     * Point legs only (no range legs).
      *
      * @param client the shared PostgreSQL client (one connection pool per service, via {@code PostgresClientExtension}).
      * @return the read persistence.
@@ -257,7 +257,7 @@ public final class PostgresThingsSearchPersistence implements ThingsSearchPersis
 
     /**
      * Normalizes the neutral {@link Query#getLimit()} value to the row limit {@link SearchQueryAssembler#findAllUnlimited}
-     * expects. The unlimited query builder's default limit is the Mongo-transcribed 0-sentinel (MongoDB
+     * expects. The unlimited query builder's default limit is MongoDB's 0-sentinel (MongoDB
      * {@code cursor.limit(0)} == "no limit"); unlike Mongo, SQL {@code LIMIT 0} means zero rows, so both that
      * 0-sentinel (any {@code <= 0} value) and the neutral {@code Integer.MAX_VALUE} unbounded ceiling normalize to
      * {@code null} here. Package-private and pure/static so it is unit-testable without a database.

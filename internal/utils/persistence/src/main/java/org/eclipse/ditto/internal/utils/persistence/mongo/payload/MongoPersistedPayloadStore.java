@@ -63,7 +63,7 @@ import com.mongodb.reactivestreams.client.MongoDatabase;
  * the collection name is the one the connectivity encryption migration uses, so existing progress records stay
  * readable.
  * <p>
- * The statements are the ones that migration runs against the MongoDB driver: a {@code find} filtered by
+ * The store runs these statements against the MongoDB driver: a {@code find} filtered by
  * {@code $or} of {@code $exists} on the dotted paths of the required fields below the payload ({@code s2.} for
  * snapshots, {@code events.p.} for journal events), combined with {@code _id > afterCursor} (the cursor parsed as an
  * {@link ObjectId} first, as a string otherwise), sorted by {@code _id} ascending and fetched with the given batch

@@ -69,7 +69,7 @@ public final class MongoPersistedSnapshotTest {
                 .contains("amqps://user:secret@broker.example.com:5671");
         assertThat(payload.getValue("/credentials/password").map(v -> v.asString())).contains("mypassword");
         assertThat(payload.getValue("/__lifecycle").map(v -> v.asString())).contains("ACTIVE");
-        // a BSON int64 arrives as a long JSON number (DittoBsonJson's mapping, as before)
+        // a BSON int64 arrives as a long JSON number (DittoBsonJson's mapping)
         assertThat(payload.getValue("/_revision").map(v -> v.asLong())).contains(42L);
     }
 
@@ -110,7 +110,7 @@ public final class MongoPersistedSnapshotTest {
         assertThat(underTest.payload().getValue("/credentials/password").map(v -> v.asString()))
                 .contains("mypassword");
 
-        // the rewritten one keeps every other field, including the id, and holds the new s2 as before
+        // the rewritten one keeps every other field, including the id, and holds the new s2
         final Document rewrittenDocument = ((MongoPersistedSnapshot) rewritten).document();
         final Document expectedS2 = Document.parse(DittoBsonJson.getInstance().parse(newPayload).toJson());
         assertThat(rewrittenDocument.get("s2")).isEqualTo(expectedS2);

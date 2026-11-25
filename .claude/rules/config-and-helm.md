@@ -47,13 +47,14 @@ These live in the extension profiles, not in the service `.conf`s and not in the
 `ditto-postgres-search.conf` (`search-r2dbc`: provider, reaper, path indexes). A new key gets its
 default and `${?POSTGRES_…}` override there plus a `*Config` in the same module; operators set it
 through `extraEnv`. The chart carries only `postgres.tls.*` and `extraInitContainers` — no
-PostgreSQL connection values, by design.
+PostgreSQL connection values, by design. One key is set in the service `.conf`s instead: the
+`read-journal.entity` of the persistence backend provider's `extension-config`
+(`${?POSTGRES_READ_JOURNAL_ENTITY}`), which names the table set of the service's shared read journal.
 
 ## Every chart change
 
 - Bump `version` in `deployment/helm/ditto/Chart.yaml` (semver for the chart itself, independent
   of `appVersion`: new option = minor, fix = patch, breaking `values.yaml` change = major).
   CI Helm lint fails without it.
-- Add a `## [x.y.z]` section for that version in `deployment/helm/ditto/CHANGELOG.md`, right
-  below the empty `## [Unreleased]` heading, with Keep a Changelog subsections (Added, Changed,
-  Fixed, …).
+- Add an entry under `## [Unreleased]` in `deployment/helm/ditto/CHANGELOG.md` (Keep a
+  Changelog sections: Added, Changed, Deprecated, Removed, Fixed, Security).

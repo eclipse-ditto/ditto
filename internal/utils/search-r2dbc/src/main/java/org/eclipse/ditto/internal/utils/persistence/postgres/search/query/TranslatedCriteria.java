@@ -19,11 +19,11 @@ import org.eclipse.ditto.internal.utils.persistence.postgres.search.query.ast.Se
 import org.eclipse.ditto.internal.utils.persistence.postgres.search.query.ast.SqlExpression;
 
 /**
- * The output of the RQL→SQL criteria translation ({@link CreateSqlVisitor}), consumed by the sort/paging translation
- * ({@link PostgresSortClause}) and the statement assembly ({@link SearchQueryAssembler}): the translated RQL criteria
- * as an AST boolean {@link #predicate() expression} over {@code search_things st} (with {@code EXISTS} probes on
- * {@code search_flat} and auth rechecks on the doc-row JSONB columns), plus a {@link #materializedCtePrelude() CTE
- * prelude} seam.
+ * The output of the RQL→SQL criteria translation ({@link CreateSqlVisitor}), consumed by the statement assembly
+ * ({@link SearchQueryAssembler}) and the aggregation statement ({@link PostgresAggregationQuery}): the translated RQL
+ * criteria as an AST boolean {@link #predicate() expression} over {@code search_things st} (with {@code EXISTS}
+ * probes on {@code search_flat} and auth rechecks on the doc-row JSONB columns), plus a
+ * {@link #materializedCtePrelude() CTE prelude} seam.
  * <p>
  * <b>Kept deliberately minimal.</b> The prelude is an empty seam: the criteria translation never fills it, so it is
  * always empty. The selective-leg CTE ({@code WITH … AS MATERIALIZED}) belongs to the top-level statement, not to the

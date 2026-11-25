@@ -39,9 +39,6 @@ import reactor.core.publisher.Mono;
  *     {@code max-idle-time} / {@code max-life-time}, so {@code 0s} in the conf means "keep the library default" — and
  *     the two defaults differ (30 minutes vs. no timeout).</li>
  * </ul>
- * <p>
- * Originally the 2026-08-21 pool-starvation investigation's {@code R2dbcPoolDefaultsProbeTest}.
- * </p>
  */
 public final class R2dbcPoolLibraryDefaultsTest {
 

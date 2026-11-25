@@ -49,10 +49,9 @@ import com.typesafe.config.ConfigFactory;
  * {@code MongoPersistenceOperationsFactoryTest}, this relies on {@code MongoClientWrapper} being lazy: no connection is
  * opened before the first database operation, which these tests never run.
  * <p>
- * The filters and the progress document are pinned to the MongoDB format of the connectivity encryption migration
- * ({@code MigrationStreamFactory.buildEncryptableFieldsFilter}, {@code buildResumeFilter} and
- * {@code MigrationProgressTracker.saveProgress}): same dotted paths, same {@code $or} of {@code $exists}, same
- * {@code _id: "current"}, same field names and BSON types (strings, int64, null).
+ * The filters and the progress document are pinned to their MongoDB format: the dotted paths below the payload, the
+ * {@code $or} of {@code $exists}, the {@code _id} resume filter, and for the progress document {@code _id: "current"},
+ * the field names and the BSON types (strings, int64, null).
  */
 public final class MongoPersistedPayloadStoreTest {
 
@@ -125,7 +124,7 @@ public final class MongoPersistedPayloadStoreTest {
 
         assertThat(document).isEqualTo(progressDocumentAsWrittenBefore());
         assertThat(List.copyOf(document.keySet())).isEqualTo(List.copyOf(progressDocumentAsWrittenBefore().keySet()));
-        // counters are int64 so that Document.getLong(...) reads them, as before
+        // counters are int64 so that Document.getLong(...) reads them
         assertThat(document.get("snapshotsProcessed")).isInstanceOf(Long.class);
         assertThat(document.getLong("snapshotsProcessed")).isEqualTo(150L);
         assertThat(document.getLong("journalFailed")).isEqualTo(0L);
@@ -340,7 +339,7 @@ public final class MongoPersistedPayloadStoreTest {
                 .build();
     }
 
-    /** The progress document in the MongoDB format of {@code MigrationProgressTracker.saveProgress}. */
+    /** The MongoDB progress document of {@link #progressJson()}: {@code _id: "current"}, then its fields in order. */
     private static Document progressDocumentAsWrittenBefore() {
         return new Document()
                 .append("_id", "current")

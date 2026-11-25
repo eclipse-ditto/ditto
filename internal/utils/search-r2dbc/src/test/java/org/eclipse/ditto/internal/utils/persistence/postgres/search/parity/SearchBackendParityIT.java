@@ -60,24 +60,24 @@ import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 
 /**
- * <strong>The Mongo &lt;-&gt; Postgres parity matrix</strong> (the single most important test of the
- * pluggable-search effort): ONE corpus of things+policies is written to BOTH a real Mongo container and a real
- * PG16 container through their respective FULL production write paths (shared neutral enforcement front
- * {@code EnforcedThingMapper}/{@code SearchIndexDocumentFactory}; Mongo: {@code SearchIndexDocumentMongoEncoder} +
- * {@code MongoSearchUpdaterFlow}; Postgres: {@code ThingFlattener} + {@code PostgresSearchUpdaterFlow}), then a
- * data-driven battery of RQL queries (every operator x path kind, crossed with every auth situation, sorts, counts
- * and real-{@code ThingsSearchCursor} walks to exhaustion) is parsed through the real RQL front door and executed
- * against both backends; result ID sets — and order, where the sort is total — must be identical.
+ * <strong>The Mongo &lt;-&gt; Postgres parity matrix</strong>: ONE corpus of things+policies is written to BOTH a
+ * real Mongo container and a real PG16 container through their respective FULL production write paths (shared
+ * neutral enforcement front {@code EnforcedThingMapper}/{@code SearchIndexDocumentFactory}; Mongo:
+ * {@code SearchIndexDocumentMongoEncoder} + {@code MongoSearchUpdaterFlow}; Postgres: {@code ThingFlattener} +
+ * {@code PostgresSearchUpdaterFlow}), then a data-driven battery of RQL queries (every operator x path kind, crossed
+ * with every auth situation, sorts, counts and real-{@code ThingsSearchCursor} walks to exhaustion) is parsed through
+ * the real RQL front door and executed against both backends; result ID sets — and order, where the sort is total —
+ * must be identical.
  *
  * <p>Divergences are allowed ONLY where frozen in {@code parity/divergence-allowlist.json}; every allow-listed
  * case still EXECUTES on both backends and the divergent behavior of each backend is pinned by assertion, never
  * skipped. A divergence outside the allowlist is a production defect in one backend and fails this IT.</p>
  *
- * <p>NO offline-skip guard on purpose: the parity matrix is the correctness backstop of the whole effort, so a
- * missing Docker daemon must FAIL the verification loudly (zero-skip discipline), unlike the module's
+ * <p>NO offline-skip guard on purpose: the parity matrix is the correctness backstop of the PostgreSQL search
+ * backend, so a missing Docker daemon must FAIL the verification loudly (zero-skip discipline), unlike the module's
  * per-backend ITs.</p>
  *
- * <p><strong>Findings baked into the battery design</strong> (established empirically while building this IT):</p>
+ * <p><strong>What the battery design accounts for:</strong></p>
  * <ul>
  *     <li><strong>Shared upstream cursor limitations (IDENTICAL on both backends, parity-preserving):</strong>
  *     (a) the cursor's gt/lt resume predicates are type-bracketed, so a paged walk cannot cross a
@@ -118,7 +118,7 @@ public final class SearchBackendParityIT {
     private static ParityFixtures fixtures;
     private static ParityBackend mongo;
     private static ParityBackend postgres;
-    // the cursor asks the walked backend's own provider for composite sort resume values (Mongo: BSON as before)
+    // the cursor asks the walked backend's own provider for composite sort resume values (Mongo: BSON)
     private static SearchPersistenceProvider mongoProvider;
     private static SearchPersistenceProvider postgresProvider;
 

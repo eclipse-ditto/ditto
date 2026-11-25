@@ -78,8 +78,7 @@ public final class MongoPersistenceBackendProvider implements PersistenceBackend
     /**
      * The shipped Mongo plugin BLOCK NAMES per entity type — the single in-code source of truth, immune to
      * extension-config loss (the string-shorthand extension declaration replaces the reference.conf object
-     * with an empty config). The former pluralize() heuristic produced non-existent blocks ("policys") and
-     * is removed: an unknown entity type without an explicit override is a hard DittoConfigError.
+     * with an empty config). An unknown entity type without an explicit override is a hard DittoConfigError.
      */
     private static final Map<String, String> WELL_KNOWN_BLOCK_NAMES = Map.of(
             "thing", "things",

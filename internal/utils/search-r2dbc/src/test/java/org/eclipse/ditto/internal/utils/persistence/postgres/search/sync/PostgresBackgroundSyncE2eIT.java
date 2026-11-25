@@ -252,7 +252,7 @@ public final class PostgresBackgroundSyncE2eIT {
 
         final List<Metadata> emissions = runSync(policies, thingsSide);
 
-        // exactly the stale thing; the up-to-date companion emits NOTHING (the mandated inverse pin).
+        // exactly the stale thing; the up-to-date companion emits NOTHING (the inverse pin).
         assertThat(thingIds(emissions)).containsExactly(stale.toString());
         final Metadata emission = emissions.get(0);
         // the RevisionMismatch branch emits the INDEXED entry flagged for thing-cache invalidation.
@@ -297,7 +297,7 @@ public final class PostgresBackgroundSyncE2eIT {
 
         final List<Metadata> emissions = runSync(policies, thingsSide);
 
-        // ROUND-2 CRITICAL REGRESSION: thing revision identical on both sides — the sync MUST still flag it
+        // Thing revision identical on both sides — the sync MUST still flag it
         // (policy revision 1 in the index vs 2 at the policies service); the bystander emits NOTHING.
         assertThat(thingIds(emissions)).containsExactly(thing.toString());
         final Metadata emission = emissions.get(0);
@@ -306,7 +306,7 @@ public final class PostgresBackgroundSyncE2eIT {
         assertThat(emission.shouldInvalidateThing()).isFalse();
 
         // ... and the repair write — SAME thing revision 5, new policy enforcement — MUST land via the
-        // unconditional upsert (the old `revision < EXCLUDED.revision` guard would have starved exactly this).
+        // unconditional upsert (a `revision < EXCLUDED.revision` guard would starve exactly this).
         reindexEmissions(emissions, Map.of(thing,
                 writeModel(doc(thing, 5L, fanout, 2L, refs(fanout, 2L), "red", List.of("subject-new")))));
 
