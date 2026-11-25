@@ -54,18 +54,43 @@ final class EvaluatedPolicy {
     private static final JsonPointer FEATURE_ID_POINTER = JsonPointer.of(FIELD_FEATURE_ID);
     private static final JsonPointer FEATURES_POINTER = JsonPointer.of(FIELD_FEATURES);
 
+    /**
+     * Policy resource paths which do not exist in the thing are only indexed up to this many levels. MongoDB rejects
+     * documents nested deeper than 100 levels, and the search document adds its own levels on top of a policy path
+     * ({@code f}, the feature element, {@code p}, the subject arrays and the wrapping of patch updates), so one odd
+     * resource must not make the whole search document of a thing unwritable.
+     * Paths which exist in the thing are not limited, as the thing itself is indexed with the same depth.
+     */
+    static final int MAX_ABSENT_PATH_LEVELS = 64;
+
     private final Map<JsonPointer, Pair<Set<String>, Set<String>>> thingPermissions;
     private final Map<String, Map<JsonPointer, Pair<Set<String>, Set<String>>>> featurePermissions;
+    private final Set<JsonPointer> existingPaths;
 
     private EvaluatedPolicy(final Map<JsonPointer, Pair<Set<String>, Set<String>>> thingPermissions,
-            final Map<String, Map<JsonPointer, Pair<Set<String>, Set<String>>>> featurePermissions) {
+            final Map<String, Map<JsonPointer, Pair<Set<String>, Set<String>>>> featurePermissions,
+            final Set<JsonPointer> existingPaths) {
         this.thingPermissions = thingPermissions;
         this.featurePermissions = featurePermissions;
+        this.existingPaths = existingPaths;
     }
 
+    /**
+     * Evaluates the policy for a thing.
+     * Grants and revokes of all policy resource paths are indexed, also of paths which do not exist in the thing, so
+     * that e.g. {@code empty(attributes/foo)} is authorized the same way whether {@code attributes/foo} exists or not.
+     * The global readers ({@code gr}) are only computed from paths which exist in the thing, as a subject whose
+     * grants only target absent paths cannot retrieve anything of the thing.
+     *
+     * @param policy the policy of the thing.
+     * @param thing the thing.
+     * @param thingNamespace the namespace of the thing.
+     * @return the evaluated policy.
+     */
     static EvaluatedPolicy of(final Policy policy, final JsonObject thing, final String thingNamespace) {
         final Map<JsonPointer, Pair<Set<String>, Set<String>>> thingPermissions = new HashMap<>();
         final Map<String, Map<JsonPointer, Pair<Set<String>, Set<String>>>> featurePermissions = new HashMap<>();
+        final Set<JsonPointer> existingPaths = new HashSet<>();
         for (final var entry : policy) {
             if (!entry.appliesToNamespace(thingNamespace)) {
                 continue;
@@ -73,13 +98,17 @@ final class EvaluatedPolicy {
             final Set<String> subjects = getSubjects(entry);
             final Map<JsonPointer, Boolean> paths = getPaths(entry.getResources());
             paths.forEach((path, isGrant) -> {
-                if (thing.contains(path) || path.isEmpty()) {
+                final boolean exists = path.isEmpty() || thing.contains(path);
+                if (exists) {
+                    existingPaths.add(path);
+                }
+                if (exists || path.getLevelCount() <= MAX_ABSENT_PATH_LEVELS) {
                     addPathToPermissions(thingPermissions, path, isGrant, subjects);
                     addPathToFeaturePermissions(featurePermissions, path, isGrant, subjects);
                 }
             });
         }
-        return new EvaluatedPolicy(thingPermissions, featurePermissions);
+        return new EvaluatedPolicy(thingPermissions, featurePermissions, existingPaths);
     }
 
     JsonObject forThing() {
@@ -104,9 +133,10 @@ final class EvaluatedPolicy {
     }
 
     List<String> getGlobalRead() {
-        final var globalReadSubjects = thingPermissions.values()
+        final var globalReadSubjects = thingPermissions.entrySet()
                 .stream()
-                .flatMap(permissions -> permissions.first().stream())
+                .filter(pathWithPermissions -> existingPaths.contains(pathWithPermissions.getKey()))
+                .flatMap(pathWithPermissions -> pathWithPermissions.getValue().first().stream())
                 .collect(Collectors.toSet());
         return new ArrayList<>(globalReadSubjects);
     }
@@ -220,6 +250,10 @@ final class EvaluatedPolicy {
             final var featureId = featureIdOptional.get().toString();
             final var map = featurePermissions.computeIfAbsent(featureId, k -> new HashMap<>());
             final var innerPointer = path.getSubPointer(2).filter(pointer -> !pointer.isEmpty());
+            if (innerPointer.filter(FEATURE_ID_POINTER::equals).isPresent()) {
+                // a feature has no "id" field: "features/<id>/id" must not be mistaken for a grant on the feature
+                return;
+            }
             final var featureLevelPointer = innerPointer.orElse(FEATURE_ID_POINTER);
             addPathToPermissions(map, featureLevelPointer, isGrant, subjects);
         }

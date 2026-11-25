@@ -16,10 +16,13 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.eclipse.ditto.policies.model.PoliciesResourceType.THING;
 
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.bson.BsonDocument;
+import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.policies.api.Permission;
 import org.eclipse.ditto.policies.model.PoliciesModelFactory;
 import org.eclipse.ditto.policies.model.PolicyId;
@@ -293,5 +296,124 @@ public final class EnforcedThingMapperTest {
                         EnforcedThingMapper.toWriteModel(thing, policy, Set.of(), policyRevision, null, -1).getDocument());
 
         assertThat(JsonFactory.newObject(result.toJson())).isEqualTo(expectedJson);
+    }
+
+    @Test
+    public void testV2ThingWithPolicyPathsAbsentInThing() {
+        final JsonObject thing = JsonFactory.newObject("""
+                {
+                  "thingId": "hello:world",
+                  "_namespace": "hello",
+                  "_revision": 1024,
+                  "policyId": "hello:world",
+                  "features": {
+                    "lamp": {
+                      "properties": {
+                        "on": true
+                      }
+                    }
+                  }
+                }""");
+
+        final var policy = PoliciesModelFactory.newPolicy("""
+                {
+                  "policyId": "hello:world",
+                  "revision": 56,
+                  "entries": {
+                    "root": {
+                      "subjects": { "issuer:root": { "type": "default" } },
+                      "resources": {
+                        "thing:/": { "grant": ["READ"], "revoke": [] },
+                        "thing:/attributes": { "grant": [], "revoke": ["READ"] },
+                        "thing:/features/lamp/properties/brightness": { "grant": [], "revoke": ["READ"] },
+                        "thing:/features/absent": { "grant": [], "revoke": ["READ"] }
+                      }
+                    },
+                    "partial": {
+                      "subjects": { "issuer:partial": { "type": "default" } },
+                      "resources": {
+                        "thing:/thingId": { "grant": ["READ"], "revoke": [] },
+                        "thing:/attributes": { "grant": ["READ"], "revoke": [] },
+                        "thing:/features/lamp/properties/brightness": { "grant": ["READ"], "revoke": [] }
+                      }
+                    },
+                    "nested": {
+                      "subjects": { "issuer:nested": { "type": "default" } },
+                      "resources": {
+                        "thing:/attributes/location/city": { "grant": ["READ"], "revoke": [] }
+                      }
+                    }
+                  }
+                }
+                """);
+
+        final JsonObject expectedJson = JsonFactory.newObject("""
+                {
+                  "_id": "hello:world",
+                  "_namespace": "hello",
+                  "_revision": 1024,
+                  "policyId": "hello:world",
+                  "__policyRev": 56,
+                  "__referencedPolicies": [{"type":"policy","id":"hello:world","revision":56}],
+                  "t": {
+                    "thingId": "hello:world",
+                    "_namespace": "hello",
+                    "_revision": 1024,
+                    "policyId": "hello:world",
+                    "features": {
+                      "lamp": {
+                        "properties": { "on": true }
+                      }
+                    }
+                  },
+                  "p": {
+                    "·g": [ "issuer:root" ],
+                    "thingId": { "·g": [ "issuer:partial" ] },
+                    "attributes": {
+                      "·g": [ "issuer:partial" ],
+                      "·r": [ "issuer:root" ],
+                      "location": { "city": { "·g": [ "issuer:nested" ] } }
+                    },
+                    "features": {
+                      "lamp": {
+                        "properties": {
+                          "brightness": { "·g": [ "issuer:partial" ], "·r": [ "issuer:root" ] }
+                        }
+                      },
+                      "absent": { "·r": [ "issuer:root" ] }
+                    }
+                  },
+                  "f": [
+                    {
+                      "id": "lamp",
+                      "properties": { "on": true },
+                      "p": {
+                        "·g": [ "issuer:root" ],
+                        "properties": {
+                          "brightness": { "·g": [ "issuer:partial" ], "·r": [ "issuer:root" ] }
+                        }
+                      }
+                    }
+                  ]
+                }
+                """);
+
+        final JsonObject result = JsonFactory.newObject(
+                SearchIndexDocumentMongoEncoder.encode(
+                                EnforcedThingMapper.toWriteModel(thing, policy, Set.of(), 56L, null, -1).getDocument())
+                        .toJson());
+
+        assertThat(result.remove("gr")).isEqualTo(expectedJson);
+        // "issuer:nested" is only granted on an absent path, so it must not become a global reader
+        assertThat(result.getValue("gr")
+                .map(JsonValue::asArray)
+                .map(EnforcedThingMapperTest::toStrings))
+                .contains(Set.of("issuer:root", "issuer:partial"));
+    }
+
+    private static Set<String> toStrings(final JsonArray array) {
+        return array.stream()
+                .map(JsonValue::asString)
+                .collect(Collectors.toSet());
     }
 }

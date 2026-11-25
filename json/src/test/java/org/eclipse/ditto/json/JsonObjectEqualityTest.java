@@ -107,6 +107,7 @@ public final class JsonObjectEqualityTest {
     private static void assertMutuallyEqual(final JsonObject one, final JsonObject other) {
         assertThat(one).isEqualTo(other);
         assertThat(other).isEqualTo(one);
+        assertThat(one).hasSameHashCodeAs(other);
     }
 
     private static void assertMutuallyNotEqual(final JsonObject one, final JsonObject other) {
