@@ -1310,7 +1310,7 @@
                                         persistence backend uses the pure r2dbc SPI libraries
                                         (io.r2dbc:r2dbc-spi, io.r2dbc:r2dbc-pool, org.postgresql:r2dbc-postgresql,
                                         io.r2dbc:r2dbc-proxy) with a custom Ditto Pekko plugin — NOT the upstream
-                                        pekko-persistence-r2dbc plugin. [M10]
+                                        pekko-persistence-r2dbc plugin.
                                     </message>
                                 </bannedDependencies>
                             </rules>
@@ -1338,7 +1338,7 @@
                                     <regexMessage>
                                         pekko-bom.version must be an exact version (it is the pinned Pekko
                                         version the init-order regression test depends on), never a Maven
-                                        version range. [WU15]
+                                        version range.
                                     </regexMessage>
                                 </requireProperty>
                                 <requireProperty>
@@ -1346,7 +1346,7 @@
                                     <regex>^[^\[\(].*</regex>
                                     <regexMessage>
                                         pekko-http-bom.version must be an exact version, never a Maven version
-                                        range. [WU15]
+                                        range.
                                     </regexMessage>
                                 </requireProperty>
                                 <requireProperty>
@@ -1354,7 +1354,7 @@
                                     <regex>^[^\[\(].*</regex>
                                     <regexMessage>
                                         pekko-persistence-mongodb.version must be an exact version, never a
-                                        Maven version range. [WU15]
+                                        Maven version range.
                                     </regexMessage>
                                 </requireProperty>
                             </rules>
