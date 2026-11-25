@@ -44,6 +44,7 @@ import org.eclipse.ditto.base.model.acks.AcknowledgementRequest;
 import org.eclipse.ditto.base.model.acks.DittoAcknowledgementLabel;
 import org.eclipse.ditto.base.model.entity.id.EntityId;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.internal.utils.pekko.ActorSystemResource;
 import org.eclipse.ditto.internal.utils.tracing.DittoTracingInitResource;
@@ -194,6 +195,54 @@ public final class ThingUpdaterTest {
             assertThat(data.metadata().getTimers()).hasSize(1);
             assertThat(data.metadata().getAckRecipients()).containsOnly(getSystem().actorSelection(getRef().path()));
             assertThat(data.lastWriteModel()).isEqualTo(getThingWriteModel());
+        }};
+    }
+
+    @Test
+    public void failureBeforeAnyWriteSendsNoAcknowledgement() {
+        new TestKit(system) {{
+            final Props props =
+                    ThingUpdater.props(flow, id -> Source.single(getThingWriteModel()), SEARCH_CONFIG, getTestActor());
+            final ActorRef underTest = watch(childActorOf(props, ACTOR_NAME));
+            expectMsgClass(DistributedPubSubMediator.Subscribe.class);
+            underTest.tell(AttributeModified.of(THING_ID, JsonPointer.of("x"), JsonValue.of(6), REVISION + 1, null,
+                    HEADERS_WITH_ACK, null), getRef());
+            inletProbe.ensureSubscription();
+            inletProbe.request(16);
+            final var data = inletProbe.expectNext();
+
+            // WHEN: the update fails before a write model was submitted to the persistence
+            outletProbe.sendNext(ThingUpdater.fromError(data.metadata(), new IllegalStateException("no result")));
+
+            // THEN: the requester of the acknowledgement gets no answer, the update is retried
+            expectNoMessage(FiniteDuration.apply(1, "s"));
+            assertThat(inletProbe.expectNext(TEN_SECONDS).metadata().export())
+                    .isEqualTo(Metadata.of(THING_ID, REVISION + 1, null, null, Set.of(), null));
+        }};
+    }
+
+    @Test
+    public void failedWriteSendsANegativeAcknowledgement() {
+        new TestKit(system) {{
+            final Props props =
+                    ThingUpdater.props(flow, id -> Source.single(getThingWriteModel()), SEARCH_CONFIG, getTestActor());
+            final ActorRef underTest = watch(childActorOf(props, ACTOR_NAME));
+            expectMsgClass(DistributedPubSubMediator.Subscribe.class);
+            underTest.tell(AttributeModified.of(THING_ID, JsonPointer.of("x"), JsonValue.of(6), REVISION + 1, null,
+                    HEADERS_WITH_ACK, null), getRef());
+            inletProbe.ensureSubscription();
+            inletProbe.request(16);
+            final var data = inletProbe.expectNext();
+
+            // WHEN: the write of the submitted write model fails as a whole
+            final var submitted = ThingWriteModel.of(data.metadata(), getThingWriteModel(REVISION + 1).getDocument());
+            outletProbe.sendNext(new UpdaterResult(submitted,
+                    SearchWriteResult.unexpectedError(1, new IllegalStateException("write failed"))));
+
+            // THEN: the requester of the acknowledgement gets a negative acknowledgement
+            final Acknowledgement acknowledgement = expectMsgClass(Acknowledgement.class);
+            assertThat(acknowledgement.isSuccess()).isFalse();
+            assertThat((CharSequence) acknowledgement.getLabel()).isEqualTo(DittoAcknowledgementLabel.SEARCH_PERSISTED);
         }};
     }
 

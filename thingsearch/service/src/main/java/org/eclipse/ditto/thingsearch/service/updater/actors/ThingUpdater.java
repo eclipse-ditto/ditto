@@ -121,14 +121,15 @@ public final class ThingUpdater extends AbstractFSMWithStash<ThingUpdater.State,
 
     /**
      * Build a backend-neutral error result to feed back into the actor when a persistence operation could not
-     * even be attempted (e.g. namespace blocked, or no persistence result was produced).
+     * even be attempted (e.g. namespace blocked, or no persistence result was produced). The result reports that no
+     * write model was submitted, so no acknowledgement is sent for it.
      *
      * @param metadata the metadata of the affected thing.
      * @param error the error.
      * @return the neutral error result.
      */
     public static UpdaterResult fromError(final Metadata metadata, final Throwable error) {
-        return new UpdaterResult(ThingDeleteModel.of(metadata), SearchWriteResult.unexpectedError(1, error));
+        return new UpdaterResult(ThingDeleteModel.of(metadata), SearchWriteResult.unexpectedError(0, error));
     }
 
     enum State {
@@ -303,7 +304,9 @@ public final class ThingUpdater extends AbstractFSMWithStash<ThingUpdater.State,
 
     private FSM.State<State, Data> onResult(final UpdaterResult result, final Data data) {
         killSwitch = null;
-        final var pair = BulkWriteResultAckFlow.checkBulkWriteResult(List.of(result.writeModel()), result.result());
+        final List<AbstractWriteModel> submitted =
+                result.result().getWriteModelCount() > 0 ? List.of(result.writeModel()) : List.of();
+        final var pair = BulkWriteResultAckFlow.checkBulkWriteResult(submitted, result.result());
         pair.second().forEach(log::debug);
 
         if (shuttingDown) {
