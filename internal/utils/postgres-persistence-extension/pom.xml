@@ -33,8 +33,7 @@
         journal/snapshot/ops/read-journal + PostgresPersistenceBackendProvider) plus their conf resources
         (ditto-postgres-persistence.conf). It carries NO third-party: the r2dbc/reactor/netty/scram runtime and the
         shared postgres-client infrastructure live in the BASE jar (ditto-postgres-client-extension), which MUST be
-        mounted alongside this jar. things/policies/connectivity therefore mount TWO jars — a documented change from the
-        former single ditto-internal-utils-persistence-r2dbc-extension jar.
+        mounted alongside this jar. things/policies/connectivity therefore mount TWO jars.
 
         The version marker (META-INF/ditto-postgres-extension.properties) makes this jar's release visible to the boot
         self-check (PostgresExtensionVersions, invoked from PostgresPersistenceBackendProvider) so a base/persistence
