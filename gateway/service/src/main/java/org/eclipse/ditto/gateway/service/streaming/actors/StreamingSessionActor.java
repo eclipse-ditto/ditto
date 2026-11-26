@@ -398,6 +398,7 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
                     final var session = StreamingSession.of(
                             streamPersistedEvents.getEntityId() instanceof NamespacedEntityId nsEid ?
                                     List.of(nsEid.getNamespace()) : List.of(),
+                            Set.of(),
                             null,
                             null,
                             getSelf(),
@@ -448,8 +449,9 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
                         eventAndResponsePublisher.offer(SessionedJsonifiable.error(e));
                         return;
                     }
-                    final var session = StreamingSession.of(startStreaming.getNamespaces(), criteria,
-                            startStreaming.getExtraFields().orElse(null), getSelf(), logger);
+                    final var session = StreamingSession.of(startStreaming.getNamespaces(),
+                            startStreaming.getThingIds(), criteria, startStreaming.getExtraFields().orElse(null),
+                            getSelf(), logger);
                     streamingSessions.put(startStreaming.getStreamingType(), session);
 
                     logger.debug("Got 'StartStreaming' message in <{}> session, subscribing for <{}> in Cluster ...",
@@ -735,12 +737,13 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
             // recipients of policy announcements are authorized because the affected subjects are the pubsub topics
             return true;
         } else {
+            // cheapest checks first, so that most signals are dropped before the costly namespace access check
             final var headers = signal.getDittoHeaders();
-            final boolean isAuthorizedToRead = authorizationContext.isAuthorized(headers.getReadGrantedSubjects(),
-                    headers.getReadRevokedSubjects());
-            final boolean matchesNamespace = matchesNamespaces(signal, session);
-            final boolean namespaceAccessible = isNamespaceAccessible(signal);
-            return isAuthorizedToRead && matchesNamespace && namespaceAccessible;
+            return session.matchesThingIds(signal) &&
+                    matchesNamespaces(signal, session) &&
+                    authorizationContext.isAuthorized(headers.getReadGrantedSubjects(),
+                            headers.getReadRevokedSubjects()) &&
+                    isNamespaceAccessible(signal);
         }
     }
 

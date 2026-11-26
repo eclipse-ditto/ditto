@@ -443,6 +443,7 @@ public final class ThingsSseRouteBuilder extends RouteDirectives implements SseR
                                     StartStreaming.getBuilder(StreamingType.EVENTS, connectionCorrelationId,
                                                     authorizationContext)
                                             .withNamespaces(namespaces)
+                                            .withThingIds(targetThingIds)
                                             .withFilter(filterString)
                                             .withExtraFields(extraFields)
                                             .build();
@@ -564,6 +565,7 @@ public final class ThingsSseRouteBuilder extends RouteDirectives implements SseR
                                                         StreamingType.MESSAGES,
                                                         connectionCorrelationId,
                                                         authorizationContext)
+                                                .withThingIds(targetThingIds)
                                                 .withFilter(MessageFormat.format("and(" +
                                                         "eq(entity:id,''{0}'')," +
                                                         "{1}" +

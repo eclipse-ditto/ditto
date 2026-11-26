@@ -618,6 +618,50 @@ public final class StreamingSessionActorTest {
     }
 
     @Test
+    public void outgoingEventIsOnlyPublishedForRequestedThingIds() {
+        setUpMockForTwinEventsSubscription();
+        final var underTest = actorSystemResource.newActor(getProps());
+        final var requestedThingId = ThingId.of("org.eclipse.test:requested");
+        subscribeForTwinEvents(underTest, null, Set.of(requestedThingId));
+
+        underTest.tell(thingDeleted(ThingId.of("org.eclipse.test:other")), ActorRef.noSender());
+        underTest.tell(thingDeleted(requestedThingId), ActorRef.noSender());
+
+        assertThat(sinkProbe.requestNext().getJsonifiable()).isEqualTo(thingDeleted(requestedThingId));
+        sinkProbe.expectNoMessage();
+    }
+
+    @Test
+    public void outgoingEventForOtherThingIdIsDroppedBeforeNamespaceAccessCheck() {
+        final NamespaceAccessValidatorFactory namespaceAccessValidatorFactory =
+                Mockito.mock(NamespaceAccessValidatorFactory.class);
+        final NamespaceAccessValidator namespaceAccessValidator = Mockito.mock(NamespaceAccessValidator.class);
+        Mockito.when(namespaceAccessValidatorFactory.createValidator(Mockito.any(DittoHeaders.class), Mockito.anyString()))
+                .thenReturn(namespaceAccessValidator);
+        Mockito.when(namespaceAccessValidator.isNamespaceAccessible(Mockito.anyString())).thenReturn(true);
+        setUpMockForTwinEventsSubscription();
+
+        final var underTest = actorSystemResource.newActor(getProps(namespaceAccessValidatorFactory));
+        final var requestedThingId = ThingId.of("org.eclipse.test.requested:thing");
+        subscribeForTwinEvents(underTest, null, Set.of(requestedThingId));
+
+        underTest.tell(thingDeleted(ThingId.of("org.eclipse.test.other:thing")), ActorRef.noSender());
+        underTest.tell(thingDeleted(requestedThingId), ActorRef.noSender());
+
+        assertThat(sinkProbe.requestNext().getJsonifiable()).isInstanceOf(ThingDeleted.class);
+        Mockito.verify(namespaceAccessValidator).isNamespaceAccessible("org.eclipse.test.requested");
+        Mockito.verify(namespaceAccessValidator, Mockito.never()).isNamespaceAccessible("org.eclipse.test.other");
+    }
+
+    private static ThingDeleted thingDeleted(final ThingId thingId) {
+        return ThingDeleted.of(thingId, 1L, null,
+                DittoHeaders.newBuilder()
+                        .readGrantedSubjects(List.of(AuthorizationSubject.newInstance("ditto:ditto")))
+                        .build(),
+                null);
+    }
+
+    @Test
     public void filterWithThingAndFeaturePlaceholdersIsResolved() {
         setUpMockForTwinEventsSubscription();
         final var underTest = actorSystemResource.newActor(getProps());
@@ -728,6 +772,11 @@ public final class StreamingSessionActorTest {
     }
 
     private void subscribeForTwinEvents(final ActorRef underTest, @Nullable final String filter) {
+        subscribeForTwinEvents(underTest, filter, Set.of());
+    }
+
+    private void subscribeForTwinEvents(final ActorRef underTest, @Nullable final String filter,
+            final Set<ThingId> thingIds) {
         final var authorizationContext =
                 AuthorizationContext.newInstance(DittoAuthorizationContextType.PRE_AUTHENTICATED_HTTP,
                         AuthorizationSubject.newInstance("ditto:ditto"));
@@ -735,6 +784,7 @@ public final class StreamingSessionActorTest {
         final var startStreaming =
                 StartStreaming.getBuilder(StreamingType.EVENTS, testName.getMethodName(), authorizationContext)
                         .withFilter(filter)
+                        .withThingIds(thingIds)
                         .build();
         underTest.tell(startStreaming, ActorRef.noSender());
 

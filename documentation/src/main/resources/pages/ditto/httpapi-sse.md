@@ -261,7 +261,7 @@ id:ditto:device7155
 When an SSE session for change notifications or messages ends, the gateway logs one `INFO` summary of it, e.g.:
 
 ```
-SSE session on </api/2/things> ended after <834s>: received <120>, targeted <42>, filtered out <30>, enrichment failed <0>, delivered <12> events.
+SSE session on </api/2/things> ended after <834s>: received <42>, targeted <42>, filtered out <30>, enrichment failed <0>, delivered <12> events.
 ```
 
 The details are also added as MDC entries, so that log tooling with structured (e.g. JSON) logs can aggregate them,
@@ -277,7 +277,7 @@ for example per client:
 | `sse-extra-fields`      | whether `extraFields` were requested                                                         |
 | `sse-filter`            | whether an RQL `filter` was requested                                                        |
 | `sse-duration-seconds`  | duration of the session                                                                      |
-| `sse-received`          | signals which reached the session's stream (the subscriber may read them)                    |
+| `sse-received`          | signals for the requested thing IDs and namespaces which the subscriber may read             |
 | `sse-targeted`          | received signals for the requested thing IDs and namespaces, which were post-processed       |
 | `sse-filtered-out`      | targeted signals which did not match the RQL `filter`                                        |
 | `sse-enrichment-failed` | targeted signals for which retrieving the `extraFields` failed                               |

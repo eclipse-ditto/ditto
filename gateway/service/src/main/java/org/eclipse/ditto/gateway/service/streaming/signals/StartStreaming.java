@@ -20,6 +20,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
@@ -36,6 +37,7 @@ import org.eclipse.ditto.placeholders.TimePlaceholder;
 import org.eclipse.ditto.protocol.placeholders.ResourcePlaceholder;
 import org.eclipse.ditto.protocol.placeholders.TopicPathPlaceholder;
 import org.eclipse.ditto.things.model.ThingFieldSelector;
+import org.eclipse.ditto.things.model.ThingId;
 
 /**
  * Message indicating a demand to receive entities of a specified {@link StreamingType} via a "streaming" connection.
@@ -46,6 +48,7 @@ public final class StartStreaming implements StreamControlMessage {
     private final String connectionCorrelationId;
     private final AuthorizationContext authorizationContext;
     private final List<String> namespaces;
+    private final Set<ThingId> thingIds;
     @Nullable private final String filter;
     @Nullable private final ThingFieldSelector extraFields;
     @Nullable private final CharSequence correlationId;
@@ -56,6 +59,8 @@ public final class StartStreaming implements StreamControlMessage {
         authorizationContext = builder.authorizationContext;
         @Nullable final Collection<String> namespacesFromBuilder = builder.namespaces;
         namespaces = null != namespacesFromBuilder ? List.copyOf(namespacesFromBuilder) : Collections.emptyList();
+        @Nullable final Collection<ThingId> thingIdsFromBuilder = builder.thingIds;
+        thingIds = null != thingIdsFromBuilder ? Set.copyOf(thingIdsFromBuilder) : Set.of();
         filter = Objects.toString(builder.filter, null);
         extraFields = validateExtraFields(builder.extraFields);
         correlationId = builder.correlationId;
@@ -124,6 +129,16 @@ public final class StartStreaming implements StreamControlMessage {
     }
 
     /**
+     * Returns the thing IDs whose signals should be emitted to the stream.
+     *
+     * @return the thing IDs &ndash; if empty, signals of all things are emitted.
+     * @since 3.9.11
+     */
+    public Set<ThingId> getThingIds() {
+        return thingIds;
+    }
+
+    /**
      * @return the optional RQL filter to apply for events before publishing to the stream
      */
     public Optional<String> getFilter() {
@@ -152,14 +167,15 @@ public final class StartStreaming implements StreamControlMessage {
                 Objects.equals(connectionCorrelationId, that.connectionCorrelationId) &&
                 Objects.equals(authorizationContext, that.authorizationContext) &&
                 Objects.equals(namespaces, that.namespaces) &&
+                Objects.equals(thingIds, that.thingIds) &&
                 Objects.equals(filter, that.filter) &&
                 Objects.equals(extraFields, that.extraFields);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(streamingType, connectionCorrelationId, authorizationContext, namespaces, filter,
-                extraFields);
+        return Objects.hash(streamingType, connectionCorrelationId, authorizationContext, namespaces, thingIds,
+                filter, extraFields);
     }
 
     @Override
@@ -169,6 +185,7 @@ public final class StartStreaming implements StreamControlMessage {
                 ", connectionCorrelationId=" + connectionCorrelationId +
                 ", authorizationContext=" + authorizationContext +
                 ", namespaces=" + namespaces +
+                ", thingIds=" + thingIds +
                 ", filter=" + filter +
                 ", extraFields=" + extraFields +
                 "]";
@@ -185,6 +202,7 @@ public final class StartStreaming implements StreamControlMessage {
         private final AuthorizationContext authorizationContext;
 
         @Nullable private Collection<String> namespaces;
+        @Nullable private Collection<ThingId> thingIds;
         @Nullable private CharSequence filter;
         @Nullable private ThingFieldSelector extraFields;
         @Nullable private CharSequence correlationId;
@@ -197,6 +215,7 @@ public final class StartStreaming implements StreamControlMessage {
                     .toString();
             this.authorizationContext = checkNotNull(authorizationContext, "authorizationContext");
             namespaces = null;
+            thingIds = null;
             filter = null;
             extraFields = null;
         }
@@ -210,6 +229,19 @@ public final class StartStreaming implements StreamControlMessage {
          */
         public StartStreamingBuilder withNamespaces(@Nullable final Collection<String> namespaces) {
             this.namespaces = namespaces;
+            return this;
+        }
+
+        /**
+         * Sets the thing IDs to restrict the stream to.
+         *
+         * @param thingIds the thing IDs whose signals should be emitted &ndash; if empty or {@code null}, signals of
+         * all things are emitted.
+         * @return this builder instance to allow method chaining.
+         * @since 3.9.11
+         */
+        public StartStreamingBuilder withThingIds(@Nullable final Collection<ThingId> thingIds) {
+            this.thingIds = thingIds;
             return this;
         }
 
