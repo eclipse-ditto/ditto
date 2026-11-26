@@ -47,7 +47,7 @@ function defaultExportDeprecation() {
   printedDefaultExportDeprecation = true;
   console.error(
     "`import sass from 'sass'` is deprecated.\n" +
-      "Please use `import * as sass from 'sass'` instead."
+      "Please use `import * as sass from 'sass'` instead.",
   );
 }
 

@@ -1,6 +1,6 @@
-import CodePathSegment = require("./code-path-segment");
+import CodePathSegment = require("./code-path-segment")
 
-export = CodePath;
+export = CodePath
 /**
  * A code path.
  */
@@ -10,7 +10,7 @@ declare class CodePath {
      * @param {CodePath} codePath A code path to get.
      * @returns {CodePathState} The state of the code path.
      */
-    static getState(codePath: CodePath): CodePathState;
+    static getState(codePath: CodePath): CodePathState
     /**
      * Creates a new instance.
      * @param {Object} options Options for the function (see below).
@@ -19,41 +19,46 @@ declare class CodePath {
      * @param {CodePath|null} options.upper The code path of the upper function scope.
      * @param {Function} options.onLooped A callback function to notify looping.
      */
-    constructor({ id, origin, upper, onLooped }: {
-        id: string;
-        origin: string;
-        upper: CodePath | null;
-        onLooped: Function;
-    });
+    constructor({
+        id,
+        origin,
+        upper,
+        onLooped,
+    }: {
+        id: string
+        origin: string
+        upper: CodePath | null
+        onLooped: Function
+    })
     /**
      * The identifier of this code path.
      * Rules use it to store additional information of each rule.
      * @type {string}
      */
-    id: string;
+    id: string
     /**
      * The reason that this code path was started. May be "program",
      * "function", "class-field-initializer", or "class-static-block".
      * @type {string}
      */
-    origin: string;
+    origin: string
     /**
      * The code path of the upper function scope.
      * @type {CodePath|null}
      */
-    upper: CodePath | null;
+    upper: CodePath | null
     /**
      * The code paths of nested function scopes.
      * @type {CodePath[]}
      */
-    childCodePaths: CodePath[];
+    childCodePaths: CodePath[]
     /**
      * The initial code path segment. This is the segment that is at the head
      * of the code path.
      * This is a passthrough to the underlying `CodePathState`.
      * @type {CodePathSegment}
      */
-    get initialSegment(): CodePathSegment;
+    get initialSegment(): CodePathSegment
     /**
      * Final code path segments. These are the terminal (tail) segments in the
      * code path, which is the combination of `returnedSegments` and `thrownSegments`.
@@ -61,7 +66,7 @@ declare class CodePath {
      * This is a passthrough to the underlying `CodePathState`.
      * @type {CodePathSegment[]}
      */
-    get finalSegments(): CodePathSegment[];
+    get finalSegments(): CodePathSegment[]
     /**
      * Final code path segments that represent normal completion of the code path.
      * For functions, this means both explicit `return` statements and implicit returns,
@@ -73,14 +78,14 @@ declare class CodePath {
      * This is a passthrough to the underlying `CodePathState`.
      * @type {CodePathSegment[]}
      */
-    get returnedSegments(): CodePathSegment[];
+    get returnedSegments(): CodePathSegment[]
     /**
      * Final code path segments that represent `throw` statements.
      * This is a passthrough to the underlying `CodePathState`.
      * These segments are also present in `finalSegments`.
      * @type {CodePathSegment[]}
      */
-    get thrownSegments(): CodePathSegment[];
+    get thrownSegments(): CodePathSegment[]
     /**
      * Traverses all segments in this code path.
      *
@@ -103,9 +108,14 @@ declare class CodePath {
      * @param {Function} callback A callback function.
      * @returns {void}
      */
-    traverseSegments(optionsOrCallback: {
-        first?: CodePathSegment;
-        last?: CodePathSegment;
-    } | Function, callback?: Function): void;
+    traverseSegments(
+        optionsOrCallback:
+            | {
+                  first?: CodePathSegment
+                  last?: CodePathSegment
+              }
+            | Function,
+        callback?: Function
+    ): void
 }
-import CodePathState = require("./code-path-state");
+import CodePathState = require("./code-path-state")

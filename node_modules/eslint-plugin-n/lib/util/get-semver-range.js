@@ -2,9 +2,8 @@
  * @author Toru Nagashima <https://github.com/mysticatea>
  * See LICENSE file in root directory for full license.
  */
-"use strict"
 
-const { Range } = require("semver")
+import { Range } from "semver"
 const cache = new Map()
 
 /**
@@ -13,7 +12,7 @@ const cache = new Map()
  * @returns {Range|undefined} The range object of a given range text.
  * It's null if the `x` is not a valid range text.
  */
-module.exports = function getSemverRange(x) {
+export function getSemverRange(x) {
     const stringVersion = String(x)
     const cached = cache.get(stringVersion)
     if (cached != null) {

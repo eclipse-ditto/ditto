@@ -23,12 +23,18 @@ type DomElements = {
   tbodyPolicyImports: HTMLTableElement,
   tbodyPolicyImportEntries: HTMLTableElement,
   crudImport: CrudToolbar,
+  tbodyPolicyTransitiveImports: HTMLTableElement,
+  inputTransitiveImport: HTMLInputElement,
+  buttonAddTransitiveImport: HTMLButtonElement,
 }
 
 let dom: DomElements = {
   tbodyPolicyImports: null,
   tbodyPolicyImportEntries: null,
   crudImport: null,
+  tbodyPolicyTransitiveImports: null,
+  inputTransitiveImport: null,
+  buttonAddTransitiveImport: null,
 } ;
 
 // let importEditor: ace.Editor;
@@ -49,6 +55,14 @@ export function ready() {
   dom.crudImport.addEventListener('onDeleteClick', onDeletePolicyImportClick);
   dom.crudImport.addEventListener('onEditToggle', onEditToggleImport);
   dom.crudImport.addEventListener('onIdValueChange', onIdValueChange);
+
+  dom.buttonAddTransitiveImport.addEventListener('click', onAddTransitiveImportClick);
+  dom.inputTransitiveImport.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && !dom.inputTransitiveImport.disabled) {
+      e.preventDefault();
+      onAddTransitiveImportClick();
+    }
+  });
 }
 
 async function onIdValueChange() {
@@ -87,17 +101,32 @@ function onDeletePolicyImportClick() {
   });
 }
 
-function importValueFromCheckboxes() {
-  const importValue = {};
+function importValueFromCheckboxes(): Policies.PolicyImport {
+  const importValue: Policies.PolicyImport = {};
   const checkedBoxes = document.querySelectorAll('#tbodyPolicyImportEntries input:checked[data-importable="explicit"]');
   if (checkedBoxes.length > 0) {
-    importValue['entries'] = Array.from(checkedBoxes).map((checkbox) => checkbox.id);
+    importValue.entries = Array.from(checkedBoxes).map((checkbox) => checkbox.id);
+  }
+  // transitiveImports is an explicit whitelist of additional imports to resolve. Absent and `[]`
+  // are semantically equivalent (no transitives resolved either way), so we omit the field when
+  // empty rather than writing `[]`.
+  const transitive = readTransitiveImportsFromTable();
+  if (transitive.length > 0) {
+    importValue.transitiveImports = transitive;
   }
   return importValue;
 }
 
+function readTransitiveImportsFromTable(): string[] {
+  return Array.from(dom.tbodyPolicyTransitiveImports.querySelectorAll('tr'))
+      .map((row: HTMLTableRowElement) => row.id)
+      .filter((id) => id);
+}
+
 function onEditToggleImport(event: CustomEvent) {
-  setExplicitCheckboxesDisabledState(!event.detail.isEditing)
+  const editing: boolean = event.detail.isEditing;
+  setExplicitCheckboxesDisabledState(!editing);
+  setTransitiveImportsControlsDisabled(!editing);
   if (event.detail.isCancel) {
     setImport(selectedImport);
   }
@@ -106,6 +135,54 @@ function onEditToggleImport(event: CustomEvent) {
 function setExplicitCheckboxesDisabledState(disabled: boolean) {
   document.querySelectorAll('#tbodyPolicyImportEntries input[data-importable="explicit"]')
     .forEach((e: HTMLInputElement) => e.disabled = disabled);
+}
+
+function setTransitiveImportsControlsDisabled(disabled: boolean) {
+  dom.inputTransitiveImport.disabled = disabled;
+  dom.buttonAddTransitiveImport.disabled = disabled;
+  // Toggle ONLY the remove button (the .bi-x-lg icon) — navigate stays enabled regardless of
+  // edit mode so the user can inspect a linked policy without entering edit mode first.
+  dom.tbodyPolicyTransitiveImports.querySelectorAll('button:has(.bi-x-lg)')
+      .forEach((b: HTMLButtonElement) => b.disabled = disabled);
+}
+
+function onAddTransitiveImportClick() {
+  const value = dom.inputTransitiveImport.value.trim();
+  Utils.assert(value, 'Please enter a policy ID', dom.inputTransitiveImport);
+  Utils.assert(/^[^\s:]+:[^\s:]+/.test(value),
+      'Expected a policy ID in the form "namespace:name"', dom.inputTransitiveImport);
+  const existing = readTransitiveImportsFromTable();
+  Utils.assert(!existing.includes(value),
+      'Policy ID already in the list', dom.inputTransitiveImport);
+  appendTransitiveImportRow(value, false);
+  dom.inputTransitiveImport.value = '';
+  dom.inputTransitiveImport.focus();
+}
+
+function appendTransitiveImportRow(policyId: string, disabled: boolean) {
+  const row = Utils.addTableRow(dom.tbodyPolicyTransitiveImports, policyId, false);
+  Utils.addActionToRow(row, 'bi-arrow-up-right-square', getNavigatePolicyAction(policyId), 'Open policy');
+  Utils.addActionToRow(row, 'bi-x-lg', () => {
+    if (dom.inputTransitiveImport.disabled) {
+      return;
+    }
+    Utils.confirm(`Remove transitive import<br>'${policyId}'?`, 'Remove', () => {
+      row.remove();
+    });
+  }, 'Remove');
+  // Action buttons are the trailing cells; disable only the remove button when not editing — keep
+  // the navigate button available so users can inspect the linked policy without entering edit mode.
+  const buttons = row.querySelectorAll('button');
+  const removeBtn = buttons[buttons.length - 1] as HTMLButtonElement | undefined;
+  if (removeBtn) removeBtn.disabled = disabled;
+}
+
+function getNavigatePolicyAction(policyId: string) {
+  return (_evt: Event) => {
+    API.callDittoREST('GET', '/policies/' + policyId).then(async (targetPolicy: Policies.Policy) => {
+      await Policies.setThePolicy(targetPolicy);
+    });
+  };
 }
 
 async function onPolicyChanged(policy: Policies.Policy) {
@@ -130,20 +207,13 @@ async function onPolicyChanged(policy: Policies.Policy) {
   } else {
     await setImport(null);
   }
-
-  function getNavigatePolicyAction(policyId: string) {
-    return (evt: Event) => {
-      API.callDittoREST('GET', '/policies/' + policyId).then(async (targetPolicy: Policies.Policy) => {
-        await Policies.setThePolicy(targetPolicy);
-      })
-    }
-  }
 }
 
 async function setImport(importedPolicyId: string) {
 
   dom.crudImport.idValue = importedPolicyId;
   dom.tbodyPolicyImportEntries.textContent = '';
+  loadTransitiveImportsFromImport(importedPolicyId);
 
   if (importedPolicyId) {
     const importedPolicy: Policies.Policy = await API.callDittoREST('GET', '/policies/' + importedPolicyId)
@@ -162,6 +232,18 @@ async function setImport(importedPolicyId: string) {
     const isImplicit = importedPolicy.entries[entry].importable === 'implicit';
     return isImported || isImplicit;
   }
+}
+
+function loadTransitiveImportsFromImport(importedPolicyId: string) {
+  dom.tbodyPolicyTransitiveImports.textContent = '';
+  dom.inputTransitiveImport.value = '';
+  // Two cases where there's no persisted import body: no selection yet, or the user is creating a
+  // brand-new import (typing the id, not yet PUT). In the latter case we still want the controls to
+  // follow the edit-mode flag so the user can author transitive imports as part of the new entry.
+  const importBody = importedPolicyId ? Policies.thePolicy?.imports[importedPolicyId] : undefined;
+  (importBody?.transitiveImports ?? [])
+      .forEach((id) => appendTransitiveImportRow(id, !dom.crudImport.isEditing));
+  setTransitiveImportsControlsDisabled(!dom.crudImport.isEditing);
 }
 
 

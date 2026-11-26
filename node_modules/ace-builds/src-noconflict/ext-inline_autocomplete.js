@@ -1198,29 +1198,43 @@ var AcePopup = /** @class */ (function () {
             }
         });
         popup.renderer.on("afterRender", function () {
+            var t = popup.renderer.$textLayer;
+            for (var row = t.config.firstRow, l = t.config.lastRow; row <= l; row++) {
+                var popupRowElement = /** @type {HTMLElement|null} */ (t.element.childNodes[row - t.config.firstRow]);
+                popupRowElement.setAttribute("role", optionAriaRole);
+                popupRowElement.setAttribute("aria-roledescription", nls("autocomplete.popup.item.aria-roledescription", "item"));
+                popupRowElement.setAttribute("aria-setsize", popup.data.length);
+                popupRowElement.setAttribute("aria-describedby", "doc-tooltip");
+                popupRowElement.setAttribute("aria-posinset", row + 1);
+                var rowData = popup.getData(row);
+                if (rowData) {
+                    var ariaLabel = "".concat(rowData.caption || rowData.value).concat(rowData.meta ? ", ".concat(rowData.meta) : '');
+                    popupRowElement.setAttribute("aria-label", ariaLabel);
+                }
+                var highlightedSpans = popupRowElement.querySelectorAll(".ace_completion-highlight");
+                highlightedSpans.forEach(function (span) {
+                    span.setAttribute("role", "mark");
+                });
+            }
+        });
+        popup.renderer.on("afterRender", function () {
             var row = popup.getRow();
             var t = popup.renderer.$textLayer;
             var selected = /** @type {HTMLElement|null} */ (t.element.childNodes[row - t.config.firstRow]);
             var el = document.activeElement; // Active element is textarea of main editor
             if (selected !== popup.selectedNode && popup.selectedNode) {
                 dom.removeCssClass(popup.selectedNode, "ace_selected");
-                el.removeAttribute("aria-activedescendant");
                 popup.selectedNode.removeAttribute(ariaActiveState);
                 popup.selectedNode.removeAttribute("id");
             }
+            el.removeAttribute("aria-activedescendant");
             popup.selectedNode = selected;
             if (selected) {
-                dom.addCssClass(selected, "ace_selected");
                 var ariaId = getAriaId(row);
+                dom.addCssClass(selected, "ace_selected");
                 selected.id = ariaId;
                 t.element.setAttribute("aria-activedescendant", ariaId);
                 el.setAttribute("aria-activedescendant", ariaId);
-                selected.setAttribute("role", optionAriaRole);
-                selected.setAttribute("aria-roledescription", nls("autocomplete.popup.item.aria-roledescription", "item"));
-                selected.setAttribute("aria-label", popup.getData(row).caption || popup.getData(row).value);
-                selected.setAttribute("aria-setsize", popup.data.length);
-                selected.setAttribute("aria-posinset", row + 1);
-                selected.setAttribute("aria-describedby", "doc-tooltip");
                 selected.setAttribute(ariaActiveState, "true");
             }
         });
@@ -1345,8 +1359,9 @@ var AcePopup = /** @class */ (function () {
                 return true;
             }
             var el = this.container;
-            var screenHeight = window.innerHeight;
-            var screenWidth = window.innerWidth;
+            var scrollBarSize = this.renderer.scrollBar.width || 10;
+            var screenHeight = window.innerHeight - scrollBarSize;
+            var screenWidth = window.innerWidth - scrollBarSize;
             var renderer = this.renderer;
             var maxH = renderer.$maxLines * lineHeight * 1.4;
             var dims = { top: 0, bottom: 0, left: 0 };
@@ -1385,7 +1400,7 @@ var AcePopup = /** @class */ (function () {
             }
             if (anchor === "top") {
                 el.style.top = "";
-                el.style.bottom = (screenHeight - dims.bottom) + "px";
+                el.style.bottom = (screenHeight + scrollBarSize - dims.bottom) + "px";
                 popup.isTopdown = false;
             }
             else {
@@ -1399,6 +1414,7 @@ var AcePopup = /** @class */ (function () {
                 left = screenWidth - el.offsetWidth;
             el.style.left = left + "px";
             el.style.right = "";
+            dom.$fixPositionBug(el);
             if (!popup.isOpen) {
                 popup.isOpen = true;
                 this._signal("show");
@@ -1935,7 +1951,7 @@ var Autocomplete = /** @class */ (function () {
     };
     Autocomplete.prototype.updateDocTooltip = function () {
         var popup = this.popup;
-        var all = this.completions.filtered;
+        var all = this.completions && this.completions.filtered;
         var selected = all && (all[popup.getHoveredRow()] || all[popup.getRow()]);
         var doc = null;
         if (!selected || !this.editor || !this.popup.isOpen)
@@ -1983,33 +1999,52 @@ var Autocomplete = /** @class */ (function () {
             this.popup.container.appendChild(this.tooltipNode);
         var popup = this.popup;
         var rect = popup.container.getBoundingClientRect();
-        tooltipNode.style.top = popup.container.style.top;
-        tooltipNode.style.bottom = popup.container.style.bottom;
-        tooltipNode.style.display = "block";
-        if (window.innerWidth - rect.right < 320) {
-            if (rect.left < 320) {
-                if (popup.isTopdown) {
-                    tooltipNode.style.top = rect.bottom + "px";
-                    tooltipNode.style.left = rect.left + "px";
-                    tooltipNode.style.right = "";
-                    tooltipNode.style.bottom = "";
-                }
-                else {
-                    tooltipNode.style.top = popup.container.offsetTop - tooltipNode.offsetHeight + "px";
-                    tooltipNode.style.left = rect.left + "px";
-                    tooltipNode.style.right = "";
-                    tooltipNode.style.bottom = "";
-                }
+        var targetWidth = 400;
+        var targetHeight = 300;
+        var scrollBarSize = popup.renderer.scrollBar.width || 10;
+        var leftSize = rect.left;
+        var rightSize = window.innerWidth - rect.right - scrollBarSize;
+        var topSize = popup.isTopdown ? window.innerHeight - scrollBarSize - rect.bottom : rect.top;
+        var scores = [
+            Math.min(rightSize / targetWidth, 1),
+            Math.min(leftSize / targetWidth, 1),
+            Math.min(topSize / targetHeight, 1) * 0.9,
+        ];
+        var max = Math.max.apply(Math, scores);
+        var tooltipStyle = tooltipNode.style;
+        tooltipStyle.display = "block";
+        if (max == scores[0] || scores[0] >= 1) {
+            tooltipStyle.left = (rect.right + 1) + "px";
+            tooltipStyle.right = "";
+            tooltipStyle.maxWidth = targetWidth * max + "px";
+            tooltipStyle.top = rect.top + "px";
+            tooltipStyle.bottom = "";
+            tooltipStyle.maxHeight = Math.min(window.innerHeight - scrollBarSize - rect.top, targetHeight) + "px";
+        }
+        else if (max == scores[1] || scores[1] >= 1) {
+            tooltipStyle.right = window.innerWidth - rect.left + "px";
+            tooltipStyle.left = "";
+            tooltipStyle.maxWidth = targetWidth * max + "px";
+            tooltipStyle.top = rect.top + "px";
+            tooltipStyle.bottom = "";
+            tooltipStyle.maxHeight = Math.min(window.innerHeight - scrollBarSize - rect.top, targetHeight) + "px";
+        }
+        else if (max == scores[2]) {
+            tooltipStyle.left = rect.left + "px";
+            tooltipStyle.right = "";
+            tooltipStyle.maxWidth = Math.min(targetWidth, window.innerWidth - rect.left) + "px";
+            if (popup.isTopdown) {
+                tooltipStyle.top = rect.bottom + "px";
+                tooltipStyle.bottom = "";
+                tooltipStyle.maxHeight = Math.min(window.innerHeight - scrollBarSize - rect.bottom, targetHeight) + "px";
             }
             else {
-                tooltipNode.style.right = window.innerWidth - rect.left + "px";
-                tooltipNode.style.left = "";
+                tooltipStyle.top = "";
+                tooltipStyle.bottom = (window.innerHeight - rect.top) + "px";
+                tooltipStyle.maxHeight = Math.min(rect.top, targetHeight) + "px";
             }
         }
-        else {
-            tooltipNode.style.left = (rect.right + 1) + "px";
-            tooltipNode.style.right = "";
-        }
+        dom.$fixPositionBug(tooltipNode);
     };
     Autocomplete.prototype.hideDocTooltip = function () {
         this.tooltipTimer.cancel();
@@ -2047,6 +2082,25 @@ var Autocomplete = /** @class */ (function () {
         }
         this.inlineRenderer = this.popup = this.editor = null;
     };
+    Autocomplete.for = function (editor) {
+        if (editor.completer instanceof Autocomplete) {
+            return editor.completer;
+        }
+        if (editor.completer) {
+            editor.completer.destroy();
+            editor.completer = null;
+        }
+        if (config.get("sharedPopups")) {
+            if (!Autocomplete["$sharedInstance"])
+                Autocomplete["$sharedInstance"] = new Autocomplete();
+            editor.completer = Autocomplete["$sharedInstance"];
+        }
+        else {
+            editor.completer = new Autocomplete();
+            editor.once("destroy", destroyCompleter);
+        }
+        return editor.completer;
+    };
     return Autocomplete;
 }());
 Autocomplete.prototype.commands = {
@@ -2072,25 +2126,6 @@ Autocomplete.prototype.commands = {
     },
     "PageUp": function (editor) { editor.completer.popup.gotoPageUp(); },
     "PageDown": function (editor) { editor.completer.popup.gotoPageDown(); }
-};
-Autocomplete.for = function (editor) {
-    if (editor.completer instanceof Autocomplete) {
-        return editor.completer;
-    }
-    if (editor.completer) {
-        editor.completer.destroy();
-        editor.completer = null;
-    }
-    if (config.get("sharedPopups")) {
-        if (!Autocomplete["$sharedInstance"])
-            Autocomplete["$sharedInstance"] = new Autocomplete();
-        editor.completer = Autocomplete["$sharedInstance"];
-    }
-    else {
-        editor.completer = new Autocomplete();
-        editor.once("destroy", destroyCompleter);
-    }
-    return editor.completer;
 };
 Autocomplete.startCommand = {
     name: "startAutocomplete",
@@ -2273,6 +2308,11 @@ var FilteredList = /** @class */ (function () {
         var upper = needle.toUpperCase();
         var lower = needle.toLowerCase();
         loop: for (var i = 0, item; item = items[i]; i++) {
+            if (item.skipFilter) {
+                item.$score = item.score;
+                results.push(item);
+                continue;
+            }
             var caption = (!this.ignoreCaption && item.caption) || item.value || item.snippet;
             if (!caption)
                 continue;
@@ -2322,7 +2362,17 @@ exports.FilteredList = FilteredList;
 
 });
 
-ace.define("ace/ext/command_bar",["require","exports","module","ace/tooltip","ace/lib/event_emitter","ace/lib/lang","ace/lib/dom","ace/lib/oop","ace/lib/useragent"], function(require, exports, module){var __values = (this && this.__values) || function(o) {
+ace.define("ace/ext/command_bar",["require","exports","module","ace/tooltip","ace/lib/event_emitter","ace/lib/lang","ace/lib/dom","ace/lib/oop","ace/lib/useragent"], function(require, exports, module){/**
+ * ## Command Bar extension.
+ *
+ * Provides an interactive command bar tooltip that displays above the editor's active line. The extension enables
+ * clickable commands with keyboard shortcuts, icons, and various button types including standard buttons, checkboxes,
+ * and text elements. Supports overflow handling with a secondary tooltip for additional commands when space is limited.
+ * The tooltip can be configured to always show or display only on mouse hover over the active line.
+ *
+ * @module
+ */
+var __values = (this && this.__values) || function(o) {
     var s = typeof Symbol === "function" && Symbol.iterator, m = s && o[s], i = 0;
     if (m) return m.call(o);
     if (o && typeof o.length === "number") return {
@@ -2775,6 +2825,84 @@ exports.BUTTON_CLASS_NAME = BUTTON_CLASS_NAME;
 
 });
 
+ace.define("ace/marker_group",["require","exports","module"], function(require, exports, module){"use strict";
+var MarkerGroup = /** @class */ (function () {
+    function MarkerGroup(session, options) {
+        if (options)
+            this.markerType = options.markerType;
+        this.markers = [];
+        this.session = session;
+        session.addDynamicMarker(this);
+    }
+    MarkerGroup.prototype.getMarkerAtPosition = function (pos) {
+        return this.markers.find(function (marker) {
+            return marker.range.contains(pos.row, pos.column);
+        });
+    };
+    MarkerGroup.prototype.markersComparator = function (a, b) {
+        return a.range.start.row - b.range.start.row;
+    };
+    MarkerGroup.prototype.setMarkers = function (markers) {
+        this.markers = markers.sort(this.markersComparator).slice(0, this.MAX_MARKERS);
+        this.session._signal("changeBackMarker");
+    };
+    MarkerGroup.prototype.update = function (html, markerLayer, session, config) {
+        if (!this.markers || !this.markers.length)
+            return;
+        var visibleRangeStartRow = config.firstRow, visibleRangeEndRow = config.lastRow;
+        var foldLine;
+        var markersOnOneLine = 0;
+        var lastRow = 0;
+        for (var i = 0; i < this.markers.length; i++) {
+            var marker = this.markers[i];
+            if (marker.range.end.row < visibleRangeStartRow)
+                continue;
+            if (marker.range.start.row > visibleRangeEndRow)
+                continue;
+            if (marker.range.start.row === lastRow) {
+                markersOnOneLine++;
+            }
+            else {
+                lastRow = marker.range.start.row;
+                markersOnOneLine = 0;
+            }
+            if (markersOnOneLine > 200) {
+                continue;
+            }
+            var markerVisibleRange = marker.range.clipRows(visibleRangeStartRow, visibleRangeEndRow);
+            if (markerVisibleRange.start.row === markerVisibleRange.end.row
+                && markerVisibleRange.start.column === markerVisibleRange.end.column) {
+                continue; // visible range is empty
+            }
+            var screenRange = markerVisibleRange.toScreenRange(session);
+            if (screenRange.isEmpty()) {
+                foldLine = session.getNextFoldLine(markerVisibleRange.end.row, foldLine);
+                if (foldLine && foldLine.end.row > markerVisibleRange.end.row) {
+                    visibleRangeStartRow = foldLine.end.row;
+                }
+                continue;
+            }
+            if (this.markerType === "fullLine") {
+                markerLayer.drawFullLineMarker(html, screenRange, marker.className, config);
+            }
+            else if (screenRange.isMultiLine()) {
+                if (this.markerType === "line")
+                    markerLayer.drawMultiLineMarker(html, screenRange, marker.className, config);
+                else
+                    markerLayer.drawTextMarker(html, screenRange, marker.className, config);
+            }
+            else {
+                markerLayer.drawSingleLineMarker(html, screenRange, marker.className + " ace_br15", config);
+            }
+        }
+    };
+    return MarkerGroup;
+}());
+MarkerGroup.prototype.MAX_MARKERS = 10000;
+exports.MarkerGroup = MarkerGroup;
+
+});
+
 ace.define("ace/autocomplete/text_completer",["require","exports","module","ace/range"], function(require, exports, module){var Range = require("../range").Range;
 var splitRegex = /[^a-zA-Z_0-9\$\-\u00C0-\u1FFF\u2C00-\uD7FF\w]+/;
 function getWordIndex(doc, pos) {
@@ -2803,6 +2931,7 @@ function wordDistance(doc, pos) {
     });
     return wordScores;
 }
+exports.id = "textCompleter";
 exports.getCompletions = function (editor, session, pos, prefix, callback) {
     var wordScore = wordDistance(session, pos);
     var wordList = Object.keys(wordScore);
@@ -2818,12 +2947,38 @@ exports.getCompletions = function (editor, session, pos, prefix, callback) {
 
 });
 
-ace.define("ace/ext/language_tools",["require","exports","module","ace/snippets","ace/autocomplete","ace/config","ace/lib/lang","ace/autocomplete/util","ace/autocomplete/text_completer","ace/editor","ace/config"], function(require, exports, module){"use strict";
+ace.define("ace/ext/language_tools",["require","exports","module","ace/snippets","ace/autocomplete","ace/config","ace/lib/lang","ace/autocomplete/util","ace/marker_group","ace/autocomplete/text_completer","ace/editor","ace/config"], function(require, exports, module){/**
+ * ## Language Tools extension for Ace Editor
+ *
+ * Provides autocompletion, snippets, and language intelligence features for the Ace code editor.
+ * This extension integrates multiple completion providers including keyword completion, snippet expansion,
+ * and text-based completion to enhance the coding experience with contextual suggestions and automated code generation.
+ *
+ * **Configuration Options:**
+ * - `enableBasicAutocompletion`: Enable/disable basic completion functionality
+ * - `enableLiveAutocompletion`: Enable/disable real-time completion suggestions
+ * - `enableSnippets`: Enable/disable snippet expansion with Tab key
+ * - `liveAutocompletionDelay`: Delay before showing live completion popup
+ * - `liveAutocompletionThreshold`: Minimum prefix length to trigger completion
+ *
+ * **Usage:**
+ * ```javascript
+ * editor.setOptions({
+ *   enableBasicAutocompletion: true,
+ *   enableLiveAutocompletion: true,
+ *   enableSnippets: true
+ * });
+ * ```
+ *
+ * @module
+ */
+"use strict";
 var snippetManager = require("../snippets").snippetManager;
 var Autocomplete = require("../autocomplete").Autocomplete;
 var config = require("../config");
 var lang = require("../lib/lang");
 var util = require("../autocomplete/util");
+var MarkerGroup = require("../marker_group").MarkerGroup;
 var textCompleter = require("../autocomplete/text_completer");
 var keyWordCompleter = {
     getCompletions: function (editor, session, pos, prefix, callback) {
@@ -2975,6 +3130,7 @@ require("../config").defineOptions(Editor.prototype, "editor", {
     enableBasicAutocompletion: {
         set: function (val) {
             if (val) {
+                Autocomplete.for(this);
                 if (!this.completers)
                     this.completers = Array.isArray(val) ? val : completers;
                 this.commands.addCommand(Autocomplete.startCommand);
@@ -3019,10 +3175,21 @@ require("../config").defineOptions(Editor.prototype, "editor", {
         value: false
     }
 });
+exports.MarkerGroup = MarkerGroup;
 
 });
 
-ace.define("ace/ext/inline_autocomplete",["require","exports","module","ace/keyboard/hash_handler","ace/autocomplete/inline","ace/autocomplete","ace/autocomplete","ace/editor","ace/autocomplete/util","ace/lib/dom","ace/lib/lang","ace/ext/command_bar","ace/ext/command_bar","ace/ext/language_tools","ace/ext/language_tools","ace/ext/language_tools","ace/config"], function(require, exports, module){"use strict";
+ace.define("ace/ext/inline_autocomplete",["require","exports","module","ace/keyboard/hash_handler","ace/autocomplete/inline","ace/autocomplete","ace/autocomplete","ace/editor","ace/autocomplete/util","ace/lib/dom","ace/lib/lang","ace/ext/command_bar","ace/ext/command_bar","ace/ext/language_tools","ace/ext/language_tools","ace/ext/language_tools","ace/config"], function(require, exports, module){/**
+ * ## Inline Autocomplete extension
+ *
+ * Provides lightweight, prefix-based autocompletion with inline ghost text rendering and an optional command bar tooltip.
+ * Displays completion suggestions as ghost text directly in the editor with keyboard navigation and interactive controls.
+ *
+ * **Enable:** `editor.setOption("enableInlineAutocompletion", true)`
+ * or configure it during editor initialization in the options object.
+ * @module
+ */
+"use strict";
 var HashHandler = require("../keyboard/hash_handler").HashHandler;
 var AceInline = require("../autocomplete/inline").AceInline;
 var FilteredList = require("../autocomplete").FilteredList;

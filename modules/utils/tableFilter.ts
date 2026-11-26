@@ -49,7 +49,7 @@ export class TableFilter extends HTMLElement implements FilterListener {
     this.querySelector('input[role="switch"').addEventListener('click', this.toggleModeCallback(this));
   }
 
-  set filterOptions(value: [Term?]) {
+  set filterOptions(value: Term[]) {
     const el = this.querySelector('ul') as HTMLUListElement;
     const preservedInput = el.firstElementChild;
     el.replaceChildren(preservedInput);

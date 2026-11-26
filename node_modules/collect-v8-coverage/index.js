@@ -13,6 +13,8 @@ class CoverageInstrumenter {
   async startInstrumenting() {
     this.session.connect();
 
+    await this.postSession('Debugger.enable');
+
     await this.postSession('Profiler.enable');
 
     await this.postSession('Profiler.startPreciseCoverage', {
@@ -29,6 +31,8 @@ class CoverageInstrumenter {
     await this.postSession('Profiler.stopPreciseCoverage');
 
     await this.postSession('Profiler.disable');
+
+    await this.postSession('Debugger.disable');
 
     // When using networked filesystems on Windows, v8 sometimes returns URLs
     // of the form file:////<host>/path. These URLs are not well understood

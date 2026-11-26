@@ -1,6 +1,6 @@
 {
   "name": "bootstrap-icons",
-  "version": "1.11.3",
+  "version": "1.13.1",
   "description": "Official open source SVG icon library for Bootstrap",
   "author": "mdo",
   "license": "MIT",
@@ -40,7 +40,8 @@
     "!.DS_Store"
   ],
   "hugo-bin": {
-    "buildTags": "extended"
+    "buildTags": "extended",
+    "version": "0.134.3"
   },
   "scripts": {
     "start": "npm run docs-serve",
@@ -60,32 +61,34 @@
     "release-version": "node build/bump-version.mjs",
     "netlify": "cross-env-shell HUGO_BASEURL=$DEPLOY_PRIME_URL npm-run-all icons docs-build",
     "test:fusv": "fusv docs/assets/scss/",
-    "test:eslint": "eslint --cache --cache-location .cache/.eslintcache --report-unused-disable-directives --ext .js,.mjs .",
+    "test:eslint": "eslint --cache --cache-location .cache/.eslintcache .",
     "test:stylelint": "stylelint docs/assets/scss/ --cache --cache-location .cache/.stylelintcache",
     "test:lockfile-lint": "lockfile-lint --allowed-hosts npm --allowed-schemes https: --empty-hostname false --type npm --path package-lock.json",
     "test:check-icons": "node build/check-icons.mjs",
     "test": "npm-run-all --parallel --aggregate-output --continue-on-error test:*"
   },
   "devDependencies": {
-    "@twbs/fantasticon": "^2.7.2",
-    "autoprefixer": "^10.4.16",
-    "bootstrap": "^5.3.2",
+    "@eslint/js": "^9.25.1",
+    "@twbs/fantasticon": "^3.1.0",
+    "autoprefixer": "^10.4.21",
+    "bootstrap": "^5.3.5",
     "clean-css-cli": "^5.6.3",
     "clipboard": "^2.0.11",
     "cross-env": "^7.0.3",
-    "eslint": "^8.56.0",
-    "find-unused-sass-variables": "^5.0.0",
-    "fuse.js": "^7.0.0",
-    "hugo-bin": "^0.118.0",
-    "lockfile-lint": "^4.12.1",
-    "npm-run-all2": "^6.1.1",
-    "picocolors": "^1.0.0",
-    "postcss": "^8.4.32",
-    "postcss-cli": "^11.0.0",
-    "stylelint": "^16.1.0",
-    "stylelint-config-twbs-bootstrap": "^13.0.0",
-    "svg-sprite": "^3.0.0-beta3",
-    "svgo": "^3.2.0",
-    "vnu-jar": "23.4.11"
+    "eslint": "^9.25.0",
+    "find-unused-sass-variables": "^6.1.0",
+    "fuse.js": "^7.1.0",
+    "globals": "^14.0.0",
+    "hugo-bin": "^0.144.0",
+    "lockfile-lint": "^4.14.1",
+    "npm-run-all2": "^7.0.2",
+    "picocolors": "^1.1.1",
+    "postcss": "^8.5.3",
+    "postcss-cli": "^11.0.1",
+    "stylelint": "^16.19.1",
+    "stylelint-config-twbs-bootstrap": "^16.0.0",
+    "svg-sprite": "^3.0.0-rc3",
+    "svgo": "^3.3.2",
+    "vnu-jar": "24.10.17"
   }
 }

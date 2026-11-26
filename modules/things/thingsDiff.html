@@ -1,0 +1,57 @@
+<!--
+  ~ Copyright (c) 2026 Contributors to the Eclipse Foundation
+  ~
+  ~ See the NOTICE file(s) distributed with this work for additional
+  ~ information regarding copyright ownership.
+  ~
+  ~ This program and the accompanying materials are made available under the
+  ~ terms of the Eclipse Public License 2.0 which is available at
+  ~ http://www.eclipse.org/legal/epl-2.0
+  ~
+  ~ SPDX-License-Identifier: EPL-2.0
+  -->
+<div class="tab-pane container no-margin" style="height: 100%; display: flex; flex-direction: column;">
+    <div class="input-group input-group-sm mb-1 mt-1">
+        <label class="input-group-text rev-label">Left rev.</label>
+        <span class="input-group-text" id="diffLeftMin" data-bs-toggle="tooltip"
+            title="Oldest available revision">1</span>
+        <button class="btn btn-outline-secondary btn-sm" id="diffLeftPrev" data-bs-toggle="tooltip"
+            title="Previous revision">
+            <i class="bi bi-chevron-left"></i>
+        </button>
+        <input type="range" class="form-range mx-1" id="diffLeftSlider" min="1" max="1" value="1"
+            style="flex: 1;">
+        <button class="btn btn-outline-secondary btn-sm" id="diffLeftNext" data-bs-toggle="tooltip"
+            title="Next revision">
+            <i class="bi bi-chevron-right"></i>
+        </button>
+        <input type="number" class="form-control form-control-sm" id="diffLeftRevision" min="1"
+>
+        <span class="input-group-text" id="diffLeftMax" data-bs-toggle="tooltip"
+            title="Most recent revision">1</span>
+        <button class="btn btn-outline-secondary btn-sm rev-action-btn ms-1" id="diffLeftCurrent"
+            data-bs-toggle="tooltip" title="Set to current (latest) revision">Current</button>
+    </div>
+    <div class="input-group input-group-sm mb-1">
+        <label class="input-group-text rev-label">Right rev.</label>
+        <span class="input-group-text" id="diffRightMin" data-bs-toggle="tooltip"
+            title="Oldest available revision">1</span>
+        <button class="btn btn-outline-secondary btn-sm" id="diffRightPrev" data-bs-toggle="tooltip"
+            title="Previous revision">
+            <i class="bi bi-chevron-left"></i>
+        </button>
+        <input type="range" class="form-range mx-1" id="diffRightSlider" min="1" max="1" value="1"
+            style="flex: 1;">
+        <button class="btn btn-outline-secondary btn-sm" id="diffRightNext" data-bs-toggle="tooltip"
+            title="Next revision">
+            <i class="bi bi-chevron-right"></i>
+        </button>
+        <input type="number" class="form-control form-control-sm" id="diffRightRevision" min="1"
+>
+        <span class="input-group-text" id="diffRightMax" data-bs-toggle="tooltip"
+            title="Most recent revision">1</span>
+        <button class="btn btn-outline-secondary btn-sm rev-action-btn ms-1" id="diffRightCurrent"
+            data-bs-toggle="tooltip" title="Set to current (latest) revision">Current</button>
+    </div>
+    <div id="diffContainer" style="flex-grow: 1; position: relative;"></div>
+</div>

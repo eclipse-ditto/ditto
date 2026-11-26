@@ -39,6 +39,7 @@ export const types = cjs.types;
 export const NodePackageImporter = cjs.NodePackageImporter;
 export const deprecations = cjs.deprecations;
 export const Version = cjs.Version;
+export const parser_ = cjs.parser_;
 
 let printedDefaultExportDeprecation = false;
 function defaultExportDeprecation() {
@@ -205,5 +206,9 @@ export default {
   get Version() {
     defaultExportDeprecation();
     return cjs.Version;
+  },
+  get parser_() {
+    defaultExportDeprecation();
+    return cjs.parser_;
   },
 };

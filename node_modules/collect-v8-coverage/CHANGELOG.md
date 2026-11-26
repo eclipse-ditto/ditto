@@ -1,3 +1,10 @@
+## [1.0.3](https://github.com/SimenB/collect-v8-coverage/compare/v1.0.2...v1.0.3) (2025-10-15)
+
+
+### Bug Fixes
+
+* enable and disable debugger for more accurate coverage ([#235](https://github.com/SimenB/collect-v8-coverage/issues/235)) ([44fdef5](https://github.com/SimenB/collect-v8-coverage/commit/44fdef5d9110664da487f973f27aef134e0b035f))
+
 ## [1.0.2](https://github.com/SimenB/collect-v8-coverage/compare/v1.0.1...v1.0.2) (2023-07-05)
 
 

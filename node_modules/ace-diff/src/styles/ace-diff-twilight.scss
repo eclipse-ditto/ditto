@@ -1,0 +1,15 @@
+// Twilight theme preset for ace-diff
+// Use with Ace's ace/theme/twilight
+// Import after ace-diff.css to override the default light theme
+
+.acediff {
+  --acediff-gutter-bg: #1a1a1a;
+  --acediff-gutter-border: #333333;
+  --acediff-diff-bg: #004d7a;
+  --acediff-diff-border: #003554;
+  --acediff-diff-char-bg: #006699;
+  --acediff-arrow-color: #f8f8f8;
+  --acediff-arrow-shadow: rgba(0, 0, 0, 0.7);
+  --acediff-arrow-hover-left: #61a2e7;
+  --acediff-arrow-hover-right: #f7b742;
+}

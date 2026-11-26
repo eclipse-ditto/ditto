@@ -13,7 +13,7 @@
 
 import { UserManager, UserManagerSettings } from 'oidc-client-ts';
 import * as API from '../api.js';
-import { fillSearchFilterEdit } from '../things/searchFilter';
+import { applySearchNamespacesFromUrl, fillSearchFilterEdit } from '../things/searchFilter';
 import { ThingsSearchGlobalVars } from '../things/thingsSearch';
 import * as Utils from '../utils.js';
 import { showError, showInfoToast } from '../utils.js';
@@ -107,11 +107,11 @@ export function fillDevopsUsernamePassword(usernamePassword: string) {
   }
 }
 
-function fillMainOidcBearerToken(oidcToken: string) {
+export function fillMainOidcBearerToken(oidcToken: string) {
   dom.oidcBearer.value = oidcToken;
 }
 
-function fillDevopsOidcBearerToken(oidcToken: string) {
+export function fillDevopsOidcBearerToken(oidcToken: string) {
   dom.oidcBearerDevOps.value = oidcToken;
 }
 
@@ -241,6 +241,26 @@ async function handleSingleSignOnCallback(urlSearchParams: URLSearchParams) {
   }
 }
 
+function setupSilentRenewal(userManager: UserManager, oidcProvider: OidcProviderConfiguration, forMainAuth: boolean, sameProviderForMainAndDevops: boolean) {
+  userManager.events.addUserLoaded(user => {
+    if (user && user[oidcProvider.extractBearerTokenFrom]) {
+      if (sameProviderForMainAndDevops) {
+        fillMainOidcBearerToken(user[oidcProvider.extractBearerTokenFrom]);
+        fillDevopsOidcBearerToken(user[oidcProvider.extractBearerTokenFrom]);
+      } else {
+        fillMainOidcBearerToken(user[oidcProvider.extractBearerTokenFrom]);
+      }
+      API.setAuthHeader(forMainAuth);
+    }
+  });
+
+  userManager.events.addSilentRenewError(error => {
+    console.error('Silent renewal error:', error);
+    fillMainOidcBearerToken('');
+    fillDevopsOidcBearerToken('');
+  });
+}
+
 async function performSingleSignOn(forMainAuth: boolean): Promise<boolean> {
   let environment = Environments.current();
   let oidc: OidcAuthSettings;
@@ -256,6 +276,9 @@ async function performSingleSignOn(forMainAuth: boolean): Promise<boolean> {
   if (settings !== undefined && settings !== null) {
     const urlSearchParams: URLSearchParams = new URLSearchParams(window.location.search);
     const userManager = new UserManager(settings);
+    
+    setupSilentRenewal(userManager, oidcProvider, forMainAuth, sameProviderForMainAndDevops);
+    
     if (isSsoCallbackRequest(urlSearchParams)) {
       await handleSingleSignOnCallback(urlSearchParams)
       return false
@@ -385,5 +408,8 @@ export async function onEnvironmentChanged(initialPageLoad: boolean) {
   if (filter) {
     ThingsSearchGlobalVars.lastSearch = filter;
     fillSearchFilterEdit(filter);
+  }
+  if (initialPageLoad) {
+    applySearchNamespacesFromUrl();
   }
 }

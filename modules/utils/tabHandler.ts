@@ -52,7 +52,7 @@ export function TabHandler(domTabItem, domTabContent, onRefreshTab, envDisabledK
 
   function onEnvironmentChanged(modifiedField) {
     _domTabItem.toggleAttribute('hidden', Environments.current()[_envDisabledKey] ?? false);
-    if (!['pinnedThings', 'filterList', 'messageTemplates', 'recentPolicyIds'].includes(modifiedField)) {
+    if (Environments.changesContext(modifiedField)) {
       if (_domTabContent.classList.contains('show')) {
         _refreshTab.call(null, true);
       } else {

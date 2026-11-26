@@ -7,6 +7,7 @@ if (globalThis._cliPkgExports.length === 0) delete globalThis._cliPkgExports;
 library.load({
   readline: require("readline"),
   chokidar: require("chokidar"),
+  parcel_watcher: (function(i){let r;return function parcel_watcher(){if(void 0!==r)return r;try{r=require(i)}catch(e){if('MODULE_NOT_FOUND'!==e.code)console.error(e);r=null}return r}})("@parcel/watcher"),
   util: require("util"),
   stream: require("stream"),
   nodeModule: require("module"),

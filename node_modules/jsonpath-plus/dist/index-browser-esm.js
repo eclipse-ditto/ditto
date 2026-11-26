@@ -1203,9 +1203,10 @@ const plugin = {
 // register plugins
 jsep.plugins.register(index, plugin);
 jsep.addUnaryOp('typeof');
+jsep.addUnaryOp('void');
 jsep.addLiteral('null', null);
 jsep.addLiteral('undefined', undefined);
-const BLOCKED_PROTO_PROPERTIES = new Set(['constructor', '__proto__', '__defineGetter__', '__defineSetter__']);
+const BLOCKED_PROTO_PROPERTIES = new Set(['constructor', '__proto__', '__defineGetter__', '__defineSetter__', '__lookupGetter__', '__lookupSetter__']);
 const SafeEval = {
   /**
    * @param {jsep.Expression} ast
@@ -1324,7 +1325,9 @@ const SafeEval = {
       '~': a => ~SafeEval.evalAst(a, subs),
       // eslint-disable-next-line no-implicit-coercion -- API
       '+': a => +SafeEval.evalAst(a, subs),
-      typeof: a => typeof SafeEval.evalAst(a, subs)
+      typeof: a => typeof SafeEval.evalAst(a, subs),
+      // eslint-disable-next-line no-void, sonarjs/void-use -- feature
+      void: a => void SafeEval.evalAst(a, subs)
     }[ast.operator](ast.argument);
     return result;
   },
@@ -1334,9 +1337,12 @@ const SafeEval = {
   evalCallExpression(ast, subs) {
     const args = ast.arguments.map(arg => SafeEval.evalAst(arg, subs));
     const func = SafeEval.evalAst(ast.callee, subs);
-    // if (func === Function) {
-    //     throw new Error('Function constructor is disabled');
-    // }
+    /* c8 ignore start  */
+    if (func === Function) {
+      // unreachable since BLOCKED_PROTO_PROPERTIES includes 'constructor'
+      throw new Error('Function constructor is disabled');
+    }
+    /* c8 ignore end  */
     return func(...args);
   },
   evalAssignmentExpression(ast, subs) {

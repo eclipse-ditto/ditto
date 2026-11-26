@@ -14,7 +14,7 @@
         "func-style": 0,
         "global-require": 1,
         "id-length": [2, { "min": 1, "max": 40 }],
-        "max-lines": [2, 350],
+        "max-lines": [2, 360],
         "max-lines-per-function": 0,
         "max-nested-callbacks": 0,
         "max-params": 0,

@@ -5,6 +5,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v2.0.4](https://github.com/inspect-js/hasOwn/compare/v2.0.3...v2.0.4) - 2026-05-28
+
+### Commits
+
+- [types] drop the dead key-narrowing overload [`fdab00e`](https://github.com/inspect-js/hasOwn/commit/fdab00e2703e65411424e19bf86a7e72a8f10da9)
+- [Dev Deps] update `@ljharb/eslint-config`, `auto-changelog`, `eslint` [`91f6247`](https://github.com/inspect-js/hasOwn/commit/91f624768dd0f7db0d019b89d4d86bd66e20ec30)
+
+## [v2.0.3](https://github.com/inspect-js/hasOwn/compare/v2.0.2...v2.0.3) - 2026-04-17
+
+### Commits
+
+- [actions] update workflows [`fb837b8`](https://github.com/inspect-js/hasOwn/commit/fb837b849bcdb8416fdc8fd344edfacd5574696c)
+- [Dev Deps] update `@arethetypeswrong/cli`, `@ljharb/eslint-config`, `@ljharb/tsconfig`, `@types/tape`, `auto-changelog`, `eslint`, `mock-property`, `npmignore`, `tape` [`f4b279b`](https://github.com/inspect-js/hasOwn/commit/f4b279bd682be34b3f0ede2a58d4e8acb58d6d47)
+- [Dev Deps] update `eslint`, `@ljharb/eslint-config`; migrate to flat config [`7e415ce`](https://github.com/inspect-js/hasOwn/commit/7e415cee55ebf43b3c34d7fd86db73a9928b05f7)
+- [Dev Deps] update `eslint` [`ef313da`](https://github.com/inspect-js/hasOwn/commit/ef313da342d33b60e23e738b9f5a86f6065f39ef)
+- [meta] use `npm audit` instead of `aud` [`d5c6d4d`](https://github.com/inspect-js/hasOwn/commit/d5c6d4d7a19c6ca4f14ac173b30d8bf25abcabee)
+- [types] add overload that narrows the key [`cc03a09`](https://github.com/inspect-js/hasOwn/commit/cc03a097e9402fb8b86d413050e67f790dd6c8c5)
+
 ## [v2.0.2](https://github.com/inspect-js/hasOwn/compare/v2.0.1...v2.0.2) - 2024-03-10
 
 ### Commits

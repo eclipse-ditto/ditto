@@ -12,6 +12,7 @@
  */
 
 import * as ace from 'ace-builds/src-noconflict/ace';
+import { Ace } from 'ace-builds';
 import * as API from '../api.js';
 import * as Environments from '../environments/environments.js'
 import * as Utils from '../utils.js';
@@ -30,7 +31,7 @@ let dom: DomElements = {
   selectPolicyJSONTemplate: null,
 };
 
-let policyEditor: ace.Editor;
+let policyEditor: Ace.Editor;
 
 export function ready() {
   

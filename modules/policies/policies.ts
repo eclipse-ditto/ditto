@@ -24,10 +24,44 @@ import { Observable } from '../utils/observable.js';
 import { TabHandler } from '../utils/tabHandler.js';
 import policyHTML from './policies.html';
 
+export type ImportableMode = 'implicit' | 'explicit' | 'never';
+export type AdditionKind = 'subjects' | 'resources' | 'namespaces';
+
+export interface Subject {
+  type?: string;
+  expiry?: string;
+  announcement?: object;
+}
+
+export interface Resource {
+  grant: string[];
+  revoke: string[];
+}
+
+export interface EntryReference {
+  entry: string;
+  import?: string;
+}
+
+export interface PolicyEntry {
+  subjects: Record<string, Subject>;
+  resources: Record<string, Resource>;
+  importable?: ImportableMode;
+  namespaces?: string[];
+  // absent ≠ []. absent = no restriction; [] = deny all additions; non-empty = whitelist of addition kinds.
+  allowedAdditions?: AdditionKind[];
+  references?: EntryReference[];
+}
+
+export interface PolicyImport {
+  entries?: string[];
+  transitiveImports?: string[];
+}
+
 export interface Policy {
   policyId: string,
-  entries: Object,
-  imports: Object,
+  entries: Record<string, PolicyEntry>,
+  imports: Record<string, PolicyImport>,
 }
 
 export let observable = Observable();

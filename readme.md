@@ -4,7 +4,11 @@
 
 The Ditto-UI can be configured with so called `Environments`.  
 Those are either stored in the local storage of the user's browser (and can also be completely edited there via the "Environments" tab of the UI), 
-or the environments (as a template, because the user's local storage has priority) can be loaded via a JSON file served via HTTP.
+or the environments can be loaded via a JSON file served via HTTP.
+For every field the served file sets, the served value takes precedence over the user's local storage; local storage
+keeps the fields the file leaves out and the environments it doesn't serve. Exceptions are `searchNamespaces`, which
+is merged with the namespaces the user added, and `selectedSearchNamespaces`, for which the user's selection wins, so
+the served value is only a default.
 
 ### Control environments by URL parameters
 
@@ -14,12 +18,36 @@ The following Ditto UI query parameters can be used to control environments:
 |--------------------------|----------------------------------------------------|
 | `primaryEnvironmentName` | Name of an environment to be selected by default   |
 | `environmentsURL`        | URL to a json file with environment configurations |
+| `namespaces`             | Comma separated namespaces to restrict the Things search to; namespaces not yet configured are added to the namespaces picker |
 
 For example, you can provide your own environment template at a publicly available HTTP endpoint `https://<ditto-hostname>/ui-environments.json` and
 pre-select choosing environment name `dev` (being part of the `ui-environments.json` file):
 ```
 https://<ditto-hostname>/ui/?environmentsURL=/ui-environments.json&primaryEnvironmentName=dev
 ```
+
+#### Restrictions for `environmentsURL`
+
+Environments contain the Ditto API URI and the OIDC provider configuration, so whoever controls the loaded file controls
+where the UI sends the user's credentials and tokens. Therefore, environments are only loaded via `environmentsURL`
+from the **same origin** the UI is served from, never from paths containing `/api/` or `/ws/`, and only via
+`http`/`https`.
+
+Additional origins can be allowed in an optional `ui-config.json` served next to the UI's `index.html`:
+```json
+{
+  "environmentsURL": {
+    "allowedOrigins": ["https://config.example.com"]
+  }
+}
+```
+
+**Security:** only add origins whose content is fully trusted - anyone able to place a file there can take over the
+sessions of users opening a crafted UI link. `"*"` accepts any origin and makes the UI vulnerable to exactly that.
+
+The Helm chart renders this file from `dittoui.environmentsURL.allowedOrigins`. The validation is implemented in
+`modules/environments/environmentsUrl.ts` and duplicated in the Swagger UI integration
+(`deployment/helm/ditto/swaggerui-config/swagger-oidc.js`) - keep both in sync.
 
 ### Available environment configuration
 
@@ -38,8 +66,10 @@ type Environment = {
     disableOperations?: boolean,
     /** The authorization settings for the UI */
     authSettings?: AuthSettings,
-    /** A comma separated list of namespaces to perform Thing searches in */
+    /** A comma separated list of namespaces available for selection in the Things search */
     searchNamespaces?: string,
+    /** The namespaces selected in the Things search: all of `searchNamespaces` if absent, all namespaces if empty */
+    selectedSearchNamespaces?: string[],
     /** Holds templates for well known (feature) messages */
     messageTemplates?: any,
     /** Contains a list of fields to be shown as additional columns in the Things search result table */

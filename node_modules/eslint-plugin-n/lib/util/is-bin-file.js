@@ -1,6 +1,4 @@
-"use strict"
-
-const path = require("path")
+import path from "node:path"
 
 /**
  * @param {string} filePath
@@ -50,4 +48,4 @@ function isBinFile(filePath, binField, basedir) {
     return false
 }
 
-module.exports = { isBinFile }
+export { isBinFile }

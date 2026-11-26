@@ -45,3 +45,4 @@ export const types = _cliPkgExports.types;
 export const NodePackageImporter = _cliPkgExports.NodePackageImporter;
 export const deprecations = _cliPkgExports.deprecations;
 export const Version = _cliPkgExports.Version;
+export const parser_ = _cliPkgExports.parser_;

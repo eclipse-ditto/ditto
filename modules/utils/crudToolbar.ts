@@ -127,6 +127,11 @@ export class CrudToolbar extends HTMLElement {
       this.dom.buttonEdit.onclick = () => this.toggleEdit(false);
       this.dom.buttonCancel.onclick = () => this.toggleEdit(true);
       this.dom.label.innerText = this.getAttribute('label') || 'Label';
+      const tooltip = this.getAttribute('tooltip');
+      if (tooltip) {
+        this.dom.label.setAttribute('title', tooltip);
+        this.dom.label.setAttribute('data-bs-toggle', 'tooltip');
+      }
       this.dom.buttonCreate.onclick = this.eventDispatcher('onCreateClick');
       this.dom.buttonUpdate.onclick = this.eventDispatcher('onUpdateClick');
       this.dom.buttonDelete.onclick = this.eventDispatcher('onDeleteClick');

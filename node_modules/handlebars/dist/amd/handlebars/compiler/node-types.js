@@ -1,0 +1,12 @@
+define(['exports'], function (exports) {
+  // AST node types produced by the parser. Visitor#accept and Compiler#accept
+  // dispatch on the untrusted `node.type`, so they must never call any other
+  // method of the visiting object. The Compiler only accepts these types; a
+  // Visitor also accepts types for which a subclass defines its own handler.
+  'use strict';
+
+  exports.__esModule = true;
+  var NODE_TYPES = ['Program', 'BlockStatement', 'DecoratorBlock', 'PartialStatement', 'PartialBlockStatement', 'Decorator', 'MustacheStatement', 'ContentStatement', 'CommentStatement', 'SubExpression', 'PathExpression', 'StringLiteral', 'NumberLiteral', 'BooleanLiteral', 'UndefinedLiteral', 'NullLiteral', 'Hash', 'HashPair'];
+  exports.NODE_TYPES = NODE_TYPES;
+});
+//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJ2ZXJzaW9uIjozLCJzb3VyY2VzIjpbIi4uLy4uLy4uLy4uL2xpYi9oYW5kbGViYXJzL2NvbXBpbGVyL25vZGUtdHlwZXMuanMiXSwibmFtZXMiOltdLCJtYXBwaW5ncyI6Ijs7Ozs7Ozs7QUFJTyxNQUFNLFVBQVUsR0FBRyxDQUN4QixTQUFTLEVBQ1QsZ0JBQWdCLEVBQ2hCLGdCQUFnQixFQUNoQixrQkFBa0IsRUFDbEIsdUJBQXVCLEVBQ3ZCLFdBQVcsRUFDWCxtQkFBbUIsRUFDbkIsa0JBQWtCLEVBQ2xCLGtCQUFrQixFQUNsQixlQUFlLEVBQ2YsZ0JBQWdCLEVBQ2hCLGVBQWUsRUFDZixlQUFlLEVBQ2YsZ0JBQWdCLEVBQ2hCLGtCQUFrQixFQUNsQixhQUFhLEVBQ2IsTUFBTSxFQUNOLFVBQVUsQ0FDWCxDQUFDIiwiZmlsZSI6Im5vZGUtdHlwZXMuanMiLCJzb3VyY2VzQ29udGVudCI6WyIvLyBBU1Qgbm9kZSB0eXBlcyBwcm9kdWNlZCBieSB0aGUgcGFyc2VyLiBWaXNpdG9yI2FjY2VwdCBhbmQgQ29tcGlsZXIjYWNjZXB0XG4vLyBkaXNwYXRjaCBvbiB0aGUgdW50cnVzdGVkIGBub2RlLnR5cGVgLCBzbyB0aGV5IG11c3QgbmV2ZXIgY2FsbCBhbnkgb3RoZXJcbi8vIG1ldGhvZCBvZiB0aGUgdmlzaXRpbmcgb2JqZWN0LiBUaGUgQ29tcGlsZXIgb25seSBhY2NlcHRzIHRoZXNlIHR5cGVzOyBhXG4vLyBWaXNpdG9yIGFsc28gYWNjZXB0cyB0eXBlcyBmb3Igd2hpY2ggYSBzdWJjbGFzcyBkZWZpbmVzIGl0cyBvd24gaGFuZGxlci5cbmV4cG9ydCBjb25zdCBOT0RFX1RZUEVTID0gW1xuICAnUHJvZ3JhbScsXG4gICdCbG9ja1N0YXRlbWVudCcsXG4gICdEZWNvcmF0b3JCbG9jaycsXG4gICdQYXJ0aWFsU3RhdGVtZW50JyxcbiAgJ1BhcnRpYWxCbG9ja1N0YXRlbWVudCcsXG4gICdEZWNvcmF0b3InLFxuICAnTXVzdGFjaGVTdGF0ZW1lbnQnLFxuICAnQ29udGVudFN0YXRlbWVudCcsXG4gICdDb21tZW50U3RhdGVtZW50JyxcbiAgJ1N1YkV4cHJlc3Npb24nLFxuICAnUGF0aEV4cHJlc3Npb24nLFxuICAnU3RyaW5nTGl0ZXJhbCcsXG4gICdOdW1iZXJMaXRlcmFsJyxcbiAgJ0Jvb2xlYW5MaXRlcmFsJyxcbiAgJ1VuZGVmaW5lZExpdGVyYWwnLFxuICAnTnVsbExpdGVyYWwnLFxuICAnSGFzaCcsXG4gICdIYXNoUGFpcidcbl07XG4iXX0=

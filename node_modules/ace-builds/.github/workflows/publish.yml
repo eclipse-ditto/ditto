@@ -6,15 +6,19 @@ on:
   push:
     tags:
       - v*
+  workflow_dispatch:
+permissions:
+  id-token: write  # Required for OIDC
+  contents: read # to fetch code (actions/checkout)
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
     # Setup .npmrc file to publish to npm
-    - uses: actions/setup-node@v1
+    - uses: actions/setup-node@v4
       with:
-        node-version: '12.x'
+        node-version: '24'
         registry-url: 'https://registry.npmjs.org'
     - run: node -p "json=require('./package.json');if (json.dependencies || json.devDependencies) throw new Error()"
     - run: node -p "window={}; require('./src-noconflict/ace.js').config.all"
@@ -30,5 +34,3 @@ jobs:
             done
         done
     - run: npm publish
-      env:
-        NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

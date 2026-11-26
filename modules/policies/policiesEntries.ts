@@ -21,11 +21,18 @@ export let observable = Observable();
 
 export let selectedEntry: string;
 
+type AdditionsMode = 'default' | 'denyAll' | 'allowOnly';
+
 type DomElements = {
   tbodyPolicyEntries: HTMLTableElement,
   tableValidationEntries: HTMLInputElement,
   selectImportable: HTMLSelectElement,
   crudEntry: CrudToolbar,
+  selectAllowedAdditionsMode: HTMLSelectElement,
+  checkboxAdditionSubjects: HTMLInputElement,
+  checkboxAdditionResources: HTMLInputElement,
+  checkboxAdditionNamespaces: HTMLInputElement,
+  validationAllowedAdditions: HTMLInputElement,
 }
 
 let dom: DomElements = {
@@ -33,6 +40,11 @@ let dom: DomElements = {
   tableValidationEntries: null,
   selectImportable: null,
   crudEntry: null,
+  selectAllowedAdditionsMode: null,
+  checkboxAdditionSubjects: null,
+  checkboxAdditionResources: null,
+  checkboxAdditionNamespaces: null,
+  validationAllowedAdditions: null,
 };
 
 export function ready() {
@@ -48,14 +60,79 @@ export function ready() {
   dom.crudEntry.addEventListener('onUpdateClick', onUpdateEntryClick);
   dom.crudEntry.addEventListener('onEditToggle', onToggleEditEntry);
 
+  dom.selectAllowedAdditionsMode.addEventListener('change', onAdditionsModeChange);
+
   dom.tbodyPolicyEntries.onclick = onPolicyEntriesClick;
 }
 
 function onToggleEditEntry(event) {
-  dom.selectImportable.disabled = !event.detail.isEditing;
+  const editing: boolean = event.detail.isEditing;
+  dom.selectImportable.disabled = !editing;
+  setAllowedAdditionsControlsDisabled(!editing);
   if (event.detail.isCancel) {
     updateEditors(selectedEntry);
   }
+}
+
+function setAllowedAdditionsControlsDisabled(disabled: boolean) {
+  dom.selectAllowedAdditionsMode.disabled = disabled;
+  // The kind-checkboxes are only meaningful when "Allow only" is the active mode.
+  const allowOnlyActive = !disabled && dom.selectAllowedAdditionsMode.value === 'allowOnly';
+  dom.checkboxAdditionSubjects.disabled = !allowOnlyActive;
+  dom.checkboxAdditionResources.disabled = !allowOnlyActive;
+  dom.checkboxAdditionNamespaces.disabled = !allowOnlyActive;
+}
+
+function onAdditionsModeChange() {
+  // Re-evaluate checkbox disabled state when the user toggles between modes.
+  setAllowedAdditionsControlsDisabled(false);
+  dom.validationAllowedAdditions.classList.remove('is-invalid');
+}
+
+// Centralised absent-vs-empty discipline. Returns the value to write — `null` means "delete the field".
+// This is the single most error-prone aspect of allowedAdditions: the JSON encoding distinguishes
+// absent (no restriction) from `[]` (deny all), and the mode select is the source of truth.
+function readAllowedAdditionsFromUI(): Policies.AdditionKind[] | null {
+  const mode = dom.selectAllowedAdditionsMode.value as AdditionsMode;
+  if (mode === 'default') {
+    return null;
+  }
+  if (mode === 'denyAll') {
+    return [];
+  }
+  const kinds: Policies.AdditionKind[] = [];
+  if (dom.checkboxAdditionSubjects.checked) kinds.push('subjects');
+  if (dom.checkboxAdditionResources.checked) kinds.push('resources');
+  if (dom.checkboxAdditionNamespaces.checked) kinds.push('namespaces');
+  return kinds;
+}
+
+function applyAllowedAdditions(entry: Policies.PolicyEntry) {
+  const value = readAllowedAdditionsFromUI();
+  if (value === null) {
+    delete entry.allowedAdditions;
+  } else {
+    entry.allowedAdditions = value;
+  }
+}
+
+function loadAllowedAdditionsIntoUI(allowedAdditions: Policies.AdditionKind[] | undefined) {
+  dom.checkboxAdditionSubjects.checked = false;
+  dom.checkboxAdditionResources.checked = false;
+  dom.checkboxAdditionNamespaces.checked = false;
+  if (allowedAdditions === undefined) {
+    dom.selectAllowedAdditionsMode.value = 'default';
+  } else if (allowedAdditions.length === 0) {
+    dom.selectAllowedAdditionsMode.value = 'denyAll';
+  } else {
+    dom.selectAllowedAdditionsMode.value = 'allowOnly';
+    allowedAdditions.forEach((k) => {
+      if (k === 'subjects') dom.checkboxAdditionSubjects.checked = true;
+      else if (k === 'resources') dom.checkboxAdditionResources.checked = true;
+      else if (k === 'namespaces') dom.checkboxAdditionNamespaces.checked = true;
+    });
+  }
+  setAllowedAdditionsControlsDisabled(!dom.crudEntry.isEditing);
 }
 
 function onPolicyEntriesClick(event) {
@@ -72,17 +149,38 @@ function onCreateEntryClick() {
   Utils.assert(dom.crudEntry.idValue, 'Please enter a label for the entry', dom.crudEntry.validationElement);
   Utils.assert(!Object.keys(Policies.thePolicy.entries).includes(dom.crudEntry.idValue),
       `Entry with label ${dom.crudEntry.idValue} already exists`, dom.crudEntry.validationElement);
+  validateAllowedAdditionsSelection();
   selectedEntry = dom.crudEntry.idValue;
-  putOrDeletePolicyEntry(dom.crudEntry.idValue, {
+  const newEntry: Policies.PolicyEntry = {
     subjects: {},
     resources: {},
-    importable: dom.selectImportable.value
-  }, Policies.finishEditing(dom.crudEntry, CrudOperation.CREATE));
+    importable: dom.selectImportable.value as Policies.ImportableMode,
+  };
+  applyAllowedAdditions(newEntry);
+  putOrDeletePolicyEntry(dom.crudEntry.idValue, newEntry,
+      Policies.finishEditing(dom.crudEntry, CrudOperation.CREATE));
 }
 
 function onUpdateEntryClick() {
-  Policies.thePolicy.entries[selectedEntry].importable = dom.selectImportable.value;
-  putOrDeletePolicyEntry(selectedEntry, Policies.thePolicy.entries[selectedEntry], Policies.finishEditing(dom.crudEntry, CrudOperation.UPDATE));
+  validateAllowedAdditionsSelection();
+  // Spread-copy: never mutate Policies.thePolicy.entries[...] in place. If the PUT 4xx's, an
+  // in-place mutation would leave the cache in a state that doesn't match the server, and a
+  // subsequent Cancel would re-paint the editors from that corrupted state. Mirrors the pattern
+  // already used in policiesNamespaces.ts and policiesReferences.ts.
+  const entry = { ...Policies.thePolicy.entries[selectedEntry] };
+  entry.importable = dom.selectImportable.value as Policies.ImportableMode;
+  applyAllowedAdditions(entry);
+  putOrDeletePolicyEntry(selectedEntry, entry, Policies.finishEditing(dom.crudEntry, CrudOperation.UPDATE));
+}
+
+function validateAllowedAdditionsSelection() {
+  const allowOnlyEmpty = dom.selectAllowedAdditionsMode.value === 'allowOnly' &&
+      !dom.checkboxAdditionSubjects.checked &&
+      !dom.checkboxAdditionResources.checked &&
+      !dom.checkboxAdditionNamespaces.checked;
+  Utils.assert(!allowOnlyEmpty,
+      'Pick at least one kind, or switch to "Deny all".',
+      dom.validationAllowedAdditions);
 }
 
 function onDeleteEntryClick() {
@@ -130,7 +228,9 @@ function setEntry(entryLabel: string) {
 
 function updateEditors(entryLabel: string) {
   dom.crudEntry.idValue = entryLabel;
-  dom.selectImportable.value = entryLabel && Policies.thePolicy.entries[entryLabel].importable
+  const entry = entryLabel ? Policies.thePolicy.entries[entryLabel] : null;
+  dom.selectImportable.value = (entry && entry.importable) || 'implicit';
+  loadAllowedAdditionsIntoUI(entry?.allowedAdditions);
 }
 
 

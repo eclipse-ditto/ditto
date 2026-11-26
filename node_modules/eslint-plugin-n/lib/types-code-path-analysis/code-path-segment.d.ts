@@ -1,4 +1,4 @@
-export = CodePathSegment;
+export = CodePathSegment
 /**
  * A code path segment.
  *
@@ -19,7 +19,7 @@ declare class CodePathSegment {
      * @param {string} id An identifier.
      * @returns {CodePathSegment} The created segment.
      */
-    static newRoot(id: string): CodePathSegment;
+    static newRoot(id: string): CodePathSegment
     /**
      * Creates a new segment and appends it after the given segments.
      * @param {string} id An identifier.
@@ -27,14 +27,20 @@ declare class CodePathSegment {
      *      to append to.
      * @returns {CodePathSegment} The created segment.
      */
-    static newNext(id: string, allPrevSegments: CodePathSegment[]): CodePathSegment;
+    static newNext(
+        id: string,
+        allPrevSegments: CodePathSegment[]
+    ): CodePathSegment
     /**
      * Creates an unreachable segment and appends it after the given segments.
      * @param {string} id An identifier.
      * @param {CodePathSegment[]} allPrevSegments An array of the previous segments.
      * @returns {CodePathSegment} The created segment.
      */
-    static newUnreachable(id: string, allPrevSegments: CodePathSegment[]): CodePathSegment;
+    static newUnreachable(
+        id: string,
+        allPrevSegments: CodePathSegment[]
+    ): CodePathSegment
     /**
      * Creates a segment that follows given segments.
      * This factory method does not connect with `allPrevSegments`.
@@ -43,7 +49,10 @@ declare class CodePathSegment {
      * @param {CodePathSegment[]} allPrevSegments An array of the previous segments.
      * @returns {CodePathSegment} The created segment.
      */
-    static newDisconnected(id: string, allPrevSegments: CodePathSegment[]): CodePathSegment;
+    static newDisconnected(
+        id: string,
+        allPrevSegments: CodePathSegment[]
+    ): CodePathSegment
     /**
      * Marks a given segment as used.
      *
@@ -51,14 +60,17 @@ declare class CodePathSegment {
      * @param {CodePathSegment} segment A segment to mark.
      * @returns {void}
      */
-    static markUsed(segment: CodePathSegment): void;
+    static markUsed(segment: CodePathSegment): void
     /**
      * Marks a previous segment as looped.
      * @param {CodePathSegment} segment A segment.
      * @param {CodePathSegment} prevSegment A previous segment to mark.
      * @returns {void}
      */
-    static markPrevSegmentAsLooped(segment: CodePathSegment, prevSegment: CodePathSegment): void;
+    static markPrevSegmentAsLooped(
+        segment: CodePathSegment,
+        prevSegment: CodePathSegment
+    ): void
     /**
      * Creates a new array based on an array of segments. If any segment in the
      * array is unused, then it is replaced by all of its previous segments.
@@ -66,7 +78,7 @@ declare class CodePathSegment {
      * @param {CodePathSegment[]} segments The array of segments to flatten.
      * @returns {CodePathSegment[]} The flattened array.
      */
-    static flattenUnusedSegments(segments: CodePathSegment[]): CodePathSegment[];
+    static flattenUnusedSegments(segments: CodePathSegment[]): CodePathSegment[]
     /**
      * Creates a new instance.
      * @param {string} id An identifier.
@@ -74,42 +86,46 @@ declare class CodePathSegment {
      *   This array includes unreachable segments.
      * @param {boolean} reachable A flag which shows this is reachable.
      */
-    constructor(id: string, allPrevSegments: CodePathSegment[], reachable: boolean);
+    constructor(
+        id: string,
+        allPrevSegments: CodePathSegment[],
+        reachable: boolean
+    )
     /**
      * The identifier of this code path.
      * Rules use it to store additional information of each rule.
      * @type {string}
      */
-    id: string;
+    id: string
     /**
      * An array of the next reachable segments.
      * @type {CodePathSegment[]}
      */
-    nextSegments: CodePathSegment[];
+    nextSegments: CodePathSegment[]
     /**
      * An array of the previous reachable segments.
      * @type {CodePathSegment[]}
      */
-    prevSegments: CodePathSegment[];
+    prevSegments: CodePathSegment[]
     /**
      * An array of all next segments including reachable and unreachable.
      * @type {CodePathSegment[]}
      */
-    allNextSegments: CodePathSegment[];
+    allNextSegments: CodePathSegment[]
     /**
      * An array of all previous segments including reachable and unreachable.
      * @type {CodePathSegment[]}
      */
-    allPrevSegments: CodePathSegment[];
+    allPrevSegments: CodePathSegment[]
     /**
      * A flag which shows this is reachable.
      * @type {boolean}
      */
-    reachable: boolean;
+    reachable: boolean
     /**
      * Checks a given previous segment is coming from the end of a loop.
      * @param {CodePathSegment} segment A previous segment to check.
      * @returns {boolean} `true` if the segment is coming from the end of a loop.
      */
-    isLoopedPrevSegment(segment: CodePathSegment): boolean;
+    isLoopedPrevSegment(segment: CodePathSegment): boolean
 }

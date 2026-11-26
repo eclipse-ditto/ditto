@@ -4,6 +4,5 @@
  * @deprecated use `flat/recommended-module` instead
  */
 
-"use strict"
-
-module.exports = require("../lib/index.js").configs["flat/recommended-module"]
+import pkg from '../lib/index.js';
+export default pkg.configs["flat/recommended-module"]

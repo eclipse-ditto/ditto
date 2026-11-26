@@ -77,7 +77,7 @@ var AdvancedError = errorEx('AdvancedError', {
 			return null;
 		}
 	}
-}
+})
 
 var err = new AdvancedError('hello, world');
 err.foo = 'baz';

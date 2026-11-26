@@ -2,13 +2,12 @@
  * @author Toru Nagashima
  * See LICENSE file in root directory for full license.
  */
-"use strict"
 
 /**
  * @param {unknown} path
  * @returns {string}
  */
-module.exports = function stripImportPathParams(path) {
+export function stripImportPathParams(path) {
     const pathString = String(path)
     const index = pathString.indexOf("!")
 

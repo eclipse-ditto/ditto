@@ -1,3 +1,91 @@
+## 8.18.0 (2026-07-28)
+
+### New features
+
+The new `startLocation` option can now be used to tell the parser the line and column the parse starts at (mostly useful with `parseExpressionAt`).
+
+### Bug fixes
+
+Reject uses of `**` with a non-parenthesized arrow function as left-hand side.
+
+Avoid computing the start line in `parseExpressionAt` when locations aren't used.
+
+## 8.17.0 (2026-06-11)
+
+### New features
+
+The new `strict` option can be used to start script sources in strict mode.
+
+### Bug fixes
+
+Fix a number of corner case bugs when `using` or `await using` appear in `for` loop specs.
+
+Disallow `new super()` expressions.
+
+Don't allow the conditional in a ternary expression to be a (naked) arrow function.
+
+## 8.16.0 (2026-02-19)
+
+### New features
+
+The `sourceType` option can now be set to `"commonjs"` to have the parser treat the top level scope as a function scope.
+
+Add support for Unicode 17.
+
+### Bug fixes
+
+Don't recognize `await using` as contextual keywords when followed directly by a backslash.
+
+Fix an issue where the parser would allow `return` statements in `static` blocks when `allowReturnOutsideFunction` was enabled.
+
+Properly reject `using` declarations that appear directly in `switch` or `for` head scopes.
+
+Fix some corner case issues in the recognition of `using` syntax.
+
+## 8.15.0 (2025-06-08)
+
+### New features
+
+Support `using` and `await using` syntax.
+
+The `AnyNode` type is now defined in such a way that plugins can extend it.
+
+### Bug fixes
+
+Fix an issue where the `bigint` property of literal nodes for non-decimal bigints had the wrong format.
+
+The `acorn` CLI tool no longer crashes when emitting a tree that contains a bigint.
+
+## 8.14.1 (2025-03-05)
+
+### Bug fixes
+
+Fix an issue where `await` expressions in class field initializers were inappropriately allowed.
+
+Properly allow await inside an async arrow function inside a class field initializer.
+
+Mention the source file name in syntax error messages when given.
+
+Properly add an empty `attributes` property to every form of `ExportNamedDeclaration`.
+
+## 8.14.0 (2024-10-27)
+
+### New features
+
+Support ES2025 import attributes.
+
+Support ES2025 RegExp modifiers.
+
+### Bug fixes
+
+Support some missing Unicode properties.
+
+## 8.13.0 (2024-10-16)
+
+### New features
+
+Upgrade to Unicode 16.0.
+
 ## 8.12.1 (2024-07-03)
 
 ### Bug fixes

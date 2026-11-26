@@ -1,8 +1,6 @@
-"use strict"
-
-const { getPackageJson } = require("../util/get-package-json")
-const moduleConfig = require("./recommended-module")
-const scriptConfig = require("./recommended-script")
+import { getPackageJson } from "../util/get-package-json.js"
+import * as moduleConfig from "./recommended-module.js"
+import * as scriptConfig from "./recommended-script.js"
 
 const packageJson = getPackageJson()
 
@@ -17,7 +15,7 @@ const recommendedConfig = isModule ? moduleConfig : scriptConfig
  * https://eslint.org/docs/latest/use/configure/configuration-files
  * @type {import('eslint').ESLint.ConfigData}
  */
-module.exports.eslintrc = {
+export const eslintrc = {
     ...recommendedConfig.eslintrc,
     overrides: [
         { files: ["*.cjs", ".*.cjs"], ...scriptConfig.eslintrc },
@@ -25,4 +23,4 @@ module.exports.eslintrc = {
     ],
 }
 
-module.exports.flat = recommendedConfig.flat
+export const flat = recommendedConfig.flat

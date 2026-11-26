@@ -15,8 +15,8 @@
 </h5>
 <hr />
 <div class="collapse show" id="connectionsEdit">
-    <div class="row resizable_pane" style="height: 80vh;">
-        <div class="col-md-4 resizable_flex_column">
+    <div class="split-h resizable_pane" style="height: 80vh;" data-split="horizontal" data-split-sizes="[33,67]" data-split-key="connections-main">
+        <div class="split-panel resizable_flex_column">
             <div class="input-group input-group-sm mt-1 mb-1" role="group">
                 <div style="flex-grow: 1;"></div>
                 <button class="btn btn-outline-secondary btn-sm button_round_left" id="buttonLoadConnections">
@@ -41,7 +41,7 @@
                 </table>
             </div>
         </div>
-        <div class="col-md-8 resizable_flex_column">
+        <div class="split-panel resizable_flex_column">
             <h6>CRUD Connection</h6>
             <crud-toolbar label="Connection Id" id="crudConnection" style="flex-grow: 1;">
                 <div class="input-group input-group-sm mb-1">
@@ -57,13 +57,13 @@
                     <input class="form-control" id="editorValidationConnection" hidden="true"></input>
                     <div class="invalid-feedback"></div>
                 </div>
-                <div class="row mb-1" style="flex-grow: 1;">
-                    <div class="col-md-6 resizable_flex_column">
+                <div class="split-h mb-1" style="flex-grow: 1;" data-split="horizontal" data-split-sizes="[50,50]" data-split-key="connections-editors">
+                    <div class="split-panel resizable_flex_column">
                         <div class="ace_container" style="flex-grow: 1;">
                             <div class="script_editor" id="connectionEditor"></div>
                         </div>        
                     </div>
-                    <div class="col-md-6 resizable_flex_column">
+                    <div class="split-panel resizable_flex_column">
                         <h6>Incoming JavaScript Mapping</h6>
                         <div class="ace_container mb-3" style="flex-grow: 1;">
                             <div class="script_editor" id="connectionIncomingScript"></div>
@@ -83,8 +83,8 @@
 </h5>
 <hr />
 <div class="collapse show" id="tabConnectionHelper">
-    <div class="row resizable_pane" style="height: 80vh;">
-        <div class="col-md-4 resizable_flex_column">
+    <div class="split-h resizable_pane" style="height: 80vh;" data-split="horizontal" data-split-sizes="[33,34,33]" data-split-key="connections-monitor">
+        <div class="split-panel resizable_flex_column">
             <ul class="nav nav-tabs nav-fill">
                 <li class="nav-item">
                     <a class="nav-link active" data-bs-toggle="tab" data-bs-target="#tabConnectionMetrics">Metrics</a>
@@ -146,7 +146,7 @@
                 </div>
             </div>
         </div>
-        <div class="col-md-4 resizable_flex_column">
+        <div class="split-panel resizable_flex_column">
             <h6>Connection Logs <span class="badge rounded-pill bg-info" id="badgeConnectionLogsCount"></span></h6>
             <div class="input-group input-group-sm mb-1">
                 <button class="btn btn-outline-secondary btn-sm button_round_left" id="buttonEnableConnectionLogs"
@@ -181,7 +181,7 @@
                 </table>
             </div>
         </div>
-        <div class="col-md-4 resizable_flex_column">
+        <div class="split-panel resizable_flex_column">
             <h6>Connection Log Detail</h6>
             <div class="ace_container" style="flex-grow: 1;">
                 <div class="script_editor" id="connectionLogDetail"></div>

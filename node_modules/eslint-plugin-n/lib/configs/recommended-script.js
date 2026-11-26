@@ -1,13 +1,11 @@
-"use strict"
-
-const globals = require("globals")
-const { commonRules } = require("./_commons")
+import globals from "globals"
+import { recommendeRulesConfig } from "./_commons.js"
 
 /**
  * https://eslint.org/docs/latest/use/configure/configuration-files
  * @type {import('eslint').ESLint.ConfigData}
  */
-module.exports.eslintrc = {
+export const eslintrc = {
     env: {
         node: true,
     },
@@ -25,7 +23,7 @@ module.exports.eslintrc = {
         sourceType: "script",
     },
     rules: {
-        ...commonRules,
+        ...recommendeRulesConfig,
         "n/no-unsupported-features/es-syntax": ["error", { ignores: [] }],
     },
 }
@@ -34,16 +32,16 @@ module.exports.eslintrc = {
  * https://eslint.org/docs/latest/use/configure/configuration-files-new
  * @type {import('eslint').Linter.FlatConfig}
  */
-module.exports.flat = {
+export const flat = {
     name: "node/flat/recommended-script",
     languageOptions: {
         sourceType: "commonjs",
         globals: {
             ...globals.node,
-            ...module.exports.eslintrc.globals,
+            ...eslintrc.globals,
         },
     },
     rules:
         /** @type {import('eslint').Linter.RulesRecord} */
-        (module.exports.eslintrc.rules),
+        (eslintrc.rules),
 }

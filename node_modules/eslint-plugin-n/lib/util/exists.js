@@ -2,11 +2,10 @@
  * @author Toru Nagashima
  * See LICENSE file in root directory for full license.
  */
-"use strict"
 
-const fs = require("fs")
-const path = require("path")
-const Cache = require("./cache")
+import fs from "node:fs"
+import path from "node:path"
+import { Cache } from "./cache.js"
 
 const ROOT = /^(?:[/.]|\.\.|[A-Z]:\\|\\\\)(?:[/\\]\.\.)*$/u
 const cache = new Cache()
@@ -37,7 +36,7 @@ function existsCaseSensitive(filePath) {
  * @param {string} filePath - A file path to check.
  * @returns {boolean} `true` if the file of a given path exists.
  */
-module.exports = function exists(filePath) {
+export function exists(filePath) {
     if (filePath == null) {
         return false
     }

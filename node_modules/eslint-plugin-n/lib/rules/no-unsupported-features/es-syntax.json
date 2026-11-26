@@ -437,7 +437,7 @@
         "supported": ">=10.0.0"
     },
     "no-promise-withresolvers": {
-        "supported": null
+        "supported": ">=22.11.0"
     },
     "no-promise": {
         "supported": ">=0.12.0"

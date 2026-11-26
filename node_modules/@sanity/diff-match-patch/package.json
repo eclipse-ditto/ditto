@@ -1,0 +1,78 @@
+{
+  "name": "@sanity/diff-match-patch",
+  "version": "3.2.0",
+  "description": "Robust diff, match and patch algorithms to perform operations required for synchronizing plain text",
+  "sideEffects": false,
+  "type": "module",
+  "exports": {
+    ".": {
+      "source": "./src/index.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs",
+      "default": "./dist/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "browserslist": "extends @sanity/browserslist-config",
+  "engines": {
+    "node": ">=18.18"
+  },
+  "files": [
+    "dist",
+    "!dist/stats.html",
+    "src",
+    "!src/**/*.test.ts",
+    "AUTHORS"
+  ],
+  "scripts": {
+    "clean": "rimraf dist coverage",
+    "build": "pkg-utils build && pkg-utils --strict",
+    "prebuild": "npm run clean",
+    "lint": "eslint && tsc --noEmit",
+    "test": "vitest --reporter=verbose",
+    "posttest": "npm run lint",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "diff",
+    "diff-match-patch",
+    "google-diff-match-patch"
+  ],
+  "author": "Google Inc.",
+  "license": "Apache-2.0",
+  "devDependencies": {
+    "@eslint/js": "^9.17.0",
+    "@sanity/pkg-utils": "^6.12.0",
+    "@semantic-release/changelog": "^6.0.3",
+    "@semantic-release/exec": "^6.0.3",
+    "@semantic-release/git": "^10.0.1",
+    "@types/node": "^18.3.1",
+    "@types/semantic-release": "^20.0.6",
+    "@typescript-eslint/eslint-plugin": "^8.20.0",
+    "@typescript-eslint/parser": "^8.20.0",
+    "@vitest/coverage-v8": "^2.1.8",
+    "conventional-changelog-conventionalcommits": "^8.0.0",
+    "eslint": "^9.17.0",
+    "eslint-config-prettier": "^10.0.1",
+    "eslint-plugin-import": "^2.31.0",
+    "eslint-plugin-prettier": "^5.2.1",
+    "eslint-plugin-simple-import-sort": "^12.1.1",
+    "eslint-plugin-unused-imports": "^4.1.4",
+    "prettier": "^3.4.2",
+    "rimraf": "^6.0.1",
+    "rollup-plugin-visualizer": "^5.12.0",
+    "semantic-release": "^24.2.0",
+    "typescript": "^5.7.2",
+    "typescript-eslint": "^8.18.1",
+    "vitest": "^2.1.8"
+  },
+  "prettier": {
+    "semi": false,
+    "printWidth": 100,
+    "bracketSpacing": false,
+    "singleQuote": true
+  }
+}

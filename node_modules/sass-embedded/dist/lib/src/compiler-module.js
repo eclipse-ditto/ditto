@@ -1,0 +1,64 @@
+"use strict";
+// Copyright 2025 Google LLC. Use of this source code is governed by an
+// MIT-style license that can be found in the LICENSE file or at
+// https://opensource.org/licenses/MIT.
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.compilerModule = void 0;
+const p = __importStar(require("path"));
+const elf_1 = require("./elf");
+/**
+ * Detect if the given binary is linked with musl libc by checking if
+ * the interpreter basename starts with "ld-musl-"
+ */
+function isLinuxMusl(path) {
+    try {
+        const interpreter = (0, elf_1.getElfInterpreter)(path);
+        return p.basename(interpreter).startsWith('ld-musl-');
+    }
+    catch (error) {
+        console.warn(`Warning: Failed to detect linux-musl, fallback to linux-gnu: ${error.message}`);
+        return false;
+    }
+}
+/** The module name for the embedded compiler executable. */
+exports.compilerModule = (() => {
+    const platform = process.platform === 'linux' && isLinuxMusl(process.execPath)
+        ? 'linux-musl'
+        : process.platform;
+    const arch = process.arch;
+    return `sass-embedded-${platform}-${arch}`;
+})();
+//# sourceMappingURL=compiler-module.js.map

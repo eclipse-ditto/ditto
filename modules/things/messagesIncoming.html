@@ -14,8 +14,8 @@
     Incoming Thing Updates <span class="badge rounded-pill bg-info" id="badgeMessageIncomingCount"></span></h5>
 <hr />
 <div class="collapse" id="collapseMessages">
-    <div class="row resizable_pane" style="height: 45vh;">
-        <div class="col-md-7 resizable_flex_column">
+    <div class="split-h resizable_pane" style="height: 45vh" data-split="horizontal" data-split-sizes="[58,42]" data-split-key="things-incoming">
+        <div class="split-panel resizable_flex_column">
             <div class="input-group input-group-sm mb-1">
                 <button class="btn btn-outline-secondary btn-sm button_round_right" id="buttonResetMessagesIncoming"
                     data-bs-toggle="tooltip" title="Reset connection logs for the selected connection">
@@ -39,7 +39,7 @@
                 </table>
             </div>
         </div>
-        <div class="col-md-5 resizable_flex_column">
+        <div class="split-panel resizable_flex_column">
             <h6>Thing Update Detail</h6>
             <div class="input-group input-group-sm mb-1 mt-1">
                 <label class="input-group-text" for="selectThingUpdateMessageContent">Show</label>
@@ -50,7 +50,7 @@
                     <option value="FULL_THING_WITH_CONTEXT">Full Thing JSON with context and metadata</option>
                 </select>
             </div>
-            <div class="ace_container" style="flex-grow: 1;">
+            <div class="ace_container" style="flex-grow: 1">
                 <div class="script_editor" id="messageIncomingDetail"></div>
             </div>
         </div>

@@ -17,6 +17,10 @@ import * as ace from 'ace-builds/src-noconflict/ace';
 import { Modal, Toast } from 'bootstrap';
 import DOMPurify from 'dompurify';
 
+// Disable Ace worker loading globally — the JSON worker would try to fetch
+// from a CDN, which fails in restricted environments. Workers are only used
+// for live syntax validation, which is not needed in our read-only editors.
+ace.config.setDefaultValue('session', 'useWorker', false);
 
 const dom = {
   modalBodyConfirm: null,
@@ -330,6 +334,19 @@ export function formatDate(dateISOString: string, withMilliseconds = false): str
   }
 }
 
+/**
+ * Converts an ISO 8601 UTC timestamp to a value suitable for datetime-local inputs.
+ * Adjusts to the browser's local timezone so the displayed value matches
+ * the user's wall-clock time.
+ */
+export function toDatetimeLocalValue(isoString: string): string {
+  if (!isoString) return '';
+  const d = new Date(isoString);
+  if (isNaN(d.getTime())) return '';
+  const offset = d.getTimezoneOffset() * 60000;
+  return new Date(d.getTime() - offset).toISOString().substring(0, 23);
+}
+
 let modalConfirm;
 
 /**
@@ -340,7 +357,9 @@ let modalConfirm;
  */
 export function confirm(message: string, action: string, callback) {
   modalConfirm = modalConfirm ?? new Modal('#modalConfirm');
-  dom.modalBodyConfirm.textContent = message;
+  // Callers conventionally embed <br> for line breaks (e.g. "Delete entry<br>'<id>'?"). textContent
+  // would render the markup literally, so sanitise and assign as HTML instead.
+  dom.modalBodyConfirm.innerHTML = sanitizeHTML(message);
   dom.buttonConfirmed.innerText = action;
   dom.buttonConfirmed.onclick = callback;
   modalConfirm.show();
@@ -357,7 +376,6 @@ export function confirm(message: string, action: string, callback) {
 export function createAceEditor(domId: string, sessionMode, readOnly = false, wrap = false) {
   const result = ace.edit(domId);
   result.setOption('wrap', wrap);
-  result.setOption('useWorker', false);
   result.session.setMode(sessionMode);
   if (readOnly) {
     result.setReadOnly(true);

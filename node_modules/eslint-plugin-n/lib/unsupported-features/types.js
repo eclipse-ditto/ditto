@@ -1,5 +1,3 @@
-"use strict"
-
 /**
  * @typedef {(
  *   | import("@eslint-community/eslint-utils").READ
@@ -31,4 +29,4 @@
  * @property {SupportVersionTraceMap} modules
  */
 
-module.exports = {}
+export default {}

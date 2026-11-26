@@ -130,5 +130,72 @@
         "importable": "never"
       }
     }
+  },
+  "3.9 Features Showcase": {
+    "entries": {
+      "DEFAULT": {
+        "subjects": {
+          "{{ request:subjectId }}": {
+            "type": "the creator"
+          }
+        },
+        "resources": {
+          "policy:/": {
+            "grant": [
+              "READ",
+              "WRITE"
+            ],
+            "revoke": []
+          }
+        }
+      },
+      "BASE": {
+        "subjects": {
+          "nginx:ditto": {
+            "type": "service account"
+          }
+        },
+        "resources": {
+          "thing:/": {
+            "grant": [
+              "READ"
+            ],
+            "revoke": []
+          }
+        },
+        "importable": "explicit",
+        "allowedAdditions": ["subjects"]
+      },
+      "ACME_OPERATORS": {
+        "subjects": {
+          "google:operator-acme": {
+            "type": "operator"
+          }
+        },
+        "resources": {},
+        "namespaces": ["com.acme", "com.acme.*"],
+        "references": [
+          { "entry": "BASE" }
+        ]
+      },
+      "STRICT_AUDITORS": {
+        "subjects": {
+          "google:auditor": {
+            "type": "auditor"
+          }
+        },
+        "resources": {},
+        "allowedAdditions": [],
+        "references": [
+          { "entry": "EXPLICIT", "import": "ditto:imported-policy" }
+        ]
+      }
+    },
+    "imports": {
+      "ditto:imported-policy": {
+        "entries": ["EXPLICIT"],
+        "transitiveImports": ["ditto:root-template"]
+      }
+    }
   }
 }

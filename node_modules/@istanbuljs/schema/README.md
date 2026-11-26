@@ -1,6 +1,5 @@
 # @istanbuljs/schema
 
-[![Travis CI][travis-image]][travis-url]
 [![NPM Version][npm-image]][npm-url]
 [![NPM Downloads][downloads-image]][downloads-url]
 [![MIT][license-image]](LICENSE)
@@ -15,6 +14,21 @@ const {nyc} = require('@istanbuljs/schema').defaults;
 console.log(`Default exclude list:\n\t* ${nyc.exclude.join('\n\t* ')}`);
 ```
 
+## Testing
+
+- **Runtime support**: See `engines.node` in `package.json` (currently `>=8`).
+- **Running tests**: Requires **Node.js >=22.3.0** (uses `node:test` snapshot testing via `t.assert.snapshot`).
+
+```bash
+npm test
+```
+
+To update snapshots:
+
+```bash
+npm run test:update-snapshots
+```
+
 ## `@istanbuljs/schema` for enterprise
 
 Available as part of the Tidelift Subscription.
@@ -23,8 +37,6 @@ The maintainers of `@istanbuljs/schema` and thousands of other packages are work
 
 [npm-image]: https://img.shields.io/npm/v/@istanbuljs/schema.svg
 [npm-url]: https://npmjs.org/package/@istanbuljs/schema
-[travis-image]: https://travis-ci.org/istanbuljs/schema.svg?branch=master
-[travis-url]: https://travis-ci.org/istanbuljs/schema
 [downloads-image]: https://img.shields.io/npm/dm/@istanbuljs/schema.svg
 [downloads-url]: https://npmjs.org/package/@istanbuljs/schema
 [license-image]: https://img.shields.io/npm/l/@istanbuljs/schema.svg

@@ -10,8 +10,8 @@
   ~
   ~ SPDX-License-Identifier: EPL-2.0
   -->
-<div class="row resizable_pane" style="height: 80vh">
-    <div class="col-md-4 resizable_flex_column">
+<div class="split-h resizable_pane" style="height: 80vh" data-split="horizontal" data-split-sizes="[33,67]" data-split-key="environments-main">
+    <div class="split-panel resizable_flex_column">
         <div class="input-group has-validation">
             <input class="form-control" id="tableValidationEnvironments" hidden="true"></input>
             <div class="invalid-feedback"></div>
@@ -22,7 +22,7 @@
             </table>
         </div>
     </div>
-    <div class="col-md-8 resizable_flex_column">
+    <div class="split-panel resizable_flex_column">
         <ul class="nav nav-tabs nav-fill">
             <li class="nav-item">
                 <a class="nav-link active" data-bs-toggle="tab" data-bs-target="#tabEnvDetails">Manage</a>
@@ -39,10 +39,11 @@
                             title="URI including protocol, host and port (e.g. http://localhost:8080)">API URI</label>
                         <input type="text" class="form-control form-control-sm" id="inputApiUri" disabled></input>
                     </div>
-                    <div class="input-group input-group-sm mt-1">
+                    <div class="input-group input-group-sm has-validation mt-1">
                         <label class="input-group-text" data-bs-toggle="tooltip"
-                            title="A comma-separated list of namespaces (e.g. com.example.namespace). The given namespaces are used as a parameter for the Things search">Search Namespaces</label>
+                            title="A comma-separated list of namespaces (e.g. com.example.namespace) offered for selection in the namespaces picker of the Things search">Search Namespaces</label>
                         <input type="text" class="form-control form-control-sm" spellcheck="false" id="inputSearchNamespaces" disabled></input>
+                        <div class="invalid-feedback"></div>
                     </div>
                     <div class="input-group input-group-sm mt-1 mb-3">
                         <label class="input-group-text">Ditto Version</label>

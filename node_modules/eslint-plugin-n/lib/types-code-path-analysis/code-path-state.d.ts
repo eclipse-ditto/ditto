@@ -1,6 +1,6 @@
 import IdGenerator = require("./id-generator")
 
-export = CodePathState;
+export = CodePathState
 /**
  * A class which manages state to analyze code paths.
  */
@@ -11,53 +11,53 @@ declare class CodePathState {
      *   path segments.
      * @param {Function} onLooped A callback function to notify looping.
      */
-    constructor(idGenerator: IdGenerator, onLooped: Function);
+    constructor(idGenerator: IdGenerator, onLooped: Function)
     /**
      * The ID generator to use when creating new segments.
      * @type {IdGenerator}
      */
-    idGenerator: IdGenerator;
+    idGenerator: IdGenerator
     /**
      * A callback function to call when there is a loop.
      * @type {Function}
      */
-    notifyLooped: Function;
+    notifyLooped: Function
     /**
      * The root fork context for this state.
      * @type {ForkContext}
      */
-    forkContext: ForkContext;
+    forkContext: ForkContext
     /**
      * Context for logical expressions, conditional expressions, `if` statements,
      * and loops.
      * @type {ChoiceContext}
      */
-    choiceContext: ChoiceContext;
+    choiceContext: ChoiceContext
     /**
      * Context for `switch` statements.
      * @type {SwitchContext}
      */
-    switchContext: SwitchContext;
+    switchContext: SwitchContext
     /**
      * Context for `try` statements.
      * @type {TryContext}
      */
-    tryContext: TryContext;
+    tryContext: TryContext
     /**
      * Context for loop statements.
      * @type {LoopContext}
      */
-    loopContext: LoopContext;
+    loopContext: LoopContext
     /**
      * Context for `break` statements.
      * @type {BreakContext}
      */
-    breakContext: BreakContext;
+    breakContext: BreakContext
     /**
      * Context for `ChainExpression` nodes.
      * @type {ChainContext}
      */
-    chainContext: ChainContext;
+    chainContext: ChainContext
     /**
      * An array that tracks the current segments in the state. The array
      * starts empty and segments are added with each `onCodePathSegmentStart`
@@ -66,64 +66,64 @@ declare class CodePathState {
      * modified.
      * @type {Array<CodePathSegment>}
      */
-    currentSegments: Array<CodePathSegment>;
+    currentSegments: Array<CodePathSegment>
     /**
      * Tracks the starting segment for this path. This value never changes.
      * @type {CodePathSegment}
      */
-    initialSegment: CodePathSegment;
+    initialSegment: CodePathSegment
     /**
      * The final segments of the code path which are either `return` or `throw`.
      * This is a union of the segments in `returnedForkContext` and `thrownForkContext`.
      * @type {Array<CodePathSegment>}
      */
-    finalSegments: Array<CodePathSegment>;
+    finalSegments: Array<CodePathSegment>
     /**
      * The final segments of the code path which are `return`. These
      * segments are also contained in `finalSegments`.
      * @type {Array<CodePathSegment>}
      */
-    returnedForkContext: Array<CodePathSegment>;
+    returnedForkContext: Array<CodePathSegment>
     /**
      * The final segments of the code path which are `throw`. These
      * segments are also contained in `finalSegments`.
      * @type {Array<CodePathSegment>}
      */
-    thrownForkContext: Array<CodePathSegment>;
+    thrownForkContext: Array<CodePathSegment>
     /**
      * A passthrough property exposing the current pointer as part of the API.
      * @type {CodePathSegment[]}
      */
-    get headSegments(): CodePathSegment[];
+    get headSegments(): CodePathSegment[]
     /**
      * The parent forking context.
      * This is used for the root of new forks.
      * @type {ForkContext}
      */
-    get parentForkContext(): ForkContext;
+    get parentForkContext(): ForkContext
     /**
      * Creates and stacks new forking context.
      * @param {boolean} forkLeavingPath A flag which shows being in a
      *   "finally" block.
      * @returns {ForkContext} The created context.
      */
-    pushForkContext(forkLeavingPath: boolean): ForkContext;
+    pushForkContext(forkLeavingPath: boolean): ForkContext
     /**
      * Pops and merges the last forking context.
      * @returns {ForkContext} The last context.
      */
-    popForkContext(): ForkContext;
+    popForkContext(): ForkContext
     /**
      * Creates a new path.
      * @returns {void}
      */
-    forkPath(): void;
+    forkPath(): void
     /**
      * Creates a bypass path.
      * This is used for such as IfStatement which does not have "else" chunk.
      * @returns {void}
      */
-    forkBypassPath(): void;
+    forkBypassPath(): void
     /**
      * Creates a context for ConditionalExpression, LogicalExpression, AssignmentExpression (logical assignments only),
      * IfStatement, WhileStatement, DoWhileStatement, or ForStatement.
@@ -154,14 +154,14 @@ declare class CodePathState {
      *      creates a fork.
      * @returns {void}
      */
-    pushChoiceContext(kind: string, isForkingAsResult: boolean): void;
+    pushChoiceContext(kind: string, isForkingAsResult: boolean): void
     /**
      * Pops the last choice context and finalizes it.
      * This is called upon leaving a node that represents a choice.
      * @throws {Error} (Unreachable.)
      * @returns {ChoiceContext} The popped context.
      */
-    popChoiceContext(): ChoiceContext;
+    popChoiceContext(): ChoiceContext
     /**
      * Creates a code path segment to represent right-hand operand of a logical
      * expression.
@@ -169,17 +169,17 @@ declare class CodePathState {
      * @throws {Error} (Unreachable.)
      * @returns {void}
      */
-    makeLogicalRight(): void;
+    makeLogicalRight(): void
     /**
      * Makes a code path segment of the `if` block.
      * @returns {void}
      */
-    makeIfConsequent(): void;
+    makeIfConsequent(): void
     /**
      * Makes a code path segment of the `else` block.
      * @returns {void}
      */
-    makeIfAlternate(): void;
+    makeIfAlternate(): void
     /**
      * Pushes a new `ChainExpression` context to the stack. This method is
      * called when entering a `ChainExpression` node. A chain context is used to
@@ -187,27 +187,27 @@ declare class CodePathState {
      * `ChainExpression` node.
      * @returns {void}
      */
-    pushChainContext(): void;
+    pushChainContext(): void
     /**
      * Pop a `ChainExpression` context from the stack. This method is called on
      * exiting from each `ChainExpression` node. This merges all forks of the
      * last optional chaining.
      * @returns {void}
      */
-    popChainContext(): void;
+    popChainContext(): void
     /**
      * Create a choice context for optional access.
      * This method is called on entering to each `(Call|Member)Expression[optional=true]` node.
      * This creates a choice context as similar to `LogicalExpression[operator="??"]` node.
      * @returns {void}
      */
-    makeOptionalNode(): void;
+    makeOptionalNode(): void
     /**
      * Create a fork.
      * This method is called on entering to the `arguments|property` property of each `(Call|Member)Expression` node.
      * @returns {void}
      */
-    makeOptionalRight(): void;
+    makeOptionalRight(): void
     /**
      * Creates a context object of SwitchStatement and stacks it.
      * @param {boolean} hasCase `true` if the switch statement has one or more
@@ -215,7 +215,7 @@ declare class CodePathState {
      * @param {string|null} label The label text.
      * @returns {void}
      */
-    pushSwitchContext(hasCase: boolean, label: string | null): void;
+    pushSwitchContext(hasCase: boolean, label: string | null): void
     /**
      * Pops the last context of SwitchStatement and finalizes it.
      *
@@ -225,31 +225,31 @@ declare class CodePathState {
      *   to the `default` body.
      * @returns {void}
      */
-    popSwitchContext(): void;
+    popSwitchContext(): void
     /**
      * Makes a code path segment for a `SwitchCase` node.
      * @param {boolean} isCaseBodyEmpty `true` if the body is empty.
      * @param {boolean} isDefaultCase `true` if the body is the default case.
      * @returns {void}
      */
-    makeSwitchCaseBody(isCaseBodyEmpty: boolean, isDefaultCase: boolean): void;
+    makeSwitchCaseBody(isCaseBodyEmpty: boolean, isDefaultCase: boolean): void
     /**
      * Creates a context object of TryStatement and stacks it.
      * @param {boolean} hasFinalizer `true` if the try statement has a
      *   `finally` block.
      * @returns {void}
      */
-    pushTryContext(hasFinalizer: boolean): void;
+    pushTryContext(hasFinalizer: boolean): void
     /**
      * Pops the last context of TryStatement and finalizes it.
      * @returns {void}
      */
-    popTryContext(): void;
+    popTryContext(): void
     /**
      * Makes a code path segment for a `catch` block.
      * @returns {void}
      */
-    makeCatchBlock(): void;
+    makeCatchBlock(): void
     /**
      * Makes a code path segment for a `finally` block.
      *
@@ -258,13 +258,13 @@ declare class CodePathState {
      * statements and `throw` statements in a `try` block or a `catch` block.
      * @returns {void}
      */
-    makeFinallyBlock(): void;
+    makeFinallyBlock(): void
     /**
      * Makes a code path segment from the first throwable node to the `catch`
      * block or the `finally` block.
      * @returns {void}
      */
-    makeFirstThrowablePathInTryBlock(): void;
+    makeFirstThrowablePathInTryBlock(): void
     /**
      * Creates a context object of a loop statement and stacks it.
      * @param {string} type The type of the node which was triggered. One of
@@ -274,69 +274,69 @@ declare class CodePathState {
      * @throws {Error} (Unreachable - unknown type.)
      * @returns {void}
      */
-    pushLoopContext(type: string, label: string | null): void;
+    pushLoopContext(type: string, label: string | null): void
     /**
      * Pops the last context of a loop statement and finalizes it.
      * @throws {Error} (Unreachable - unknown type.)
      * @returns {void}
      */
-    popLoopContext(): void;
+    popLoopContext(): void
     /**
      * Makes a code path segment for the test part of a WhileStatement.
      * @param {boolean|undefined} test The test value (only when constant).
      * @returns {void}
      */
-    makeWhileTest(test: boolean | undefined): void;
+    makeWhileTest(test: boolean | undefined): void
     /**
      * Makes a code path segment for the body part of a WhileStatement.
      * @returns {void}
      */
-    makeWhileBody(): void;
+    makeWhileBody(): void
     /**
      * Makes a code path segment for the body part of a DoWhileStatement.
      * @returns {void}
      */
-    makeDoWhileBody(): void;
+    makeDoWhileBody(): void
     /**
      * Makes a code path segment for the test part of a DoWhileStatement.
      * @param {boolean|undefined} test The test value (only when constant).
      * @returns {void}
      */
-    makeDoWhileTest(test: boolean | undefined): void;
+    makeDoWhileTest(test: boolean | undefined): void
     /**
      * Makes a code path segment for the test part of a ForStatement.
      * @param {boolean|undefined} test The test value (only when constant).
      * @returns {void}
      */
-    makeForTest(test: boolean | undefined): void;
+    makeForTest(test: boolean | undefined): void
     /**
      * Makes a code path segment for the update part of a ForStatement.
      * @returns {void}
      */
-    makeForUpdate(): void;
+    makeForUpdate(): void
     /**
      * Makes a code path segment for the body part of a ForStatement.
      * @returns {void}
      */
-    makeForBody(): void;
+    makeForBody(): void
     /**
      * Makes a code path segment for the left part of a ForInStatement and a
      * ForOfStatement.
      * @returns {void}
      */
-    makeForInOfLeft(): void;
+    makeForInOfLeft(): void
     /**
      * Makes a code path segment for the right part of a ForInStatement and a
      * ForOfStatement.
      * @returns {void}
      */
-    makeForInOfRight(): void;
+    makeForInOfRight(): void
     /**
      * Makes a code path segment for the body part of a ForInStatement and a
      * ForOfStatement.
      * @returns {void}
      */
-    makeForInOfBody(): void;
+    makeForInOfBody(): void
     /**
      * Creates new context in which a `break` statement can be used. This occurs inside of a loop,
      * labeled statement, or switch statement.
@@ -345,12 +345,12 @@ declare class CodePathState {
      * @param {string|null} label The label associated with the statement.
      * @returns {BreakContext} The new context.
      */
-    pushBreakContext(breakable: boolean, label: string | null): BreakContext;
+    pushBreakContext(breakable: boolean, label: string | null): BreakContext
     /**
      * Removes the top item of the break context stack.
      * @returns {Object} The removed context.
      */
-    popBreakContext(): any;
+    popBreakContext(): any
     /**
      * Makes a path for a `break` statement.
      *
@@ -359,7 +359,7 @@ declare class CodePathState {
      * @param {string|null} label A label of the break statement.
      * @returns {void}
      */
-    makeBreak(label: string | null): void;
+    makeBreak(label: string | null): void
     /**
      * Makes a path for a `continue` statement.
      *
@@ -368,7 +368,7 @@ declare class CodePathState {
      * @param {string|null} label A label of the continue statement.
      * @returns {void}
      */
-    makeContinue(label: string | null): void;
+    makeContinue(label: string | null): void
     /**
      * Makes a path for a `return` statement.
      *
@@ -376,7 +376,7 @@ declare class CodePathState {
      * It makes new unreachable segment, then it set the head with the segment.
      * @returns {void}
      */
-    makeReturn(): void;
+    makeReturn(): void
     /**
      * Makes a path for a `throw` statement.
      *
@@ -384,17 +384,17 @@ declare class CodePathState {
      * It makes new unreachable segment, then it set the head with the segment.
      * @returns {void}
      */
-    makeThrow(): void;
+    makeThrow(): void
     /**
      * Makes the final path.
      * @returns {void}
      */
-    makeFinal(): void;
+    makeFinal(): void
 }
 declare namespace CodePathState {
-    export { LoopContext };
+    export { LoopContext }
 }
-import ForkContext = require("./fork-context");
+import ForkContext = require("./fork-context")
 /**
  * Represents a choice in the code path.
  *
@@ -430,45 +430,50 @@ declare class ChoiceContext {
      *      creates a fork.
      * @param {ForkContext} forkContext The containing `ForkContext`.
      */
-    constructor(upperContext: ChoiceContext, kind: string, isForkingAsResult: boolean, forkContext: ForkContext);
+    constructor(
+        upperContext: ChoiceContext,
+        kind: string,
+        isForkingAsResult: boolean,
+        forkContext: ForkContext
+    )
     /**
      * The previous `ChoiceContext`
      * @type {ChoiceContext}
      */
-    upper: ChoiceContext;
+    upper: ChoiceContext
     /**
      * The kind of choice. If it's a logical or assignment expression, this
      * is `"&&"` or `"||"` or `"??"`; if it's an `if` statement or
      * conditional expression, this is `"test"`; otherwise, this is `"loop"`.
      * @type {string}
      */
-    kind: string;
+    kind: string
     /**
      * Indicates if the result of the choice forks the code path.
      * @type {boolean}
      */
-    isForkingAsResult: boolean;
+    isForkingAsResult: boolean
     /**
      * The fork context for the `true` path of the choice.
      * @type {ForkContext}
      */
-    trueForkContext: ForkContext;
+    trueForkContext: ForkContext
     /**
      * The fork context for the `false` path of the choice.
      * @type {ForkContext}
      */
-    falseForkContext: ForkContext;
+    falseForkContext: ForkContext
     /**
      * The fork context for when the choice result is `null` or `undefined`.
      * @type {ForkContext}
      */
-    nullishForkContext: ForkContext;
+    nullishForkContext: ForkContext
     /**
      * Indicates if any of `trueForkContext`, `falseForkContext`, or
      * `nullishForkContext` have been updated with segments from a child context.
      * @type {boolean}
      */
-    processed: boolean;
+    processed: boolean
 }
 /**
  * Represents the context for any loop.
@@ -484,43 +489,43 @@ declare class SwitchContext {
      * @param {boolean} hasCase Indicates if there is at least one `case` statement.
      *      `default` doesn't count.
      */
-    constructor(upperContext: SwitchContext, hasCase: boolean);
+    constructor(upperContext: SwitchContext, hasCase: boolean)
     /**
      * The previous context.
      * @type {SwitchContext}
      */
-    upper: SwitchContext;
+    upper: SwitchContext
     /**
      * Indicates if there is at least one `case` statement. `default` doesn't count.
      * @type {boolean}
      */
-    hasCase: boolean;
+    hasCase: boolean
     /**
      * The `default` keyword.
      * @type {Array<CodePathSegment>|null}
      */
-    defaultSegments: Array<CodePathSegment> | null;
+    defaultSegments: Array<CodePathSegment> | null
     /**
      * The default case body starting segments.
      * @type {Array<CodePathSegment>|null}
      */
-    defaultBodySegments: Array<CodePathSegment> | null;
+    defaultBodySegments: Array<CodePathSegment> | null
     /**
      * Indicates if a `default` case and is empty exists.
      * @type {boolean}
      */
-    foundEmptyDefault: boolean;
+    foundEmptyDefault: boolean
     /**
      * Indicates that a `default` exists and is the last case.
      * @type {boolean}
      */
-    lastIsDefault: boolean;
+    lastIsDefault: boolean
     /**
      * The number of fork contexts created. This is equivalent to the
      * number of `case` statements plus a `default` statement (if present).
      * @type {number}
      */
-    forkCount: number;
+    forkCount: number
 }
 /**
  * Represents the context for a `try` statement.
@@ -533,17 +538,21 @@ declare class TryContext {
      *      `finally` block.
      * @param {ForkContext} forkContext The enclosing fork context.
      */
-    constructor(upperContext: TryContext, hasFinalizer: boolean, forkContext: ForkContext);
+    constructor(
+        upperContext: TryContext,
+        hasFinalizer: boolean,
+        forkContext: ForkContext
+    )
     /**
      * The previous context.
      * @type {TryContext}
      */
-    upper: TryContext;
+    upper: TryContext
     /**
      * Indicates if the `try` statement has a `finally` block.
      * @type {boolean}
      */
-    hasFinalizer: boolean;
+    hasFinalizer: boolean
     /**
      * Tracks the traversal position inside of the `try` statement. This is
      * used to help determine the context necessary to create paths because
@@ -551,7 +560,7 @@ declare class TryContext {
      * and code paths behave differently in those blocks.
      * @type {"try"|"catch"|"finally"}
      */
-    position: "try" | "catch" | "finally";
+    position: "try" | "catch" | "finally"
     /**
      * If the `try` statement has a `finally` block, this affects how a
      * `return` statement behaves in the `try` block. Without `finally`,
@@ -560,29 +569,34 @@ declare class TryContext {
      * to track it.
      * @type {ForkContext|null}
      */
-    returnedForkContext: ForkContext | null;
+    returnedForkContext: ForkContext | null
     /**
      * When a `throw` occurs inside of a `try` block, the code path forks
      * into the `catch` or `finally` blocks, and this fork context tracks
      * that path.
      * @type {ForkContext}
      */
-    thrownForkContext: ForkContext;
+    thrownForkContext: ForkContext
     /**
      * Indicates if the last segment in the `try` block is reachable.
      * @type {boolean}
      */
-    lastOfTryIsReachable: boolean;
+    lastOfTryIsReachable: boolean
     /**
      * Indicates if the last segment in the `catch` block is reachable.
      * @type {boolean}
      */
-    lastOfCatchIsReachable: boolean;
+    lastOfCatchIsReachable: boolean
 }
 /**
  * Represents the context for any loop.
  */
-type LoopContext = WhileLoopContext | DoWhileLoopContext | ForLoopContext | ForInLoopContext | ForOfLoopContext;
+type LoopContext =
+    | WhileLoopContext
+    | DoWhileLoopContext
+    | ForLoopContext
+    | ForInLoopContext
+    | ForOfLoopContext
 /**
  * Represents the context in which a `break` statement can be used.
  *
@@ -610,28 +624,33 @@ declare class BreakContext {
      * @param {string|null} label The label for the statement.
      * @param {ForkContext} forkContext The current fork context.
      */
-    constructor(upperContext: BreakContext, breakable: boolean, label: string | null, forkContext: ForkContext);
+    constructor(
+        upperContext: BreakContext,
+        breakable: boolean,
+        label: string | null,
+        forkContext: ForkContext
+    )
     /**
      * The previous `BreakContext`
      * @type {BreakContext}
      */
-    upper: BreakContext;
+    upper: BreakContext
     /**
      * Indicates if we are inside a statement where `break` without a label
      * will exit the statement.
      * @type {boolean}
      */
-    breakable: boolean;
+    breakable: boolean
     /**
      * The label associated with the statement.
      * @type {string|null}
      */
-    label: string | null;
+    label: string | null
     /**
      * The fork context for the `break`.
      * @type {ForkContext}
      */
-    brokenForkContext: ForkContext;
+    brokenForkContext: ForkContext
 }
 /**
  * Represents the context for `ChainExpression` nodes.
@@ -641,19 +660,19 @@ declare class ChainContext {
      * Creates a new instance.
      * @param {ChainContext} upperContext The previous `ChainContext`.
      */
-    constructor(upperContext: ChainContext);
+    constructor(upperContext: ChainContext)
     /**
      * The previous `ChainContext`
      * @type {ChainContext}
      */
-    upper: ChainContext;
+    upper: ChainContext
     /**
      * The number of choice contexts inside of the `ChainContext`.
      * @type {number}
      */
-    choiceContextCount: number;
+    choiceContextCount: number
 }
-import CodePathSegment = require("./code-path-segment");
+import CodePathSegment = require("./code-path-segment")
 /**
  * Represents the context for a `while` loop.
  */
@@ -664,14 +683,18 @@ declare class WhileLoopContext extends LoopContextBase {
      * @param {string|null} label The label for the loop from an enclosing `LabeledStatement`.
      * @param {BreakContext} breakContext The context for breaking the loop.
      */
-    constructor(upperContext: LoopContext | null, label: string | null, breakContext: BreakContext);
+    constructor(
+        upperContext: LoopContext | null,
+        label: string | null,
+        breakContext: BreakContext
+    )
     /**
      * The segments representing the test condition where `continue` will
      * jump to. The test condition will typically have just one segment but
      * it's possible for there to be more than one.
      * @type {Array<CodePathSegment>|null}
      */
-    continueDestSegments: Array<CodePathSegment> | null;
+    continueDestSegments: Array<CodePathSegment> | null
 }
 /**
  * Represents the context for a `do-while` loop.
@@ -684,19 +707,24 @@ declare class DoWhileLoopContext extends LoopContextBase {
      * @param {BreakContext} breakContext The context for breaking the loop.
      * @param {ForkContext} forkContext The enclosing fork context.
      */
-    constructor(upperContext: LoopContext | null, label: string | null, breakContext: BreakContext, forkContext: ForkContext);
+    constructor(
+        upperContext: LoopContext | null,
+        label: string | null,
+        breakContext: BreakContext,
+        forkContext: ForkContext
+    )
     /**
      * The segments at the start of the loop body. This is the only loop
      * where the test comes at the end, so the first iteration always
      * happens and we need a reference to the first statements.
      * @type {Array<CodePathSegment>|null}
      */
-    entrySegments: Array<CodePathSegment> | null;
+    entrySegments: Array<CodePathSegment> | null
     /**
      * The fork context to follow when a `continue` is found.
      * @type {ForkContext}
      */
-    continueForkContext: ForkContext;
+    continueForkContext: ForkContext
 }
 /**
  * Represents the context for a `for` loop.
@@ -708,42 +736,46 @@ declare class ForLoopContext extends LoopContextBase {
      * @param {string|null} label The label for the loop from an enclosing `LabeledStatement`.
      * @param {BreakContext} breakContext The context for breaking the loop.
      */
-    constructor(upperContext: LoopContext | null, label: string | null, breakContext: BreakContext);
+    constructor(
+        upperContext: LoopContext | null,
+        label: string | null,
+        breakContext: BreakContext
+    )
     /**
      * The end of the init expression. This may change during the lifetime
      * of the instance as we traverse the loop because some loops don't have
      * an init expression.
      * @type {Array<CodePathSegment>|null}
      */
-    endOfInitSegments: Array<CodePathSegment> | null;
+    endOfInitSegments: Array<CodePathSegment> | null
     /**
      * The start of the test expression. This may change during the lifetime
      * of the instance as we traverse the loop because some loops don't have
      * a test expression.
      * @type {Array<CodePathSegment>|null}
      */
-    testSegments: Array<CodePathSegment> | null;
+    testSegments: Array<CodePathSegment> | null
     /**
      * The end of the test expression. This may change during the lifetime
      * of the instance as we traverse the loop because some loops don't have
      * a test expression.
      * @type {Array<CodePathSegment>|null}
      */
-    endOfTestSegments: Array<CodePathSegment> | null;
+    endOfTestSegments: Array<CodePathSegment> | null
     /**
      * The start of the update expression. This may change during the lifetime
      * of the instance as we traverse the loop because some loops don't have
      * an update expression.
      * @type {Array<CodePathSegment>|null}
      */
-    updateSegments: Array<CodePathSegment> | null;
+    updateSegments: Array<CodePathSegment> | null
     /**
      * The end of the update expresion. This may change during the lifetime
      * of the instance as we traverse the loop because some loops don't have
      * an update expression.
      * @type {Array<CodePathSegment>|null}
      */
-    endOfUpdateSegments: Array<CodePathSegment> | null;
+    endOfUpdateSegments: Array<CodePathSegment> | null
     /**
      * The segments representing the test condition where `continue` will
      * jump to. The test condition will typically have just one segment but
@@ -754,7 +786,7 @@ declare class ForLoopContext extends LoopContextBase {
      * to the test expression.
      * @type {Array<CodePathSegment>|null}
      */
-    continueDestSegments: Array<CodePathSegment> | null;
+    continueDestSegments: Array<CodePathSegment> | null
 }
 /**
  * Represents the context for a `for-in` loop.
@@ -772,7 +804,11 @@ declare class ForInLoopContext extends LoopContextBase {
      * @param {string|null} label The label for the loop from an enclosing `LabeledStatement`.
      * @param {BreakContext} breakContext The context for breaking the loop.
      */
-    constructor(upperContext: LoopContext | null, label: string | null, breakContext: BreakContext);
+    constructor(
+        upperContext: LoopContext | null,
+        label: string | null,
+        breakContext: BreakContext
+    )
     /**
      * The segments that came immediately before the start of the loop.
      * This allows you to traverse backwards out of the loop into the
@@ -783,7 +819,7 @@ declare class ForInLoopContext extends LoopContextBase {
      * been evaluated, this property is no longer used.
      * @type {Array<CodePathSegment>|null}
      */
-    prevSegments: Array<CodePathSegment> | null;
+    prevSegments: Array<CodePathSegment> | null
     /**
      * Segments representing the start of everything to the left of the
      * `in` keyword. This can be used to move forward towards
@@ -791,7 +827,7 @@ declare class ForInLoopContext extends LoopContextBase {
      * effectively the head and tail of a doubly-linked list.
      * @type {Array<CodePathSegment>|null}
      */
-    leftSegments: Array<CodePathSegment> | null;
+    leftSegments: Array<CodePathSegment> | null
     /**
      * Segments representing the end of everything to the left of the
      * `in` keyword. This can be used to move backward towards `leftSegments`.
@@ -799,7 +835,7 @@ declare class ForInLoopContext extends LoopContextBase {
      * and tail of a doubly-linked list.
      * @type {Array<CodePathSegment>|null}
      */
-    endOfLeftSegments: Array<CodePathSegment> | null;
+    endOfLeftSegments: Array<CodePathSegment> | null
     /**
      * The segments representing the left expression where `continue` will
      * jump to. In `for-in` loops, `continue` must always re-execute the
@@ -809,7 +845,7 @@ declare class ForInLoopContext extends LoopContextBase {
      * end up.
      * @type {Array<CodePathSegment>|null}
      */
-    continueDestSegments: Array<CodePathSegment> | null;
+    continueDestSegments: Array<CodePathSegment> | null
 }
 /**
  * Represents the context for a `for-of` loop.
@@ -821,7 +857,11 @@ declare class ForOfLoopContext extends LoopContextBase {
      * @param {string|null} label The label for the loop from an enclosing `LabeledStatement`.
      * @param {BreakContext} breakContext The context for breaking the loop.
      */
-    constructor(upperContext: LoopContext | null, label: string | null, breakContext: BreakContext);
+    constructor(
+        upperContext: LoopContext | null,
+        label: string | null,
+        breakContext: BreakContext
+    )
     /**
      * The segments that came immediately before the start of the loop.
      * This allows you to traverse backwards out of the loop into the
@@ -832,7 +872,7 @@ declare class ForOfLoopContext extends LoopContextBase {
      * been evaluated, this property is no longer used.
      * @type {Array<CodePathSegment>|null}
      */
-    prevSegments: Array<CodePathSegment> | null;
+    prevSegments: Array<CodePathSegment> | null
     /**
      * Segments representing the start of everything to the left of the
      * `of` keyword. This can be used to move forward towards
@@ -840,7 +880,7 @@ declare class ForOfLoopContext extends LoopContextBase {
      * effectively the head and tail of a doubly-linked list.
      * @type {Array<CodePathSegment>|null}
      */
-    leftSegments: Array<CodePathSegment> | null;
+    leftSegments: Array<CodePathSegment> | null
     /**
      * Segments representing the end of everything to the left of the
      * `of` keyword. This can be used to move backward towards `leftSegments`.
@@ -848,7 +888,7 @@ declare class ForOfLoopContext extends LoopContextBase {
      * and tail of a doubly-linked list.
      * @type {Array<CodePathSegment>|null}
      */
-    endOfLeftSegments: Array<CodePathSegment> | null;
+    endOfLeftSegments: Array<CodePathSegment> | null
     /**
      * The segments representing the left expression where `continue` will
      * jump to. In `for-in` loops, `continue` must always re-execute the
@@ -858,7 +898,7 @@ declare class ForOfLoopContext extends LoopContextBase {
      * end up.
      * @type {Array<CodePathSegment>|null}
      */
-    continueDestSegments: Array<CodePathSegment> | null;
+    continueDestSegments: Array<CodePathSegment> | null
 }
 /**
  * Base class for all loop contexts.
@@ -871,25 +911,30 @@ declare class LoopContextBase {
      * @param {string|null} label The label for the loop from an enclosing `LabeledStatement`.
      * @param {BreakContext} breakContext The context for breaking the loop.
      */
-    constructor(upperContext: LoopContext | null, type: string, label: string | null, breakContext: BreakContext);
+    constructor(
+        upperContext: LoopContext | null,
+        type: string,
+        label: string | null,
+        breakContext: BreakContext
+    )
     /**
      * The previous `LoopContext`.
      * @type {LoopContext}
      */
-    upper: LoopContext;
+    upper: LoopContext
     /**
      * The AST node's `type` for the loop.
      * @type {string}
      */
-    type: string;
+    type: string
     /**
      * The label for the loop from an enclosing `LabeledStatement`.
      * @type {string|null}
      */
-    label: string | null;
+    label: string | null
     /**
      * The fork context for when `break` is encountered.
      * @type {ForkContext}
      */
-    brokenForkContext: ForkContext;
+    brokenForkContext: ForkContext
 }

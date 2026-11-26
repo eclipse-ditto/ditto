@@ -2,7 +2,6 @@
  * @author Toru Nagashima
  * See LICENSE file in root directory for full license.
  */
-"use strict"
 
 const SKIP_TIME = 5000
 
@@ -11,7 +10,7 @@ const SKIP_TIME = 5000
  * The cache will dispose of each value if the value has not been accessed
  * during 5 seconds.
  */
-module.exports = class Cache {
+export class Cache {
     /**
      * Initialize this cache instance.
      */

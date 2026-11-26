@@ -55,10 +55,8 @@ var JavaHighlightRules = function () {
         "char|final|interface|static|void|" +
         "class|finally|long|strictfp|volatile|" +
         "const|float|native|super|while|" +
-        "var|exports|opens|requires|uses|yield|" +
-        "module|permits|(?:non\\-)?sealed|var|" +
-        "provides|to|when|" +
-        "open|record|transitive|with");
+        "yield|when|record|var|" +
+        "permits|(?:non\\-)?sealed");
     var buildinConstants = ("null|Infinity|NaN|undefined");
     var langClasses = ("AbstractMethodError|AssertionError|ClassCircularityError|" +
         "ClassFormatError|Deprecated|EnumConstantNotPresentException|" +
@@ -91,16 +89,7 @@ var JavaHighlightRules = function () {
     }, "identifier");
     this.$rules = {
         "start": [
-            {
-                token: "comment",
-                regex: "\\/\\/.*$"
-            },
-            DocCommentHighlightRules.getStartRule("doc-start"),
-            {
-                token: "comment", // multi line comment
-                regex: "\\/\\*",
-                next: "comment"
-            },
+            { include: "comments" },
             { include: "multiline-strings" },
             { include: "strings" },
             { include: "constants" },
@@ -110,14 +99,18 @@ var JavaHighlightRules = function () {
                 next: [{
                         regex: "{",
                         token: "paren.lparen",
-                        next: [{
+                        push: [
+                            {
                                 regex: "}",
                                 token: "paren.rparen",
-                                next: "start"
-                            }, {
+                                next: "pop"
+                            },
+                            { include: "comments" },
+                            {
                                 regex: "\\b(requires|transitive|exports|opens|to|uses|provides|with)\\b",
                                 token: "keyword"
-                            }]
+                            }
+                        ]
                     }, {
                         token: "text",
                         regex: "\\s+"
@@ -137,14 +130,29 @@ var JavaHighlightRules = function () {
             },
             { include: "statements" }
         ],
-        "comment": [
+        "comments": [
             {
-                token: "comment", // closing comment
-                regex: "\\*\\/",
-                next: "start"
-            }, {
-                defaultToken: "comment"
-            }
+                token: "comment",
+                regex: "\\/\\/.*$"
+            },
+            {
+                token: "comment.doc", // doc comment
+                regex: /\/\*\*(?!\/)/,
+                push: "doc-start"
+            },
+            {
+                token: "comment", // multi line comment
+                regex: "\\/\\*",
+                push: [
+                    {
+                        token: "comment", // closing comment
+                        regex: "\\*\\/",
+                        next: "pop"
+                    }, {
+                        defaultToken: "comment"
+                    }
+                ]
+            },
         ],
         "strings": [
             {
@@ -287,7 +295,7 @@ var JavaHighlightRules = function () {
             }
         ]
     };
-    this.embedRules(DocCommentHighlightRules, "doc-", [DocCommentHighlightRules.getEndRule("start")]);
+    this.embedRules(DocCommentHighlightRules, "doc-", [DocCommentHighlightRules.getEndRule("pop")]);
     this.normalizeRules();
 };
 oop.inherits(JavaHighlightRules, TextHighlightRules);
@@ -500,11 +508,27 @@ oop.inherits(FoldMode, BaseFoldMode);
 (function () {
     this.foldingStartMarker = /\b(rule|declare|query|when|then)\b/;
     this.foldingStopMarker = /\bend\b/;
+    this.importRegex = /^import /;
+    this.globalRegex = /^global /;
+    this.getBaseFoldWidget = this.getFoldWidget;
+    this.getFoldWidget = function (session, foldStyle, row) {
+        if (foldStyle === "markbegin") {
+            var line = session.getLine(row);
+            if (this.importRegex.test(line)) {
+                if (row === 0 || !this.importRegex.test(session.getLine(row - 1)))
+                    return "start";
+            }
+            if (this.globalRegex.test(line)) {
+                if (row === 0 || !this.globalRegex.test(session.getLine(row - 1)))
+                    return "start";
+            }
+        }
+        return this.getBaseFoldWidget(session, foldStyle, row);
+    };
     this.getFoldWidgetRange = function (session, foldStyle, row) {
         var line = session.getLine(row);
         var match = line.match(this.foldingStartMarker);
         if (match) {
-            var i = match.index;
             if (match[1]) {
                 var position = { row: row, column: line.length };
                 var iterator = new TokenIterator(session, position.row, position.column);
@@ -524,8 +548,34 @@ oop.inherits(FoldMode, BaseFoldMode);
                 }
             }
         }
+        match = line.match(this.importRegex);
+        if (match) {
+            return getMatchedFoldRange(session, this.importRegex, match, row);
+        }
+        match = line.match(this.globalRegex);
+        if (match) {
+            return getMatchedFoldRange(session, this.globalRegex, match, row);
+        }
     };
 }).call(FoldMode.prototype);
+function getMatchedFoldRange(session, regex, match, row) {
+    var startColumn = match[0].length;
+    var maxRow = session.getLength();
+    var startRow = row;
+    var endRow = row;
+    while (++row < maxRow) {
+        var line = session.getLine(row);
+        if (line.match(/^\s*$/))
+            continue;
+        if (!line.match(regex))
+            break;
+        endRow = row;
+    }
+    if (endRow > startRow) {
+        var endColumn = session.getLine(endRow).length;
+        return new Range(startRow, startColumn, endRow, endColumn);
+    }
+}
 
 });
 

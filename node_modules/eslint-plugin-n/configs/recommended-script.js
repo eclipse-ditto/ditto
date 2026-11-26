@@ -4,6 +4,6 @@
  * @deprecated use `flat/recommended-script` instead
  */
 
-"use strict"
 
-module.exports = require("../lib/index.js").configs["flat/recommended-script"]
+import pkg from '../lib/index.js';
+export default pkg.configs["flat/recommended-script"]

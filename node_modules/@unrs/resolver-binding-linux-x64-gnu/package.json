@@ -1,0 +1,28 @@
+{
+  "name": "@unrs/resolver-binding-linux-x64-gnu",
+  "version": "1.12.2",
+  "cpu": [
+    "x64"
+  ],
+  "main": "resolver.linux-x64-gnu.node",
+  "files": [
+    "resolver.linux-x64-gnu.node"
+  ],
+  "description": "UnRS Resolver Node API",
+  "homepage": "https://github.com/unrs/unrs-resolver",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/unrs/unrs-resolver.git"
+  },
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org/",
+    "access": "public"
+  },
+  "os": [
+    "linux"
+  ],
+  "libc": [
+    "glibc"
+  ]
+}
