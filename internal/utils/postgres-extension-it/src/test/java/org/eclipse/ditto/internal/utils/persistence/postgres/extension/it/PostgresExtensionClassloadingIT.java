@@ -44,7 +44,8 @@ import org.junit.Test;
  * their provider/base classes never reach the parent — preserving the child-loader isolation).
  * <p>
  * The netty case puts a parent that hides {@code io.netty.} between the child loader and this test's loader, because
- * the service allinones of policies, things and search carry no netty: the base jar must supply it itself.
+ * the service allinones of policies, things and search carry no netty (their poms enforce it): the base jar must supply
+ * it itself.
  * <p>
  * Runs under failsafe (needs no docker): {@code mvn install} (so the extension jars are installed and copyable) then the
  * failsafe {@code integration-test} phase.
@@ -240,7 +241,7 @@ public final class PostgresExtensionClassloadingIT {
     }
 
     /**
-     * Parent that hides io.netty, as the policies/things/search allinones do since MongoDB became an extension.
+     * Parent that hides io.netty, standing in for the policies/things/search allinones, which carry no netty.
      */
     private static final class NettyHidingClassLoader extends ClassLoader {
 

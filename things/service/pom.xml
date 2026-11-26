@@ -217,11 +217,27 @@
             <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-internal-utils-persistence-r2dbc</artifactId>
             <scope>test</scope>
+            <exclusions>
+                <!-- the imported netty-bom manages the native netty artifacts that reactor-netty pulls in at runtime
+                     scope; that managed scope overrides this test scope, so without the exclusion netty becomes a
+                     runtime dependency and is shaded into the service allinone. The tests here open no
+                     PostgreSQL connection, and the MongoDB test dependencies provide netty at test scope. -->
+                <exclusion>
+                    <groupId>io.netty</groupId>
+                    <artifactId>*</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-internal-utils-postgres-client</artifactId>
             <scope>test</scope>
+            <exclusions>
+                <exclusion>
+                    <groupId>io.netty</groupId>
+                    <artifactId>*</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
 
         <dependency>
@@ -413,6 +429,37 @@
                                         <exclude>org.eclipse.ditto:ditto-thingsearch-persistence-mongo:*:*:runtime</exclude>
                                     </excludes>
                                     <message>MongoDB must not be a compile or runtime dependency of a service module: it ships as the extension JARs ditto-mongo-persistence-extension and ditto-mongo-search-extension in /opt/ditto/backends/mongodb/. Test scope is allowed.</message>
+                                </bannedDependencies>
+                            </rules>
+                            <fail>true</fail>
+                        </configuration>
+                    </execution>
+                    <!--
+                        This service's code does not use netty, and each persistence backend ships the netty it needs
+                        in its extension jars (/opt/ditto/backends/<backend>/). This guard fails the build if netty
+                        becomes a compile or runtime dependency of this service, for example through the managed
+                        runtime scope of netty-bom's native artifacts below a test-scope dependency, which would
+                        shade netty into the service allinone.
+                    -->
+                    <execution>
+                        <id>enforce-no-netty-in-service</id>
+                        <goals>
+                            <goal>enforce</goal>
+                        </goals>
+                        <configuration>
+                            <rules>
+                                <bannedDependencies>
+                                    <searchTransitive>true</searchTransitive>
+                                    <!-- pattern groupId:artifactId:version:type:scope -->
+                                    <excludes>
+                                        <exclude>io.netty:*:*:*:compile</exclude>
+                                        <exclude>io.netty:*:*:*:runtime</exclude>
+                                    </excludes>
+                                    <message>
+                                        netty must not be a compile or runtime dependency of this service: it would be
+                                        shaded into the service allinone, while each persistence backend ships the
+                                        netty it needs in its extension jars.
+                                    </message>
                                 </bannedDependencies>
                             </rules>
                             <fail>true</fail>

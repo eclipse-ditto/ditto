@@ -285,6 +285,37 @@
                             <fail>true</fail>
                         </configuration>
                     </execution>
+                    <!--
+                        This service's code does not use netty, and each persistence backend ships the netty it needs
+                        in its extension jars (/opt/ditto/backends/<backend>/). This guard fails the build if netty
+                        becomes a compile or runtime dependency of this service, for example through the managed
+                        runtime scope of netty-bom's native artifacts below a test-scope dependency, which would
+                        shade netty into the service allinone.
+                    -->
+                    <execution>
+                        <id>enforce-no-netty-in-service</id>
+                        <goals>
+                            <goal>enforce</goal>
+                        </goals>
+                        <configuration>
+                            <rules>
+                                <bannedDependencies>
+                                    <searchTransitive>true</searchTransitive>
+                                    <!-- pattern groupId:artifactId:version:type:scope -->
+                                    <excludes>
+                                        <exclude>io.netty:*:*:*:compile</exclude>
+                                        <exclude>io.netty:*:*:*:runtime</exclude>
+                                    </excludes>
+                                    <message>
+                                        netty must not be a compile or runtime dependency of this service: it would be
+                                        shaded into the service allinone, while each persistence backend ships the
+                                        netty it needs in its extension jars.
+                                    </message>
+                                </bannedDependencies>
+                            </rules>
+                            <fail>true</fail>
+                        </configuration>
+                    </execution>
                 </executions>
             </plugin>
             <plugin>
