@@ -68,6 +68,7 @@ import org.eclipse.ditto.timeseries.iotdb.IoTDbValues.Typed;
 import org.eclipse.ditto.timeseries.model.AggregatedTimeseriesResult;
 import org.eclipse.ditto.timeseries.model.Aggregation;
 import org.eclipse.ditto.timeseries.model.CrossThingTimeseriesQuery;
+import org.eclipse.ditto.timeseries.model.FillStrategy;
 import org.eclipse.ditto.timeseries.model.GroupBy;
 import org.eclipse.ditto.timeseries.model.SortOrder;
 import org.eclipse.ditto.timeseries.model.TimeseriesCursor;
@@ -94,8 +95,9 @@ import com.typesafe.config.Config;
  * the same series is written to a device of its own: the {@code rev_slot} TAG carries its revision and is null for
  * every other point. Raw reads order by {@code (timestamp, revision)} like the other adapters.
  * <p>
- * Raw reads, bucketed aggregations, derivative/rate and cross-Thing aggregations all run inside IoTDB.
- * Gap fill, timezone-aligned buckets, percentile and integral are rejected.
+ * Raw reads, bucketed aggregations, derivative/rate and cross-Thing aggregations all run inside IoTDB; gap fill
+ * is applied to the aggregated buckets by the shared compute kernel, so it matches the other adapters exactly.
+ * Timezone-aligned buckets, percentile and integral are rejected.
  * <p>
  * The IoTDB client blocks, so every statement runs on a dedicated executor sized to the session pool, and every
  * returned future times out after the configured query timeout.
@@ -117,8 +119,8 @@ public final class IoTDbTimeseriesAdapter implements TimeseriesAdapter {
             .build();
 
     private static final String SUPPORTED_DESCRIPTION = "The IoTDB timeseries backend supports raw reads and the " +
-            "aggregations avg, min, max, sum, count, first, last, stddev, derivative and rate, without 'fill' " +
-            "and 'timezone'.";
+            "aggregations avg, min, max, sum, count, first, last, stddev, derivative and rate, with 'fill' but " +
+            "without 'timezone'.";
 
     private static final List<String> BASE_COLUMNS = List.of(IoTDbSql.COL_THING_ID, IoTDbSql.COL_PATH,
             IoTDbSql.COL_VALUE_DOUBLE, IoTDbSql.COL_VALUE_TEXT, IoTDbSql.COL_VALUE_BOOL, IoTDbSql.COL_REVISION,
@@ -545,9 +547,6 @@ public final class IoTDbTimeseriesAdapter implements TimeseriesAdapter {
     }
 
     static void ensureSupported(final TimeseriesQuery query) {
-        if (query.getFillStrategy().isPresent()) {
-            throw unsupported("The 'fill' parameter is not supported by the IoTDB timeseries backend.");
-        }
         if (query.getTimezone().isPresent()) {
             throw unsupported("The 'timezone' parameter is not supported by the IoTDB timeseries backend.");
         }
@@ -712,9 +711,30 @@ public final class IoTDbTimeseriesAdapter implements TimeseriesAdapter {
                 unit = bucket.unit();
             }
         }
-        final List<TimeseriesDataValue> data = TimeseriesComputeKernel.fillBuckets(byBucket, step, null, null);
+        final List<TimeseriesDataValue> data =
+                filledBuckets(byBucket, step, query.getFillStrategy().orElse(null), maxPoints, path);
         final TimeseriesResultMeta meta = TimeseriesResultMeta.of(data.size(), unit, aggregatedDataType(data));
         return TimeseriesQueryResult.of(query.getThingId(), path, query, meta, data);
+    }
+
+    static List<TimeseriesDataValue> filledBuckets(final LinkedHashMap<Instant, JsonValue> byBucket,
+            final Duration step, @Nullable final FillStrategy fill, final int maxPoints, final JsonPointer path) {
+
+        if (fill != null && !byBucket.isEmpty()) {
+            final Instant first = byBucket.keySet().iterator().next();
+            Instant last = first;
+            for (final Instant bucket : byBucket.keySet()) {
+                last = bucket;
+            }
+            if (Duration.between(first, last).toMillis() / Math.max(1L, step.toMillis()) >= maxPoints) {
+                throw TimeseriesQueryInvalidException
+                        .newBuilder("The gap-filled result for <" + path + "> would exceed the maximum of " +
+                                maxPoints + " data points.")
+                        .description("Increase the 'step', narrow the time range (from/to), or omit 'fill'.")
+                        .build();
+            }
+        }
+        return TimeseriesComputeKernel.fillBuckets(byBucket, step, fill, null);
     }
 
     /**
@@ -819,9 +839,9 @@ public final class IoTDbTimeseriesAdapter implements TimeseriesAdapter {
         if (current.health != HealthStatus.UP) {
             return notInitialized();
         }
-        if (query.getFillStrategy().isPresent() || query.getTimezone().isPresent()) {
+        if (query.getTimezone().isPresent()) {
             return CompletableFuture.failedFuture(unsupported(
-                    "The 'fill' and 'timezone' parameters are not supported by the IoTDB timeseries backend."));
+                    "The 'timezone' parameter is not supported by the IoTDB timeseries backend."));
         }
         final Map<JsonPointer, Collection<ThingId>> readable = readablePaths(query, permittedThingsPerPath);
         if (readable.isEmpty()) {
@@ -829,6 +849,7 @@ public final class IoTDbTimeseriesAdapter implements TimeseriesAdapter {
         }
         final String table = tableName(current, query.getNamespace());
         final int maxGroups = query.getMaxGroups().orElse(CrossThingTimeseriesQuery.DEFAULT_MAX_GROUPS);
+        final int maxPoints = current.config.getMaxQueryResultSize();
         final long startNanos = System.nanoTime();
         return run(current, session -> {
             final Optional<Set<String>> columns = describe(session, table);
@@ -845,7 +866,7 @@ public final class IoTDbTimeseriesAdapter implements TimeseriesAdapter {
                     final List<JsonValue> key = statement.readKey(row);
                     if (!key.equals(seriesKey)) {
                         if (series != null) {
-                            results.add(series.build(query));
+                            results.add(series.build(query, maxPoints));
                         }
                         if (results.size() >= maxGroups) {
                             throw tooManyGroups(maxGroups);
@@ -856,7 +877,7 @@ public final class IoTDbTimeseriesAdapter implements TimeseriesAdapter {
                     series.add(row, query.getAggregation());
                 }
                 if (series != null) {
-                    results.add(series.build(query));
+                    results.add(series.build(query, maxPoints));
                 }
             }
             return results;
@@ -1313,9 +1334,9 @@ public final class IoTDbTimeseriesAdapter implements TimeseriesAdapter {
             }
         }
 
-        AggregatedTimeseriesResult build(final CrossThingTimeseriesQuery query) {
-            final List<TimeseriesDataValue> data =
-                    TimeseriesComputeKernel.fillBuckets(byBucket, query.getStep(), null, null);
+        AggregatedTimeseriesResult build(final CrossThingTimeseriesQuery query, final int maxPoints) {
+            final List<TimeseriesDataValue> data = filledBuckets(byBucket, query.getStep(),
+                    query.getFillStrategy().orElse(null), maxPoints, identity.path());
             final TimeseriesResultMeta meta = TimeseriesResultMeta.of(data.size(), unit, aggregatedDataType(data));
             return AggregatedTimeseriesResult.of(identity.group(), identity.path(), meta, data);
         }

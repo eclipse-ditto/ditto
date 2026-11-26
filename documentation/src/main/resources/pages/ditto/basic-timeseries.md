@@ -257,7 +257,7 @@ Ditto builds an adapter for [Apache IoTDB](https://iotdb.apache.org/) 2.x as the
 include required(classpath("ditto-timeseries-iotdb.conf"))
 ```
 
-The connection is configured with `TIMESERIES_IOTDB_HOST`, `TIMESERIES_IOTDB_PORT`, `TIMESERIES_IOTDB_USERNAME`, `TIMESERIES_IOTDB_PASSWORD` and `TIMESERIES_IOTDB_DATABASE`, the other settings under `ditto.timeseries.adapter.iotdb`. The IoTDB adapter answers `fill`, `tz`, `integral` and `percentile` with a `400`.
+The connection is configured with `TIMESERIES_IOTDB_HOST`, `TIMESERIES_IOTDB_PORT`, `TIMESERIES_IOTDB_USERNAME`, `TIMESERIES_IOTDB_PASSWORD` and `TIMESERIES_IOTDB_DATABASE`, the other settings under `ditto.timeseries.adapter.iotdb`. The IoTDB adapter answers `tz`, `integral` and `percentile` with a `400`.
 
 ## Retention
 

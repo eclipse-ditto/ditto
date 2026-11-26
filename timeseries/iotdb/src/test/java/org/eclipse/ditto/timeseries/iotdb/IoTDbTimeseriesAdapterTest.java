@@ -156,8 +156,6 @@ public final class IoTDbTimeseriesAdapterTest {
     @Test
     public void unsupportedQueryShapesAreRejectedWithoutTouchingIoTDb() throws Exception {
         for (final TimeseriesQuery query : List.of(
-                TimeseriesQuery.of(THING_ID, List.of(PATH), FROM, TO, Duration.ofMinutes(1), Aggregation.AVG,
-                        FillStrategy.LINEAR, null, null),
                 TimeseriesQuery.of(THING_ID, List.of(PATH), FROM, TO, Duration.ofDays(1), Aggregation.AVG, null,
                         null, ZoneId.of("Europe/Berlin")),
                 TimeseriesQuery.of(THING_ID, List.of(PATH), FROM, TO, null, Aggregation.PERCENTILE, null, null,
@@ -169,6 +167,20 @@ public final class IoTDbTimeseriesAdapterTest {
                     .hasCauseInstanceOf(TimeseriesQueryInvalidException.class);
         }
         verify(pool, never()).getSession();
+    }
+
+    @Test
+    public void gapFillIsBoundedByTheResultCeiling() {
+        final LinkedHashMap<Instant, JsonValue> byBucket = new LinkedHashMap<>();
+        byBucket.put(FROM, JsonValue.of(1.0));
+        byBucket.put(FROM.plus(Duration.ofMinutes(10)), JsonValue.of(11.0));
+
+        assertThat(IoTDbTimeseriesAdapter.filledBuckets(byBucket, Duration.ofMinutes(1), FillStrategy.LINEAR, 11,
+                PATH)).hasSize(11);
+        assertThat(IoTDbTimeseriesAdapter.filledBuckets(byBucket, Duration.ofMinutes(1), null, 2, PATH))
+                .hasSize(2);
+        assertThatThrownBy(() -> IoTDbTimeseriesAdapter.filledBuckets(byBucket, Duration.ofMinutes(1),
+                FillStrategy.PREVIOUS, 10, PATH)).isInstanceOf(TimeseriesQueryInvalidException.class);
     }
 
     @Test

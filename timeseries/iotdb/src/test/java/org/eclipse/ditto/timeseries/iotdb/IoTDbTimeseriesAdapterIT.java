@@ -31,6 +31,8 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 
+import javax.annotation.Nullable;
+
 import org.apache.iotdb.isession.ITableSession;
 import org.apache.iotdb.isession.SessionDataSet;
 import org.apache.iotdb.isession.pool.ITableSessionPool;
@@ -464,14 +466,57 @@ public final class IoTDbTimeseriesAdapterIT {
 
     @Test
     public void unsupportedQueryShapesAreRejected() {
-        assertInvalid(TimeseriesQuery.of(thingId, List.of(PATH), HOUR, HOUR_END, Duration.ofMinutes(10),
-                Aggregation.AVG, FillStrategy.PREVIOUS, null, null));
         assertInvalid(TimeseriesQuery.of(thingId, List.of(PATH), HOUR, HOUR_END, Duration.ofHours(1),
                 Aggregation.AVG, null, null, ZoneId.of("Europe/Berlin")));
         assertInvalid(TimeseriesQuery.of(thingId, List.of(PATH), HOUR, HOUR_END, null, Aggregation.PERCENTILE,
                 null, null, null, 90.0));
         assertInvalid(TimeseriesQuery.of(thingId, List.of(PATH), HOUR, HOUR_END, null, Aggregation.INTEGRAL,
                 null, null, null));
+    }
+
+    @Test
+    public void gapFillFillsOnlyInteriorBucketsAndFlagsThemAsGaps() throws Exception {
+        adapter.writeBatch(List.of(point(HOUR, JsonValue.of(10.0)),
+                point(HOUR.plus(30, ChronoUnit.MINUTES), JsonValue.of(40.0)))).toCompletableFuture().get();
+
+        assertThat(filled(null)).containsExactly("10.0", "40.0");
+        assertThat(filled(FillStrategy.NULL)).containsExactly("10.0", "gap:null", "gap:null", "40.0");
+        assertThat(filled(FillStrategy.ZERO)).containsExactly("10.0", "gap:0", "gap:0", "40.0");
+        assertThat(filled(FillStrategy.PREVIOUS)).containsExactly("10.0", "gap:10.0", "gap:10.0", "40.0");
+        assertThat(filled(FillStrategy.LINEAR)).containsExactly("10.0", "gap:20.0", "gap:30.0", "40.0");
+    }
+
+    @Test
+    public void gapFillIsRejectedWhenTheFilledGridExceedsTheResultCeiling() throws Exception {
+        adapter.shutdown().toCompletableFuture().get();
+        adapter = new IoTDbTimeseriesAdapter(config("max-query-result-size = 5"));
+        adapter.initialize().toCompletableFuture().get();
+        adapter.writeBatch(List.of(point(HOUR, JsonValue.of(1.0)),
+                point(HOUR.plus(50, ChronoUnit.MINUTES), JsonValue.of(2.0)))).toCompletableFuture().get();
+
+        assertThat(aggregate(Duration.ofMinutes(10), Aggregation.AVG)).hasSize(2);
+        assertInvalid(TimeseriesQuery.of(thingId, List.of(PATH), HOUR, HOUR_END, Duration.ofMinutes(10),
+                Aggregation.AVG, FillStrategy.LINEAR, null, null));
+    }
+
+    @Test
+    public void crossThingGapFillIsAppliedPerSeries() throws Exception {
+        final ThingId a = ThingId.of(NAMESPACE, "a-" + UUID.randomUUID().toString().substring(0, 6));
+        final ThingId b = ThingId.of(NAMESPACE, "b-" + UUID.randomUUID().toString().substring(0, 6));
+        adapter.writeBatch(List.of(
+                point(a, HOUR, JsonValue.of(10.0), PATH, Map.of()),
+                point(a, HOUR.plus(30, ChronoUnit.MINUTES), JsonValue.of(40.0), PATH, Map.of()),
+                point(b, HOUR.plus(20, ChronoUnit.MINUTES), JsonValue.of(100.0), PATH, Map.of())))
+                .toCompletableFuture().get();
+        final CrossThingTimeseriesQuery query = CrossThingTimeseriesQuery.of(NAMESPACE, List.of(PATH), HOUR,
+                HOUR_END, Duration.ofMinutes(10), Aggregation.AVG, List.of(GroupBy.thingId()), null, null,
+                FillStrategy.LINEAR, null);
+
+        final List<AggregatedTimeseriesResult> results =
+                adapter.queryCrossThing(query, Map.of(PATH, List.of(a, b))).toCompletableFuture().get();
+
+        assertThat(seriesOf(results, "thingId", a.toString())).containsExactly(10.0, 20.0, 30.0, 40.0);
+        assertThat(seriesOf(results, "thingId", b.toString())).containsExactly(100.0);
     }
 
     @Test
@@ -674,6 +719,14 @@ public final class IoTDbTimeseriesAdapterIT {
 
         return query(TimeseriesQuery.of(thingId, List.of(PATH), HOUR, HOUR_END, step, aggregation, null, null,
                 null)).getData();
+    }
+
+    private List<String> filled(@Nullable final FillStrategy fill) throws Exception {
+        return query(TimeseriesQuery.of(thingId, List.of(PATH), HOUR, HOUR_END, Duration.ofMinutes(10),
+                Aggregation.AVG, fill, null, null)).getData().stream()
+                .map(value -> (value.isGap() ? "gap:" : "") +
+                        value.getValue().map(JsonValue::toString).orElse("null"))
+                .toList();
     }
 
     private List<TimeseriesDataValue> aggregateNoStep(final Aggregation aggregation) throws Exception {
