@@ -16,15 +16,23 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.annotation.Nullable;
 
 import org.apache.pekko.actor.ActorSystem;
 import org.apache.pekko.actor.ExtendedActorSystem;
 import org.apache.pekko.persistence.journal.EventSeq;
+import org.apache.pekko.persistence.journal.Tagged;
 import org.apache.pekko.testkit.javadsl.TestKit;
+import org.bson.BsonBoolean;
+import org.bson.BsonDocument;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.signals.events.Event;
+import org.eclipse.ditto.internal.utils.persistence.mongo.adapters.DelegatingMongoEventAdapter;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonObjectBuilder;
+import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.policies.model.PoliciesModelFactory;
 import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.policies.model.PolicyId;
@@ -49,7 +57,8 @@ import ch.qos.logback.core.read.ListAppender;
 import scala.jdk.javaapi.CollectionConverters;
 
 /**
- * Tests {@link PolicyEventSerializer}: the manifest-keyed discard of removed legacy policy event types.
+ * Tests {@link PolicyEventSerializer}: the manifest-keyed discard of removed legacy policy event types, and the class
+ * as an extension point whose subclasses add their own journal migration.
  * <p>
  * Every legacy manifest is fed a <em>valid, current</em> {@code PolicyCreated} JSON, so without the discard guard the
  * payload would parse to an event; an empty result therefore proves the guard, not a parse failure.
@@ -177,6 +186,137 @@ public final class PolicyEventSerializerTest {
             final EventSeq result = serializer.fromJournalJson(POLICY_CREATED_JSON, manifest);
 
             assertThat(CollectionConverters.asJava(result.events())).containsExactly(POLICY_CREATED);
+        }
+
+    }
+
+    /**
+     * The extension recipe of {@link PolicyEventSerializer}: a subclass overriding the journal migration hooks, and a
+     * one-line event adapter naming that subclass.
+     */
+    public static final class ExtensionPoint {
+
+        private static final String EXTENSION_FIELD = "extension";
+
+        private final MigratingPolicyEventSerializer underTest = new MigratingPolicyEventSerializer(SYSTEM);
+
+        @Before
+        public void resetHookCalls() {
+            MigratingPolicyEventSerializer.FROM_JOURNAL_HOOK_CALLS.set(0);
+        }
+
+        @Test
+        public void toJournalJsonRunsTheSubclassMigration() {
+            final JsonObject journalJson = underTest.toJournalJson(POLICY_CREATED);
+
+            assertThat(journalJson.getValue(EXTENSION_FIELD)).contains(JsonValue.of(true));
+            assertThat(journalJson.remove(EXTENSION_FIELD)).isEqualTo(POLICY_CREATED_JSON);
+        }
+
+        @Test
+        public void fromJournalJsonRunsTheSubclassMigrationExactlyOnce() {
+            final JsonObject journalJson = underTest.toJournalJson(POLICY_CREATED);
+
+            final EventSeq result = underTest.fromJournalJson(journalJson, PolicyCreated.TYPE);
+
+            assertThat(CollectionConverters.asJava(result.events())).containsExactly(POLICY_CREATED);
+            assertThat(MigratingPolicyEventSerializer.FROM_JOURNAL_HOOK_CALLS).hasValue(1);
+        }
+
+        @Test
+        public void aLegacyManifestIsDiscardedBeforeTheSubclassMigration() {
+            final JsonObject journalJson = underTest.toJournalJson(POLICY_CREATED);
+
+            for (final String legacyManifest : LEGACY_MANIFESTS) {
+                final EventSeq result = underTest.fromJournalJson(journalJson, legacyManifest);
+
+                assertThat(CollectionConverters.asJava(result.events())).as(legacyManifest).isEmpty();
+            }
+            assertThat(MigratingPolicyEventSerializer.FROM_JOURNAL_HOOK_CALLS).hasValue(0);
+        }
+
+        @Test
+        public void theCurrentManifestIsNotDiscarded() {
+            final JsonObject journalJson = underTest.toJournalJson(POLICY_CREATED);
+
+            final EventSeq result = underTest.fromJournalJson(journalJson, PolicyCreated.TYPE);
+
+            assertThat(CollectionConverters.asJava(result.events())).containsExactly(POLICY_CREATED);
+        }
+
+        @Test
+        public void aNullManifestIsNotDiscardedAndRunsTheSubclassMigration() {
+            final JsonObject journalJson = underTest.toJournalJson(POLICY_CREATED);
+
+            final EventSeq result = underTest.fromJournalJson(journalJson, null);
+
+            assertThat(CollectionConverters.asJava(result.events())).containsExactly(POLICY_CREATED);
+            assertThat(MigratingPolicyEventSerializer.FROM_JOURNAL_HOOK_CALLS).hasValue(1);
+        }
+
+        @Test
+        public void aOneLineMongoAdapterNamingTheSubclassRoundTripsAnEventThroughItsMigration() {
+            final DelegatingMongoEventAdapter adapter = new MigratingPolicyMongoEventAdapter(SYSTEM);
+
+            final Object journal = adapter.toJournal(POLICY_CREATED);
+
+            assertThat(journal).isInstanceOf(Tagged.class);
+            final Object stored = ((Tagged) journal).payload();
+            assertThat(stored).isInstanceOf(BsonDocument.class);
+            assertThat(((BsonDocument) stored).get(EXTENSION_FIELD)).isEqualTo(BsonBoolean.TRUE);
+
+            final EventSeq recovered = adapter.fromJournal(stored, adapter.manifest(POLICY_CREATED));
+
+            assertThat(CollectionConverters.asJava(recovered.events())).containsExactly(POLICY_CREATED);
+            assertThat(MigratingPolicyEventSerializer.FROM_JOURNAL_HOOK_CALLS).hasValue(1);
+        }
+
+        @Test
+        public void aOneLineMongoAdapterNamingTheSubclassDiscardsALegacyManifestBeforeTheSubclassMigration() {
+            final DelegatingMongoEventAdapter adapter = new MigratingPolicyMongoEventAdapter(SYSTEM);
+            final Object stored = ((Tagged) adapter.toJournal(POLICY_CREATED)).payload();
+
+            final EventSeq recovered = adapter.fromJournal(stored, LEGACY_MANIFESTS.get(0));
+
+            assertThat(CollectionConverters.asJava(recovered.events())).isEmpty();
+            assertThat(MigratingPolicyEventSerializer.FROM_JOURNAL_HOOK_CALLS).hasValue(0);
+        }
+
+        /**
+         * A serializer subclass with both journal migration hooks: it marks every written event with the field
+         * {@code extension} and, on read, counts the call, requires the mark and strips it again. Event adapters
+         * instantiate it by class name through its public {@code (ExtendedActorSystem)} constructor.
+         */
+        public static final class MigratingPolicyEventSerializer extends PolicyEventSerializer {
+
+            /** Counts the from-journal hook calls of all instances: an adapter creates its instance by name. */
+            static final AtomicInteger FROM_JOURNAL_HOOK_CALLS = new AtomicInteger();
+
+            public MigratingPolicyEventSerializer(final ExtendedActorSystem system) {
+                super(system);
+            }
+
+            @Override
+            protected JsonObjectBuilder performToJournalMigration(final Event<?> event, final JsonObject jsonObject) {
+                return super.performToJournalMigration(event, jsonObject).set(EXTENSION_FIELD, true);
+            }
+
+            @Override
+            protected JsonObject performFromJournalMigration(final JsonObject jsonObject) {
+                FROM_JOURNAL_HOOK_CALLS.incrementAndGet();
+                assertThat(jsonObject.getValue(EXTENSION_FIELD)).contains(JsonValue.of(true));
+                return super.performFromJournalMigration(jsonObject.remove(EXTENSION_FIELD));
+            }
+
+        }
+
+        /** The one-line event adapter of the extension recipe: all it does is name the serializer subclass. */
+        public static final class MigratingPolicyMongoEventAdapter extends DelegatingMongoEventAdapter {
+
+            public MigratingPolicyMongoEventAdapter(final ExtendedActorSystem system) {
+                super(system, MigratingPolicyEventSerializer.class.getName());
+            }
+
         }
 
     }

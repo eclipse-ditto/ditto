@@ -14,6 +14,7 @@ package org.eclipse.ditto.internal.utils.persistence.postgres;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import org.eclipse.ditto.internal.utils.persistence.postgres.adapters.DelegatingPostgresEventAdapter;
 import org.junit.Test;
 
 import com.typesafe.config.Config;
@@ -38,10 +39,15 @@ import com.typesafe.config.ConfigFactory;
  * <h2>What this test asserts</h2>
  * It parses the real shipped {@code ditto-postgres-persistence.conf} resource (the one the services include) and
  * asserts that EACH {@code ditto-postgres-*-journal} block maps the replayed payload type {@code "java.lang.String"} to
- * the same adapter alias its domain event type maps to. The behavioural proof that {@code String} routing actually
- * decodes a real event lives in the per-entity {@code *PostgresEventAdapterTest} (e.g.
- * {@code ThingPostgresEventAdapterTest.recoversARealThingEventThroughTheStringBindingSeam}); this test guards that the
- * shipped config keeps the binding present for every entity so those adapters are reachable in production.
+ * the same adapter alias its domain event type maps to, and that every alias of the block's {@code event-adapters}
+ * names a class that loads and is a {@link DelegatingPostgresEventAdapter}: the profile holds the adapter names as
+ * plain strings, so a misspelled or stale name would only fail when the journal plugin starts. That Pekko resolves a
+ * {@code java.lang.String} payload to the bound adapter instead of the identity adapter, and that a payload written
+ * through that binding decodes again, is proven for a binding of this shape by
+ * {@code DelegatingPostgresEventAdapterTest} ({@code theJournalResolvesTheStringReplayPayloadToTheJsonbAdapter},
+ * {@code encodeThenDecodeThroughTheResolvedAdaptersHandsTheSerializerTheOriginalJson}), with a test adapter and an
+ * inlined config; this test guards that the shipped config keeps the binding for every entity and points it at a
+ * loadable adapter.
  */
 public final class PostgresJournalEventAdapterBindingTest {
 
@@ -52,16 +58,18 @@ public final class PostgresJournalEventAdapterBindingTest {
     /**
      * For a journal block, asserts the {@code "java.lang.String"} read binding exists and resolves to the SAME adapter
      * alias the domain {@code eventClass} resolves to (so the replayed String payload routes to the very adapter that
-     * encoded the write). Reads the binding map raw so a missing key fails the test rather than silently returning a
-     * default.
+     * encoded the write), and that every adapter class the block names loads as a
+     * {@link DelegatingPostgresEventAdapter}. Reads the binding map raw so a missing key fails the test rather than
+     * silently returning a default.
      */
-    private void assertStringRoutesToSameAdapterAs(final String journalBlock, final String eventClass) {
+    private void assertStringRoutesToSameAdapterAs(final String journalBlock, final String eventClass)
+            throws ClassNotFoundException {
         final Config bindings = profile.getConfig(journalBlock + ".event-adapter-bindings");
 
         assertThat(bindings.hasPath("\"" + STRING_PAYLOAD + "\""))
                 .as("%s must bind the replayed payload type \"%s\" (peer of the Mongo \"org.bson.BsonValue\" binding); "
-                        + "without it EventAdapters.get(String.class) falls back to IdentityEventAdapter and events are "
-                        + "silently dropped on recovery", journalBlock, STRING_PAYLOAD)
+                        + "without it EventAdapters.get(String.class) falls back to IdentityEventAdapter and events "
+                        + "are silently dropped on recovery", journalBlock, STRING_PAYLOAD)
                 .isTrue();
 
         final String stringAlias = bindings.getString("\"" + STRING_PAYLOAD + "\"");
@@ -71,36 +79,41 @@ public final class PostgresJournalEventAdapterBindingTest {
                         + "<%s> so write and replay share one adapter/registry", journalBlock, eventClass)
                 .isEqualTo(eventAlias);
 
-        // The alias must resolve to a concrete adapter class declared in this block's event-adapters.
+        // The alias must be declared in this block's event-adapters, and every alias declared there must name a
+        // loadable JSONB event adapter class.
         final Config adapters = profile.getConfig(journalBlock + ".event-adapters");
         assertThat(adapters.hasPath(stringAlias))
                 .as("%s: the String binding alias <%s> must be declared in event-adapters", journalBlock, stringAlias)
                 .isTrue();
-        assertThat(adapters.getString(stringAlias))
-                .as("%s: the String binding must point at a Postgres JSONB event adapter class", journalBlock)
-                .contains("Postgres");
+        for (final String alias : adapters.root().keySet()) {
+            final String adapterClassName = adapters.getString(alias);
+            assertThat(DelegatingPostgresEventAdapter.class)
+                    .as("%s: event-adapters alias <%s> must name a loadable Postgres JSONB event adapter class, "
+                            + "was <%s>", journalBlock, alias, adapterClassName)
+                    .isAssignableFrom(Class.forName(adapterClassName));
+        }
     }
 
     @Test
-    public void thingsJournalRoutesStringReplayPayloadToTheThingAdapter() {
+    public void thingsJournalRoutesStringReplayPayloadToTheThingAdapter() throws ClassNotFoundException {
         assertStringRoutesToSameAdapterAs("ditto-postgres-things-journal",
                 "org.eclipse.ditto.things.model.signals.events.ThingEvent");
     }
 
     @Test
-    public void policiesJournalRoutesStringReplayPayloadToThePolicyAdapter() {
+    public void policiesJournalRoutesStringReplayPayloadToThePolicyAdapter() throws ClassNotFoundException {
         assertStringRoutesToSameAdapterAs("ditto-postgres-policies-journal",
                 "org.eclipse.ditto.policies.model.signals.events.PolicyEvent");
     }
 
     @Test
-    public void connectionsJournalRoutesStringReplayPayloadToTheConnectivityAdapter() {
+    public void connectionsJournalRoutesStringReplayPayloadToTheConnectivityAdapter() throws ClassNotFoundException {
         assertStringRoutesToSameAdapterAs("ditto-postgres-connections-journal",
                 "org.eclipse.ditto.connectivity.model.signals.events.ConnectivityEvent");
     }
 
     @Test
-    public void wotJournalRoutesStringReplayPayloadToTheWotAdapter() {
+    public void wotJournalRoutesStringReplayPayloadToTheWotAdapter() throws ClassNotFoundException {
         assertStringRoutesToSameAdapterAs("ditto-postgres-wot-journal",
                 "org.eclipse.ditto.things.model.devops.events.WotValidationConfigEvent");
     }

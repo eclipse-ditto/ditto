@@ -49,7 +49,6 @@ import org.eclipse.ditto.connectivity.model.signals.events.ConnectionCreated;
 import org.eclipse.ditto.connectivity.model.signals.events.ConnectionDeleted;
 import org.eclipse.ditto.connectivity.model.signals.events.ConnectionModified;
 import org.eclipse.ditto.connectivity.model.signals.events.ConnectivityEvent;
-import org.eclipse.ditto.internal.utils.persistence.mongo.DittoBsonJson;
 import org.eclipse.ditto.internal.utils.persistence.mongo.adapters.ConnectivityMongoEventAdapter;
 import org.junit.After;
 import org.junit.Test;
@@ -129,17 +128,6 @@ public final class ConnectivityMongoEventAdapterGoldenTest {
     public void replaysAfterAKeyRotationWithItsKeyAsTheOldKey() throws IOException {
         assertReplaysToPlainUri(
                 adapter(ConnectionJournalEncryptionFixture.K_NEW, ConnectionJournalEncryptionFixture.K_OLD));
-    }
-
-    @Test
-    public void oneArgumentFromJournalJsonOfTheSerializerDecrypts() throws IOException {
-        final ConnectivityEventSerializer serializer = serializer(ConnectionJournalEncryptionFixture.K_OLD, null);
-        final BsonDocument created = rows().get(0).getDocument("payload");
-
-        final List<Object> events = CollectionConverters.asJava(
-                serializer.fromJournalJson(DittoBsonJson.getInstance().serialize(created).asObject()).events());
-
-        assertThat(events).containsExactly(recoveredEvents().get(0));
     }
 
     @Test
@@ -236,12 +224,6 @@ public final class ConnectivityMongoEventAdapterGoldenTest {
         final ExtendedActorSystem system = actorSystem("ConnectivityMongoEventAdapterGoldenTest", key, oldKey);
         systems.add(system);
         return new ConnectivityMongoEventAdapter(system);
-    }
-
-    private ConnectivityEventSerializer serializer(final String key, @Nullable final String oldKey) {
-        final ExtendedActorSystem system = actorSystem("ConnectivityMongoEventAdapterGoldenTest", key, oldKey);
-        systems.add(system);
-        return new ConnectivityEventSerializer(system);
     }
 
     private static List<BsonDocument> rows() throws IOException {

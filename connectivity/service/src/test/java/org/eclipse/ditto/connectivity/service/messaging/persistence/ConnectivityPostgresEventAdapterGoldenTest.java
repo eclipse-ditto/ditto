@@ -94,19 +94,6 @@ public final class ConnectivityPostgresEventAdapterGoldenTest {
     }
 
     @Test
-    public void oneArgumentFromJournalJsonOfTheSerializerDecrypts() throws IOException {
-        final ExtendedActorSystem system = ConnectivityMongoEventAdapterGoldenTest.actorSystem(
-                "ConnectivityPostgresEventAdapterGoldenTest", ConnectionJournalEncryptionFixture.K_OLD, null);
-        systems.add(system);
-        final ConnectivityEventSerializer serializer = new ConnectivityEventSerializer(system);
-
-        final List<Object> events =
-                CollectionConverters.asJava(serializer.fromJournalJson(payload(rows().get(0))).events());
-
-        assertThat(events).containsExactly(ConnectivityMongoEventAdapterGoldenTest.recoveredEvents().get(0));
-    }
-
-    @Test
     public void constructionLogsTheEncryptionFlagUnderTheSerializerLogger() {
         ConnectivityMongoEventAdapterGoldenTest.assertConstructionLogsTheEncryptionFlagUnderTheSerializerLogger(
                 () -> adapter(ConnectionJournalEncryptionFixture.K_OLD, null));

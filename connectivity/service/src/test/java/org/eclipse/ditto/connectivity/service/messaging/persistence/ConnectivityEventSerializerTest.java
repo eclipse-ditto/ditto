@@ -28,6 +28,7 @@ import org.eclipse.ditto.base.model.auth.AuthorizationContext;
 import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
 import org.eclipse.ditto.base.model.auth.DittoAuthorizationContextType;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.signals.events.Event;
 import org.eclipse.ditto.base.model.signals.events.GlobalEventRegistry;
 import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.ConnectionId;
@@ -57,7 +58,8 @@ import scala.jdk.javaapi.CollectionConverters;
 
 /**
  * Tests {@link ConnectivityEventSerializer}: field encryption on write, decryption with the current or the old key on
- * read, and the {@link ConnectionMigrationUtil} parse strategies of its event registry.
+ * read through both {@code fromJournalJson} overloads, and the {@link ConnectionMigrationUtil} parse strategies of its
+ * event registry.
  */
 public final class ConnectivityEventSerializerTest {
 
@@ -110,6 +112,22 @@ public final class ConnectivityEventSerializerTest {
                 serializer(true, K_OLD, null).toJournalJson(connectionCreated(connection(PLAIN_URI)));
 
         assertThat(recoveredUri(serializer(true, K_OLD, null), encrypted)).isEqualTo(PLAIN_URI);
+    }
+
+    @Test
+    public void oneArgumentFromJournalJsonDecryptsAnEncryptedConnectionEvent() {
+        final Connection connection = connection(PLAIN_URI);
+        final JsonObject encrypted = serializer(true, K_OLD, null).toJournalJson(connectionCreated(connection));
+        assertThat(encrypted.getValue(URI_POINTER).map(JsonValue::asString).orElseThrow())
+                .contains(JsonFieldsEncryptor.ENCRYPTED_PREFIX)
+                .doesNotContain("golden-secret");
+
+        final List<Object> events =
+                CollectionConverters.asJava(serializer(true, K_OLD, null).fromJournalJson(encrypted).events());
+
+        // Recovery resets the event revision to the default; the persistence layer supplies the real one.
+        assertThat(events).containsExactly(
+                ConnectionCreated.of(connection, Event.DEFAULT_REVISION, TIMESTAMP, DittoHeaders.empty(), null));
     }
 
     @Test
