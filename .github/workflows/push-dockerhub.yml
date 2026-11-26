@@ -138,9 +138,11 @@ jobs:
         # exceed the repo.eclipse.org upload size limit). Build them here from the tagged
         # sources so the Docker image build can consume them from the local context.
         run: |
+          # A release tag without the backends layout has no stage-backends.sh and no extension modules.
+          EXT=""; if [ -f stage-backends.sh ]; then EXT=",$(bash ./stage-backends.sh --maven-modules)"; fi
           mvn clean install -T4 --batch-mode --errors -DskipTests -DskipITs -Dmaven.javadoc.skip=true \
             -Drevision=$IMAGE_TAG \
-            -pl policies/service,things/service,gateway/service,connectivity/service,thingsearch/service,"$(bash ./stage-backends.sh --maven-modules)" -am
+            -pl "policies/service,things/service,gateway/service,connectivity/service,thingsearch/service$EXT" -am
       -
         name: Stage allinone jars for the Docker build context
         run: |
@@ -151,11 +153,14 @@ jobs:
       -
         name: Stage persistence backend jars for the Docker build context
         run: |
-          VERSION="$IMAGE_TAG"
-          for m in policies things gateway thingsearch connectivity; do
-            bash ./stage-backends.sh "$m" "$VERSION" "docker-libs/backends-ditto-$m-service"
-          done
-          ls -lR docker-libs
+          if [ -f stage-backends.sh ]; then
+            for m in policies things gateway thingsearch connectivity; do
+              bash ./stage-backends.sh "$m" "$IMAGE_TAG" "docker-libs/backends-ditto-$m-service"
+            done
+            ls -lR docker-libs
+          else
+            echo "stage-backends.sh not present at $IMAGE_TAG: building images without backend folders"
+          fi
       -
         name: Build and push ditto-policies
         if: env.MILESTONE_OR_RC_SUFFIX == env.IMAGE_TAG
