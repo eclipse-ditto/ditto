@@ -109,15 +109,15 @@ public final class InitOrderRegressionTest {
         // The journal blocks bind per-entity JSONB event adapters (ThingPostgresEventAdapter et al.). Pekko's
         // Eventsourced super-init eagerly instantiates every configured event adapter via Persistence.createAdapters
         // (reached from the maxMessageBatchSize initialiser of Eventsourced), BEFORE the probe constructor body runs.
-        // Those adapter classes live in the SERVICE modules (things/policies/connectivity service), which this
-        // internal/utils/persistence-r2dbc test module does not — and must not — depend on, so they are absent from
-        // this test classpath and instantiation would throw ClassNotFoundException and crash the probe before it can
-        // capture the plugin IDs. This test asserts ONLY
+        // Each adapter instantiates its EventSerializer by class name, and those serializers live in the SERVICE
+        // modules (things/policies/connectivity service), which this internal/utils/persistence-r2dbc test module does
+        // not — and must not — depend on: instantiation would throw the adapter's IllegalArgumentException (cause
+        // ClassNotFoundException) and crash the probe before it can capture the plugin IDs. This test asserts ONLY
         // plugin-ID resolution (a pure HOCON read that happens before any adapter/plugin I/O), so we blank the
-        // event-adapter wiring of every Postgres journal block here. The real services keep the adapters on their
-        // classpath; the adapter round-trip itself is covered by the per-entity *PostgresEventAdapterTest in the
-        // service modules. `null` clears the key (HOCON: a null value removes it and a lower-priority object fallback
-        // does not resurge it).
+        // event-adapter wiring of every Postgres journal block here. The real services have the serializers on their
+        // classpath; the adapter round-trip is covered by DelegatingPostgresEventAdapterTest in this module and by the
+        // *PostgresEventAdapterGoldenTest classes in the service modules. `null` clears the key (HOCON: a null value
+        // removes it and a lower-priority object fallback does not resurge it).
         //
         // Same reasoning applies to the profile's pekko.persistence.*.auto-start-* lists: they name real
         // Pekko plugin IDs, so Persistence's OWN extension constructor — triggered eagerly by Eventsourced.$init$,

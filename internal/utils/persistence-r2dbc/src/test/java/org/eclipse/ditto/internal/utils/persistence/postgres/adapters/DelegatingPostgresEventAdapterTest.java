@@ -44,8 +44,8 @@ import scala.jdk.javaapi.CollectionConverters;
 
 /**
  * Tests {@link DelegatingPostgresEventAdapter}: the JSONB text envelope around a delegate {@code EventSerializer}, the
- * accepted JSONB representations, the refusals, construction by class name, the decode of journal rows written before
- * the serializer split, and the Pekko {@code java.lang.String} binding seam the PostgreSQL journal replays through.
+ * accepted JSONB representations, the refusals, construction by class name, the decode of the golden journal rows as
+ * text and as bytes, and the Pekko {@code java.lang.String} binding seam the PostgreSQL journal replays through.
  */
 public final class DelegatingPostgresEventAdapterTest {
 
@@ -68,7 +68,7 @@ public final class DelegatingPostgresEventAdapterTest {
                             + "  }\n"
                             + "}\n"));
 
-    /** The golden journal rows written by the PostgreSQL adapters before the split, and their stored manifests. */
+    /** Golden journal rows as the PostgreSQL journal stores them (one JSONB payload each), and their manifests. */
     private static final Map<String, String> GOLDEN_FIXTURES = Map.of(
             "thing-postgres.json", "things.events:thingCreated",
             "policy-postgres.json", "policies.events:policyCreated",
@@ -173,7 +173,7 @@ public final class DelegatingPostgresEventAdapterTest {
     }
 
     @Test
-    public void goldenRowsWrittenBeforeTheSplitDecodeAsTextAndAsBytes() throws IOException {
+    public void goldenRowsDecodeAsTextAndAsBytes() throws IOException {
         for (final Map.Entry<String, String> fixture : GOLDEN_FIXTURES.entrySet()) {
             final String text = readFixture(fixture.getKey());
             final String manifest = fixture.getValue();

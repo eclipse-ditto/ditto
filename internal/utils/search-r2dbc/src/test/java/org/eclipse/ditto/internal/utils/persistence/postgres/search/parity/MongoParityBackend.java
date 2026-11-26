@@ -37,15 +37,15 @@ import com.typesafe.config.ConfigFactory;
  * The Mongo side of the parity matrix: {@code MongoSearchUpdaterFlow} writing into a real Mongo container (through
  * the neutral write-model bridge including {@code SearchIndexDocumentMongoEncoder}), reads via the real
  * {@code MongoThingsSearchPersistence} + {@code MongoQueryBuilderFactory}. All wired classes are MAIN classes of
- * {@code ditto-thingsearch-service} (a documented test-scope dependency of this module); the minimal wiring mirrors
- * that module's {@code AbstractThingSearchPersistenceITBase}/{@code TestSearchUpdaterStream} (which are test classes
- * and therefore not consumable here).
+ * {@code ditto-thingsearch-persistence-mongo} (a documented test-scope dependency of this module); the minimal wiring
+ * mirrors that module's {@code AbstractThingSearchPersistenceITBase}/{@code TestSearchUpdaterStream} (which are test
+ * classes and therefore not consumable here).
  */
 final class MongoParityBackend implements ParityBackend {
 
     /**
      * The Mongo max wire version selecting the incremental-update representation; 13 mirrors
-     * thingsearch/service's own test wiring ({@code TestSearchUpdaterStream}).
+     * thingsearch/persistence-mongo's own test wiring ({@code TestSearchUpdaterStream}).
      */
     private static final int MAX_WIRE_VERSION = 13;
 

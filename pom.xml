@@ -427,8 +427,10 @@
                     <version>3.6.2</version>
                 </plugin>
                 <plugin>
-                    <!-- The snapshot Dockerfiles COPY ${TARGET_DIR}/extensions/: build-images.sh fills the directory
-                         with extension JARs, otherwise it stays empty. Service modules activate this execution. -->
+                    <!-- The snapshot Dockerfiles COPY ${TARGET_DIR}/extensions/ (/opt/ditto/extensions/ of the image,
+                         for JARs mounted at runtime); the directory stays empty. Service modules activate this
+                         execution. The other directory the Dockerfiles COPY, ${TARGET_DIR}/backends/, is not created
+                         by Maven: stage-backends.sh fills it, and build-images.sh calls it. -->
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-antrun-plugin</artifactId>
                     <version>3.1.0</version>

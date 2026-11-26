@@ -27,15 +27,17 @@
 
     <!--
         THIN things-search extension jar (three-JAR layered packaging; see the design document, Architecture,
-        Packaging and activation). OPTIONAL: only a deployment that runs
-        things-search on PostgreSQL mounts it; Mongo-search deployments mount nothing on the search service.
+        Packaging and activation). The search image carries it in /opt/ditto/backends/postgresql/, which
+        DITTO_PERSISTENCE_BACKEND=postgresql puts on the classpath.
 
         Carries ONLY the ditto-internal-utils-search-r2dbc implementation classes (the Postgres search schema/flattener/
         read/write/aggregation + PostgresSearchPersistenceProvider) plus its conf resource (ditto-postgres-search.conf).
         It carries NO third-party and NO Mongo: the r2dbc/reactor/netty/scram runtime and the shared postgres-client
-        infrastructure live in the BASE jar (ditto-postgres-client-extension), which MUST be mounted alongside this jar.
+        infrastructure live in the BASE jar (ditto-postgres-client-extension), which MUST be on the classpath next to
+        it.
         The neutral SPI (ditto-thingsearch-persistence-api) is NOT shaded — it is relied upon from the search allinone
-        classpath, exactly like the persistence-api precedent. The search service therefore mounts base + search (2 jars).
+        classpath, exactly like the persistence-api precedent. /opt/ditto/backends/postgresql/ of the search service
+        therefore holds base + search (2 jars, stage-backends.sh).
 
         Because the whitelist bundles ONLY the search-r2dbc artifact, the transitive Mongo/bson brought in through the
         thingsearch-persistence-api compile chain is excluded by construction — verified by an
@@ -45,7 +47,7 @@
         self-check (PostgresExtensionVersions, invoked from PostgresSearchPersistenceProvider) so a base/search version
         mismatch fails fast.
 
-        It is NOT a dependency of any service module and NOT bundled in the published images.
+        It is NOT a dependency of any service module; the search image carries it in /opt/ditto/backends/postgresql/.
     -->
 
     <dependencies>

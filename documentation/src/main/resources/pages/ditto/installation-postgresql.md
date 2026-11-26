@@ -44,13 +44,13 @@ qualify. See [Provisioning the database](#provisioning-the-database).
 
 The Ditto images ship the extension JARs in `/opt/ditto/backends/postgresql/`. The PostgreSQL backends are
 **layered JARs** built from three Maven modules — a shared **base** JAR carrying the third-party runtime the service images lack
-(R2DBC driver/pool, reactor, reactor-netty, scram) and **thin** backend JARs carrying only Ditto implementation classes:
+(R2DBC driver/pool, reactor, reactor-netty, netty, scram) and **thin** backend JARs carrying only Ditto implementation classes:
 
-| Module / JAR                                  | Contents                                                                                                                                                       | Used by                                           |
-|-----------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------|---------------------------------------------------|
-| `ditto-postgres-client-extension` (base)      | shared `postgres-client` infra + the third-party runtime the images lack (r2dbc-postgresql, r2dbc-pool, reactor, reactor-netty, the netty DNS resolver, scram) | every service on PostgreSQL                       |
-| `ditto-postgres-persistence-extension` (thin) | only the event-sourcing persistence classes                                                                                                                    | policies / things / connectivity                  |
-| `ditto-postgres-search-extension` (thin)      | only the thing-search classes                                                                                                                                  | things-search (only if search runs on PostgreSQL) |
+| Module / JAR                                  | Contents                                                                                                                                      | Used by                                           |
+|-----------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------|---------------------------------------------------|
+| `ditto-postgres-client-extension` (base)      | shared `postgres-client` infra + the third-party runtime the images lack (r2dbc-postgresql, r2dbc-pool, reactor, reactor-netty, netty, scram) | every service on PostgreSQL                       |
+| `ditto-postgres-persistence-extension` (thin) | only the event-sourcing persistence classes                                                                                                   | policies / things / connectivity                  |
+| `ditto-postgres-search-extension` (thin)      | only the thing-search classes                                                                                                                 | things-search (only if search runs on PostgreSQL) |
 
 A service on PostgreSQL therefore gets **two** JARs: the base plus the matching thin JAR. The images put
 `/opt/ditto/*`, `/opt/ditto/backends/${DITTO_PERSISTENCE_BACKEND}/*` and `/opt/ditto/extensions/*` on the classpath

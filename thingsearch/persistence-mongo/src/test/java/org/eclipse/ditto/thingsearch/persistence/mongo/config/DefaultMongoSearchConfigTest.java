@@ -66,7 +66,7 @@ public final class DefaultMongoSearchConfigTest {
     }
 
     @Test
-    public void defaultsMatchTodaysSearchConf() {
+    public void defaultsMatchSearchConf() {
         final MongoSearchConfig underTest = MongoSearchConfig.of(RESOURCE);
 
         softly.assertThat(underTest.getMongoHintsByNamespace()).as("hints").isEmpty();

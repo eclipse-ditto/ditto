@@ -1,8 +1,8 @@
 # Running Eclipse Ditto on PostgreSQL locally
 
 This directory contains everything needed to boot Ditto microservices against the **PostgreSQL persistence
-backend** locally and prove it works — without editing any shipped `*.conf`. Activation is done entirely with
-NEW overlay config files (in this directory) injected via environment variables.
+backend** locally and prove it works — without editing any shipped `*.conf`. Each service gets the PostgreSQL
+backend JARs on its classpath and a dev overlay (in this directory) injected via environment variables.
 
 All files here are additive; no committed service config is modified.
 
@@ -37,15 +37,16 @@ HOSTING_ENVIRONMENT=filebased
 HOSTING_ENVIRONMENT_FILE_LOCATION=<abs path to the overlay>
 ```
 
-The overlay is layered ON TOP of `things.conf`, so everything in `things.conf` is preserved; we only ADD the
-Postgres wiring. The overlays encode four non-obvious fixes:
+The overlay is layered ON TOP of `things.conf`, so everything in `things.conf` is preserved; it only adds the dev
+settings, and the backend comes from the JARs on the classpath. Four things to know:
 
 1. **`include classpath("...")`, not bare `include "..."`.** The FILE_BASED file is parsed with
-   `parseFileAnySyntax`, where a bare include is file-relative and silently resolves to nothing (the profile
-   lives on the classpath inside the persistence-r2dbc jar). `classpath(...)` forces classpath resolution.
-2. **Top-level includes, not inside `ditto { }`.** `ditto-postgres-persistence.conf` ships its own `ditto { }`
-   wrapper PLUS top-level Pekko plugin blocks (`ditto-postgres-things-journal { }`, ...). Nesting the include
-   inside `ditto { }` would misplace those plugin blocks.
+   `parseFileAnySyntax`, where a bare include is file-relative and silently resolves to nothing (the dev profile
+   lives on the classpath inside the service jar). `classpath(...)` forces classpath resolution.
+2. **Top-level includes, not inside `ditto { }`.** If a custom overlay includes a backend profile by its unique name
+   (e.g. `ditto-postgres-persistence.conf`), the include has to be top-level: the profile ships its own `ditto { }`
+   wrapper PLUS top-level Pekko plugin blocks (`ditto-postgres-things-journal { }`, ...), which an include inside
+   `ditto { }` would misplace.
 3. **The PostgreSQL backend JARs must be on the runtime classpath.** The service allinone JARs carry no
    persistence backend at all, so a service without backend JARs refuses to start. The CLI script stages the five
    shaded extension JARs of this build per service with `stage-backends.sh` (the `postgresql/` folder of the image
@@ -73,15 +74,15 @@ Including the Postgres persistence profile therefore switches the snapshot envel
 ### Extension JAR placement (two JARs per PostgreSQL service)
 
 The Postgres backend is packaged as **layered JARs**, none of them bundled in the service allinone JARs: a **base**
-JAR with the shared third-party runtime (r2dbc driver/pool, reactor, scram) and thin backend JARs that ride on top of
+JAR with the shared third-party runtime (r2dbc driver/pool, reactor, netty, scram) and thin backend JARs that ride on top of
 it. The Docker images ship them, together with the MongoDB backend, in `/opt/ditto/backends/{mongodb,postgresql}/`;
 `stage-backends.sh` holds the service → JAR mapping.
 
-| JAR                                           | Contents                                                                                                                    | Used by                                        |
-|-----------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------|------------------------------------------------|
-| `ditto-postgres-client-extension` (base)      | postgres-client infra + the third-party runtime (r2dbc-postgresql, r2dbc-pool, reactor, reactor-netty, resolver-dns, scram) | every Postgres service                         |
-| `ditto-postgres-persistence-extension` (thin) | only the event-sourcing persistence-r2dbc classes                                                                           | things / policies / connectivity               |
-| `ditto-postgres-search-extension` (thin)      | only the search-r2dbc classes                                                                                               | thing-search (only if search runs on Postgres) |
+| JAR                                           | Contents                                                                                                             | Used by                                        |
+|-----------------------------------------------|----------------------------------------------------------------------------------------------------------------------|------------------------------------------------|
+| `ditto-postgres-client-extension` (base)      | postgres-client infra + the third-party runtime (r2dbc-postgresql, r2dbc-pool, reactor, reactor-netty, netty, scram) | every Postgres service                         |
+| `ditto-postgres-persistence-extension` (thin) | only the event-sourcing persistence-r2dbc classes                                                                    | things / policies / connectivity               |
+| `ditto-postgres-search-extension` (thin)      | only the search-r2dbc classes                                                                                        | thing-search (only if search runs on Postgres) |
 
 Deployment matrix:
 
@@ -123,7 +124,7 @@ mvn -T4 install -DskipTests -DskipITs \
     -pl "$(./stage-backends.sh --maven-modules)",things/service,policies/service,connectivity/service,thingsearch/service,gateway/service -am
 ```
 
-## Step 3 — Run Policies + Things + Gateway: full HTTP write→recover demo
+## Step 3 — Run Policies + Things + Connectivity + Gateway + Things-Search: full HTTP write→recover demo
 
 Quick schema sanity check once the services are up (the persistence schema is auto-created on first boot):
 ```bash
@@ -134,7 +135,7 @@ docker exec ditto-postgres-local psql -U ditto -d ditto -c '\dt'
 
 ```bash
 ./deployment/postgres-local/run-compound-postgres.sh
-# logs: /tmp/policies-pg.log /tmp/things-pg.log /tmp/gateway-pg.log
+# logs: /tmp/policies-pg.log /tmp/things-pg.log /tmp/connectivity-pg.log /tmp/gateway-pg.log /tmp/search-pg.log
 ```
 or in IntelliJ run the compound **Ditto (Postgres)**.
 
@@ -204,4 +205,4 @@ the PostgreSQL search backend.
 ## Known limitations (local demo)
 
 * IntelliJ compound runs start all five services at once; they converge via the seed-node retry loop. The CLI
-  `run-compound-postgres.sh` sleeps between services to start the Policies founder first (more deterministic).
+  `run-compound-postgres.sh` does the same.

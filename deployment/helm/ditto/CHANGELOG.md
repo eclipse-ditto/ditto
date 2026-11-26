@@ -25,10 +25,11 @@ sections: `Added`, `Changed`, `Deprecated`, `Removed`, `Fixed`, `Security`.
   error for every rejected request, regardless of whether the entity exists. Set it to `false` to restore the
   previous, resource-specific errors (e.g. `403 things:thing.notmodifiable`) which allow to determine whether an
   entity exists ([#2596](https://github.com/eclipse-ditto/ditto/pull/2596))
-- The Helm side of the opt-in PostgreSQL persistence and search backends: the two entries that follow. Everything
-  PostgreSQL is off by default. A deployment on MongoDB renders the same manifests as before, except for the seven
-  new `ENFORCEMENT_CREATED_POLICY_ROLLBACK_*` environment variables of the things Deployment (the last entry), whose
-  defaults equal the service's built-in defaults; it needs no change.
+- The Helm side of the PostgreSQL persistence and search backends: `global.persistenceBackend` above and the two
+  entries that follow. A deployment on MongoDB needs no change. Its manifests differ from the previous chart version
+  by `DITTO_PERSISTENCE_BACKEND=mongodb` in the policies, things, connectivity and things-search Deployments and by
+  the seven new `ENFORCEMENT_CREATED_POLICY_ROLLBACK_*` environment variables of the things Deployment (the last
+  entry), whose defaults equal the service's built-in defaults.
 - New `postgres.tls` block (default `enabled: false`) for Ditto services on the opt-in PostgreSQL backend: `caCert`
   (PEM, may be a multi-CA bundle for staged CA rotation) is rendered into a new managed `<fullname>-postgres-tls`
   Secret (i.e. `<release>-ditto-postgres-tls` unless the release name contains `ditto` or `fullnameOverride` is set)
@@ -40,23 +41,19 @@ sections: `Added`, `Changed`, `Deprecated`, `Removed`, `Fixed`, `Security`.
   PostgreSQL or a TLS-terminating PgBouncer.
 - New `policies.extraInitContainers`, `things.extraInitContainers`, `thingsSearch.extraInitContainers` and
   `connectivity.extraInitContainers` (default empty), rendered after the built-in init containers of the respective
-  deployment. `values.yaml` shows how to combine them with `extraVolumes` / `extraVolumeMounts` to stage the
-  PostgreSQL extension JARs into `/opt/ditto/extensions`, and carries commented `POSTGRES_POOL_MAX_SIZE` examples
-  under `extraEnv`. Activating a PostgreSQL backend itself stays a file-based overlay
-  (`HOSTING_ENVIRONMENT=filebased`); chart-native PostgreSQL configuration values are a later step.
+  deployment. `values.yaml` carries commented `POSTGRES_POOL_MAX_SIZE` examples under `extraEnv`. The `POSTGRES_*`
+  connection variables go through `extraEnv`; chart-native PostgreSQL connection values are a later step.
 - New `things.config.policiesEnforcer.createdPolicyRollback` (defaults `askTimeout` 3s, `retryStrategy`
   `BACKOFF_DELAY`, `retryAttempts` 3, `fixedDelay` 2s, `backOffDelay` 500ms–4s with `randomFactor` 0.5), passed to
   the things service as `ENFORCEMENT_CREATED_POLICY_ROLLBACK_*`. It configures the bounded retries of the deletion of
   a policy that the things service created for a thing whose creation then failed.
 
 ### Changed
-- The PostgreSQL backend needs no staging: the images carry both backends in `/opt/ditto/backends/`.
-- A deployment that stages the PostgreSQL JARs into `/opt/ditto/extensions/` (an `extraInitContainers` entry plus a
-  `ditto-extensions` volume) must remove that init container and volume and set
-  `global.persistenceBackend: postgresql`. A deployment that keeps the staging with the default value refuses to
-  boot, because the services find two backends on the classpath (the `mongodb` folder and the staged JARs).
-- The commented `values.yaml` examples of the four services were rewritten: the extension-JAR staging example
-  (init container, `ditto-extensions` volume and mount) is removed.
+- A deployment built from a pre-release state of this chart that stages the PostgreSQL JARs into
+  `/opt/ditto/extensions/` (an `extraInitContainers` entry plus a `ditto-extensions` volume) must remove that init
+  container and volume and set `global.persistenceBackend: postgresql`: the images carry both backends in
+  `/opt/ditto/backends/`. A deployment that keeps the staging with the default value refuses to boot, because the
+  services find two backends on the classpath (the `mongodb` folder and the staged JARs).
 - The default search-provider, event-adapter and metrics-builder class names changed. Only deployments that pinned
   them, for example through `systemProps` or extension confs, are affected.
 

@@ -86,15 +86,15 @@
                             <createDependencyReducedPom>false</createDependencyReducedPom>
                             <artifactSet>
                                 <!--
-                                    Exactly the artifacts the service allinones lose when ditto-internal-utils-persistence
-                                    (and, for search, ditto-thingsearch-persistence-mongo) move to test scope; every other
-                                    artifact of the runtime closure is already in the allinones. Computed 2026-11-19 with
-                                    `mvn dependency:list -DincludeScope=runtime`: the runtime closure of
-                                    ditto-internal-utils-persistence (plus the module itself) minus the runtime closure
-                                    of each of things, policies, connectivity and thingsearch service with those
-                                    dependencies at test scope; the include list is the union over the four services
-                                    (things, policies and search each lose these 55; connectivity keeps the 13 netty
-                                    modules except netty-codec-http2 through other dependencies, at the same versions).
+                                    Exactly the artifacts of the runtime closure of ditto-internal-utils-persistence
+                                    (the module itself included) that at least one service allinone does not carry;
+                                    every other artifact of that closure is in all four allinones. To recompute the
+                                    list, take `mvn dependency:list -DincludeScope=runtime` of
+                                    ditto-internal-utils-persistence and subtract the runtime closure of each of the
+                                    things, policies, connectivity and thingsearch services; the include list is the
+                                    union over the four services (the search allinone carries none of these 55; the
+                                    connectivity allinone carries the 13 netty modules other than netty-codec-http2
+                                    through other dependencies, at the same versions).
                                     Listed per artifact on purpose: a groupId wildcard could pull in an artifact the
                                     allinones already carry.
                                 -->

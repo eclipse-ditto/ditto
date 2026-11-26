@@ -803,7 +803,8 @@
             </dependency>
             <!-- Layered Postgres drop-in extension jars: base client + thin persistence + thin search (design document,
                  Architecture, Packaging and activation).
-                 These are deployment artifacts (dropped into /opt/ditto/extensions/), not dependencies of any service. -->
+                 These are deployment artifacts (staged into /opt/ditto/backends/postgresql/), not dependencies of any
+                 service. -->
             <dependency>
                 <groupId>org.eclipse.ditto</groupId>
                 <artifactId>ditto-postgres-client-extension</artifactId>

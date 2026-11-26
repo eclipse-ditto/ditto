@@ -36,12 +36,12 @@
         event-sourcing (persistence-r2dbc) or things-search (search-r2dbc) implementation classes — those ride on top of
         this base in their own THIN extension jars (ditto-postgres-persistence-extension / ditto-postgres-search-extension).
 
-        Deployment matrix: things/policies/connectivity mount base + persistence (2 jars); the search service
-        mounts base + search; a Mongo-search deployment mounts nothing on the search service. All mounted Postgres
-        extension jars MUST come from the SAME Ditto release — enforced at boot by the version-marker self-check
+        Backend folder contents (stage-backends.sh): /opt/ditto/backends/postgresql/ of things/policies/connectivity
+        holds base + persistence (2 jars), that of the search service base + search. All Postgres extension jars on a
+        classpath MUST come from the SAME Ditto release — enforced at boot by the version-marker self-check
         (META-INF/ditto-postgres-extension.properties + PostgresExtensionVersions, invoked from both providers).
 
-        It is NOT a dependency of any service module and NOT bundled in the published images.
+        It is NOT a dependency of any service module; the images carry it in /opt/ditto/backends/postgresql/.
 
         Shade strategy: an EXPLICIT include whitelist (artifactSet/includes). For an extension jar a whitelist is safer
         than a blacklist — only the artifacts we name are bundled, so no transitive can silently leak in. Everything
@@ -49,8 +49,9 @@
         typesafe-config) is therefore simply NOT listed and stays out by construction. reactor-core IS bundled at the
         bom-pinned version as a belt-and-suspenders copy; the allinone's own reactor-core wins by classpath order.
 
-        netty IS bundled: since the MongoDB backend became an extension, the policies, things and search allinones carry
-        no netty at all (it came only with the MongoDB driver). This jar therefore ships every netty artifact that
+        netty IS bundled: no service allinone carries the complete netty set that reactor-netty-core needs, and the
+        search allinone carries none (the MongoDB driver's netty ships in the MongoDB extension). This jar therefore
+        ships every netty artifact that
         reactor-netty-core pulls in (core, transports, codecs), at the bom-pinned version. Connectivity carries the same
         netty version through its own connectors, so it holds identical classes twice; that is harmless (parent-first:
         the allinone copy wins), as with the MongoDB extension.

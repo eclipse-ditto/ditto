@@ -32,14 +32,15 @@
         Carries ONLY the ditto-internal-utils-persistence-r2dbc implementation classes (the Postgres event-sourcing
         journal/snapshot/ops/read-journal + PostgresPersistenceBackendProvider) plus their conf resources
         (ditto-postgres-persistence.conf). It carries NO third-party: the r2dbc/reactor/netty/scram runtime and the
-        shared postgres-client infrastructure live in the BASE jar (ditto-postgres-client-extension), which MUST be
-        mounted alongside this jar. things/policies/connectivity therefore mount TWO jars.
+        shared postgres-client infrastructure live in the BASE jar (ditto-postgres-client-extension), which MUST be on
+        the classpath next to this jar. /opt/ditto/backends/postgresql/ of things/policies/connectivity therefore holds
+        TWO jars (stage-backends.sh).
 
         The version marker (META-INF/ditto-postgres-extension.properties) makes this jar's release visible to the boot
         self-check (PostgresExtensionVersions, invoked from PostgresPersistenceBackendProvider) so a base/persistence
         version mismatch fails fast.
 
-        It is NOT a dependency of any service module and NOT bundled in the published images.
+        It is NOT a dependency of any service module; the images carry it in /opt/ditto/backends/postgresql/.
     -->
 
     <dependencies>

@@ -25,8 +25,8 @@ import pekko.contrib.persistence.mongodb.MetricsBuilder;
 /**
  * Pins the {@code metrics-builder.class} of the shipped MongoDB persistence profile
  * {@code ditto-mongo-persistence.conf} against {@link MongoMetricsBuilder}: a stale class name would only fail at
- * runtime when the Pekko MongoDB plugin starts. Also pins that the {@code pekko.contrib.persistence.mongodb} block
- * moved out of the backend-neutral {@code ditto-pekko-config.conf} rather than being copied.
+ * runtime when the Pekko MongoDB plugin starts. Also pins that the backend-neutral {@code ditto-pekko-config.conf}
+ * carries no {@code pekko.contrib.persistence.mongodb} block: MongoDB plugin settings ship with the MongoDB profile.
  */
 public final class MongoMetricsBuilderConfigTest {
 

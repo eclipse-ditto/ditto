@@ -65,7 +65,7 @@ public final class ConnectivityPostgresEventAdapterEmptyEventTest {
             assertThat(journalEntry).isInstanceOf(Tagged.class);
             final Tagged tagged = (Tagged) journalEntry;
             // tagged.tags() is a scala.collection.immutable.Set<String>, not a java.lang.Iterable; convert before
-            // handing it to AssertJ (mirrors ThingPostgresEventAdapterTest's pattern for the same Tagged.tags()).
+            // handing it to AssertJ.
             assertThat(CollectionConverters.asJava(tagged.tags())).contains("always-alive", "priority-3");
             assertThat(tagged.payload()).isInstanceOf(String.class); // JSONB text
         } finally {

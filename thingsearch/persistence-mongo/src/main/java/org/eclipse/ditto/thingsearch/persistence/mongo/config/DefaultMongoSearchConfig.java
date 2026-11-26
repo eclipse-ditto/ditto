@@ -58,7 +58,7 @@ public final class DefaultMongoSearchConfig implements MongoSearchConfig {
     private static final String UPDATER_PATH = "updater";
     private static final String STREAM_PATH = "stream";
 
-    // copied from the service's operator-metrics config, which this backend config must not depend on:
+    // the same paths as in the service's DefaultOperatorMetricsConfig, which this backend config must not depend on:
     private static final String OPERATOR_METRICS_PATH = "operator-metrics";
     private static final String CUSTOM_AGGREGATION_METRICS_PERSISTENCE_PATH = "custom-aggregation-metrics-persistence";
 

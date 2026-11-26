@@ -527,7 +527,7 @@ public final class PostgresProfileHoconLintTest {
      * Assertion 5: the profile itself — with NO service overlay involved — declares one journal and one snapshot store
      * per entity under {@code ditto.persistence-backend.auto-start.<entity>}, with no WoT entry, and sets no
      * {@code pekko.persistence.*} auto-start list of its own: each service conf maps its own entity's keys onto Pekko's
-     * lists. The dead {@code ditto.persistence.*} block (a path nothing reads) stays gone. This uses the parameter
+     * lists. It sets no {@code ditto.persistence.journal} path either, a path nothing reads. This uses the parameter
      * row's ids but loads {@code ditto-postgres-persistence.conf} directly.
      */
     @Test
@@ -543,7 +543,7 @@ public final class PostgresProfileHoconLintTest {
                 .containsExactlyInAnyOrder("things", "policies", "connections");
         assertThat(profile.hasPath(PEKKO_AUTO_START_JOURNALS)).as("profile sets no Pekko journal list").isFalse();
         assertThat(profile.hasPath(PEKKO_AUTO_START_SNAPSHOTS)).as("profile sets no Pekko snapshot list").isFalse();
-        assertThat(profile.hasPath("ditto.persistence.journal")).as("dead ditto.persistence.* block removed")
+        assertThat(profile.hasPath("ditto.persistence.journal")).as("profile sets no ditto.persistence.journal path")
                 .isFalse();
     }
 

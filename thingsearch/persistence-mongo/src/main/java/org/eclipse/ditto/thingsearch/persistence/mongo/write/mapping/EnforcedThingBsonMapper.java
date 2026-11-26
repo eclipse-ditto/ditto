@@ -22,7 +22,7 @@ import org.eclipse.ditto.thingsearch.persistence.api.model.Metadata;
  * Map a Thing with its enforcing policy and given {@link Metadata} to the MongoDB search index {@link BsonDocument}.
  * <p>
  * The mapping first produces the backend-neutral search index document via {@link SearchIndexDocumentFactory} and
- * then encodes it with {@link SearchIndexDocumentMongoEncoder}, which reproduces the historical BSON wire format.
+ * then encodes it with {@link SearchIndexDocumentMongoEncoder} into the BSON wire format of the search index.
  */
 final class EnforcedThingBsonMapper {
 

@@ -26,8 +26,8 @@ import com.typesafe.config.ConfigFactory;
 /**
  * Unit tests for {@link MongoPersistenceBackendBootstrap}.
  * <p>
- * The expected URIs are literals captured from the URI code ({@code DefaultMongoDbConfig} and
- * {@code MongoDbUriSupplier}), which is unchanged since the base of the feature branch. The URI code appends no
+ * The expected URIs are literals that pin what the URI code ({@code DefaultMongoDbConfig} and
+ * {@code MongoDbUriSupplier}) builds from {@code ditto.mongodb}. The URI code appends no
  * auth-related option, so the credentials case pins that credentials and the source query pass through untouched.
  * The order of the appended options is {@code HashMap} iteration order; it is pinned on purpose.
  */

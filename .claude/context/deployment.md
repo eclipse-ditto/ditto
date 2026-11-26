@@ -8,8 +8,9 @@ https://www.eclipse.dev/ditto/installation-operating.html.
 
 Lowest to highest precedence:
 
-1. `{service}/service/src/main/resources/{service}.conf` and the shared
-   `internal/utils/config/src/main/resources/ditto-*.conf` (defaults)
+1. `{service}/service/src/main/resources/{service}.conf`, the shared
+   `internal/utils/config/src/main/resources/ditto-*.conf` (defaults), and the profile of the selected backend
+   (`ditto-persistence-backend.conf` / `ditto-search-backend.conf` in the backend JARs)
 2. Environment variables, wherever the `.conf` declares `key = ${?ENV_VAR}`
 3. Extension config files, e.g. `/opt/ditto/{service}-extension.conf` rendered by Helm
 4. The file at `HOSTING_ENVIRONMENT_FILE_LOCATION` when `HOSTING_ENVIRONMENT=filebased` (the

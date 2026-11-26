@@ -312,8 +312,8 @@ jmh-generator-annprocess). jmh-generator-annprocess overwrites the whole META-IN
                 <executions>
                     <!--
                         The r2dbc persistence module and its shaded extension jar must NEVER leak into a
-                        service allinone. PostgreSQL support ships as a separate drop-in extension jar; the
-                        service images stay Mongo-only by default. This guard fails the build if anyone adds
+                        service allinone: PostgreSQL ships as separate drop-in extension jars, which the service
+                        images carry in /opt/ditto/backends/postgresql/. This guard fails the build if anyone adds
                         ditto-internal-utils-persistence-r2dbc(-extension) as a compile, runtime or provided
                         dependency of this service: compile and runtime scope would leak r2dbc into the service
                         allinone (the shade plugin resolves runtime scope), provided scope would let this

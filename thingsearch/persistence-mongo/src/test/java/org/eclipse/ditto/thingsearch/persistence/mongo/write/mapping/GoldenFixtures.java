@@ -33,7 +33,7 @@ import org.eclipse.ditto.policies.model.PolicyId;
 
 /**
  * Shared fixture corpus for the {@link EnforcedThingBsonMapper} golden-file baseline. Used by both the
- * (manually-run) golden-file generator and {@code EnforcedThingMapperGoldenTest}, so that generation and
+ * (manually-run) golden-file generator and {@code EnforcedThingBsonMapperGoldenTest}, so that generation and
  * verification exercise the exact same fixture inputs.
  *
  * <p>Each case lives under {@code src/test/resources/golden/<case>/} as:
@@ -51,7 +51,7 @@ final class GoldenFixtures {
 
     /**
      * The canonical, deterministic BSON-as-JSON rendering shared by the generator
-     * ({@link EnforcedThingMapperGoldenGenerator}) and the regression test ({@link EnforcedThingMapperGoldenTest})
+     * ({@link EnforcedThingMapperGoldenGenerator}) and the regression test ({@link EnforcedThingBsonMapperGoldenTest})
      * so that generation and verification can never drift apart on formatting.
      */
     static final JsonWriterSettings CANONICAL_EXTENDED_JSON = JsonWriterSettings.builder()

@@ -78,7 +78,7 @@ public final class MongoSearchPersistenceProvider implements SearchPersistencePr
      *
      * @param actorSystem the actor system the extension is loaded into.
      * @param extensionConfig the {@code extension-config} subtree of the extension declaration (unused by the Mongo
-     * provider, which reads its configuration from the actor-system config, matching today's behaviour).
+     * provider, which reads its configuration from the actor-system config).
      * @throws IllegalStateException if {@link MongoSearchExtensionSelfCheck#verify()} finds the MongoDB persistence
      * extension JAR missing or the MongoDB extension JARs from different Ditto releases.
      */
@@ -93,7 +93,7 @@ public final class MongoSearchPersistenceProvider implements SearchPersistencePr
         final MongoThingsSearchPersistence persistence = (MongoThingsSearchPersistence) getOrBuildSearchPersistence();
         final var indexInitializationConfig = mongoSearchConfig().getIndexInitializationConfig();
         if (indexInitializationConfig.isIndexInitializationConfigEnabled()) {
-            // Preserve today's semantics exactly: fire-and-forget async index initialization whose failures are
+            // Fire-and-forget async index initialization whose failures are
             // swallowed by MongoThingsSearchPersistence#initializeIndices (NOT joined). Mongo creates collections
             // lazily and never fail-fasts here; a fail-fast backend (Postgres) overrides bootstrapSchema().
             persistence.initializeIndices(indexInitializationConfig);

@@ -44,7 +44,7 @@ import com.tngtech.archunit.core.importer.ImportOption;
  * A further rule, {@code serviceMainCodeDoesNotDependOnMongoModule}, bans the whole Mongo module
  * {@code ...internal.utils.persistence.mongo..} with no whitelist.
  * <p>
- * The things service has no out-of-scope raw-Mongo machinery, so - unlike connectivity - it needs no whitelist.
+ * Rule 1 has no whitelist either: no things-service MAIN class may depend on a switchable Mongo artifact.
  * Driven via ArchUnit's core API from JUnit 4 {@code @Test} methods so the module keeps running on its existing
  * JUnit 4 / surefire setup; the imported classes are scoped to MAIN code via
  * {@link com.tngtech.archunit.core.importer.ImportOption.DoNotIncludeTests}.

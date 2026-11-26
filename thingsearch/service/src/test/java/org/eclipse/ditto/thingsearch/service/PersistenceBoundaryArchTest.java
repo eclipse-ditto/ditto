@@ -27,7 +27,7 @@ import com.tngtech.archunit.core.importer.ImportOption;
  * Persistence boundary of the thingsearch service: its MAIN code depends on no MongoDB type, no Mongo persistence
  * module, no Mongo search backend and no R2DBC or Postgres type. The service reaches its search backend only through
  * the thing-search persistence-API ({@code thingsearch/persistence-api}); the MongoDB search backend lives in
- * {@code thingsearch/persistence-mongo}, which the service only has at {@code runtime} scope.
+ * {@code thingsearch/persistence-mongo}, which the service only has at {@code test} scope.
  * <p>
  * Driven via ArchUnit's core API from JUnit 4 {@code @Test} methods so the module keeps running on its existing
  * JUnit 4 / surefire setup; the imported classes are scoped to MAIN code via

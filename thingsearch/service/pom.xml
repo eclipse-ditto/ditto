@@ -212,8 +212,8 @@
                 <executions>
                     <!--
                         The r2dbc persistence module and its shaded extension jar must NEVER leak into the
-                        thingsearch service allinone. PostgreSQL search support ships as a separate drop-in
-                        extension jar; the service images stay Mongo-only by default. This guard fails the
+                        thingsearch service allinone: PostgreSQL search ships as separate drop-in extension jars,
+                        which the service image carries in /opt/ditto/backends/postgresql/. This guard fails the
                         build if anyone adds ditto-internal-utils-persistence-r2dbc(-extension) as a
                         dependency of this service.
                     -->

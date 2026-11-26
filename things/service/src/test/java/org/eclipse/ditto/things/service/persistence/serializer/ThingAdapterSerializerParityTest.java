@@ -42,7 +42,7 @@ import org.apache.pekko.persistence.journal.Tagged;
 import scala.jdk.javaapi.CollectionConverters;
 
 /**
- * Proves that the serializer split keeps the MongoDB (BSON) and PostgreSQL (JSONB) envelopes equal at the
+ * Proves that the MongoDB (BSON) and PostgreSQL (JSONB) envelopes around the same serializer are equal at the
  * {@link JsonObject} level for both events and snapshots, using the <em>real</em> Thing adapter and its
  * {@link ThingEventSerializer}, and that the JSON text
  * a PostgreSQL snapshot row holds recovers to the identical domain object that the Mongo BSON path recovers.

@@ -47,7 +47,8 @@ CMD ["sh", "-c", "exec java ${JVM_CMD_ARGS_ENV} -cp \"/opt/ditto/*:/opt/ditto/ba
 COPY --chown=ditto:ditto ${TARGET_DIR}/${SERVICE_STARTER}-${SERVICE_VERSION}-allinone.jar $DITTO_HOME
 
 # Both persistence backends, staged by stage-backends.sh into backends/{mongodb,postgresql}/;
-# DITTO_PERSISTENCE_BACKEND puts one of them on the java classpath (CMD above).
-# The extensions dir is staged empty: $DITTO_HOME/extensions/ is on the classpath for user JARs mounted at runtime.
+# DITTO_PERSISTENCE_BACKEND puts one of them on the java classpath (CMD above). A docker build without
+# build-images.sh needs `./stage-backends.sh <module> <version> <module>/service/target/backends` first.
+# The extensions dir is empty: $DITTO_HOME/extensions/ is on the classpath for user JARs mounted at runtime.
 COPY --chown=ditto:ditto ${TARGET_DIR}/backends/ $DITTO_HOME/backends/
 COPY --chown=ditto:ditto ${TARGET_DIR}/extensions/ $DITTO_HOME/extensions/

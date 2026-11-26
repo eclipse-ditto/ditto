@@ -28,8 +28,8 @@ import org.bson.json.JsonMode;
  * overwrite the committed expected files under {@code src/test/resources/golden/expected/} as a side effect
  * of running the test suite. It must only ever run via the single explicit command documented below.
  *
- * <p>It runs the full mapping chain via {@link GoldenFixtureRunner#run(String)} - which
- * calls {@code EnforcedThingMapper.toWriteModel(...)} exactly mirroring the production call site at
+ * <p>It runs the full mapping chain via {@link GoldenFixtureRunner#run(String)} - which computes the
+ * {@code Metadata} like {@code EnforcedThingMapper.toWriteModel(...)} does at the production call site
  * {@code EnforcementFlow.computeWriteModel(...)} - for every fixture pair in
  * {@link GoldenFixtures#CASE_NAMES}, and (re)writes the committed expected file for each case as canonical
  * extended JSON ({@link JsonMode#EXTENDED}, the deterministic, fully-typed BSON-as-JSON form).
@@ -37,21 +37,21 @@ import org.bson.json.JsonMode;
  * <p><b>How to (re-)run this generator</b> (verified working - uses the exec-maven-plugin directly by full
  * coordinates, so no {@code pom.xml} wiring is needed; runs on the module's {@code test} classpath so both
  * main and test classes/dependencies are visible). <strong>Must be run with the shell's working directory
- * inside {@code thingsearch/service}</strong> (not the repo root, and not via {@code mvn -pl}): the plugin's
+ * inside {@code thingsearch/persistence-mongo}</strong> (not the repo root, and not via {@code mvn -pl}): the plugin's
  * {@code java} goal executes {@code main} in-process rather than forking a subprocess, so the path
  * {@code "src/test/resources/golden/expected"} resolves against the JVM's actual {@code user.dir} - i.e.
  * wherever {@code mvn} itself was launched from - not the reactor module's {@code basedir}. Running this from
- * the repo root (or via {@code mvn -pl thingsearch/service ...} from the repo root) writes a stray
+ * the repo root (or via {@code mvn -pl thingsearch/persistence-mongo ...} from the repo root) writes a stray
  * {@code src/test/resources/golden/expected/} tree at the repo root instead of updating the real fixtures:
  * <pre>
- * cd thingsearch/service
+ * cd thingsearch/persistence-mongo
  * mvn test-compile \
  *     org.codehaus.mojo:exec-maven-plugin:3.5.1:java \
  *     -Dexec.mainClass=org.eclipse.ditto.thingsearch.persistence.mongo.write.mapping.EnforcedThingMapperGoldenGenerator \
  *     -Dexec.classpathScope=test
  * </pre>
  * Only re-run this deliberately, after confirming any resulting diff under {@code golden/expected/} is an
- * intended baseline update - the whole point of {@code EnforcedThingMapperGoldenTest} is to catch
+ * intended baseline update - the whole point of {@code EnforcedThingBsonMapperGoldenTest} is to catch
  * <em>unintended</em> drift, including drift from a change to the backend-neutral document builder or the Mongo
  * BSON encoder.
  */

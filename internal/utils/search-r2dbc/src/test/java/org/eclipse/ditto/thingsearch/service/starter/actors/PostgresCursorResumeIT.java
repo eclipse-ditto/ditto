@@ -217,7 +217,7 @@ public final class PostgresCursorResumeIT {
 
     @Test
     public void cursorWithObjectSortBoundaryResumesWithoutBson() {
-        // Review focus: a page that ends on an OBJECT sort value must resume on PostgreSQL without any BSON. The flat
+        // A page that ends on an OBJECT sort value must resume on PostgreSQL without any BSON. The flat
         // table encodes the object boundary as the rank marker {"typeRank":4} (PostgresSortClause#toSortValues); the
         // cursor hands it to the provider, which answers with its PostgreSQL operand, never with a BSON value.
         writeAttribute("t-missing", "sortKey", null);
