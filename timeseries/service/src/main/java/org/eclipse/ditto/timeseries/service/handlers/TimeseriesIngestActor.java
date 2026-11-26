@@ -35,7 +35,6 @@ import org.apache.pekko.actor.ActorRef;
 import org.apache.pekko.actor.PoisonPill;
 import org.apache.pekko.actor.Props;
 import org.apache.pekko.actor.ReceiveTimeout;
-import org.apache.pekko.actor.Status;
 import org.apache.pekko.cluster.sharding.ShardRegion;
 import org.apache.pekko.pattern.Patterns;
 import org.eclipse.ditto.base.model.auth.AuthorizationContext;
@@ -97,9 +96,9 @@ import org.eclipse.ditto.timeseries.model.signals.commands.RetrieveTimeseriesRes
  *   <li>Otherwise register the sender and call {@code adapter.writeBatch}.</li>
  *   <li>On {@code writeBatch} success: ack the sender, record the correlation-id in
  *       {@link #recentlyApplied}, and clear the live-sender entry.</li>
- *   <li>On {@code writeBatch} failure: clear the live-sender entry and reply with
- *       {@link Status.Failure}; the publisher's retry timer fires and re-asks with the
- *       same correlation-id.</li>
+ *   <li>On {@code writeBatch} failure: clear the live-sender entry and reply with a
+ *       {@link DittoInternalErrorException}; the publisher's retry timer fires and re-asks with the
+ *       same correlation-id. A batch the adapter rejects as invalid is acknowledged instead.</li>
  * </ol>
  *
  * <h2>Idempotency window — and its limit</h2>
@@ -116,9 +115,10 @@ import org.eclipse.ditto.timeseries.model.signals.commands.RetrieveTimeseriesRes
  * <p>
  * Sizing is the mitigation: {@link #APPLIED_RING_CAPACITY} entries per Thing must exceed the number
  * of distinct batches one Thing can produce inside the publisher's retry window
- * ({@code MAX_ATTEMPTS} × ask-timeout). At 1024 entries that is roughly 68 writes/second for a
- * single Thing — well above any expected device rate. Raise it before onboarding a device class
- * that writes faster than that.
+ * (with the default retry config about two and a half minutes: the backoff plus one ask-timeout per
+ * attempt). At 1024 entries that is roughly 7 writes/second for a single Thing — well above any
+ * expected device rate. Raise it before onboarding a device class that writes faster than that, or
+ * when raising the things service's {@code ingest-retry} settings.
  *
  * <h2>Read path</h2>
  * Co-located on the same per-Thing entity so the edge forwarder can route
@@ -165,12 +165,19 @@ public final class TimeseriesIngestActor extends AbstractActor {
             DittoMetrics.counter("timeseries_ingest_write_failed");
 
     /**
-     * Bound on the in-memory ring of recently-applied correlation-ids. Sized for typical
-     * publisher retry windows: with MAX_ATTEMPTS=3 retries × 5 s ask-timeout the publisher
-     * can re-ask up to ~15 s after the original send. At 1024 entries the ring covers ~68
-     * sustained events/sec for that whole window — enough headroom for a single Thing
-     * pushing ~50 properties/sec each at 1 Hz, which exceeds realistic IoT workloads. The
-     * memory cost is bounded: ~1024 × (UUID-string + Boolean) ≈ ~100 KB per entity.
+     * Kamon {@code timeseries_ingest_rejected} — batches the adapter refused as invalid (an
+     * {@link IllegalArgumentException}, e.g. a non-finite number). They are acknowledged rather
+     * than failed, because retrying them cannot succeed.
+     */
+    private static final Counter REJECTED_BATCHES =
+            DittoMetrics.counter("timeseries_ingest_rejected");
+
+    /**
+     * Bound on the in-memory ring of recently-applied correlation-ids. Sized for the
+     * publisher's default retry window: it can re-ask up to ~150 s after the original send. At 1024
+     * entries the ring covers ~7 sustained events/sec for that whole window, which exceeds
+     * realistic IoT workloads. The memory cost is bounded: ~1024 × (UUID-string + Boolean)
+     * ≈ ~100 KB per entity.
      * <p>
      * If an entity sustains a higher rate than that, retries arriving after the entry has
      * been evicted fall through to a fresh {@code triggerWrite}, producing one duplicate
@@ -344,11 +351,22 @@ public final class TimeseriesIngestActor extends AbstractActor {
         final ActorRef sender = liveSenders.remove(msg.correlationId());
         if (msg.failure() != null) {
             final Throwable cause = unwrap(msg.failure());
+            if (cause instanceof IllegalArgumentException) {
+                REJECTED_BATCHES.increment();
+                log.withCorrelationId(msg.headers())
+                        .warning("Rejected data points for thing <{}>: {}", thingId, cause.getMessage());
+                recentlyApplied.put(msg.correlationId(), Boolean.TRUE);
+                if (sender != null) {
+                    sender.tell(IngestDataPointsResponse.of(thingId, msg.headers()), getSelf());
+                }
+                return;
+            }
             WRITE_FAILURES.increment();
-            log.warning("Failed to persist data points for thing <{}>: {}",
-                    thingId, cause.getMessage());
+            log.withCorrelationId(msg.headers())
+                    .warning("Failed to persist data points for thing <{}>: {}", thingId, cause.getMessage());
             if (sender != null) {
-                sender.tell(new Status.Failure(cause), getSelf());
+                // The adapter's exception (e.g. the IoTDB client's) is not meant to cross the cluster.
+                sender.tell(DittoInternalErrorException.newBuilder().dittoHeaders(msg.headers()).build(), getSelf());
             }
             return;
         }

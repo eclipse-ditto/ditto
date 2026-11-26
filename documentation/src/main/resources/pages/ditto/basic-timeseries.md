@@ -128,6 +128,21 @@ Every point taking the event time instead of its declared time increments the `t
 
 Declare the annotation on the value itself, not on the object holding the value and its time: an annotation applies to every value below it, so the time would be recorded as a series of its own.
 
+### Delivery
+
+The things service hands each batch of data points to the timeseries service and retries a batch that is not acknowledged, for example while the storage backend restarts. With the defaults a batch is retried for about two minutes, which outlasts a restart of the storage. Delivery is at-least-once: a retry can occasionally record a point twice. A batch the storage backend rejects as invalid, such as a non-finite number, is not retried; it increments `timeseries_ingest_rejected`.
+
+The retry is configured under `ditto.things.timeseries.ingest-retry` of the things service:
+
+| Setting | Default | Environment variable | Meaning |
+|---|---|---|---|
+| `max-attempts` | `10` | `THINGS_TIMESERIES_INGEST_RETRY_MAX_ATTEMPTS` | Attempts per batch, including the first. |
+| `backoff` | `500ms` | `THINGS_TIMESERIES_INGEST_RETRY_BACKOFF` | Delay before the second attempt, doubled for every further one (each varied by ±20%). |
+| `max-backoff` | `30s` | `THINGS_TIMESERIES_INGEST_RETRY_MAX_BACKOFF` | Upper bound of a single delay, at most `1h`. |
+| `max-pending-retries` | `20000` | `THINGS_TIMESERIES_INGEST_RETRY_MAX_PENDING_RETRIES` | Batches allowed to wait for a retry at once per things instance. |
+
+`timeseries_ingest_pending_retries` shows how many batches wait for a retry. A batch dropped after its last attempt, or because `max-pending-retries` batches already wait, increments `timeseries_ingest_dropped`, tagged with the `reason` `retries_exhausted` or `retry_cap`. Raise `max-pending-retries` when the things service ingests more batches per second than it can hold for a restart of the storage; each waiting batch holds a few kilobytes of heap.
+
 ## Reading one thing
 
 ```

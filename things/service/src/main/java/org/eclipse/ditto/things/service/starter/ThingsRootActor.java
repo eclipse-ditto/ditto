@@ -146,7 +146,8 @@ public final class ThingsRootActor extends DittoRootActor {
             timeseriesIngestPublisher = startChildActor(
                     TimeseriesIngestPublisher.ACTOR_NAME,
                     TimeseriesIngestPublisher.props(timeseriesShardRegionProxy,
-                            earlyWotIntegration.getWotThingModelResolver()));
+                            earlyWotIntegration.getWotThingModelResolver(),
+                            thingsConfig.getTimeseriesIngestConfig()));
         } else {
             timeseriesIngestPublisher = null;
         }

@@ -24,7 +24,6 @@ import java.util.concurrent.CompletionStage;
 
 import org.apache.pekko.actor.ActorRef;
 import org.apache.pekko.actor.ActorSystem;
-import org.apache.pekko.actor.Status;
 import org.apache.pekko.testkit.javadsl.TestKit;
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.exceptions.DittoInternalErrorException;
@@ -49,7 +48,7 @@ import com.typesafe.config.ConfigFactory;
  * Unit tests for the sharded {@link TimeseriesIngestActor}. The actor is intentionally
  * non-persistent — writes go directly to the configured adapter; the publisher's
  * retry loop covers crash windows. Each test exercises one slice of the contract:
- * happy-path ack, empty-batch no-op, write failure surfaces as Status.Failure,
+ * happy-path ack, empty-batch no-op, write failure surfaces as an internal error,
  * idempotent ack for duplicate retries, and the read path.
  */
 public final class TimeseriesIngestActorTest {
@@ -110,10 +109,11 @@ public final class TimeseriesIngestActorTest {
     }
 
     @Test
-    public void adapterFailureSurfacesAsStatusFailure() {
-        // On adapter failure the actor replies with Status.Failure — the publisher's retry
-        // signal. A follow-up retry with the same correlation-id triggers another adapter
-        // call (the failed write cleared the in-flight slot, so we don't dedupe).
+    public void adapterFailureSurfacesAsInternalError() {
+        // On adapter failure the actor replies with a DittoInternalErrorException — the publisher's
+        // retry signal, without the adapter's exception crossing the cluster. A follow-up retry with
+        // the same correlation-id triggers another adapter call (the failed write cleared the
+        // in-flight slot, so we don't dedupe).
         new TestKit(actorSystem) {{
             final RuntimeException backendError = new RuntimeException("mongo unavailable");
             final RecordingAdapter adapter = new RecordingAdapter().failingWith(backendError);
@@ -123,8 +123,10 @@ public final class TimeseriesIngestActorTest {
             final String corrId = UUID.randomUUID().toString();
             ingest.tell(IngestDataPoints.of(tid, sampleBatch(tid),
                     DittoHeaders.newBuilder().correlationId(corrId).build()), getRef());
-            final Status.Failure failure = expectMsgClass(Status.Failure.class);
-            assertThat(failure.cause().getMessage()).contains("mongo unavailable");
+            final DittoInternalErrorException failure = expectMsgClass(DittoInternalErrorException.class);
+            assertThat(failure.getDittoHeaders().getCorrelationId()).contains(corrId);
+            assertThat(failure.getMessage()).doesNotContain("mongo unavailable");
+            assertThat(failure.getCause()).isNull();
             assertThat(adapter.writtenBatches).hasSize(1);
 
             // Publisher's retry with same correlation-id triggers a fresh adapter call.
@@ -133,6 +135,24 @@ public final class TimeseriesIngestActorTest {
                     DittoHeaders.newBuilder().correlationId(corrId).build()), getRef());
             expectMsgClass(IngestDataPointsResponse.class);
             assertThat(adapter.writtenBatches).hasSize(2);
+        }};
+    }
+
+    @Test
+    public void batchRejectedAsInvalidIsAcknowledgedAndNotWrittenAgain() {
+        new TestKit(actorSystem) {{
+            final RecordingAdapter adapter =
+                    new RecordingAdapter().failingWith(new IllegalArgumentException("Not a finite number: NaN"));
+            final ThingId tid = ThingId.of("org.eclipse.ditto", "rejected-1");
+            final ActorRef ingest = startEntity(adapter, tid);
+            final DittoHeaders headers = DittoHeaders.newBuilder().correlationId(UUID.randomUUID().toString()).build();
+
+            ingest.tell(IngestDataPoints.of(tid, sampleBatch(tid), headers), getRef());
+            expectMsgClass(IngestDataPointsResponse.class);
+
+            ingest.tell(IngestDataPoints.of(tid, sampleBatch(tid), headers), getRef());
+            expectMsgClass(IngestDataPointsResponse.class);
+            assertThat(adapter.writtenBatches).hasSize(1);
         }};
     }
 

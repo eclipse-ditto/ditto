@@ -51,6 +51,13 @@ public interface ThingsConfig extends ServiceSpecificConfig, WithHealthCheckConf
     WotConfig getWotConfig();
 
     /**
+     * Returns the configuration of the ingest of WoT-annotated properties into the timeseries service.
+     *
+     * @return the timeseries ingest config.
+     */
+    TimeseriesIngestConfig getTimeseriesIngestConfig();
+
+    /**
      * An enumeration of the known config path expressions and their associated default values for {@code ThingsConfig}.
      */
     enum ThingsConfigValue implements KnownConfigValue {

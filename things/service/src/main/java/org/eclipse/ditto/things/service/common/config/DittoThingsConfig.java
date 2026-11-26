@@ -49,6 +49,7 @@ public final class DittoThingsConfig implements ThingsConfig {
     private final HealthCheckConfig healthCheckConfig;
     private final ThingConfig thingConfig;
     private final WotConfig wotConfig;
+    private final TimeseriesIngestConfig timeseriesIngestConfig;
 
     private DittoThingsConfig(final ScopedConfig dittoScopedConfig) {
         serviceSpecificConfig = DittoServiceConfig.of(dittoScopedConfig, CONFIG_PATH);
@@ -58,6 +59,7 @@ public final class DittoThingsConfig implements ThingsConfig {
         healthCheckConfig = DefaultHealthCheckConfig.of(dittoScopedConfig);
         thingConfig = DefaultThingConfig.of(serviceSpecificConfig);
         wotConfig = DefaultWotConfig.of(serviceSpecificConfig);
+        timeseriesIngestConfig = DefaultTimeseriesIngestConfig.of(serviceSpecificConfig);
     }
 
     /**
@@ -133,6 +135,11 @@ public final class DittoThingsConfig implements ThingsConfig {
     }
 
     @Override
+    public TimeseriesIngestConfig getTimeseriesIngestConfig() {
+        return timeseriesIngestConfig;
+    }
+
+    @Override
     public boolean equals(@Nullable final Object o) {
         if (this == o) {
             return true;
@@ -147,13 +154,14 @@ public final class DittoThingsConfig implements ThingsConfig {
                 Objects.equals(mongoDbConfig, that.mongoDbConfig) &&
                 Objects.equals(healthCheckConfig, that.healthCheckConfig) &&
                 Objects.equals(thingConfig, that.thingConfig) &&
-                Objects.equals(wotConfig, that.wotConfig);
+                Objects.equals(wotConfig, that.wotConfig) &&
+                Objects.equals(timeseriesIngestConfig, that.timeseriesIngestConfig);
     }
 
     @Override
     public int hashCode() {
         return Objects.hash(serviceSpecificConfig, logIncomingMessages, persistenceOperationsConfig, mongoDbConfig,
-                healthCheckConfig, thingConfig, wotConfig);
+                healthCheckConfig, thingConfig, wotConfig, timeseriesIngestConfig);
     }
 
     @Override
@@ -166,6 +174,7 @@ public final class DittoThingsConfig implements ThingsConfig {
                 ", healthCheckConfig=" + healthCheckConfig +
                 ", thingConfig=" + thingConfig +
                 ", wotConfig=" + wotConfig +
+                ", timeseriesIngestConfig=" + timeseriesIngestConfig +
                 "]";
     }
 

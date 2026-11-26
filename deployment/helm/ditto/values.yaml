@@ -1316,6 +1316,17 @@ things:
       # maxMeasurementAge how far before its event a data point's measurement time, read from the property its
       #  `ditto:timeseries` annotation declares as `time`, may lie - an older time is replaced by the event's time
       maxMeasurementAge: 35d
+      # ingestRetry contains the retry of a batch of data points the timeseries service did not acknowledge
+      ingestRetry:
+        # maxAttempts attempts per batch, including the first
+        maxAttempts: 10
+        # backoff delay before the second attempt, doubled for every further one up to maxBackoff
+        backoff: 500ms
+        # maxBackoff upper bound of a single delay, at most 1h
+        maxBackoff: 30s
+        # maxPendingRetries batches allowed to wait for a retry at once per things pod; a batch failing beyond it is
+        #  dropped and counted in timeseries_ingest_dropped
+        maxPendingRetries: 20000
     # wot contains Web of Things (WoT) specific configuration
     wot:
       # tdBasePrefix is the base to use where the Ditto endpoint is located in order to be injected into TDs:

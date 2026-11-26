@@ -18,13 +18,16 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.Executor;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Supplier;
 
 import javax.annotation.Nullable;
@@ -35,11 +38,12 @@ import org.apache.pekko.actor.Props;
 import org.apache.pekko.actor.Status;
 import org.apache.pekko.pattern.Patterns;
 import org.eclipse.ditto.base.model.entity.id.WithEntityId;
+import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.FieldType;
-import org.eclipse.ditto.internal.utils.config.DittoConfigError;
 import org.eclipse.ditto.internal.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.internal.utils.metrics.instruments.counter.Counter;
+import org.eclipse.ditto.internal.utils.metrics.instruments.gauge.Gauge;
 import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.pekko.logging.ThreadSafeDittoLogger;
 import org.eclipse.ditto.json.JsonObject;
@@ -49,6 +53,7 @@ import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingDefinition;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.events.ThingEvent;
+import org.eclipse.ditto.things.service.common.config.TimeseriesIngestConfig;
 import org.eclipse.ditto.things.service.timeseries.ThingEventLeafExtractor.PropertyLeaf;
 import org.eclipse.ditto.things.service.timeseries.WotLeafResolver.ResolvedLeaf;
 import org.eclipse.ditto.timeseries.api.TimeseriesMessagingConstants;
@@ -61,7 +66,6 @@ import org.eclipse.ditto.wot.api.resolver.WotThingModelResolver;
 import org.eclipse.ditto.wot.model.IRI;
 import org.eclipse.ditto.wot.model.ThingModel;
 
-import com.typesafe.config.Config;
 
 /**
  * Per-Things-service-node actor that turns {@link ThingEvent}s into {@link IngestDataPoints}
@@ -81,9 +85,11 @@ import com.typesafe.config.Config;
  * Best-effort at-least-once with a bounded retry budget. Two crash domains:
  * <ul>
  *   <li><b>Timeseries-side crashes</b> (entity host node, MongoDB unavailable, network partition
- *   between Things and Timeseries) are covered by the retry loop: up to {@link #MAX_ATTEMPTS}
- *   attempts with the same correlation-id, which the receiving entity uses to recognise replays
- *   and avoid duplicate writes (`recentlyApplied` LRU on the entity side).</li>
+ *   between Things and Timeseries) are covered by the retry loop: up to
+ *   {@link TimeseriesIngestConfig#getRetryMaxAttempts()} attempts with the same correlation-id, which the receiving
+ *   entity uses to recognise replays and avoid duplicate writes (`recentlyApplied` LRU on the entity side). At most
+ *   {@link TimeseriesIngestConfig#getRetryMaxPendingRetries()} batches wait for a retry at once, so a long outage at
+ *   a high rate drops batches instead of filling the heap.</li>
  *   <li><b>Things-side crashes</b> between {@code ThingPersistenceActor.publishEvent} firing the
  *   {@link IngestRequest} and the publisher's ask completing are <em>not</em> covered. The
  *   publisher is non-persistent; mailbox, in-flight WoT-resolution stages and in-flight asks are
@@ -116,20 +122,9 @@ public final class TimeseriesIngestPublisher extends AbstractActorWithTimers {
 
     private static final Duration DEFAULT_ASK_TIMEOUT = Duration.ofSeconds(5);
 
-    /**
-     * Maximum attempts (incl. first) before a batch is dropped with WARN. A small ceiling keeps
-     * a struggling backend from amplifying back-pressure into the publisher's mailbox; lost
-     * batches surface as gaps in the timeseries data rather than silent corruption.
-     */
-    private static final int MAX_ATTEMPTS = 3;
-
-    /** Delay before the second attempt, doubled for every further one. */
-    static final Duration RETRY_BACKOFF = Duration.ofMillis(500);
-
     private static final int RESOLVED_LEAVES_CACHE_SIZE = 10_000;
 
-    private static final String MAX_MEASUREMENT_AGE_PATH = "ditto.things.timeseries.max-measurement-age";
-    private static final Duration DEFAULT_MAX_MEASUREMENT_AGE = Duration.ofDays(35);
+    private static final double RETRY_JITTER = 0.2;
 
     /**
      * Kamon {@code timeseries_ingest_resent} — incremented per data point skipped because its event wrote the same
@@ -143,6 +138,13 @@ public final class TimeseriesIngestPublisher extends AbstractActorWithTimers {
      */
     private static final Counter DROPPED_BATCHES =
             DittoMetrics.counter("timeseries_ingest_dropped");
+    private static final Counter DROPPED_RETRIES_EXHAUSTED =
+            DittoMetrics.counter("timeseries_ingest_dropped").tag("reason", "retries_exhausted");
+    private static final Counter DROPPED_RETRY_CAP =
+            DittoMetrics.counter("timeseries_ingest_dropped").tag("reason", "retry_cap");
+
+    /** Kamon {@code timeseries_ingest_pending_retries} — batches of this node waiting for a retry. */
+    private static final Gauge PENDING_RETRIES = DittoMetrics.gauge("timeseries_ingest_pending_retries");
 
     // Thread-safe variant — log calls happen inside CompletionStage callbacks (WoT resolution,
     // data-point building, Patterns.ask retries) which run off the actor thread.
@@ -152,45 +154,48 @@ public final class TimeseriesIngestPublisher extends AbstractActorWithTimers {
     private final ActorRef shardRegionProxy;
     private final WotThingModelResolver wotResolver;
     private final Duration askTimeout;
-    private final Duration maxMeasurementAge;
+    private final TimeseriesIngestConfig ingestConfig;
     private final ResolvedLeafCache resolvedLeaves = new ResolvedLeafCache(RESOLVED_LEAVES_CACHE_SIZE);
+    // Keyed by correlation-id so a reply of a retry started before an actor restart cannot unbalance the count.
+    private final Set<String> pendingRetries = new HashSet<>();
 
     @SuppressWarnings("unused")
     private TimeseriesIngestPublisher(final ActorRef shardRegionProxy,
             final WotThingModelResolver wotResolver,
+            final TimeseriesIngestConfig ingestConfig,
             final Duration askTimeout) {
 
         this.shardRegionProxy = checkNotNull(shardRegionProxy, "shardRegionProxy");
         this.wotResolver = checkNotNull(wotResolver, "wotResolver");
+        this.ingestConfig = checkNotNull(ingestConfig, "ingestConfig");
         this.askTimeout = checkNotNull(askTimeout, "askTimeout");
-        maxMeasurementAge = maxMeasurementAge(getContext().getSystem().settings().config());
     }
 
-    private static Duration maxMeasurementAge(final Config config) {
-        final Duration maxAge = config.hasPath(MAX_MEASUREMENT_AGE_PATH)
-                ? config.getDuration(MAX_MEASUREMENT_AGE_PATH)
-                : DEFAULT_MAX_MEASUREMENT_AGE;
-        if (maxAge.isNegative() || maxAge.isZero()) {
-            throw new DittoConfigError("<" + MAX_MEASUREMENT_AGE_PATH + "> must be positive, was <" + maxAge + ">.");
-        }
-        return maxAge;
+    @Override
+    public void postStop() throws Exception {
+        PENDING_RETRIES.set(0L);
+        super.postStop();
     }
 
     /**
      * @param shardRegionProxy proxy to the {@link TimeseriesMessagingConstants#SHARD_REGION}
      * shard region on Timeseries-service nodes.
      * @param wotResolver the shared WoT ThingModel resolver from {@code DittoWotIntegration}.
+     * @param ingestConfig the configuration of the ingest.
      */
-    public static Props props(final ActorRef shardRegionProxy, final WotThingModelResolver wotResolver) {
-        return props(shardRegionProxy, wotResolver, DEFAULT_ASK_TIMEOUT);
+    public static Props props(final ActorRef shardRegionProxy, final WotThingModelResolver wotResolver,
+            final TimeseriesIngestConfig ingestConfig) {
+        return props(shardRegionProxy, wotResolver, ingestConfig, DEFAULT_ASK_TIMEOUT);
     }
 
     /** Visible for tests so the ask-timeout can be tightened to keep tests fast. */
     public static Props props(final ActorRef shardRegionProxy,
             final WotThingModelResolver wotResolver,
+            final TimeseriesIngestConfig ingestConfig,
             final Duration askTimeout) {
 
-        return Props.create(TimeseriesIngestPublisher.class, shardRegionProxy, wotResolver, askTimeout);
+        return Props.create(TimeseriesIngestPublisher.class, shardRegionProxy, wotResolver, ingestConfig,
+                askTimeout);
     }
 
     @Override
@@ -200,6 +205,7 @@ public final class TimeseriesIngestPublisher extends AbstractActorWithTimers {
                 .match(IngestDataPoints.class, command -> sendWithRetry(command, 1))
                 .match(RetrySend.class, this::scheduleRetry)
                 .match(SendRetry.class, send -> sendWithRetry(send.retry().command(), send.retry().attempt()))
+                .match(RetryEnded.class, this::endRetry)
                 .build();
     }
 
@@ -237,7 +243,7 @@ public final class TimeseriesIngestPublisher extends AbstractActorWithTimers {
         final ActorRef self = getSelf();
         final Executor dispatcher = getContext().getDispatcher();
         final ResolvedLeafCache leafCache = resolvedLeaves;
-        final Duration maxAge = maxMeasurementAge;
+        final Duration maxAge = ingestConfig.getMaxMeasurementAge();
         wotResolver.resolveThingModel(tmIri.get(), headers)
                 .thenCompose(tm -> wotResolver.resolveThingModelSubmodels(tm, headers))
                 .thenApplyAsync(submodels -> buildDataPointsOrDrop(thingId, leaves, thing, previousThing, submodels,
@@ -258,33 +264,79 @@ public final class TimeseriesIngestPublisher extends AbstractActorWithTimers {
 
     private void sendWithRetry(final IngestDataPoints command, final int attempt) {
         final ActorRef self = getSelf();
+        final int maxAttempts = ingestConfig.getRetryMaxAttempts();
         Patterns.ask(shardRegionProxy, command, askTimeout)
                 .whenComplete((response, throwable) -> {
                     if (throwable == null && response instanceof IngestDataPointsResponse) {
+                        if (attempt > 1) {
+                            self.tell(new RetryEnded(retryKey(command)), self);
+                        }
                         return;
                     }
-                    final Throwable cause = unwrap(throwable);
-                    final Object failureSubject = throwable != null
-                            ? cause
+                    final Object failure = throwable != null
+                            ? unwrap(throwable)
                             : (response instanceof Status.Failure sf ? sf.cause() : response);
-                    if (attempt < MAX_ATTEMPTS) {
+                    if (attempt < maxAttempts) {
                         LOGGER.debug("Retrying IngestDataPoints for thing <{}> (attempt {} of {}): {}",
-                                command.getEntityId(), attempt + 1, MAX_ATTEMPTS, failureSubject);
+                                command.getEntityId(), attempt + 1, maxAttempts, describe(failure));
                         // Schedule the retry on the actor thread so it doesn't race the next
                         // mailbox message. Same correlation-id signals "logical replay" to the
                         // receiving entity, which dedups via a bounded `recentlyApplied` ring.
                         self.tell(new RetrySend(command, attempt + 1), self);
                     } else {
                         DROPPED_BATCHES.increment();
+                        DROPPED_RETRIES_EXHAUSTED.increment();
                         LOGGER.warn("Giving up on IngestDataPoints for thing <{}> after <{}> attempts: {}",
-                                command.getEntityId(), MAX_ATTEMPTS, failureSubject);
+                                command.getEntityId(), maxAttempts, describe(failure));
+                        if (attempt > 1) {
+                            self.tell(new RetryEnded(retryKey(command)), self);
+                        }
                     }
                 });
     }
 
     private void scheduleRetry(final RetrySend retry) {
-        final Duration delay = RETRY_BACKOFF.multipliedBy(1L << (retry.attempt() - 2));
-        getTimers().startSingleTimer(retry, new SendRetry(retry), delay);
+        final String key = retryKey(retry.command());
+        if (!pendingRetries.contains(key)) {
+            if (pendingRetries.size() >= ingestConfig.getRetryMaxPendingRetries()) {
+                DROPPED_BATCHES.increment();
+                DROPPED_RETRY_CAP.increment();
+                LOGGER.debug("Dropping IngestDataPoints for thing <{}>: <{}> batches already wait for a retry.",
+                        retry.command().getEntityId(), pendingRetries.size());
+                return;
+            }
+            pendingRetries.add(key);
+            PENDING_RETRIES.set((long) pendingRetries.size());
+        }
+        getTimers().startSingleTimer(key, new SendRetry(retry), retryDelay(ingestConfig, retry.attempt()));
+    }
+
+    private void endRetry(final RetryEnded ended) {
+        pendingRetries.remove(ended.key());
+        PENDING_RETRIES.set((long) pendingRetries.size());
+    }
+
+    static Duration retryDelay(final TimeseriesIngestConfig config, final int attempt) {
+        final Duration delay =
+                config.getRetryBackoff().multipliedBy(1L << Math.min(Math.max(attempt - 2, 0), 30));
+        final Duration capped = delay.compareTo(config.getRetryMaxBackoff()) > 0 ? config.getRetryMaxBackoff() : delay;
+        final double jitter = 1 + ThreadLocalRandom.current().nextDouble(-RETRY_JITTER, RETRY_JITTER);
+        return Duration.ofMillis(Math.round(capped.toMillis() * jitter));
+    }
+
+    private static String retryKey(final IngestDataPoints command) {
+        return command.getDittoHeaders().getCorrelationId()
+                .orElseGet(() -> command.getEntityId() + "@" + System.identityHashCode(command));
+    }
+
+    private static String describe(@Nullable final Object failure) {
+        if (failure instanceof DittoRuntimeException dre) {
+            return dre.getErrorCode() + ": " + dre.getMessage();
+        }
+        if (failure instanceof Throwable t) {
+            return t.getClass().getSimpleName() + ": " + t.getMessage();
+        }
+        return failure == null ? "null" : failure.getClass().getSimpleName();
     }
 
     @Nullable
@@ -562,4 +614,6 @@ public final class TimeseriesIngestPublisher extends AbstractActorWithTimers {
     private record RetrySend(IngestDataPoints command, int attempt) {}
 
     private record SendRetry(RetrySend retry) {}
+
+    private record RetryEnded(String key) {}
 }

@@ -28,6 +28,9 @@ sections: `Added`, `Changed`, `Deprecated`, `Removed`, `Fixed`, `Security`.
   the `/api/2/timeseries` endpoints; enable it together with `timeseries.enabled`.
 - New `things.config.timeseries.maxMeasurementAge` (default `35d`), passed to the things service as
   `THINGS_TIMESERIES_MAX_MEASUREMENT_AGE`: how far before its event a data point's measurement time may lie.
+- New `things.config.timeseries.ingestRetry` (`maxAttempts` 10, `backoff` 500ms, `maxBackoff` 30s,
+  `maxPendingRetries` 20000), passed to the things service as `THINGS_TIMESERIES_INGEST_RETRY_*`: how long a batch of
+  data points is retried while the timeseries service cannot store it, and how many batches may wait at once.
 
 ## [4.9.0]
 

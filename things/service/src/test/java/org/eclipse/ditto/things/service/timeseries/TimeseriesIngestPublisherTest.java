@@ -20,8 +20,10 @@ import static org.mockito.Mockito.when;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
@@ -33,6 +35,7 @@ import org.apache.pekko.actor.Status;
 import org.apache.pekko.actor.SupervisorStrategy;
 import org.apache.pekko.testkit.TestProbe;
 import org.apache.pekko.testkit.javadsl.TestKit;
+import org.eclipse.ditto.base.model.exceptions.DittoInternalErrorException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonFactory;
@@ -48,6 +51,8 @@ import org.eclipse.ditto.things.model.signals.events.FeaturePropertiesModified;
 import org.eclipse.ditto.things.model.signals.events.FeaturePropertyModified;
 import org.eclipse.ditto.things.model.signals.events.FeaturesModified;
 import org.eclipse.ditto.things.model.signals.events.ThingEvent;
+import org.eclipse.ditto.things.service.common.config.DefaultTimeseriesIngestConfig;
+import org.eclipse.ditto.things.service.common.config.TimeseriesIngestConfig;
 import org.eclipse.ditto.things.model.signals.events.ThingMerged;
 import org.eclipse.ditto.things.model.signals.events.ThingModified;
 import org.eclipse.ditto.timeseries.api.commands.IngestDataPoints;
@@ -67,7 +72,7 @@ import com.typesafe.config.ConfigFactory;
  * non-persistent half of the ingest pipeline; its contract is "given an event +
  * post-event Thing entity + a WoT TM with {@code ditto:timeseries} annotations, ask
  * the timeseries shard region with the right {@link IngestDataPoints}, retry on
- * missing acks, give up after {@code MAX_ATTEMPTS}." The persistent shard entity is
+ * missing acks, give up after the configured attempts." The persistent shard entity is
  * tested separately in {@code TimeseriesIngestActorTest}.
  */
 public final class TimeseriesIngestPublisherTest {
@@ -90,6 +95,11 @@ public final class TimeseriesIngestPublisherTest {
 
     private static ActorSystem actorSystem;
 
+    private static final TimeseriesIngestConfig INGEST_CONFIG = DefaultTimeseriesIngestConfig.of(ConfigFactory.empty());
+
+    private static final scala.concurrent.duration.FiniteDuration RETRY_WAIT =
+            scala.concurrent.duration.Duration.create(3, TimeUnit.SECONDS);
+
     @BeforeClass
     public static void beforeClass() {
         actorSystem = ActorSystem.create("TimeseriesIngestPublisherTest", ConfigFactory.empty());
@@ -110,7 +120,7 @@ public final class TimeseriesIngestPublisherTest {
             final WotThingModelResolver resolver = resolverWith(annotatedSubmodel("ALL", Map.of()));
 
             final ActorRef publisher = actorSystem.actorOf(
-                    TimeseriesIngestPublisher.props(shardProbe.ref(), resolver, Duration.ofSeconds(2)));
+                    TimeseriesIngestPublisher.props(shardProbe.ref(), resolver, INGEST_CONFIG, Duration.ofSeconds(2)));
 
             publisher.tell(new TimeseriesIngestPublisher.IngestRequest(
                     sampleEvent(JsonValue.of(21.5)), thingWithDefinition()), getRef());
@@ -137,7 +147,7 @@ public final class TimeseriesIngestPublisherTest {
                     "env", "prod")));
 
             final ActorRef publisher = actorSystem.actorOf(
-                    TimeseriesIngestPublisher.props(shardProbe.ref(), resolver, Duration.ofSeconds(2)));
+                    TimeseriesIngestPublisher.props(shardProbe.ref(), resolver, INGEST_CONFIG, Duration.ofSeconds(2)));
 
             publisher.tell(new TimeseriesIngestPublisher.IngestRequest(
                     sampleEvent(JsonValue.of(21.5)), thingWithDefinitionAndAttributes()), getRef());
@@ -163,7 +173,7 @@ public final class TimeseriesIngestPublisherTest {
                     .setAttribute(JsonPointer.of("floor"), JsonValue.of(2));
 
             final ActorRef publisher = actorSystem.actorOf(
-                    TimeseriesIngestPublisher.props(shardProbe.ref(), resolver, Duration.ofSeconds(2)));
+                    TimeseriesIngestPublisher.props(shardProbe.ref(), resolver, INGEST_CONFIG, Duration.ofSeconds(2)));
 
             publisher.tell(new TimeseriesIngestPublisher.IngestRequest(
                     sampleEvent(JsonValue.of(21.5)), thing), getRef());
@@ -194,7 +204,7 @@ public final class TimeseriesIngestPublisherTest {
                     .build();
 
             final ActorRef publisher = actorSystem.actorOf(
-                    TimeseriesIngestPublisher.props(shardProbe.ref(), resolver, Duration.ofSeconds(2)));
+                    TimeseriesIngestPublisher.props(shardProbe.ref(), resolver, INGEST_CONFIG, Duration.ofSeconds(2)));
 
             publisher.tell(new TimeseriesIngestPublisher.IngestRequest(
                     sampleEvent(JsonValue.of(21.5)), thing), getRef());
@@ -219,7 +229,7 @@ public final class TimeseriesIngestPublisherTest {
                     "env", "prod")));
 
             final ActorRef publisher = actorSystem.actorOf(
-                    TimeseriesIngestPublisher.props(shardProbe.ref(), resolver, Duration.ofSeconds(2)));
+                    TimeseriesIngestPublisher.props(shardProbe.ref(), resolver, INGEST_CONFIG, Duration.ofSeconds(2)));
 
             publisher.tell(new TimeseriesIngestPublisher.IngestRequest(
                     sampleEvent(JsonValue.of(21.5)), thingWithDefinitionAndAttributes()), getRef());
@@ -240,7 +250,7 @@ public final class TimeseriesIngestPublisherTest {
             final WotThingModelResolver resolver = resolverWith(annotatedSubmodel("NONE", Map.of()));
 
             final ActorRef publisher = actorSystem.actorOf(
-                    TimeseriesIngestPublisher.props(shardProbe.ref(), resolver, Duration.ofSeconds(2)));
+                    TimeseriesIngestPublisher.props(shardProbe.ref(), resolver, INGEST_CONFIG, Duration.ofSeconds(2)));
 
             publisher.tell(new TimeseriesIngestPublisher.IngestRequest(
                     sampleEvent(JsonValue.of(21.5)), thingWithDefinition()), getRef());
@@ -256,7 +266,7 @@ public final class TimeseriesIngestPublisherTest {
             final WotThingModelResolver resolver = resolverWith(submodelWithoutAnnotation());
 
             final ActorRef publisher = actorSystem.actorOf(
-                    TimeseriesIngestPublisher.props(shardProbe.ref(), resolver, Duration.ofSeconds(2)));
+                    TimeseriesIngestPublisher.props(shardProbe.ref(), resolver, INGEST_CONFIG, Duration.ofSeconds(2)));
 
             publisher.tell(new TimeseriesIngestPublisher.IngestRequest(
                     sampleEvent(JsonValue.of(21.5)), thingWithDefinition()), getRef());
@@ -275,7 +285,7 @@ public final class TimeseriesIngestPublisherTest {
                     .thenThrow(new AssertionError("resolveThingModel should not be called for a definition-less Thing"));
 
             final ActorRef publisher = actorSystem.actorOf(
-                    TimeseriesIngestPublisher.props(shardProbe.ref(), resolver, Duration.ofSeconds(2)));
+                    TimeseriesIngestPublisher.props(shardProbe.ref(), resolver, INGEST_CONFIG, Duration.ofSeconds(2)));
 
             publisher.tell(new TimeseriesIngestPublisher.IngestRequest(
                     sampleEvent(JsonValue.of(21.5)), thingWithoutDefinition()), getRef());
@@ -294,7 +304,7 @@ public final class TimeseriesIngestPublisherTest {
             final WotThingModelResolver resolver = resolverWith(annotatedSubmodel("ALL", Map.of()));
 
             final ActorRef publisher = actorSystem.actorOf(
-                    TimeseriesIngestPublisher.props(shardProbe.ref(), resolver, Duration.ofMillis(150)));
+                    TimeseriesIngestPublisher.props(shardProbe.ref(), resolver, INGEST_CONFIG, Duration.ofMillis(150)));
 
             publisher.tell(new TimeseriesIngestPublisher.IngestRequest(
                     sampleEvent(JsonValue.of(21.5)), thingWithDefinition()), getRef());
@@ -307,23 +317,21 @@ public final class TimeseriesIngestPublisherTest {
             assertThat(second.getDittoHeaders().getCorrelationId())
                     .isEqualTo(first.getDittoHeaders().getCorrelationId());
 
-            // Ack the second to terminate retries cleanly — leaving it would result in
-            // a third attempt and then a WARN log, which isn't under test here.
+            // Ack the second to terminate retries cleanly — leaving it would keep retrying.
             shardProbe.reply(IngestDataPointsResponse.of(THING_ID, second.getDittoHeaders()));
         }};
     }
 
     @Test
     public void retriesOnStatusFailureFromShard() {
-        // Status.Failure from the entity (e.g. transient MongoDB error) is treated
-        // identically to a timeout — retry. Either condition could be transient and
-        // benefit from a re-send.
+        // A failure reply is treated identically to a timeout — retry. Either condition could be
+        // transient and benefit from a re-send.
         new TestKit(actorSystem) {{
             final TestProbe shardProbe = new TestProbe(actorSystem);
             final WotThingModelResolver resolver = resolverWith(annotatedSubmodel("ALL", Map.of()));
 
             final ActorRef publisher = actorSystem.actorOf(
-                    TimeseriesIngestPublisher.props(shardProbe.ref(), resolver, Duration.ofSeconds(2)));
+                    TimeseriesIngestPublisher.props(shardProbe.ref(), resolver, INGEST_CONFIG, Duration.ofSeconds(2)));
 
             publisher.tell(new TimeseriesIngestPublisher.IngestRequest(
                     sampleEvent(JsonValue.of(21.5)), thingWithDefinition()), getRef());
@@ -340,13 +348,131 @@ public final class TimeseriesIngestPublisherTest {
     }
 
     @Test
+    public void retriesPastThreeAttemptsOnInternalErrorReplies() {
+        new TestKit(actorSystem) {{
+            final TestProbe shardProbe = new TestProbe(actorSystem);
+            final WotThingModelResolver resolver = resolverWith(annotatedSubmodel("ALL", Map.of()));
+
+            final ActorRef publisher = actorSystem.actorOf(
+                    TimeseriesIngestPublisher.props(shardProbe.ref(), resolver, INGEST_CONFIG, Duration.ofSeconds(2)));
+
+            publisher.tell(new TimeseriesIngestPublisher.IngestRequest(
+                    sampleEvent(JsonValue.of(21.5)), thingWithDefinition()), getRef());
+
+            final IngestDataPoints first = shardProbe.expectMsgClass(IngestDataPoints.class);
+            IngestDataPoints attempt = first;
+            for (int i = 0; i < 3; i++) {
+                shardProbe.reply(DittoInternalErrorException.newBuilder()
+                        .dittoHeaders(attempt.getDittoHeaders()).build());
+                attempt = shardProbe.expectMsgClass(
+                        scala.concurrent.duration.Duration.create(5, TimeUnit.SECONDS), IngestDataPoints.class);
+                assertThat(attempt.getDittoHeaders().getCorrelationId())
+                        .isEqualTo(first.getDittoHeaders().getCorrelationId());
+            }
+            shardProbe.reply(IngestDataPointsResponse.of(THING_ID, attempt.getDittoHeaders()));
+            shardProbe.expectNoMessage(RETRY_WAIT);
+        }};
+    }
+
+    @Test
+    public void dropsFailedBatchesBeyondMaxPendingRetriesAndFreesTheSlotAfterwards() {
+        new TestKit(actorSystem) {{
+            final TestProbe shardProbe = new TestProbe(actorSystem);
+            final ActorRef publisher = actorSystem.actorOf(TimeseriesIngestPublisher.props(shardProbe.ref(),
+                    resolverWith(annotatedSubmodel("ALL", Map.of())),
+                    ingestConfig("ingest-retry.max-pending-retries = 1"), Duration.ofSeconds(2)));
+
+            final IngestDataPoints first = failFirstAttempt(publisher, shardProbe, 1.0);
+            final IngestDataPoints second = failFirstAttempt(publisher, shardProbe, 2.0);
+
+            final IngestDataPoints retried = shardProbe.expectMsgClass(RETRY_WAIT, IngestDataPoints.class);
+            assertThat(retried.getDittoHeaders().getCorrelationId())
+                    .isEqualTo(first.getDittoHeaders().getCorrelationId())
+                    .isNotEqualTo(second.getDittoHeaders().getCorrelationId());
+            shardProbe.reply(IngestDataPointsResponse.of(THING_ID, retried.getDittoHeaders()));
+            shardProbe.expectNoMessage(RETRY_WAIT);
+
+            final IngestDataPoints third = failFirstAttempt(publisher, shardProbe, 3.0);
+            assertThat(shardProbe.expectMsgClass(RETRY_WAIT, IngestDataPoints.class).getDittoHeaders()
+                    .getCorrelationId()).isEqualTo(third.getDittoHeaders().getCorrelationId());
+            shardProbe.reply(IngestDataPointsResponse.of(THING_ID, third.getDittoHeaders()));
+        }};
+    }
+
+    @Test
+    public void givingUpFreesTheRetrySlot() {
+        new TestKit(actorSystem) {{
+            final TestProbe shardProbe = new TestProbe(actorSystem);
+            final ActorRef publisher = actorSystem.actorOf(TimeseriesIngestPublisher.props(shardProbe.ref(),
+                    resolverWith(annotatedSubmodel("ALL", Map.of())),
+                    ingestConfig("ingest-retry { max-attempts = 2, max-pending-retries = 1 }"),
+                    Duration.ofSeconds(2)));
+
+            failFirstAttempt(publisher, shardProbe, 1.0);
+            shardProbe.expectMsgClass(RETRY_WAIT, IngestDataPoints.class);
+            shardProbe.reply(new Status.Failure(new RuntimeException("backend down")));
+            shardProbe.expectNoMessage(RETRY_WAIT);
+
+            final IngestDataPoints next = failFirstAttempt(publisher, shardProbe, 2.0);
+            assertThat(shardProbe.expectMsgClass(RETRY_WAIT, IngestDataPoints.class).getDittoHeaders()
+                    .getCorrelationId()).isEqualTo(next.getDittoHeaders().getCorrelationId());
+            shardProbe.reply(IngestDataPointsResponse.of(THING_ID, next.getDittoHeaders()));
+        }};
+    }
+
+    @Test
+    public void zeroMaxPendingRetriesDisablesRetries() {
+        new TestKit(actorSystem) {{
+            final TestProbe shardProbe = new TestProbe(actorSystem);
+            final ActorRef publisher = actorSystem.actorOf(TimeseriesIngestPublisher.props(shardProbe.ref(),
+                    resolverWith(annotatedSubmodel("ALL", Map.of())),
+                    ingestConfig("ingest-retry.max-pending-retries = 0"), Duration.ofSeconds(2)));
+
+            failFirstAttempt(publisher, shardProbe, 1.0);
+            shardProbe.expectNoMessage(RETRY_WAIT);
+        }};
+    }
+
+    @Test
+    public void retryDelayDoublesUpToMaxBackoffWithJitter() {
+        final double[] expectedSeconds = {0.5, 1, 2, 4, 8, 16, 30, 30, 30};
+        double totalSeconds = 0;
+        for (int attempt = 2; attempt <= INGEST_CONFIG.getRetryMaxAttempts(); attempt++) {
+            final double expected = expectedSeconds[attempt - 2];
+            totalSeconds += expected;
+            final Set<Long> seen = new HashSet<>();
+            for (int i = 0; i < 200; i++) {
+                final long millis = TimeseriesIngestPublisher.retryDelay(INGEST_CONFIG, attempt).toMillis();
+                assertThat(millis).isBetween(Math.round(expected * 800), Math.round(expected * 1200));
+                seen.add(millis);
+            }
+            assertThat(seen).hasSizeGreaterThan(10);
+        }
+        assertThat(totalSeconds).isGreaterThan(120);
+        assertThat(TimeseriesIngestPublisher.retryDelay(INGEST_CONFIG, 1_000).toMillis()).isLessThanOrEqualTo(36_000);
+    }
+
+    private static IngestDataPoints failFirstAttempt(final ActorRef publisher, final TestProbe shardProbe,
+            final double value) {
+        publisher.tell(new TimeseriesIngestPublisher.IngestRequest(
+                sampleEvent(JsonValue.of(value)), thingWithDefinition()), ActorRef.noSender());
+        final IngestDataPoints attempt = shardProbe.expectMsgClass(IngestDataPoints.class);
+        shardProbe.reply(new Status.Failure(new RuntimeException("backend down")));
+        return attempt;
+    }
+
+    private static TimeseriesIngestConfig ingestConfig(final String timeseriesConfig) {
+        return DefaultTimeseriesIngestConfig.of(ConfigFactory.parseString("timeseries { " + timeseriesConfig + " }"));
+    }
+
+    @Test
     public void retryIsDelayedByBackoff() {
         new TestKit(actorSystem) {{
             final TestProbe shardProbe = new TestProbe(actorSystem);
             final WotThingModelResolver resolver = resolverWith(annotatedSubmodel("ALL", Map.of()));
 
             final ActorRef publisher = actorSystem.actorOf(
-                    TimeseriesIngestPublisher.props(shardProbe.ref(), resolver, Duration.ofSeconds(2)));
+                    TimeseriesIngestPublisher.props(shardProbe.ref(), resolver, INGEST_CONFIG, Duration.ofSeconds(2)));
 
             publisher.tell(new TimeseriesIngestPublisher.IngestRequest(
                     sampleEvent(JsonValue.of(21.5)), thingWithDefinition()), getRef());
@@ -355,7 +481,7 @@ public final class TimeseriesIngestPublisherTest {
             shardProbe.reply(new Status.Failure(new RuntimeException("backend hiccup")));
 
             shardProbe.expectNoMessage(scala.concurrent.duration.Duration.create(
-                    TimeseriesIngestPublisher.RETRY_BACKOFF.toMillis() - 100, TimeUnit.MILLISECONDS));
+                    INGEST_CONFIG.getRetryBackoff().toMillis() * 8 / 10 - 50, TimeUnit.MILLISECONDS));
             final IngestDataPoints second = shardProbe.expectMsgClass(IngestDataPoints.class);
             shardProbe.reply(IngestDataPointsResponse.of(THING_ID, second.getDittoHeaders()));
         }};
@@ -370,7 +496,7 @@ public final class TimeseriesIngestPublisherTest {
             final WotThingModelResolver resolver = resolverWith(nestedAnnotatedSubmodel());
 
             final ActorRef publisher = actorSystem.actorOf(
-                    TimeseriesIngestPublisher.props(shardProbe.ref(), resolver, Duration.ofSeconds(2)));
+                    TimeseriesIngestPublisher.props(shardProbe.ref(), resolver, INGEST_CONFIG, Duration.ofSeconds(2)));
 
             final FeaturePropertyModified event = FeaturePropertyModified.of(THING_ID, FEATURE_ID,
                     JsonPointer.of(NESTED_FEATURE_PROPERTY), statusValue(), 1L,
@@ -393,7 +519,7 @@ public final class TimeseriesIngestPublisherTest {
             final TestProbe shardProbe = new TestProbe(actorSystem);
             final WotThingModelResolver resolver = resolverWith(submodelWithAnnotationWithoutIngest());
             final ActorRef publisher = childActorOf(
-                    TimeseriesIngestPublisher.props(shardProbe.ref(), resolver, Duration.ofSeconds(2)),
+                    TimeseriesIngestPublisher.props(shardProbe.ref(), resolver, INGEST_CONFIG, Duration.ofSeconds(2)),
                     SupervisorStrategy.stoppingStrategy());
             watch(publisher);
 
@@ -423,7 +549,7 @@ public final class TimeseriesIngestPublisherTest {
             final WotThingModelResolver resolver = resolverWith(nestedAnnotatedSubmodel());
 
             final ActorRef publisher = actorSystem.actorOf(
-                    TimeseriesIngestPublisher.props(shardProbe.ref(), resolver, Duration.ofSeconds(2)));
+                    TimeseriesIngestPublisher.props(shardProbe.ref(), resolver, INGEST_CONFIG, Duration.ofSeconds(2)));
 
             final ThingMerged event = ThingMerged.of(THING_ID,
                     JsonPointer.of("/features/env/properties/status"), statusValue(), 1L,
@@ -449,7 +575,7 @@ public final class TimeseriesIngestPublisherTest {
             final WotThingModelResolver resolver = resolverWith(nestedAnnotatedSubmodel());
 
             final ActorRef publisher = actorSystem.actorOf(
-                    TimeseriesIngestPublisher.props(shardProbe.ref(), resolver, Duration.ofSeconds(2)));
+                    TimeseriesIngestPublisher.props(shardProbe.ref(), resolver, INGEST_CONFIG, Duration.ofSeconds(2)));
 
             final Thing thing = thingWithNestedStatus();
             final ThingModified event = ThingModified.of(thing, 1L,
@@ -475,7 +601,7 @@ public final class TimeseriesIngestPublisherTest {
             final WotThingModelResolver resolver = resolverWith(categorisedAnnotatedSubmodel());
 
             final ActorRef publisher = actorSystem.actorOf(
-                    TimeseriesIngestPublisher.props(shardProbe.ref(), resolver, Duration.ofSeconds(2)));
+                    TimeseriesIngestPublisher.props(shardProbe.ref(), resolver, INGEST_CONFIG, Duration.ofSeconds(2)));
 
             final FeaturePropertyModified event = FeaturePropertyModified.of(THING_ID, FEATURE_ID,
                     JsonPointer.of("status/flowTemperature"), statusValue(), 1L,
@@ -655,7 +781,7 @@ public final class TimeseriesIngestPublisherTest {
             final TestProbe shardProbe = new TestProbe(actorSystem);
             final ActorRef publisher = actorSystem.actorOf(
                     TimeseriesIngestPublisher.props(shardProbe.ref(), resolverWith(timedSubmodel()),
-                            Duration.ofSeconds(2)));
+                            INGEST_CONFIG, Duration.ofSeconds(2)));
 
             publisher.tell(new TimeseriesIngestPublisher.IngestRequest(mergeStatus(status), thing, thing), getRef());
 
@@ -724,7 +850,7 @@ public final class TimeseriesIngestPublisherTest {
         new TestKit(actorSystem) {{
             final TestProbe shardProbe = new TestProbe(actorSystem);
             final ActorRef publisher = actorSystem.actorOf(TimeseriesIngestPublisher.props(shardProbe.ref(),
-                    resolverWith("system", timedSubmodel()), Duration.ofSeconds(2)));
+                    resolverWith("system", timedSubmodel()), INGEST_CONFIG, Duration.ofSeconds(2)));
 
             publisher.tell(new TimeseriesIngestPublisher.IngestRequest(event, thing), getRef());
 
@@ -752,7 +878,7 @@ public final class TimeseriesIngestPublisherTest {
         new TestKit(actorSystem) {{
             final TestProbe shardProbe = new TestProbe(actorSystem);
             final ActorRef publisher = actorSystem.actorOf(
-                    TimeseriesIngestPublisher.props(shardProbe.ref(), resolverWith(submodel), Duration.ofSeconds(2)));
+                    TimeseriesIngestPublisher.props(shardProbe.ref(), resolverWith(submodel), INGEST_CONFIG, Duration.ofSeconds(2)));
 
             publisher.tell(new TimeseriesIngestPublisher.IngestRequest(event, thing, previousThing), getRef());
 

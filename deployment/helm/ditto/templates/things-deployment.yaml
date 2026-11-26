@@ -342,6 +342,14 @@ spec:
               value: "{{ .Values.things.config.supervisor.localAskEnforcerTimeout }}"
             - name: THINGS_TIMESERIES_MAX_MEASUREMENT_AGE
               value: "{{ .Values.things.config.timeseries.maxMeasurementAge }}"
+            - name: THINGS_TIMESERIES_INGEST_RETRY_MAX_ATTEMPTS
+              value: "{{ .Values.things.config.timeseries.ingestRetry.maxAttempts }}"
+            - name: THINGS_TIMESERIES_INGEST_RETRY_BACKOFF
+              value: "{{ .Values.things.config.timeseries.ingestRetry.backoff }}"
+            - name: THINGS_TIMESERIES_INGEST_RETRY_MAX_BACKOFF
+              value: "{{ .Values.things.config.timeseries.ingestRetry.maxBackoff }}"
+            - name: THINGS_TIMESERIES_INGEST_RETRY_MAX_PENDING_RETRIES
+              value: "{{ .Values.things.config.timeseries.ingestRetry.maxPendingRetries }}"
             - name: THINGS_WOT_TO_THING_DESCRIPTION_BASE_PREFIX
               value: "{{ .Values.things.config.wot.tdBasePrefix }}"
             - name: THINGS_WOT_THING_MODEL_CACHE_SIZE
