@@ -22,6 +22,20 @@ sections: `Added`, `Changed`, `Deprecated`, `Removed`, `Fixed`, `Security`.
   previous, resource-specific errors (e.g. `403 things:thing.notmodifiable`) which allow to determine whether an
   entity exists ([#2596](https://github.com/eclipse-ditto/ditto/pull/2596))
 
+## [4.10.1]
+
+### Removed
+- The JVM option `-XX:-UseBASE64Intrinsics`, added to the default `global.jvmOptions` in 4.9.0 as mitigation of the
+  JDK vulnerability [CVE-2026-114938](https://nvd.nist.gov/vuln/detail/CVE-2026-114938) ("Java4Shell"), is removed
+  again: the Ditto `3.9.10` Docker images are based on the fixed JDK `25.0.5.1`. Installations running older Ditto
+  images (`3.9.9` or earlier) with this chart version should keep adding the option to `global.jvmOptions` until they
+  update the images
+
+### Fixed
+- The policies deployment appended `policies.additionalJvmOptions` directly to the `global.pekkoOptions` in
+  `JAVA_TOOL_OPTIONS`, without a separating space, so that the policies service could not start when
+  `policies.additionalJvmOptions` was set
+
 ## [4.10.0]
 
 Bumped Ditto `appVersion` to `3.9.10`.
