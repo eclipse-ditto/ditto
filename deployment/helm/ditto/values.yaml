@@ -139,9 +139,6 @@ global:
   # debugging / canary, append to a service's additionalJvmOptions:
   #   -Dio.netty.leakDetection.level=simple
   # (per-service additionalJvmOptions is rendered after global.jvmOptions so the per-service value wins.)
-  # -XX:-UseBASE64Intrinsics mitigates CVE-2026-114938 ("Java4Shell", heap overflow in the Base64 decoder intrinsic
-  # on x86-64 CPUs with AVX-512 VBMI) until the Docker base image ships a fixed JDK (25.0.5.1 / 21.0.13.1 or later).
-  # It only makes Base64 encoding/decoding slower. When overriding jvmOptions, keep it until the JDK is fixed.
   jvmOptions: >
     -XX:+ExitOnOutOfMemoryError
     -XX:+HeapDumpOnOutOfMemoryError
@@ -157,7 +154,6 @@ global:
     -XX:+UseCompactObjectHeaders
     -Djava.net.preferIPv4Stack=true
     -Dio.netty.leakDetection.level=disabled
-    -XX:-UseBASE64Intrinsics
   pekkoOptions: >
     -Dpekko.management.cluster.bootstrap.contact-point-discovery.port-name=management
     -Dpekko.http.client.parsing.max-chunk-size=2m
