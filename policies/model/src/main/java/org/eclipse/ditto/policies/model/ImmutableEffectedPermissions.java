@@ -39,6 +39,9 @@ import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 @Immutable
 final class ImmutableEffectedPermissions implements EffectedPermissions {
 
+    // Only a handful of distinct granted/revoked combinations exist, each repeated per resource of every policy.
+    private static final InternCache<ImmutableEffectedPermissions> CACHE = new InternCache<>(512);
+
     private final Permissions grantedPermissions;
     private final Permissions revokedPermissions;
 
@@ -62,7 +65,7 @@ final class ImmutableEffectedPermissions implements EffectedPermissions {
         final Permissions granted = toPermissions(toSet(checkNotNull(grantedPermissions, "granted permissions")));
         final Permissions revoked = toPermissions(toSet(checkNotNull(revokedPermissions, "revoked permissions")));
 
-        return new ImmutableEffectedPermissions(granted, revoked);
+        return CACHE.intern(new ImmutableEffectedPermissions(granted, revoked));
     }
 
     private static Collection<String> toSet(final Iterable<String> iterable) {

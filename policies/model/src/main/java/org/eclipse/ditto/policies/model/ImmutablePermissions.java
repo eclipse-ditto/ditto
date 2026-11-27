@@ -17,14 +17,12 @@ import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 import java.util.AbstractSet;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
 import java.util.Iterator;
-import java.util.Set;
-import java.util.function.Consumer;
+import java.util.NoSuchElementException;
 import java.util.function.Predicate;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.json.JsonArray;
@@ -33,32 +31,44 @@ import org.eclipse.ditto.json.JsonFactory;
 
 /**
  * Immutable implementation of {@link Permissions}.
+ * <p>
+ * Policies repeat a handful of distinct permission sets millions of times, so instances are shared: the permissions
+ * are kept as a sorted array, the empty set is a singleton and equal sets resolve to one cached instance.
+ * </p>
  */
 @Immutable
 final class ImmutablePermissions extends AbstractSet<String> implements Permissions {
 
-    private final Set<String> permissions;
+    private static final ImmutablePermissions NONE = new ImmutablePermissions(new String[0]);
+    private static final InternCache<ImmutablePermissions> CACHE = new InternCache<>(256);
 
-    private ImmutablePermissions(final Set<String> permissions) {
-        checkNotNull(permissions, "permissions");
-        this.permissions = Collections.unmodifiableSet(new HashSet<>(permissions));
+    private final String[] permissions;
+    private final int hashCode;
+
+    private ImmutablePermissions(final String[] sortedDistinctPermissions) {
+        permissions = sortedDistinctPermissions;
+        int hash = 0;
+        for (final String permission : sortedDistinctPermissions) {
+            hash += permission.hashCode();
+        }
+        hashCode = hash;
     }
 
     /**
-     * Returns a new empty set of permissions.
+     * Returns an empty set of permissions.
      *
-     * @return a new empty set of permissions.
+     * @return an empty set of permissions.
      */
     public static Permissions none() {
-        return new ImmutablePermissions(Collections.emptySet());
+        return NONE;
     }
 
     /**
-     * Returns a new {@code Permissions} object which is initialised with the given permissions.
+     * Returns a {@code Permissions} object which is initialised with the given permissions.
      *
      * @param permission the mandatory permission to initialise the result with.
      * @param furtherPermissions additional permissions to initialise the result with.
-     * @return a new {@code Permissions} object which is initialised with {@code permission} and {@code
+     * @return a {@code Permissions} object which is initialised with {@code permission} and {@code
      * furtherPermissions}.
      * @throws NullPointerException if any argument is {@code null}.
      */
@@ -66,30 +76,56 @@ final class ImmutablePermissions extends AbstractSet<String> implements Permissi
         checkNotNull(permission, "permission");
         checkNotNull(furtherPermissions, "further permissions");
 
-        final HashSet<String> permissions = new HashSet<>(1 + furtherPermissions.length, 1.0f);
-        permissions.add(permission);
-        Collections.addAll(permissions, furtherPermissions);
-
-        return new ImmutablePermissions(permissions);
+        final String[] permissions = new String[1 + furtherPermissions.length];
+        permissions[0] = permission;
+        System.arraycopy(furtherPermissions, 0, permissions, 1, furtherPermissions.length);
+        return shared(permissions);
     }
 
     /**
-     * Returns a new {@code Permissions} object which is initialised with the given permissions.
+     * Returns a {@code Permissions} object which is initialised with the given permissions.
      *
      * @param permissions the permissions to initialise the result with.
-     * @return a new {@code Permissions} object which is initialised with {@code permissions}.
+     * @return a {@code Permissions} object which is initialised with {@code permissions}.
      * @throws NullPointerException if {@code permissions} is {@code null}.
      */
     public static Permissions of(final Collection<String> permissions) {
         checkNotNull(permissions, "permissions");
 
-        final HashSet<String> permissionSet = new HashSet<>();
-
-        if (!permissions.isEmpty()) {
-            permissionSet.addAll(permissions);
+        if (permissions instanceof ImmutablePermissions) {
+            return (ImmutablePermissions) permissions;
         }
+        return shared(permissions.toArray(new String[0]));
+    }
 
-        return new ImmutablePermissions(permissionSet);
+    private static ImmutablePermissions shared(final String[] ownedPermissions) {
+        if (ownedPermissions.length == 0) {
+            return NONE;
+        }
+        for (final String permission : ownedPermissions) {
+            checkNotNull(permission, "permission");
+        }
+        Arrays.sort(ownedPermissions);
+        int distinct = 1;
+        for (int i = 1; i < ownedPermissions.length; i++) {
+            if (!ownedPermissions[i].equals(ownedPermissions[distinct - 1])) {
+                ownedPermissions[distinct++] = ownedPermissions[i];
+            }
+        }
+        final String[] sortedDistinct = distinct == ownedPermissions.length
+                ? ownedPermissions
+                : Arrays.copyOf(ownedPermissions, distinct);
+        return CACHE.intern(new ImmutablePermissions(sortedDistinct));
+    }
+
+    @Override
+    public boolean contains(@Nullable final Object o) {
+        for (final String permission : permissions) {
+            if (permission.equals(o)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     @Override
@@ -97,62 +133,77 @@ final class ImmutablePermissions extends AbstractSet<String> implements Permissi
         checkNotNull(permission, "permission whose presence is to be checked");
         checkNotNull(furtherPermissions, "further permissions whose presence are to be checked");
 
-        final HashSet<String> permissionSet = new HashSet<>();
-        permissionSet.add(permission);
-        permissionSet.addAll(Arrays.asList(furtherPermissions));
-
-        return permissions.containsAll(permissionSet);
+        if (!contains(permission)) {
+            return false;
+        }
+        for (final String furtherPermission : furtherPermissions) {
+            if (!contains(furtherPermission)) {
+                return false;
+            }
+        }
+        return true;
     }
 
     @Override
     public boolean contains(final Permissions permissions) {
         checkNotNull(permissions, "permissions whose presence is to be checked");
 
-        return this.permissions.containsAll(permissions);
+        return containsAll(permissions);
     }
 
     @Override
     public int size() {
-        return permissions.size();
+        return permissions.length;
     }
 
     @Override
     public JsonArray toJson() {
         final JsonArrayBuilder jsonArrayBuilder = JsonFactory.newArrayBuilder();
-        permissions.forEach(jsonArrayBuilder::add);
+        for (final String permission : permissions) {
+            jsonArrayBuilder.add(permission);
+        }
         return jsonArrayBuilder.build();
     }
 
-    // now all methods from Collection which should not be supported as we have an immutable data structure:
+    @Override
+    public boolean equals(@Nullable final Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o instanceof ImmutablePermissions) {
+            final ImmutablePermissions other = (ImmutablePermissions) o;
+            return hashCode == other.hashCode && Arrays.equals(permissions, other.permissions);
+        }
+        return super.equals(o);
+    }
+
+    @Override
+    public int hashCode() {
+        return hashCode;
+    }
 
     @Nonnull
     @Override
     public Iterator<String> iterator() {
         return new Iterator<String>() {
-            private final Iterator<String> i = permissions.iterator();
+            private int index = 0;
 
             @Override
             public boolean hasNext() {
-                return i.hasNext();
+                return index < permissions.length;
             }
 
             @Override
             public String next() {
-                return i.next();
-            }
-
-            @Override
-            public void remove() {
-                throw new UnsupportedOperationException();
-            }
-
-            @Override
-            public void forEachRemaining(final Consumer<? super String> action) {
-                // Use backing collection version
-                i.forEachRemaining(action);
+                if (index >= permissions.length) {
+                    throw new NoSuchElementException();
+                }
+                return permissions[index++];
             }
         };
     }
+
+    // now all methods from Collection which should not be supported as we have an immutable data structure:
 
     @Override
     public boolean add(final String e) {

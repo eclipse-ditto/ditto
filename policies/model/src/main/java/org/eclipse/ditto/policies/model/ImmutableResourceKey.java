@@ -28,6 +28,9 @@ import org.eclipse.ditto.json.JsonPointer;
 @Immutable
 final class ImmutableResourceKey implements ResourceKey {
 
+    // Policies created from the same templates repeat the same resource keys in every policy.
+    private static final InternCache<ImmutableResourceKey> CACHE = new InternCache<>(4096);
+
     private final String resourceType;
     private final JsonPointer resourcePath;
 
@@ -46,7 +49,8 @@ final class ImmutableResourceKey implements ResourceKey {
      * @throws IllegalArgumentException if {@code type} is empty.
      */
     public static ImmutableResourceKey newInstance(final CharSequence type, final JsonPointer path) {
-        return new ImmutableResourceKey(argumentNotEmpty(type, "type").toString(), checkNotNull(path, "path"));
+        return CACHE.intern(
+                new ImmutableResourceKey(argumentNotEmpty(type, "type").toString(), checkNotNull(path, "path")));
     }
 
     @Override

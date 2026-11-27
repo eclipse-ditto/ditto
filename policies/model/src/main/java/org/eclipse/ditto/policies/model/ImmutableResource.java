@@ -36,6 +36,9 @@ import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 @Immutable
 final class ImmutableResource implements Resource {
 
+    // Policies created from the same templates repeat the same resources in every policy.
+    private static final InternCache<ImmutableResource> CACHE = new InternCache<>(4096);
+
     private final ResourceKey resourceKey;
     private final EffectedPermissions effectedPermissions;
 
@@ -78,7 +81,7 @@ final class ImmutableResource implements Resource {
      * @throws NullPointerException if any argument is {@code null}.
      */
     public static Resource of(final ResourceKey resourceKey, final EffectedPermissions effectedPermissions) {
-        return new ImmutableResource(resourceKey, effectedPermissions);
+        return CACHE.intern(new ImmutableResource(resourceKey, effectedPermissions));
     }
 
     /**

@@ -14,6 +14,7 @@ package org.eclipse.ditto.policies.model;
 
 import java.util.Arrays;
 
+import org.assertj.core.api.Assertions;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.policies.model.assertions.DittoPolicyAssertions;
 import org.junit.Test;
@@ -42,6 +43,18 @@ public final class ImmutableEffectedPermissionsTest {
         final EffectedPermissions effectedPermissions1 = ImmutableEffectedPermissions.fromJson(effectedPermissionsJson);
 
         DittoPolicyAssertions.assertThat(effectedPermissions).isEqualTo(effectedPermissions1);
+    }
+
+    @Test
+    public void equalEffectedPermissionsShareInstancesAndTheirPermissions() {
+        final EffectedPermissions first = ImmutableEffectedPermissions.of(
+                Arrays.asList(TestConstants.Policy.PERMISSION_WRITE, TestConstants.Policy.PERMISSION_READ),
+                PoliciesModelFactory.noPermissions());
+        final EffectedPermissions second = ImmutableEffectedPermissions.fromJson(first.toJson());
+
+        Assertions.assertThat(second).isSameAs(first);
+        Assertions.assertThat(second.getGrantedPermissions()).isSameAs(first.getGrantedPermissions());
+        Assertions.assertThat(first.getRevokedPermissions()).isSameAs(PoliciesModelFactory.noPermissions());
     }
 
 }
