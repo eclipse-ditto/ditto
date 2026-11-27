@@ -13,6 +13,7 @@
 package org.eclipse.ditto.wot.api.config;
 
 import java.util.AbstractMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -22,6 +23,10 @@ import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.internal.utils.config.DittoConfigError;
+import org.eclipse.ditto.things.model.DefinitionIdentifierInvalidException;
+import org.eclipse.ditto.things.model.ThingDefinition;
+import org.eclipse.ditto.things.model.ThingsModelFactory;
 import org.eclipse.ditto.wot.validation.ValidationContext;
 
 import com.typesafe.config.Config;
@@ -38,9 +43,11 @@ final class InternalDynamicTmValidationConfiguration {
     private static final String CONFIG_KEY_FEATURE_DEFINITION_PATTERNS = "feature-definition-patterns";
     private static final String CONFIG_KEY_CONFIG_OVERRIDES = "config-overrides";
     private static final String CONFIG_KEY_SCOPE_ID = "scope-id";
+    private static final String CONFIG_KEY_ALTERNATIVE_THING_DEFINITIONS = "alternative-thing-definitions";
 
     private final DynamicValidationContextConfiguration dynamicValidationContextConfiguration;
     private final Config configOverrides;
+    private final List<ThingDefinition> alternativeThingDefinitions;
     private final String scopeId;
 
 
@@ -81,6 +88,37 @@ final class InternalDynamicTmValidationConfiguration {
         );
         configOverrides = config.getConfig(CONFIG_KEY_CONFIG_OVERRIDES);
         scopeId = config.hasPath(CONFIG_KEY_SCOPE_ID) ? config.getString(CONFIG_KEY_SCOPE_ID) : "ditto:static";
+        alternativeThingDefinitions = parseAlternativeThingDefinitions(configOverrides, scopeId);
+        if (!alternativeThingDefinitions.isEmpty() && thingDefinitionPatterns.isEmpty()) {
+            throw new DittoConfigError("The dynamic config section <" + scopeId + "> defines <" +
+                    CONFIG_KEY_ALTERNATIVE_THING_DEFINITIONS + "> but no <" + CONFIG_KEY_THING_DEFINITION_PATTERNS +
+                    ">.");
+        }
+    }
+
+    private static List<ThingDefinition> parseAlternativeThingDefinitions(final Config configOverrides,
+            final String scopeId) {
+        if (!configOverrides.hasPath(CONFIG_KEY_ALTERNATIVE_THING_DEFINITIONS)) {
+            return List.of();
+        }
+        return configOverrides.getStringList(CONFIG_KEY_ALTERNATIVE_THING_DEFINITIONS)
+                .stream()
+                .map(definition -> {
+                    final ThingDefinition thingDefinition;
+                    try {
+                        thingDefinition = ThingsModelFactory.newDefinition(definition);
+                    } catch (final DefinitionIdentifierInvalidException e) {
+                        throw new DittoConfigError("The dynamic config section <" + scopeId +
+                                "> contains the invalid alternative thing definition <" + definition + ">.", e);
+                    }
+                    if (thingDefinition.getUrl().isEmpty()) {
+                        throw new DittoConfigError("The dynamic config section <" + scopeId +
+                                "> contains the alternative thing definition <" + definition +
+                                "> which is not a URL.");
+                    }
+                    return thingDefinition;
+                })
+                .collect(Collectors.collectingAndThen(Collectors.toCollection(LinkedHashSet::new), List::copyOf));
     }
 
     /**
@@ -98,6 +136,13 @@ final class InternalDynamicTmValidationConfiguration {
     }
 
     /**
+     * @return the alternative thing definitions of this dynamic config
+     */
+    List<ThingDefinition> getAlternativeThingDefinitions() {
+        return alternativeThingDefinitions;
+    }
+
+    /**
      * @return the scope ID of this dynamic config
      */
     public String getScopeId() {
@@ -105,17 +150,15 @@ final class InternalDynamicTmValidationConfiguration {
     }
 
     /**
-     * Calculates an optional configuration override to apply for the given {@code validationContext} or an empty
-     * optional if there should not be specific configuration overrides for the given context.
+     * Determines whether the configuration overrides of this dynamic config apply for the given
+     * {@code validationContext}.
      *
      * @param validationContext the context to potentially apply a configuration overwrite for
-     * @return the optional configuration override to apply for the given validation context
+     * @return whether this dynamic config applies to the given validation context
      */
-    Optional<Config> calculateDynamicTmValidationConfigOverrides(
-            @Nullable final ValidationContext validationContext
-    ) {
+    boolean matches(@Nullable final ValidationContext validationContext) {
         if (validationContext == null) {
-            return Optional.empty();
+            return false;
         } else {
             final boolean thingDefinitionMatches = validationContext.thingDefinition() != null &&
                     dynamicValidationContextConfiguration.thingDefinitionPatterns().stream()
@@ -123,7 +166,7 @@ final class InternalDynamicTmValidationConfiguration {
                             .anyMatch(pattern -> pattern.matcher(validationContext.thingDefinition().toString())
                                     .matches());
             if (!dynamicValidationContextConfiguration.thingDefinitionPatterns().isEmpty() && !thingDefinitionMatches) {
-                return Optional.empty();
+                return false;
             }
 
             final boolean featureDefinitionMatches = validationContext.featureDefinition() != null &&
@@ -133,7 +176,7 @@ final class InternalDynamicTmValidationConfiguration {
                                     .matches());
             if (!dynamicValidationContextConfiguration.featureDefinitionPatterns().isEmpty() &&
                     !featureDefinitionMatches) {
-                return Optional.empty();
+                return false;
             }
 
             final boolean dittoHeadersMatch = dynamicValidationContextConfiguration.dittoHeadersPatterns()
@@ -150,10 +193,10 @@ final class InternalDynamicTmValidationConfiguration {
                             )
                     );
             if (!dynamicValidationContextConfiguration.dittoHeadersPatterns().isEmpty() && !dittoHeadersMatch) {
-                return Optional.empty();
+                return false;
             }
 
-            return Optional.ofNullable(configOverrides);
+            return true;
         }
     }
 
