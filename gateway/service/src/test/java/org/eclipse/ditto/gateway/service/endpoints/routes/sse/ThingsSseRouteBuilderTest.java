@@ -55,6 +55,7 @@ import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.base.model.auth.AuthorizationContext;
 import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
+import org.eclipse.ditto.base.model.signals.commands.streaming.SubscribeForPersistedEvents;
 import org.eclipse.ditto.internal.utils.protocol.PartialAccessSignalFilter;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThing;
@@ -86,6 +87,7 @@ import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.AppenderBase;
 
+import org.apache.pekko.actor.ActorRef;
 import org.apache.pekko.actor.ActorSystem;
 import org.apache.pekko.http.javadsl.model.HttpHeader;
 import org.apache.pekko.http.javadsl.model.HttpRequest;
@@ -127,6 +129,7 @@ public final class ThingsSseRouteBuilderTest extends EndpointTestBase {
     private CharSequence connectionCorrelationId;
     private TestProbe streamingActor;
     private TestRoute underTest;
+    private TestRoute underTestWithExceptionHandling;
     private TestProbe proxyActor;
 
     @BeforeClass
@@ -156,6 +159,7 @@ public final class ThingsSseRouteBuilderTest extends EndpointTestBase {
         sseRouteBuilder.withProxyActor(proxyActor.ref());
         final Route sseRoute = extractRequestContext(ctx -> sseRouteBuilder.build(ctx, dittoHeadersSupplier));
         underTest = testRoute(handleExceptions(() -> sseRoute));
+        underTestWithExceptionHandling = underTest;
     }
 
     @Test
@@ -393,6 +397,74 @@ public final class ThingsSseRouteBuilderTest extends EndpointTestBase {
                                         Collections.emptySet()))
                         .withExtraFields(extraFields)
                         .build());
+    }
+
+    @Test
+    public void getWithAcceptHeaderAndChangeFilterParameterOpensSseConnection() {
+        final String changeFilter = "exists(features/location)";
+        final ThingFieldSelector extraFields = ThingFieldSelector.fromString("features/location");
+
+        final String requestUrl = THINGS_ROUTE + "?change-filter=" + changeFilter + "&extraFields=" + extraFields;
+
+        executeThingsRouteTest(HttpRequest.GET(requestUrl).addHeader(acceptHeader),
+                StartStreaming.getBuilder(StreamingType.EVENTS, connectionCorrelationId,
+                                AuthorizationModelFactory.newAuthContext(DittoAuthorizationContextType.UNSPECIFIED,
+                                        Collections.emptySet()))
+                        .withChangeFilter(changeFilter)
+                        .withExtraFields(extraFields)
+                        .build());
+    }
+
+    @Test
+    public void historicalStreamAndCombinesFilterAndChangeFilter() {
+        assertHistoricalFilter(
+                "?from-historical-revision=1&filter=exists(attributes/a)&change-filter=exists(features/f)",
+                "and(exists(attributes/a),exists(features/f))");
+    }
+
+    @Test
+    public void historicalStreamWithChangeFilterOnlyUsesIt() {
+        assertHistoricalFilter("?from-historical-revision=1&change-filter=exists(features/f)", "exists(features/f)");
+    }
+
+    @Test
+    public void historicalStreamRejectsPlaceholderTerms() {
+        for (final String query : List.of(
+                "?from-historical-revision=1&change-filter=eq(topic:action,'deleted')",
+                "?from-historical-timestamp=2026-10-26T00:00:00Z&filter=like(resource:path,'/features/f*')")) {
+            underTestWithExceptionHandling.run(HttpRequest.GET(THINGS_ROUTE + "/org.eclipse.ditto:my-thing-1" + query)
+                            .addHeader(acceptHeader))
+                    .assertStatusCode(StatusCodes.BAD_REQUEST);
+        }
+    }
+
+    @Test
+    public void historicalStreamErrorNamesTheParameterHoldingThePlaceholderTerm() {
+        final TestRouteResult result = underTestWithExceptionHandling.run(
+                HttpRequest.GET(THINGS_ROUTE + "/org.eclipse.ditto:my-thing-1?from-historical-revision=1" +
+                                "&filter=exists(attributes/a)&change-filter=eq(topic:action,'deleted')")
+                        .addHeader(acceptHeader));
+
+        result.assertStatusCode(StatusCodes.BAD_REQUEST);
+        assertThat(result.entityString()).contains("'change-filter'").doesNotContain("and(");
+    }
+
+    private void assertHistoricalFilter(final String query, final String expectedFilter) {
+        new TestKit(actorSystem) {{
+            final TestRouteResult routeResult =
+                    underTest.run(HttpRequest.GET(THINGS_ROUTE + "/org.eclipse.ditto:my-thing-1" + query)
+                            .addHeader(acceptHeader));
+            final CompletableFuture<Void> routeTestAssertions = CompletableFuture.runAsync(
+                    () -> routeResult.assertStatusCode(StatusCodes.OK), ASYNC_TEST_EXECUTOR);
+
+            streamingActor.expectMsgClass(Connect.class);
+            streamingActor.reply(streamingActor.ref());
+
+            final SubscribeForPersistedEvents subscribe =
+                    streamingActor.expectMsgClass(SubscribeForPersistedEvents.class);
+            assertThat(subscribe.getFilter()).contains(expectedFilter);
+            routeTestAssertions.cancel(true);
+        }};
     }
 
     @Test
@@ -805,6 +877,51 @@ public final class ThingsSseRouteBuilderTest extends EndpointTestBase {
                 .containsEntry(SseSessionStatistics.MDC_DELIVERED, "1");
     }
 
+    @Test
+    public void changeFilterIsEvaluatedOnlyOnReadableFields() {
+        final ThingId thingId = ThingId.of("org.eclipse.ditto:my-thing-1");
+        final AuthorizationSubject alice = AuthorizationSubject.newInstance("nginx:alice");
+        final DittoHeaders revokedForGroupX = DittoHeaders.newBuilder()
+                .putHeader(DittoHeaderDefinition.REVOKED_ACCESS_PATHS.getKey(),
+                        "{\"subjects\":[\"nginx:group-x\"],\"paths\":{\"attributes/secret\":[0]}}")
+                .readGrantedSubjects(List.of(alice))
+                .build();
+        final DittoHeaders sessionHeaders = dittoHeaders.toBuilder()
+                .authorizationContext(AuthorizationContext.newInstance(DittoAuthorizationContextType.UNSPECIFIED,
+                        alice, AuthorizationSubject.newInstance("nginx:group-x")))
+                .build();
+        final AttributesModified rev2 = AttributesModified.of(thingId,
+                Attributes.newBuilder().set("pub", "p1").set("secret", "s").build(), 2L, null, revokedForGroupX, null);
+        final AttributesModified rev3 = AttributesModified.of(thingId,
+                Attributes.newBuilder().set("pub", "p2").set("secret", "s").build(), 3L, null, revokedForGroupX, null);
+
+        final AtomicReference<String> entity = new AtomicReference<>();
+        new TestKit(actorSystem) {{
+            final TestRouteResult routeResult =
+                    underTest.run(HttpRequest.GET(THINGS_ROUTE + "?ids=" + thingId).addHeader(acceptHeader));
+            final CompletableFuture<Void> routeTestAssertions = CompletableFuture.runAsync(() -> {
+                routeResult.assertStatusCode(StatusCodes.OK);
+                entity.set(routeResult.entityString());
+            }, ASYNC_TEST_EXECUTOR);
+
+            final Connect receivedConnect = streamingActor.expectMsgClass(Connect.class);
+            streamingActor.reply(streamingActor.ref());
+            streamingActor.expectMsgClass(StartStreaming.class);
+            final SourceQueueWithComplete<SessionedJsonifiable> publisherQueue =
+                    receivedConnect.getEventAndResponsePublisher();
+
+            offerSessioned(publisherQueue, SessionedSignals.of(rev2, sessionHeaders, null,
+                    "eq(attributes/secret,\"s\")", null, ActorRef.noSender()));
+            offerSessioned(publisherQueue, SessionedSignals.of(rev3, sessionHeaders, null,
+                    "eq(attributes/pub,\"p2\")", null, ActorRef.noSender()));
+            publisherQueue.complete();
+            routeTestAssertions.join();
+        }};
+
+        assertThat(entity.get().split("data:", -1)).hasSize(2);
+        assertThat(entity.get()).doesNotContain("secret").doesNotContain("p1").contains("\"pub\":\"p2\"");
+    }
+
     private static void offerSessioned(final SourceQueueWithComplete<SessionedJsonifiable> publisherQueue,
             final SessionedJsonifiable sessionedJsonifiable) {
         publisherQueue.offer(sessionedJsonifiable).toCompletableFuture().join();
@@ -857,6 +974,8 @@ public final class ThingsSseRouteBuilderTest extends EndpointTestBase {
                     .isEqualTo(expectedStartStreaming.getExtraFields());
             assertThat(receivedStartStreaming.getFilter())
                     .isEqualTo(expectedStartStreaming.getFilter());
+            assertThat(receivedStartStreaming.getChangeFilter())
+                    .isEqualTo(expectedStartStreaming.getChangeFilter());
             assertThat(receivedStartStreaming.getNamespaces())
                     .isEqualTo(expectedStartStreaming.getNamespaces());
             assertThat(receivedStartStreaming.getStreamingType())

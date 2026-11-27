@@ -148,8 +148,20 @@ extraFields=attributes/location&filter=eq(attributes/location,"Kitchen")
 ```
 
 This applies to the RQL `filter` only. The
-[`fn-filter`](basic-connections.html#filtering-with-placeholder-functions) of a connection target topic is
-evaluated against the signal itself and never sees enriched fields.
+[`change-filter`](basic-changenotifications.html#filter-by-change) is always evaluated against the modified data
+and the [`fn-filter`](basic-connections.html#filtering-with-placeholder-functions) of a connection target topic
+against the signal itself; neither sees enriched fields.
+
+As a consequence, a `filter` term on a path selected by `extraFields` matches whenever that path exists in the
+Thing, not only when it was changed. To be notified only when a part of the Thing changed and still receive it
+completely, filter with `change-filter`:
+
+```text
+extraFields=features/temperature&change-filter=exists(features/temperature)
+```
+
+For WebSocket and SSE, events not matching the `change-filter` are dropped before the extra fields are
+retrieved.
 
 ## Further reading
 

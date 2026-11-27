@@ -89,6 +89,7 @@ import org.eclipse.ditto.gateway.service.security.HttpHeader;
 import org.eclipse.ditto.gateway.service.streaming.StreamingAuthorizationEnforcer;
 import org.eclipse.ditto.gateway.service.streaming.actors.SessionedJsonifiable;
 import org.eclipse.ditto.gateway.service.streaming.actors.StreamingActor;
+import org.eclipse.ditto.gateway.service.streaming.actors.StreamingSession;
 import org.eclipse.ditto.gateway.service.streaming.actors.SupervisedStream;
 import org.eclipse.ditto.gateway.service.streaming.signals.Connect;
 import org.eclipse.ditto.gateway.service.streaming.signals.IncomingSignal;
@@ -126,6 +127,7 @@ import org.eclipse.ditto.protocol.ProtocolFactory;
 import org.eclipse.ditto.protocol.TopicPath;
 import org.eclipse.ditto.protocol.adapter.ProtocolAdapter;
 import org.eclipse.ditto.protocol.mappingstrategies.IllegalAdaptableException;
+import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.commands.ThingErrorResponse;
 import org.eclipse.ditto.thingsearch.model.ThingSearchException;
@@ -754,7 +756,7 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
         return dittoHeaders.isResponseRequired();
     }
 
-    private Function<SessionedJsonifiable, CompletionStage<Collection<String>>> postprocess(
+    Function<SessionedJsonifiable, CompletionStage<Collection<String>>> postprocess(
             final ProtocolAdapter adapter, @Nullable final SignalEnrichmentFacade facade,
             final ThreadSafeDittoLogger logger) {
 
@@ -786,12 +788,27 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
                 view = null;
             }
 
+            final Optional<StreamingSession> changeFilteringSession = sessionedJsonifiable.getSession()
+                    .filter(session -> view != null && session.hasChangeFilter());
+            @Nullable final Thing changedThing;
+            if (changeFilteringSession.isPresent()) {
+                changedThing = changeFilteringSession.get().matchChangeFilter(view.getSignal()).orElse(null);
+                if (changedThing == null) {
+                    issuePotentialWeakAcknowledgements(sessionedJsonifiable);
+                    sessionedJsonifiable.finishSpan();
+                    return CompletableFuture.completedFuture(Collections.emptyList());
+                }
+            } else {
+                changedThing = null;
+            }
+
             final CompletionStage<JsonObject> extraFuture = view == null
                     ? CompletableFuture.completedFuture(JsonObject.empty())
                     : sessionedJsonifiable.retrieveExtraFields(facade, view.getSignal());
             return extraFuture.<Collection<String>>thenApply(extra -> {
                 final JsonObject readableExtra = view == null ? extra : view.filterThingJson(extra);
-                if (matchesFilter(sessionedJsonifiable, view == null ? null : view.getSignal(), readableExtra)) {
+                if (matchesFilter(sessionedJsonifiable, view == null ? null : view.getSignal(), changedThing,
+                        readableExtra)) {
                     return Collections.singletonList(
                             toJsonStringWithExtra(view == null ? adaptable : view.getAdaptable(), readableExtra));
                 }
@@ -866,17 +883,19 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
      * Always return true for Jsonifiables without any session, e. g., errors, responses, stream control messages.
      *
      * @param sessionedJsonifiable the Jsonifiable with session information attached.
+     * @param changedThing the thing data of the signal if it was already converted for the change filter.
      * @param extra extra fields from signal enrichment.
      * @return whether the Jsonifiable passes filter defined in the session together with the extra fields.
      */
     private static boolean matchesFilter(final SessionedJsonifiable sessionedJsonifiable,
             @Nullable final Signal<?> readableSignal,
+            @Nullable final Thing changedThing,
             final JsonObject extra) {
         return sessionedJsonifiable.getSession()
                 .filter(session -> readableSignal != null)
                 // evaluate to false if filter is present but does not match or has insufficient info to match
-                .map(session -> session.matchesFilter(session.mergeThingWithExtra(readableSignal, extra),
-                        readableSignal))
+                .map(session -> session.matchesFilter(
+                        session.mergeThingWithExtra(readableSignal, changedThing, extra), readableSignal))
                 .orElse(true);
     }
 

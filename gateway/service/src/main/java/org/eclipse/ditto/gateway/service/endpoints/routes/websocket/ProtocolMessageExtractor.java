@@ -44,6 +44,7 @@ final class ProtocolMessageExtractor implements Function<String, Optional<Stream
 
     private static final String PARAMETER_SEPARATOR = "?";
     private static final String PARAM_FILTER = "filter";
+    private static final String PARAM_CHANGE_FILTER = "change-filter";
     private static final String PARAM_NAMESPACES = "namespaces";
     private static final String PARAM_JWT = "jwtToken";
     private static final String PARAM_EXTRA_FIELDS = "extraFields";
@@ -132,6 +133,7 @@ final class ProtocolMessageExtractor implements Function<String, Optional<Stream
         return StartStreaming.getBuilder(streamingType, connectionCorrelationId, connectionAuthContext)
                 .withNamespaces(getNamespaces(params.get(PARAM_NAMESPACES)))
                 .withFilter(params.get(PARAM_FILTER))
+                .withChangeFilter(params.get(PARAM_CHANGE_FILTER))
                 .withExtraFields(getExtraFields(params.get(PARAM_EXTRA_FIELDS)))
                 .withCorrelationId(params.get(DittoHeaderDefinition.CORRELATION_ID.getKey()))
                 .build();

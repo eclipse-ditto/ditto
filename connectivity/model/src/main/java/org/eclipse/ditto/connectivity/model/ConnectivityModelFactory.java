@@ -843,8 +843,8 @@ public final class ConnectivityModelFactory {
 
     /**
      * Creates a new {@code FilteredTopic} from the passed {@code topicString} which consists of a {@code Topic} and
-     * the optional query parameters {@code namespaces}, {@code extraFields}, {@code filter=<RQL expression>} and the
-     * repeatable {@code fn-filter=<placeholder pipeline>} (e.g.
+     * the optional query parameters {@code namespaces}, {@code extraFields}, {@code filter=<RQL expression>},
+     * {@code change-filter=<RQL expression>} and the repeatable {@code fn-filter=<placeholder pipeline>} (e.g.
      * {@code header:ditto-originator|fn:filter('ne','some:subject')}); all given filters must match for a signal to
      * be processed (AND semantics).
      *

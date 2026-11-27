@@ -151,6 +151,28 @@ public final class WebSocketRoutePartialAccessTest extends EndpointTestBase {
         assertOnlyReadableFieldsAreDeliveredAndFiltered(revokedForGroupX, sessionHeaders(ALICE, GROUP_X));
     }
 
+    @Test
+    public void changeFilterIsEvaluatedOnlyOnReadableFields() {
+        final DittoHeaders revokedForGroupX = withAckRequest(DittoHeaders.newBuilder()
+                .putHeader(DittoHeaderDefinition.REVOKED_ACCESS_PATHS.getKey(),
+                        "{\"subjects\":[\"nginx:group-x\"],\"paths\":{\"attributes/secret\":[0]}}")
+                .readGrantedSubjects(List.of(ALICE)));
+        final DittoHeaders sessionHeaders = sessionHeaders(ALICE, GROUP_X);
+        final Attributes attributes = Attributes.newBuilder().set("pub", "p").set("secret", "s").build();
+
+        offerWithChangeFilter(AttributesModified.of(THING_ID, attributes, 2L, null,
+                withCorrelationId(revokedForGroupX, "unreadable-change"), null), sessionHeaders,
+                "eq(attributes/secret,\"s\")");
+        offerWithChangeFilter(AttributesModified.of(THING_ID, attributes, 3L, null, revokedForGroupX, null),
+                sessionHeaders, "eq(attributes/pub,\"p\")");
+        final JsonObject delivered = JsonObject.of(wsProbe.expectMessage().asTextMessage().getStrictText());
+
+        assertThat(delivered.getValue("revision")).contains(JsonValue.of(3L));
+        assertThat(delivered.toString()).doesNotContain("secret");
+        expectWeakAck("unreadable-change");
+        streamingSessionActor.expectNoMessage(FiniteDuration.create(200, TimeUnit.MILLISECONDS));
+    }
+
     private void assertOnlyReadableFieldsAreDeliveredAndFiltered(final DittoHeaders eventHeaders,
             final DittoHeaders sessionHeaders) {
 
@@ -190,6 +212,14 @@ public final class WebSocketRoutePartialAccessTest extends EndpointTestBase {
 
     private void offer(final Signal<?> event, final DittoHeaders sessionHeaders, @Nullable final String filter) {
         publisherQueue.offer(SessionedSignals.of(event, sessionHeaders, filter, EXTRA_FIELDS,
+                        streamingSessionActor.ref()))
+                .toCompletableFuture()
+                .join();
+    }
+
+    private void offerWithChangeFilter(final Signal<?> event, final DittoHeaders sessionHeaders,
+            final String changeFilter) {
+        publisherQueue.offer(SessionedSignals.of(event, sessionHeaders, null, changeFilter, EXTRA_FIELDS,
                         streamingSessionActor.ref()))
                 .toCompletableFuture()
                 .join();

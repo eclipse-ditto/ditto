@@ -14,6 +14,7 @@ package org.eclipse.ditto.things.model.signals.events;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.time.Instant;
 import java.util.Optional;
 
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
@@ -222,4 +223,38 @@ public final class ThingEventToThingConverterTest {
         assertThat(thing.getEntityId()).contains(TestConstants.Thing.THING_ID);
         assertThat(thing.getRevision()).contains(ThingRevision.newInstance(revision));
     }
+
+    @Test
+    public void thingEventToThingOrEmptyReturnsTheThingOfTheEvent() {
+        final FeaturePropertyModified event = FeaturePropertyModified.of(TestConstants.Thing.THING_ID, "f",
+                JsonPointer.of("speed"), JsonValue.of(1), 23L, null, DittoHeaders.empty(), null);
+
+        assertThat(ThingEventToThingConverter.thingEventToThingOrEmpty(event))
+                .isEqualTo(ThingEventToThingConverter.thingEventToThing(event).get());
+    }
+
+    @Test
+    public void thingEventToThingOrEmptyFallsBackToThingWithIdRevisionAndModified() {
+        final Instant timestamp = Instant.parse("2026-11-27T10:00:00Z");
+        final FeatureDefinitionModified event = FeatureDefinitionModified.of(TestConstants.Thing.THING_ID, "f",
+                FeatureDefinition.fromIdentifier("org.example:f:1.0.0"), 23L, timestamp, DittoHeaders.empty(), null);
+
+        assertThat(ThingEventToThingConverter.thingEventToThing(event)).isEmpty();
+        assertThat(ThingEventToThingConverter.thingEventToThingOrEmpty(event))
+                .isEqualTo(Thing.newBuilder()
+                        .setId(TestConstants.Thing.THING_ID)
+                        .setRevision(23L)
+                        .setModified(timestamp)
+                        .build());
+    }
+
+    @Test
+    public void thingEventToThingOrEmptyFallbackHasNoModifiedWithoutTimestamp() {
+        final FeatureDefinitionModified event = FeatureDefinitionModified.of(TestConstants.Thing.THING_ID, "f",
+                FeatureDefinition.fromIdentifier("org.example:f:1.0.0"), 23L, null, DittoHeaders.empty(), null);
+
+        assertThat(ThingEventToThingConverter.thingEventToThingOrEmpty(event))
+                .isEqualTo(Thing.newBuilder().setId(TestConstants.Thing.THING_ID).setRevision(23L).build());
+    }
+
 }
