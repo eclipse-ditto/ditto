@@ -81,7 +81,8 @@ final class ImmutableResource implements Resource {
      * @throws NullPointerException if any argument is {@code null}.
      */
     public static Resource of(final ResourceKey resourceKey, final EffectedPermissions effectedPermissions) {
-        return CACHE.intern(new ImmutableResource(resourceKey, effectedPermissions));
+        return CACHE.intern(new ImmutableResource(ImmutableResourceKey.shared(checkNotNull(resourceKey, "Resource key")),
+                effectedPermissions));
     }
 
     /**

@@ -28,8 +28,9 @@ import org.eclipse.ditto.json.JsonPointer;
 @Immutable
 final class ImmutableResourceKey implements ResourceKey {
 
-    // Policies created from the same templates repeat the same resource keys in every policy.
-    private static final InternCache<ImmutableResourceKey> CACHE = new InternCache<>(4096);
+    // Policies created from the same templates repeat the same resource keys in every policy. Only the keys kept in
+    // the resources of policies are shared: sharing the many short-lived keys of permission checks would only cost.
+    private static final InternCache<ResourceKey> CACHE = new InternCache<>(4096);
 
     private final String resourceType;
     private final JsonPointer resourcePath;
@@ -49,8 +50,17 @@ final class ImmutableResourceKey implements ResourceKey {
      * @throws IllegalArgumentException if {@code type} is empty.
      */
     public static ImmutableResourceKey newInstance(final CharSequence type, final JsonPointer path) {
-        return CACHE.intern(
-                new ImmutableResourceKey(argumentNotEmpty(type, "type").toString(), checkNotNull(path, "path")));
+        return new ImmutableResourceKey(argumentNotEmpty(type, "type").toString(), checkNotNull(path, "path"));
+    }
+
+    /**
+     * Returns a shared instance equal to the given resource key.
+     *
+     * @param resourceKey the resource key to share.
+     * @return the shared resource key.
+     */
+    static ResourceKey shared(final ResourceKey resourceKey) {
+        return CACHE.intern(resourceKey);
     }
 
     @Override
