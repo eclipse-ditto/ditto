@@ -336,6 +336,31 @@ public final class DefaultWotThingModelValidatorAlternativesTest {
                 DITTO_HEADERS));
     }
 
+    @Test
+    public void mergeSettingAnAttributeToAnEmptyObjectIsValidatedAgainstTheAlternative() {
+        final Thing mergedThing = thing(Attributes.newBuilder().set("a", 42).set("b", JsonObject.empty()).build(),
+                FeatureProperties.newBuilder().set("temp", 20).build());
+        final MergeThing mergeThing = MergeThing.of(THING_ID, JsonPointer.of("attributes/b"), JsonObject.empty(),
+                DITTO_HEADERS);
+        underTest.updateConfig(config(section(V8, V9)));
+
+        assertFailsWithPayloadValidationException(
+                underTest.validateMergeThing(definition(V8), mergeThing, mergedThing, JsonPointer.empty(),
+                        DITTO_HEADERS));
+    }
+
+    @Test
+    public void mergeOfAnEmptyObjectIsAccepted() {
+        final Thing thing = thing(Attributes.newBuilder().set("a", 42).build(),
+                FeatureProperties.newBuilder().set("temp", 20).build());
+        final MergeThing mergeThing = MergeThing.of(THING_ID, JsonPointer.empty(), JsonObject.empty(),
+                DITTO_HEADERS);
+        underTest.updateConfig(config(section(V8, V9)));
+
+        assertSucceeds(underTest.validateMergeThing(definition(V8), mergeThing, thing, JsonPointer.empty(),
+                DITTO_HEADERS));
+    }
+
     private CompletionStage<Void> writeSensorProperty(final String property, final JsonValue value) {
         return underTest.validateFeatureProperty(definition(V8), FeatureDefinition.fromIdentifier(SENSOR_V8),
                 FEATURE_ID, JsonPointer.of(property), value, false,

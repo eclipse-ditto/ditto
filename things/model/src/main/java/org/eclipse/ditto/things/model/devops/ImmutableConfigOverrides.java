@@ -12,9 +12,12 @@
  */
 package org.eclipse.ditto.things.model.devops;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
@@ -75,7 +78,7 @@ final class ImmutableConfigOverrides implements ConfigOverrides {
         this.logWarningInsteadOfFailingApiCalls = logWarningInsteadOfFailingApiCalls;
         this.thingConfig = thingConfig;
         this.featureConfig = featureConfig;
-        this.alternativeThingDefinitions = List.copyOf(alternativeThingDefinitions);
+        this.alternativeThingDefinitions = Collections.unmodifiableList(new ArrayList<>(alternativeThingDefinitions));
     }
 
     /**
@@ -92,7 +95,7 @@ final class ImmutableConfigOverrides implements ConfigOverrides {
             @Nullable final Boolean logWarningInsteadOfFailingApiCalls,
             @Nullable final ThingValidationConfig thingConfig,
             @Nullable final FeatureValidationConfig featureConfig) {
-        return of(enabled, logWarningInsteadOfFailingApiCalls, thingConfig, featureConfig, List.of());
+        return of(enabled, logWarningInsteadOfFailingApiCalls, thingConfig, featureConfig, Collections.emptyList());
     }
 
     /**
@@ -114,7 +117,7 @@ final class ImmutableConfigOverrides implements ConfigOverrides {
             final List<ThingDefinition> alternativeThingDefinitions) {
         Objects.requireNonNull(alternativeThingDefinitions, "alternativeThingDefinitions");
         alternativeThingDefinitions.stream()
-                .filter(definition -> definition.getUrl().isEmpty())
+                .filter(definition -> !definition.getUrl().isPresent())
                 .findFirst()
                 .ifPresent(definition -> {
                     throw WotValidationConfigInvalidException.newBuilder(
@@ -203,7 +206,7 @@ final class ImmutableConfigOverrides implements ConfigOverrides {
         final List<ThingDefinition> alternativeThingDefinitions =
                 jsonObject.getValue(ALTERNATIVE_THING_DEFINITIONS_FIELD)
                         .map(ImmutableConfigOverrides::parseAlternativeThingDefinitions)
-                        .orElse(List.of());
+                        .orElse(Collections.emptyList());
 
         return of(enabled, logWarning, thing, feature, alternativeThingDefinitions);
     }
@@ -224,7 +227,7 @@ final class ImmutableConfigOverrides implements ConfigOverrides {
                                 .build();
                     }
                 })
-                .toList();
+                .collect(Collectors.toList());
     }
 
     @Override

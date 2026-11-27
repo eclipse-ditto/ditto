@@ -17,7 +17,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.util.List;
+import java.util.Collections;
 
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonObject;
@@ -88,10 +88,10 @@ class ImmutableConfigOverridesTest {
     @Test
     void testAlternativeThingDefinitionsRoundtrip() {
         ImmutableConfigOverrides config = ImmutableConfigOverrides.of(null, null, null, null,
-                List.of(ThingsModelFactory.newDefinition("https://models.example.org/gateway-9.0.0.tm.jsonld")));
+                Collections.singletonList(ThingsModelFactory.newDefinition("https://models.example.org/gateway-9.0.0.tm.jsonld")));
         JsonObject json = config.toJson();
         assertEquals(JsonArray.of("[\"https://models.example.org/gateway-9.0.0.tm.jsonld\"]"),
-                json.getValue("alternative-thing-definitions").orElseThrow());
+                json.getValue("alternative-thing-definitions").get());
         assertEquals(config, ImmutableConfigOverrides.fromJson(json));
     }
 

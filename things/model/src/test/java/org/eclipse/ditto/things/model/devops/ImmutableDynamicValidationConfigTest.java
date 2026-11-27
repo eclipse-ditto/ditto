@@ -104,10 +104,10 @@ class ImmutableDynamicValidationConfigTest {
     @Test
     void testAlternativeThingDefinitionsWithoutThingDefinitionPatternsAreRejected() {
         ImmutableValidationContext validationContext = ImmutableValidationContext.of(
-                List.of(Map.of("ditto-originator", "^pre:ditto$")), Collections.emptyList(), Collections.emptyList()
+                Collections.singletonList(Collections.singletonMap("ditto-originator", "^pre:ditto$")), Collections.emptyList(), Collections.emptyList()
         );
         ImmutableConfigOverrides configOverrides = ImmutableConfigOverrides.of(null, null, null, null,
-                List.of(ThingsModelFactory.newDefinition("https://models.example.org/gateway-9.0.0.tm.jsonld")));
+                Collections.singletonList(ThingsModelFactory.newDefinition("https://models.example.org/gateway-9.0.0.tm.jsonld")));
         assertThrows(WotValidationConfigInvalidException.class,
                 () -> ImmutableDynamicValidationConfig.of("scope1", validationContext, configOverrides));
     }
@@ -115,11 +115,11 @@ class ImmutableDynamicValidationConfigTest {
     @Test
     void testAlternativeThingDefinitionsWithThingDefinitionPatterns() {
         ImmutableValidationContext validationContext = ImmutableValidationContext.of(
-                Collections.emptyList(), List.of("^https://models\\.example\\.org/gateway-8\\.0\\.0\\.tm\\.jsonld$"),
+                Collections.emptyList(), Collections.singletonList("^https://models\\.example\\.org/gateway-8\\.0\\.0\\.tm\\.jsonld$"),
                 Collections.emptyList()
         );
         ImmutableConfigOverrides configOverrides = ImmutableConfigOverrides.of(null, null, null, null,
-                List.of(ThingsModelFactory.newDefinition("https://models.example.org/gateway-9.0.0.tm.jsonld")));
+                Collections.singletonList(ThingsModelFactory.newDefinition("https://models.example.org/gateway-9.0.0.tm.jsonld")));
         ImmutableDynamicValidationConfig config =
                 ImmutableDynamicValidationConfig.of("scope1", validationContext, configOverrides);
         assertEquals(config, ImmutableDynamicValidationConfig.fromJson(config.toJson()));
