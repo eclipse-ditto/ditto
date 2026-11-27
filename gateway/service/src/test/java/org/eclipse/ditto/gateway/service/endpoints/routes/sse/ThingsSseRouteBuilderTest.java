@@ -87,6 +87,7 @@ import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.AppenderBase;
 
+import org.apache.pekko.actor.ActorRef;
 import org.apache.pekko.actor.ActorSystem;
 import org.apache.pekko.http.javadsl.model.HttpHeader;
 import org.apache.pekko.http.javadsl.model.HttpRequest;
@@ -874,6 +875,51 @@ public final class ThingsSseRouteBuilderTest extends EndpointTestBase {
                 .containsEntry(SseSessionStatistics.MDC_TARGETED, "3")
                 .containsEntry(SseSessionStatistics.MDC_FILTERED_OUT, "2")
                 .containsEntry(SseSessionStatistics.MDC_DELIVERED, "1");
+    }
+
+    @Test
+    public void changeFilterIsEvaluatedOnlyOnReadableFields() {
+        final ThingId thingId = ThingId.of("org.eclipse.ditto:my-thing-1");
+        final AuthorizationSubject alice = AuthorizationSubject.newInstance("nginx:alice");
+        final DittoHeaders revokedForGroupX = DittoHeaders.newBuilder()
+                .putHeader(DittoHeaderDefinition.REVOKED_ACCESS_PATHS.getKey(),
+                        "{\"subjects\":[\"nginx:group-x\"],\"paths\":{\"attributes/secret\":[0]}}")
+                .readGrantedSubjects(List.of(alice))
+                .build();
+        final DittoHeaders sessionHeaders = dittoHeaders.toBuilder()
+                .authorizationContext(AuthorizationContext.newInstance(DittoAuthorizationContextType.UNSPECIFIED,
+                        alice, AuthorizationSubject.newInstance("nginx:group-x")))
+                .build();
+        final AttributesModified rev2 = AttributesModified.of(thingId,
+                Attributes.newBuilder().set("pub", "p1").set("secret", "s").build(), 2L, null, revokedForGroupX, null);
+        final AttributesModified rev3 = AttributesModified.of(thingId,
+                Attributes.newBuilder().set("pub", "p2").set("secret", "s").build(), 3L, null, revokedForGroupX, null);
+
+        final AtomicReference<String> entity = new AtomicReference<>();
+        new TestKit(actorSystem) {{
+            final TestRouteResult routeResult =
+                    underTest.run(HttpRequest.GET(THINGS_ROUTE + "?ids=" + thingId).addHeader(acceptHeader));
+            final CompletableFuture<Void> routeTestAssertions = CompletableFuture.runAsync(() -> {
+                routeResult.assertStatusCode(StatusCodes.OK);
+                entity.set(routeResult.entityString());
+            }, ASYNC_TEST_EXECUTOR);
+
+            final Connect receivedConnect = streamingActor.expectMsgClass(Connect.class);
+            streamingActor.reply(streamingActor.ref());
+            streamingActor.expectMsgClass(StartStreaming.class);
+            final SourceQueueWithComplete<SessionedJsonifiable> publisherQueue =
+                    receivedConnect.getEventAndResponsePublisher();
+
+            offerSessioned(publisherQueue, SessionedSignals.of(rev2, sessionHeaders, null,
+                    "eq(attributes/secret,\"s\")", null, ActorRef.noSender()));
+            offerSessioned(publisherQueue, SessionedSignals.of(rev3, sessionHeaders, null,
+                    "eq(attributes/pub,\"p2\")", null, ActorRef.noSender()));
+            publisherQueue.complete();
+            routeTestAssertions.join();
+        }};
+
+        assertThat(entity.get().split("data:", -1)).hasSize(2);
+        assertThat(entity.get()).doesNotContain("secret").doesNotContain("p1").contains("\"pub\":\"p2\"");
     }
 
     private static void offerSessioned(final SourceQueueWithComplete<SessionedJsonifiable> publisherQueue,

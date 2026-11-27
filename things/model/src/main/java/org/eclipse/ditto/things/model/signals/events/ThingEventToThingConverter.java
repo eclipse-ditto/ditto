@@ -66,15 +66,21 @@ public final class ThingEventToThingConverter {
 
     /**
      * Creates a Thing from the passed ThingEvent like {@link #thingEventToThing(ThingEvent)}, but falls back to an
-     * empty Thing with the event's revision for events which carry no thing data, e.g. feature definition events.
+     * Thing with only the event's thing ID, revision and modified timestamp for events which carry no thing data,
+     * e.g. feature definition events.
      *
      * @param thingEvent the ThingEvent to extract the correlating Thing from
-     * @return the Thing represented by the passed in ThingEvent, or an empty Thing with its revision
+     * @return the Thing represented by the passed in ThingEvent, or a Thing with only its ID, revision and modified
+     * timestamp
      * @since 4.0.0
      */
     public static Thing thingEventToThingOrEmpty(final ThingEvent<?> thingEvent) {
         return thingEventToThing(thingEvent)
-                .orElseGet(() -> Thing.newBuilder().setRevision(thingEvent.getRevision()).build());
+                .orElseGet(() -> Thing.newBuilder()
+                        .setId(thingEvent.getEntityId())
+                        .setRevision(thingEvent.getRevision())
+                        .setModified(thingEvent.getTimestamp().orElse(null))
+                        .build());
     }
 
     /**

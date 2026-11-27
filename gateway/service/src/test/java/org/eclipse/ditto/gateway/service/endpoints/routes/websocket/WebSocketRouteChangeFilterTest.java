@@ -60,7 +60,7 @@ public final class WebSocketRouteChangeFilterTest extends EndpointTestBase {
         final Collection<String> published = postprocess(sessionedJsonifiable, facade, sessionActor);
 
         assertThat(published).isEmpty();
-        Mockito.verify(sessionedJsonifiable, Mockito.never()).retrieveExtraFields(Mockito.any());
+        Mockito.verify(sessionedJsonifiable, Mockito.never()).retrieveExtraFields(Mockito.any(), Mockito.any());
         Mockito.verifyNoInteractions(facade);
         Mockito.verify(sessionedJsonifiable).finishSpan();
         final IncomingSignal weakAck = sessionActor.expectMsgClass(IncomingSignal.class);
@@ -79,7 +79,7 @@ public final class WebSocketRouteChangeFilterTest extends EndpointTestBase {
 
         postprocess(sessionedJsonifiable, facade, sessionActor);
 
-        Mockito.verify(sessionedJsonifiable).retrieveExtraFields(facade);
+        Mockito.verify(sessionedJsonifiable).retrieveExtraFields(Mockito.eq(facade), Mockito.any());
     }
 
     private Collection<String> postprocess(final SessionedJsonifiable sessionedJsonifiable,
@@ -97,14 +97,14 @@ public final class WebSocketRouteChangeFilterTest extends EndpointTestBase {
             final boolean matchesChangeFilter, final TestKit sessionActor) {
         final StreamingSession session = Mockito.mock(StreamingSession.class);
         Mockito.when(session.hasChangeFilter()).thenReturn(true);
-        Mockito.when(session.matchChangeFilter(event))
+        Mockito.when(session.matchChangeFilter(Mockito.any()))
                 .thenReturn(matchesChangeFilter ? Optional.of(Thing.newBuilder().build()) : Optional.empty());
         Mockito.when(session.getStreamingSessionActor()).thenReturn(sessionActor.getRef());
         final SessionedJsonifiable sessionedJsonifiable = Mockito.mock(SessionedJsonifiable.class);
         Mockito.when(sessionedJsonifiable.getJsonifiable()).thenReturn(event);
         Mockito.when(sessionedJsonifiable.getDittoHeaders()).thenReturn(event.getDittoHeaders());
         Mockito.when(sessionedJsonifiable.getSession()).thenReturn(Optional.of(session));
-        Mockito.when(sessionedJsonifiable.retrieveExtraFields(Mockito.any()))
+        Mockito.when(sessionedJsonifiable.retrieveExtraFields(Mockito.any(), Mockito.any()))
                 .thenReturn(CompletableFuture.completedFuture(JsonObject.empty()));
         return sessionedJsonifiable;
     }

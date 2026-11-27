@@ -218,10 +218,20 @@ public final class StreamingSessionTest {
     @Test
     public void changeFilterSeesTheRevisionOfEventsWithoutThingData() {
         final StreamingSession underTest = session(null, criteria("gt(_revision,0)"));
+        final Instant timestamp = Instant.now();
+
+        assertThat(underTest.matchChangeFilter(FeatureDefinitionCreated.of(THING_ID, "specificFeature",
+                FeatureDefinition.fromIdentifier("org.acme:temp:1.0.0"), 3L, timestamp, DittoHeaders.empty(),
+                null))).contains(Thing.newBuilder().setId(THING_ID).setRevision(3L).setModified(timestamp).build());
+    }
+
+    @Test
+    public void changeFilterSeesTheThingIdOfEventsWithoutThingData() {
+        final StreamingSession underTest = session(null, criteria("eq(thingId,'org.eclipse.ditto:my-thing')"));
 
         assertThat(underTest.matchChangeFilter(FeatureDefinitionCreated.of(THING_ID, "specificFeature",
                 FeatureDefinition.fromIdentifier("org.acme:temp:1.0.0"), 3L, Instant.now(), DittoHeaders.empty(),
-                null))).contains(Thing.newBuilder().setRevision(3L).build());
+                null))).isPresent();
     }
 
     private static StreamingSession session(@Nullable final Criteria filter,
