@@ -27,15 +27,22 @@ import java.util.concurrent.CompletionStage;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
+import org.eclipse.ditto.base.model.auth.AuthorizationContext;
+import org.eclipse.ditto.base.model.auth.AuthorizationModelFactory;
+import org.eclipse.ditto.base.model.auth.DittoAuthorizationContextType;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
+import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.policies.model.Permissions;
 import org.eclipse.ditto.policies.model.PoliciesModelFactory;
 import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.policies.model.PolicyImporter;
+import org.eclipse.ditto.policies.model.ResourceKey;
+import org.eclipse.ditto.policies.model.SubjectId;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
 import org.openjdk.jmh.annotations.Fork;
@@ -59,7 +66,8 @@ import org.openjdk.jmh.annotations.Warmup;
  * entries with several hundred resources.
  * </p>
  * <ul>
- * <li>JMH ({@code -prof gc} for allocations): time to build one enforcer.</li>
+ * <li>JMH ({@code -prof gc} for allocations): time to build one enforcer, and time of typical permission checks
+ * which walk the policy tree (memoization disabled).</li>
  * <li>{@link #main(String[])}: heap retained by the resolved policies and enforcers of {@code n} thing policies,
  * i.e. what the enforcer cache holds.</li>
  * </ul>
@@ -81,13 +89,30 @@ public class ImportedPolicyEnforcerBenchmark {
     @Param({"1000"})
     public int things;
 
+    private static final ResourceKey THING_ROOT = ResourceKey.newInstance("thing", JsonPointer.empty());
+    private static final Permissions READ = Permissions.newInstance("READ");
+    private static final int CHECKED_ENFORCERS = 200;
+
     private Fixture fixture;
     private int next;
+    private final List<Enforcer> checkedEnforcers = new ArrayList<>();
+    private final List<AuthorizationContext> checkedContexts = new ArrayList<>();
+    private int nextCheck;
 
     @Setup
     public void setUp() throws IOException {
         fixture = Fixture.load(things);
         next = 0;
+        nextCheck = 0;
+        for (int i = 0; i < Math.min(CHECKED_ENFORCERS, fixture.thingPolicies.size()); i++) {
+            final Policy resolved = fixture.build(fixture.thingPolicies.get(i)).policy();
+            // memoization disabled: every check walks the policy tree
+            checkedEnforcers.add(PolicyEnforcers.defaultEvaluator(resolved, 0));
+            final SubjectId subjectId = resolved.getEntriesSet().iterator().next().getSubjects().iterator().next()
+                    .getId();
+            checkedContexts.add(AuthorizationModelFactory.newAuthContext(DittoAuthorizationContextType.UNSPECIFIED,
+                    AuthorizationModelFactory.newAuthSubject(subjectId)));
+        }
     }
 
     @Benchmark
@@ -95,6 +120,15 @@ public class ImportedPolicyEnforcerBenchmark {
         final Policy thingPolicy = fixture.thingPolicies.get(next);
         next = (next + 1) % fixture.thingPolicies.size();
         return fixture.build(thingPolicy);
+    }
+
+    @Benchmark
+    public int checkPermissions() {
+        final Enforcer enforcer = checkedEnforcers.get(nextCheck);
+        final AuthorizationContext authorizationContext = checkedContexts.get(nextCheck);
+        nextCheck = (nextCheck + 1) % checkedEnforcers.size();
+        final boolean unrestricted = enforcer.hasUnrestrictedPermissions(THING_ROOT, authorizationContext, READ);
+        return enforcer.getSubjectsWithPartialPermission(THING_ROOT, READ).size() + (unrestricted ? 1 : 0);
     }
 
     /**

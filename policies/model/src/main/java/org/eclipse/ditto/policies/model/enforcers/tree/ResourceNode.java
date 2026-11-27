@@ -17,70 +17,83 @@ import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
-import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 
 import javax.annotation.Nonnull;
-import javax.annotation.concurrent.NotThreadSafe;
+import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.policies.model.EffectedPermissions;
 import org.eclipse.ditto.policies.model.Permissions;
 
 /**
- * Implementation of {@link org.eclipse.ditto.policies.model.enforcers.tree.PolicyTreeNode} for resource nodes.
+ * Immutable implementation of {@link org.eclipse.ditto.policies.model.enforcers.tree.PolicyTreeNode} for resource
+ * nodes.
+ * <p>
+ * A node knows its absolute position instead of its parent, so equal subtrees are shared: between the subjects of a
+ * policy and between policies (see {@link SharedTreeNodes}).
+ * </p>
  */
-@NotThreadSafe
+@Immutable
 final class ResourceNode implements PolicyTreeNode {
 
-    private final PolicyTreeNode parent;
     private final String name;
+    private final JsonPointer absolutePointer;
+    private final EffectedPermissions permissions;
     private final Map<String, PolicyTreeNode> children;
-    private EffectedPermissions permissions;
+    private final int hashCode;
 
-    // this field is for internal caching only: do not use in hashCode() and equals() or toString()
-    private JsonPointer absolutePointer;
+    private ResourceNode(final String name, final JsonPointer absolutePointer, final EffectedPermissions permissions,
+            final Map<String, PolicyTreeNode> children) {
 
-    private ResourceNode(final PolicyTreeNode parent, final String name, final EffectedPermissions permissions) {
-        this.parent = parent;
         this.name = name;
-        children = new LinkedHashMap<>();
+        this.absolutePointer = absolutePointer;
         this.permissions = permissions;
-        absolutePointer = null;
+        this.children = children;
+        hashCode = hash(name, absolutePointer, permissions, children);
+    }
+
+    private static int hash(final String name, final JsonPointer absolutePointer,
+            final EffectedPermissions permissions, final Map<String, PolicyTreeNode> children) {
+        return Objects.hash(name, absolutePointer, permissions, children);
     }
 
     /**
-     * Returns a new {@code ResourceNode} for the given {@code parent} and {@code name}.
+     * Returns a resource node with the given properties, sharing an existing equal node.
      *
-     * @param parent the parent node of this resource node.
      * @param name the sub resource name of this node.
-     * @return the ResourceNode.
-     * @throws NullPointerException if any argument is {@code null}
-     */
-    public static ResourceNode of(final PolicyTreeNode parent, final String name) {
-        return of(parent, name, EffectedPermissions.newInstance(Permissions.none(), Permissions.none()));
-    }
-
-    /**
-     * Returns a new {@code ResourceNode} for the given {@code parent}, {@code name}, {@code permissions}
-     * and {@code children}.
-     *
-     * @param parent the parent node of this resource node.
-     * @param name the sub resource name of this node.
+     * @param absolutePointer the absolute pointer of this node, starting with the resource type.
      * @param permissions the permissions on this level.
+     * @param children the (already shared) child nodes by their names; the map must not be modified afterwards.
      * @return the ResourceNode.
      * @throws NullPointerException if any argument is {@code null}
      */
-    public static ResourceNode of(final PolicyTreeNode parent, final String name,
-            final EffectedPermissions permissions) {
-        checkNotNull(parent, "Parent");
-        checkNotNull(name, "Name");
-        checkNotNull(permissions, "Permissions");
+    static ResourceNode of(final String name, final JsonPointer absolutePointer,
+            final EffectedPermissions permissions, final Map<String, PolicyTreeNode> children) {
 
-        return new ResourceNode(parent, name, permissions);
+        checkNotNull(name, "Name");
+        checkNotNull(absolutePointer, "absolute pointer");
+        checkNotNull(permissions, "Permissions");
+        checkNotNull(children, "children");
+
+        final int hash = hash(name, absolutePointer, permissions, children);
+        final ResourceNode cached = SharedTreeNodes.get(hash);
+        if (null != cached && cached.hasProperties(hash, name, absolutePointer, permissions, children)) {
+            return cached;
+        }
+        return SharedTreeNodes.put(new ResourceNode(name, absolutePointer, permissions,
+                children.isEmpty() ? Collections.emptyMap() : Collections.unmodifiableMap(children)));
+    }
+
+    private boolean hasProperties(final int hash, final String name, final JsonPointer absolutePointer,
+            final EffectedPermissions permissions, final Map<String, PolicyTreeNode> children) {
+        return hashCode == hash &&
+                this.name.equals(name) &&
+                this.absolutePointer.equals(absolutePointer) &&
+                this.permissions.equals(permissions) &&
+                this.children.equals(children);
     }
 
     @Override
@@ -105,11 +118,6 @@ final class ResourceNode implements PolicyTreeNode {
     }
 
     @Override
-    public void addChild(final PolicyTreeNode childNode) {
-        children.put(childNode.getName(), childNode);
-    }
-
-    @Override
     public void accept(@Nonnull final Visitor visitor) {
         visitor.visitTreeNode(this);
         for (final PolicyTreeNode child : children.values()) {
@@ -117,16 +125,8 @@ final class ResourceNode implements PolicyTreeNode {
         }
     }
 
-    public Optional<PolicyTreeNode> getParent() {
-        return Optional.of(parent);
-    }
-
     public EffectedPermissions getPermissions() {
         return permissions;
-    }
-
-    public void setPermissions(final EffectedPermissions permissions) {
-        this.permissions = permissions;
     }
 
     /**
@@ -195,41 +195,17 @@ final class ResourceNode implements PolicyTreeNode {
     }
 
     /**
-     * Returns the absolute pointer of this resource node.
+     * Returns the absolute pointer of this resource node, starting with the resource type.
      *
      * @return the pointer.
      */
     @Nonnull
     public JsonPointer getAbsolutePointer() {
-        // not thread safe lazy initialization of the absolute pointer
-        JsonPointer result = absolutePointer;
-        if (null != result) {
-            return result;
-        }
-        result = getAbsolutePointer(this);
-        absolutePointer = result;
-        return result;
+        return absolutePointer;
     }
 
-    private JsonPointer getAbsolutePointer(final ResourceNode resourceNode) {
-        final JsonPointer result = resourceNode.getParent()
-                .filter(p -> Type.RESOURCE == p.getType())
-                .map(ResourceNode.class::cast)
-                .map(this::getAbsolutePointer) // Recursion!
-                .orElseGet(JsonFactory::emptyPointer);
-
-        return result.addLeaf(JsonFactory.newKey(resourceNode.getName()));
-    }
-
-    /**
-     * If this node is part of a tree, e. g. it has a parent and/or children, this method returns the level where
-     * this node is located within this tree.
-     *
-     * @return the level of this node within its tree.
-     */
     public int getLevel() {
-        final JsonPointer absoluteJsonPointer = getAbsolutePointer();
-        return absoluteJsonPointer.getLevelCount();
+        return absolutePointer.getLevelCount();
     }
 
     @Override
@@ -241,22 +217,22 @@ final class ResourceNode implements PolicyTreeNode {
             return false;
         }
         final ResourceNode that = (ResourceNode) o;
-        return Objects.equals(parent, that.parent) &&
+        return hashCode == that.hashCode &&
                 Objects.equals(name, that.name) &&
+                Objects.equals(absolutePointer, that.absolutePointer) &&
                 Objects.equals(permissions, that.permissions) &&
                 Objects.equals(children, that.children);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(parent, name, permissions, children);
+        return hashCode;
     }
 
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
-                "parent=" + parent.getName() +
-                ", name=" + name +
+                "absolutePointer=" + absolutePointer +
                 ", permissions=" + permissions +
                 ", children=" + children +
                 ']';

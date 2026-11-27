@@ -14,36 +14,44 @@ package org.eclipse.ditto.policies.model.enforcers.tree;
 
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
-import java.util.LinkedHashMap;
+import java.util.Collections;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 
 import javax.annotation.Nonnull;
+import javax.annotation.concurrent.Immutable;
 
 /**
- * Implementation of {@link org.eclipse.ditto.policies.model.enforcers.tree.PolicyTreeNode} for subject nodes.
+ * Immutable implementation of {@link org.eclipse.ditto.policies.model.enforcers.tree.PolicyTreeNode} for subject
+ * nodes. Subjects with equal resources share their (immutable) child nodes.
  */
+@Immutable
 final class SubjectNode implements PolicyTreeNode {
 
     private final String name;
-    private final Map<String, PolicyTreeNode> children = new LinkedHashMap<>();
+    private final Map<String, PolicyTreeNode> children;
 
-    private SubjectNode(final String name) {
+    private SubjectNode(final String name, final Map<String, PolicyTreeNode> children) {
         this.name = name;
+        this.children = children;
     }
 
     /**
-     * Returns a new {@code SubjectNode} for the given {@code name}.
+     * Returns a new {@code SubjectNode} for the given {@code name} and child nodes.
      *
      * @param name the name.
+     * @param children the (already shared) resource nodes of the resource types by their names; the map must not be
+     * modified afterwards.
      * @return the SubjectNode.
-     * @throws NullPointerException if {@code name} is {@code null}
+     * @throws NullPointerException if any argument is {@code null}
      */
-    public static SubjectNode of(final String name) {
+    public static SubjectNode of(final String name, final Map<String, PolicyTreeNode> children) {
         checkNotNull(name, "Name");
-
-        return new SubjectNode(name);
+        checkNotNull(children, "children");
+        return new SubjectNode(name, children.isEmpty()
+                ? Collections.emptyMap()
+                : SharedTreeNodes.shareChildren(Collections.unmodifiableMap(children)));
     }
 
     @Override
@@ -60,11 +68,6 @@ final class SubjectNode implements PolicyTreeNode {
     @Override
     public Optional<PolicyTreeNode> getChild(final String resourceName) {
         return Optional.ofNullable(children.get(resourceName));
-    }
-
-    @Override
-    public void addChild(final PolicyTreeNode childNode) {
-        children.put(childNode.getName(), childNode);
     }
 
     @Override
