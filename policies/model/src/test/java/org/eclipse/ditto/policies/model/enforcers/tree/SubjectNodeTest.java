@@ -12,6 +12,8 @@
  */
 package org.eclipse.ditto.policies.model.enforcers.tree;
 
+import java.util.Collections;
+
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -30,7 +32,7 @@ public class SubjectNodeTest {
 
     @Test(expected = NullPointerException.class)
     public void tryToCreateInstanceWithNullName() {
-        SubjectNode.of(null);
+        SubjectNode.of(null, Collections.<String, PolicyTreeNode>emptyMap());
     }
 
 }

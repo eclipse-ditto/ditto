@@ -14,6 +14,8 @@ package org.eclipse.ditto.policies.model;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.util.Collections;
+
 import org.eclipse.ditto.base.model.exceptions.DittoJsonException;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
@@ -86,6 +88,18 @@ public final class ImmutableResourceTest {
         assertThat(underTest).isNotNull();
         assertThat((Object) underTest.getPath()).isEqualTo(TestConstants.Policy.RESOURCE_PATH);
         assertThat(underTest.getEffectedPermissions()).isEqualTo(EFFECTED_PERMISSIONS);
+    }
+
+    @Test
+    public void resourcesShareTheirKeysButKeysOfChecksAreNotShared() {
+        final ResourceKey key = ResourceKey.newInstance("thing", JsonFactory.newPointer("/features/shared"));
+        final ResourceKey equalKey = ResourceKey.newInstance("thing", JsonFactory.newPointer("/features/shared"));
+        final EffectedPermissions permissions =
+                EffectedPermissions.newInstance(Collections.singleton("READ"), Collections.<String>emptySet());
+
+        assertThat(equalKey).isEqualTo(key).isNotSameAs(key);
+        assertThat(ImmutableResource.of(equalKey, permissions).getResourceKey())
+                .isSameAs(ImmutableResource.of(key, permissions).getResourceKey());
     }
 
 }

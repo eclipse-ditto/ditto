@@ -20,6 +20,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -47,8 +48,6 @@ import org.eclipse.ditto.policies.model.PolicyEntry;
 import org.eclipse.ditto.policies.model.Resource;
 import org.eclipse.ditto.policies.model.ResourceKey;
 import org.eclipse.ditto.policies.model.Resources;
-import org.eclipse.ditto.policies.model.SubjectId;
-import org.eclipse.ditto.policies.model.Subjects;
 import org.eclipse.ditto.policies.model.enforcers.EffectedSubjects;
 import org.eclipse.ditto.policies.model.enforcers.Enforcer;
 import org.eclipse.ditto.policies.model.enforcers.SubjectClassification;
@@ -138,31 +137,27 @@ public final class TreeBasedPolicyEnforcer implements Enforcer {
     public static TreeBasedPolicyEnforcer createInstance(final Iterable<PolicyEntry> policyEntries,
             final int maxMemoSize) {
         checkNotNull(policyEntries, "policyEntries");
-        final Map<String, PolicyTreeNode> tree = new HashMap<>();
+        final Map<String, NodeBuilder> subjectNodes = new HashMap<>();
 
         policyEntries.forEach(policyEntry -> {
-
-            final Subjects subjects = policyEntry.getSubjects();
-            subjects.forEach(subject -> {
-                final SubjectId subjectId = subject.getId();
-                final String subjectIdString = subjectId.toString();
-                final PolicyTreeNode parentNode = tree.computeIfAbsent(subjectIdString, SubjectNode::of);
-
-                final Resources resources = policyEntry.getResources();
-                resources.forEach(resource -> {
-                    final PolicyTreeNode rootChild = parentNode.computeIfAbsent(resource.getType(), t -> {
-                        final Set<String> emptySet = Collections.emptySet();
-                        return ResourceNode.of(parentNode, t, EffectedPermissions.newInstance(emptySet, emptySet));
-                    });
-                    addResourceSubTree((ResourceNode) rootChild, resource, resource.getPath());
-                });
+            final Resources resources = policyEntry.getResources();
+            policyEntry.getSubjects().forEach(subject -> {
+                final NodeBuilder subjectNode =
+                        subjectNodes.computeIfAbsent(subject.getId().toString(), NodeBuilder::new);
+                resources.forEach(resource -> addResourceSubTree(subjectNode.child(resource.getType()), resource,
+                        resource.getPath()));
             });
         });
+
+        // the immutable tree shares equal subtrees with other subjects of this policy and with other policies
+        final Map<String, PolicyTreeNode> tree = new HashMap<>(subjectNodes.size() * 4 / 3 + 1);
+        subjectNodes.forEach((subjectId, subjectNode) ->
+                tree.put(subjectId, SubjectNode.of(subjectId, subjectNode.buildChildren(JsonFactory.emptyPointer()))));
 
         return new TreeBasedPolicyEnforcer(tree, maxMemoSize);
     }
 
-    private static void addResourceSubTree(final ResourceNode parentNode, final Resource resource,
+    private static void addResourceSubTree(final NodeBuilder parentNode, final Resource resource,
             final JsonPointer path) {
 
         if (path.getLevelCount() == 1 || ROOT_RESOURCE.equals(path.toString())) {
@@ -171,48 +166,75 @@ public final class TreeBasedPolicyEnforcer implements Enforcer {
                     .orElseThrow(() -> new NullPointerException("Path did not contain a root!"));
 
             if (usedPath.equals(ROOT_RESOURCE)) {
-                parentNode.getParent().ifPresent(p -> mergePermissions(resource, parentNode));
-            } else if (!parentNode.getChild(usedPath).isPresent()) {
-                parentNode.addChild(ResourceNode.of(parentNode, usedPath, resource.getEffectedPermissions()));
+                parentNode.mergePermissions(resource);
             } else {
-                final ResourceNode existingChild = parentNode.getChild(usedPath)
-                        .map(ResourceNode.class::cast)
-                        .orElseThrow(() -> {
-                            final String msgPattern = "Parent node did not contain a child for path <{}>!";
-                            return new NullPointerException(MessageFormat.format(msgPattern, usedPath));
-                        });
-
-                mergePermissions(resource, existingChild);
+                final NodeBuilder existingChild = parentNode.children.get(usedPath);
+                if (null == existingChild) {
+                    parentNode.children.put(usedPath, new NodeBuilder(usedPath, resource.getEffectedPermissions()));
+                } else {
+                    existingChild.mergePermissions(resource);
+                }
             }
         } else {
             final String pathRootAsString = path.getRoot()
                     .map(JsonKey::toString)
                     .orElse("");
-            final ResourceNode node = (ResourceNode) parentNode.getChild(pathRootAsString).orElseGet(() -> {
-                final PolicyTreeNode newChild = ResourceNode.of(parentNode, pathRootAsString);
-                parentNode.addChild(newChild);
-                return newChild;
-            });
-            addResourceSubTree(node, resource, path.nextLevel());
+            addResourceSubTree(parentNode.child(pathRootAsString), resource, path.nextLevel());
         }
     }
 
-    private static void mergePermissions(final Resource resource, final ResourceNode existingChild) {
-        final EffectedPermissions existingChildPermissions = existingChild.getPermissions();
-        final Collection<String> mergedGrantedPermissions =
-                new HashSet<>(existingChildPermissions.getGrantedPermissions());
-        final Collection<String> mergedRevokedPermissions =
-                new HashSet<>(existingChildPermissions.getRevokedPermissions());
+    /**
+     * Mutable node of a policy tree under construction, frozen into immutable shared nodes once all policy entries
+     * were added.
+     */
+    private static final class NodeBuilder {
 
-        if (!resource.getEffectedPermissions().getRevokedPermissions().isEmpty()) {
-            mergedRevokedPermissions.addAll(resource.getEffectedPermissions().getRevokedPermissions());
-        }
-        if (!resource.getEffectedPermissions().getGrantedPermissions().isEmpty()) {
-            mergedGrantedPermissions.addAll(resource.getEffectedPermissions().getGrantedPermissions());
+        private static final EffectedPermissions NO_PERMISSIONS =
+                EffectedPermissions.newInstance(Permissions.none(), Permissions.none());
+
+        private final String name;
+        private final Map<String, NodeBuilder> children = new LinkedHashMap<>();
+        private EffectedPermissions permissions;
+
+        private NodeBuilder(final String name) {
+            this(name, NO_PERMISSIONS);
         }
 
-        existingChild.setPermissions(
-                EffectedPermissions.newInstance(mergedGrantedPermissions, mergedRevokedPermissions));
+        private NodeBuilder(final String name, final EffectedPermissions permissions) {
+            this.name = name;
+            this.permissions = permissions;
+        }
+
+        private NodeBuilder child(final String childName) {
+            return children.computeIfAbsent(childName, NodeBuilder::new);
+        }
+
+        private void mergePermissions(final Resource resource) {
+            final Collection<String> mergedGrantedPermissions = new HashSet<>(permissions.getGrantedPermissions());
+            final Collection<String> mergedRevokedPermissions = new HashSet<>(permissions.getRevokedPermissions());
+
+            if (!resource.getEffectedPermissions().getRevokedPermissions().isEmpty()) {
+                mergedRevokedPermissions.addAll(resource.getEffectedPermissions().getRevokedPermissions());
+            }
+            if (!resource.getEffectedPermissions().getGrantedPermissions().isEmpty()) {
+                mergedGrantedPermissions.addAll(resource.getEffectedPermissions().getGrantedPermissions());
+            }
+
+            permissions = EffectedPermissions.newInstance(mergedGrantedPermissions, mergedRevokedPermissions);
+        }
+
+        private Map<String, PolicyTreeNode> buildChildren(final JsonPointer pointer) {
+            if (children.isEmpty()) {
+                return Collections.emptyMap();
+            }
+            final Map<String, PolicyTreeNode> result = new LinkedHashMap<>(children.size() * 4 / 3 + 1);
+            for (final NodeBuilder child : children.values()) {
+                final JsonPointer childPointer = pointer.addLeaf(JsonFactory.newKey(child.name));
+                result.put(child.name, ResourceNode.of(child.name, childPointer, child.permissions,
+                        child.buildChildren(childPointer)));
+            }
+            return result;
+        }
     }
 
     @Override

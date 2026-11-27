@@ -1,0 +1,5146 @@
+{
+ "description": "Anonymized snapshot of the import graph of a thing policy. The thing policy has no own entries; it imports shared policies and per-group policies created from the templates below, whose entries reference entries of other imported policies. Namespace root policies add implicit entries.",
+ "rootNamespace": "org.example",
+ "thingNamespace": "org.example.ns1.ns2",
+ "namespaceRootPolicies": {
+  "*": [
+   "global:policy-1"
+  ],
+  "org.example.*": [
+   "org.example:policy-1"
+  ]
+ },
+ "policies": [
+  {
+   "policyId": "global:policy-1",
+   "entries": {
+    "ENTRY_1": {
+     "subjects": {
+      "issuer1:subject-1": {
+       "type": "generated"
+      }
+     },
+     "resources": {
+      "message:/": {
+       "grant": [
+        "READ",
+        "WRITE"
+       ],
+       "revoke": []
+      },
+      "policy:/": {
+       "grant": [
+        "READ",
+        "WRITE"
+       ],
+       "revoke": []
+      },
+      "thing:/": {
+       "grant": [
+        "READ",
+        "WRITE"
+       ],
+       "revoke": []
+      }
+     },
+     "importable": "implicit",
+     "allowedAdditions": []
+    },
+    "ENTRY_2": {
+     "subjects": {
+      "issuer1:subject-2": {
+       "type": "generated"
+      }
+     },
+     "resources": {
+      "policy:/": {
+       "grant": [
+        "READ",
+        "WRITE"
+       ],
+       "revoke": []
+      }
+     },
+     "importable": "implicit",
+     "allowedAdditions": []
+    },
+    "ENTRY_3": {
+     "subjects": {
+      "issuer1:subject-3": {
+       "type": "generated"
+      }
+     },
+     "resources": {
+      "thing:/": {
+       "grant": [
+        "READ",
+        "WRITE"
+       ],
+       "revoke": []
+      }
+     },
+     "importable": "implicit",
+     "allowedAdditions": []
+    }
+   }
+  },
+  {
+   "policyId": "org.example.ns3.ns4.ns5:policy-2",
+   "entries": {
+    "ENTRY_4": {
+     "subjects": {
+      "issuer1:subject-4": {
+       "type": "generated"
+      },
+      "issuer1:subject-5": {
+       "type": "generated"
+      }
+     },
+     "resources": {
+      "policy:/": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      },
+      "policy:/entries/p1/subjects": {
+       "grant": [
+        "WRITE"
+       ],
+       "revoke": []
+      }
+     },
+     "importable": "implicit",
+     "namespaces": [
+      "org.example.ns3.ns4.ns5"
+     ]
+    },
+    "ENTRY_5": {
+     "subjects": {
+      "issuer1:subject-4": {
+       "type": "generated"
+      },
+      "issuer1:subject-5": {
+       "type": "generated"
+      }
+     },
+     "resources": {
+      "policy:/entries/p1/subjects": {
+       "grant": [],
+       "revoke": [
+        "WRITE"
+       ]
+      }
+     },
+     "importable": "never",
+     "namespaces": [
+      "org.example.ns3.ns4.ns5"
+     ]
+    },
+    "ENTRY_6": {
+     "subjects": {
+      "issuer1:subject-6": {
+       "type": "generated"
+      }
+     },
+     "resources": {
+      "policy:/": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      }
+     },
+     "importable": "never"
+    }
+   }
+  },
+  {
+   "policyId": "org.example.ns3.ns4.ns5:policy-3",
+   "imports": {
+    "org.example.ns3.ns4.ns5:policy-2": {},
+    "org.example.ns3.ns4.ns5:policy-4": {}
+   },
+   "entries": {
+    "ENTRY_7": {
+     "subjects": {},
+     "resources": {
+      "message:/features/p2/inbox": {
+       "grant": [
+        "WRITE"
+       ],
+       "revoke": []
+      },
+      "message:/features/p3/inbox": {
+       "grant": [
+        "WRITE"
+       ],
+       "revoke": []
+      },
+      "message:/features/p4/inbox": {
+       "grant": [
+        "WRITE"
+       ],
+       "revoke": []
+      },
+      "message:/features/p5/inbox/messages/p6": {
+       "grant": [
+        "WRITE"
+       ],
+       "revoke": []
+      },
+      "thing:/attributes": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      },
+      "thing:/definition": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      },
+      "thing:/features/p2": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      },
+      "thing:/features/p3": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      },
+      "thing:/features/p4": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      },
+      "thing:/features/p5": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      }
+     },
+     "importable": "implicit",
+     "allowedAdditions": [
+      "subjects"
+     ],
+     "namespaces": [
+      "org.example.ns6"
+     ]
+    },
+    "ENTRY_8": {
+     "subjects": {},
+     "resources": {
+      "message:/features/p2/inbox": {
+       "grant": [
+        "WRITE"
+       ],
+       "revoke": []
+      },
+      "message:/features/p3/inbox": {
+       "grant": [
+        "WRITE"
+       ],
+       "revoke": []
+      },
+      "message:/features/p4/inbox": {
+       "grant": [
+        "WRITE"
+       ],
+       "revoke": []
+      },
+      "message:/features/p5/inbox/messages/p6": {
+       "grant": [
+        "WRITE"
+       ],
+       "revoke": []
+      },
+      "thing:/attributes": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      },
+      "thing:/definition": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      },
+      "thing:/features/p2": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      },
+      "thing:/features/p3": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      },
+      "thing:/features/p4": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      },
+      "thing:/features/p5": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      }
+     },
+     "importable": "implicit",
+     "allowedAdditions": [
+      "subjects"
+     ],
+     "namespaces": [
+      "org.example.ns7"
+     ]
+    },
+    "ENTRY_9": {
+     "subjects": {},
+     "resources": {
+      "message:/features/p2/inbox": {
+       "grant": [
+        "WRITE"
+       ],
+       "revoke": []
+      },
+      "message:/features/p3/inbox": {
+       "grant": [
+        "WRITE"
+       ],
+       "revoke": []
+      },
+      "message:/features/p4/inbox": {
+       "grant": [
+        "WRITE"
+       ],
+       "revoke": []
+      },
+      "message:/features/p5/inbox/messages/p6": {
+       "grant": [
+        "WRITE"
+       ],
+       "revoke": []
+      },
+      "thing:/attributes": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      },
+      "thing:/definition": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      },
+      "thing:/features/p2": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      },
+      "thing:/features/p3": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      },
+      "thing:/features/p4": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      },
+      "thing:/features/p5": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      }
+     },
+     "importable": "implicit",
+     "allowedAdditions": [
+      "subjects"
+     ],
+     "namespaces": [
+      "org.example.ns8"
+     ]
+    },
+    "ENTRY_10": {
+     "subjects": {},
+     "resources": {
+      "message:/features/p7/inbox/messages/p8": {
+       "grant": [
+        "WRITE"
+       ],
+       "revoke": []
+      },
+      "message:/features/p7/inbox/messages/p9": {
+       "grant": [
+        "WRITE"
+       ],
+       "revoke": []
+      },
+      "thing:/attributes": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      },
+      "thing:/definition": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      },
+      "thing:/features/p10": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      },
+      "thing:/features/p11": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      },
+      "thing:/features/p12/properties/p13/p14/p15/p16/p17": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      },
+      "thing:/features/p18/properties/p13/p19": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      },
+      "thing:/features/p20": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      },
+      "thing:/features/p21": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      },
+      "thing:/features/p22": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      },
+      "thing:/features/p23": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      },
+      "thing:/features/p24": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      },
+      "thing:/features/p7/properties/p13/p25": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      }
+     },
+     "importable": "implicit",
+     "allowedAdditions": [
+      "subjects"
+     ],
+     "namespaces": [
+      "org.example.ns1.ns2",
+      "org.example.ns1.ns2.ns9"
+     ]
+    }
+   }
+  },
+  {
+   "policyId": "org.example.ns3.ns4.ns5:policy-4",
+   "entries": {
+    "ENTRY_6": {
+     "subjects": {
+      "issuer1:subject-6": {
+       "type": "generated"
+      }
+     },
+     "resources": {
+      "policy:/": {
+       "grant": [
+        "READ",
+        "WRITE"
+       ],
+       "revoke": []
+      }
+     },
+     "importable": "implicit",
+     "namespaces": [
+      "org.example.ns3.ns4.ns5"
+     ]
+    },
+    "ENTRY_11": {
+     "subjects": {
+      "issuer1:subject-6": {
+       "type": "generated"
+      }
+     },
+     "resources": {
+      "policy:/": {
+       "grant": [],
+       "revoke": [
+        "WRITE"
+       ]
+      }
+     },
+     "importable": "never"
+    }
+   }
+  },
+  {
+   "policyId": "org.example.ns3.ns4.ns10:policy-2",
+   "entries": {
+    "ENTRY_4": {
+     "subjects": {
+      "issuer1:subject-4": {
+       "type": "generated"
+      },
+      "issuer1:subject-5": {
+       "type": "generated"
+      }
+     },
+     "resources": {
+      "policy:/": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      },
+      "policy:/entries/p1/subjects": {
+       "grant": [
+        "WRITE"
+       ],
+       "revoke": []
+      }
+     },
+     "importable": "implicit",
+     "namespaces": [
+      "org.example.ns3.ns4.ns10"
+     ]
+    },
+    "ENTRY_5": {
+     "subjects": {
+      "issuer1:subject-4": {
+       "type": "generated"
+      },
+      "issuer1:subject-5": {
+       "type": "generated"
+      }
+     },
+     "resources": {
+      "policy:/entries/p1/subjects": {
+       "grant": [],
+       "revoke": [
+        "WRITE"
+       ]
+      }
+     },
+     "importable": "never",
+     "namespaces": [
+      "org.example.ns3.ns4.ns10"
+     ]
+    },
+    "ENTRY_6": {
+     "subjects": {
+      "issuer1:subject-6": {
+       "type": "generated"
+      }
+     },
+     "resources": {
+      "policy:/": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      }
+     },
+     "importable": "never"
+    }
+   }
+  },
+  {
+   "policyId": "org.example.ns3.ns4.ns10:policy-3",
+   "imports": {
+    "org.example.ns3.ns4.ns10:policy-2": {},
+    "org.example.ns3.ns4.ns10:policy-4": {}
+   },
+   "entries": {
+    "ENTRY_7": {
+     "subjects": {},
+     "resources": {
+      "message:/features/p2/inbox": {
+       "grant": [
+        "WRITE"
+       ],
+       "revoke": []
+      },
+      "message:/features/p3/inbox": {
+       "grant": [
+        "WRITE"
+       ],
+       "revoke": []
+      },
+      "message:/features/p4/inbox": {
+       "grant": [
+        "WRITE"
+       ],
+       "revoke": []
+      },
+      "message:/features/p5/inbox/messages/p6": {
+       "grant": [
+        "WRITE"
+       ],
+       "revoke": []
+      },
+      "thing:/attributes": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      },
+      "thing:/definition": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      },
+      "thing:/features/p2": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      },
+      "thing:/features/p3": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      },
+      "thing:/features/p4": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      },
+      "thing:/features/p5": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      }
+     },
+     "importable": "implicit",
+     "allowedAdditions": [
+      "subjects"
+     ],
+     "namespaces": [
+      "org.example.ns6"
+     ]
+    },
+    "ENTRY_8": {
+     "subjects": {},
+     "resources": {
+      "message:/features/p2/inbox": {
+       "grant": [
+        "WRITE"
+       ],
+       "revoke": []
+      },
+      "message:/features/p3/inbox": {
+       "grant": [
+        "WRITE"
+       ],
+       "revoke": []
+      },
+      "message:/features/p4/inbox": {
+       "grant": [
+        "WRITE"
+       ],
+       "revoke": []
+      },
+      "message:/features/p5/inbox/messages/p6": {
+       "grant": [
+        "WRITE"
+       ],
+       "revoke": []
+      },
+      "thing:/attributes": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      },
+      "thing:/definition": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      },
+      "thing:/features/p2": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      },
+      "thing:/features/p3": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      },
+      "thing:/features/p4": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      },
+      "thing:/features/p5": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      }
+     },
+     "importable": "implicit",
+     "allowedAdditions": [
+      "subjects"
+     ],
+     "namespaces": [
+      "org.example.ns7"
+     ]
+    },
+    "ENTRY_9": {
+     "subjects": {},
+     "resources": {
+      "message:/features/p2/inbox": {
+       "grant": [
+        "WRITE"
+       ],
+       "revoke": []
+      },
+      "message:/features/p3/inbox": {
+       "grant": [
+        "WRITE"
+       ],
+       "revoke": []
+      },
+      "message:/features/p4/inbox": {
+       "grant": [
+        "WRITE"
+       ],
+       "revoke": []
+      },
+      "message:/features/p5/inbox/messages/p6": {
+       "grant": [
+        "WRITE"
+       ],
+       "revoke": []
+      },
+      "thing:/attributes": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      },
+      "thing:/definition": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      },
+      "thing:/features/p2": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      },
+      "thing:/features/p3": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      },
+      "thing:/features/p4": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      },
+      "thing:/features/p5": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      }
+     },
+     "importable": "implicit",
+     "allowedAdditions": [
+      "subjects"
+     ],
+     "namespaces": [
+      "org.example.ns8"
+     ]
+    },
+    "ENTRY_10": {
+     "subjects": {},
+     "resources": {
+      "message:/features/p7/inbox/messages/p8": {
+       "grant": [
+        "WRITE"
+       ],
+       "revoke": []
+      },
+      "message:/features/p7/inbox/messages/p9": {
+       "grant": [
+        "WRITE"
+       ],
+       "revoke": []
+      },
+      "thing:/attributes": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      },
+      "thing:/definition": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      },
+      "thing:/features/p10": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      },
+      "thing:/features/p11": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      },
+      "thing:/features/p12/properties/p13/p14/p15/p16/p17": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      },
+      "thing:/features/p18/properties/p13/p19": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      },
+      "thing:/features/p20": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      },
+      "thing:/features/p21": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      },
+      "thing:/features/p22": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      },
+      "thing:/features/p23": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      },
+      "thing:/features/p24": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      },
+      "thing:/features/p7/properties/p13/p25": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      }
+     },
+     "importable": "implicit",
+     "allowedAdditions": [
+      "subjects"
+     ],
+     "namespaces": [
+      "org.example.ns1.ns2",
+      "org.example.ns1.ns2.ns9"
+     ]
+    }
+   }
+  },
+  {
+   "policyId": "org.example.ns3.ns4.ns10:policy-4",
+   "entries": {
+    "ENTRY_6": {
+     "subjects": {
+      "issuer1:subject-6": {
+       "type": "generated"
+      }
+     },
+     "resources": {
+      "policy:/": {
+       "grant": [
+        "READ",
+        "WRITE"
+       ],
+       "revoke": []
+      }
+     },
+     "importable": "implicit",
+     "namespaces": [
+      "org.example.ns3.ns4.ns10"
+     ]
+    },
+    "ENTRY_11": {
+     "subjects": {
+      "issuer1:subject-6": {
+       "type": "generated"
+      }
+     },
+     "resources": {
+      "policy:/": {
+       "grant": [],
+       "revoke": [
+        "WRITE"
+       ]
+      }
+     },
+     "importable": "never"
+    }
+   }
+  },
+  {
+   "policyId": "org.example.ns3.ns4.ns11:policy-3",
+   "imports": {
+    "org.example.ns3.ns4.ns11:policy-4": {}
+   },
+   "entries": {
+    "ENTRY_12": {
+     "subjects": {},
+     "resources": {
+      "message:/features/p26/inbox": {
+       "grant": [
+        "WRITE"
+       ],
+       "revoke": []
+      },
+      "message:/features/p3/inbox": {
+       "grant": [
+        "WRITE"
+       ],
+       "revoke": []
+      },
+      "message:/features/p27/inbox/messages/p28": {
+       "grant": [
+        "WRITE"
+       ],
+       "revoke": []
+      },
+      "message:/features/p4/inbox": {
+       "grant": [
+        "WRITE"
+       ],
+       "revoke": []
+      },
+      "message:/features/p29/inbox": {
+       "grant": [
+        "WRITE"
+       ],
+       "revoke": []
+      },
+      "message:/features/p5/inbox": {
+       "grant": [
+        "WRITE"
+       ],
+       "revoke": []
+      },
+      "message:/inbox/messages/p30": {
+       "grant": [
+        "WRITE"
+       ],
+       "revoke": []
+      },
+      "message:/inbox/messages/p31": {
+       "grant": [
+        "WRITE"
+       ],
+       "revoke": []
+      },
+      "message:/inbox/messages/p32": {
+       "grant": [
+        "WRITE"
+       ],
+       "revoke": []
+      },
+      "thing:/attributes": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      },
+      "thing:/features/p26": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      },
+      "thing:/features/p3": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      },
+      "thing:/features/p4": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      },
+      "thing:/features/p29": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      },
+      "thing:/features/p5": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      },
+      "thing:/features/p33": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      }
+     },
+     "importable": "implicit",
+     "allowedAdditions": [
+      "subjects"
+     ],
+     "namespaces": [
+      "org.example.ns7"
+     ]
+    },
+    "ENTRY_13": {
+     "subjects": {},
+     "resources": {
+      "message:/features/p34/inbox/messages/p35": {
+       "grant": [
+        "WRITE"
+       ],
+       "revoke": []
+      },
+      "message:/features/p34/inbox/messages/p36": {
+       "grant": [
+        "WRITE"
+       ],
+       "revoke": []
+      },
+      "message:/features/p3/inbox": {
+       "grant": [
+        "WRITE"
+       ],
+       "revoke": []
+      },
+      "message:/features/p27/inbox/messages/p28": {
+       "grant": [
+        "WRITE"
+       ],
+       "revoke": []
+      },
+      "message:/inbox/messages/p30": {
+       "grant": [
+        "WRITE"
+       ],
+       "revoke": []
+      },
+      "message:/inbox/messages/p31": {
+       "grant": [
+        "WRITE"
+       ],
+       "revoke": []
+      },
+      "message:/inbox/messages/p32": {
+       "grant": [
+        "WRITE"
+       ],
+       "revoke": []
+      },
+      "thing:/attributes": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      },
+      "thing:/features/p34": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      },
+      "thing:/features/p3": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      }
+     },
+     "importable": "implicit",
+     "allowedAdditions": [
+      "subjects"
+     ],
+     "namespaces": [
+      "org.example.ns8"
+     ]
+    },
+    "ENTRY_14": {
+     "subjects": {},
+     "resources": {
+      "message:/features/p11/inbox": {
+       "grant": [
+        "WRITE"
+       ],
+       "revoke": []
+      },
+      "message:/features/p37/inbox": {
+       "grant": [
+        "WRITE"
+       ],
+       "revoke": []
+      },
+      "message:/features/p38/inbox": {
+       "grant": [
+        "WRITE"
+       ],
+       "revoke": []
+      },
+      "message:/features/p21/inbox": {
+       "grant": [
+        "WRITE"
+       ],
+       "revoke": []
+      },
+      "message:/features/p39/inbox/messages/p28": {
+       "grant": [
+        "WRITE"
+       ],
+       "revoke": []
+      },
+      "message:/features/p22/inbox": {
+       "grant": [
+        "WRITE"
+       ],
+       "revoke": []
+      },
+      "message:/features/p24/inbox": {
+       "grant": [
+        "WRITE"
+       ],
+       "revoke": []
+      },
+      "message:/inbox/messages/p40": {
+       "grant": [
+        "WRITE"
+       ],
+       "revoke": []
+      },
+      "message:/inbox/messages/p41": {
+       "grant": [
+        "WRITE"
+       ],
+       "revoke": []
+      },
+      "message:/inbox/messages/p42": {
+       "grant": [
+        "WRITE"
+       ],
+       "revoke": []
+      },
+      "thing:/attributes": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      },
+      "thing:/features/p11": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      },
+      "thing:/features/p37": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      },
+      "thing:/features/p38": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      },
+      "thing:/features/p21": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      },
+      "thing:/features/p22": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      },
+      "thing:/features/p23": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      },
+      "thing:/features/p24": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      },
+      "thing:/features/p7/properties/p13/p25": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      }
+     },
+     "importable": "implicit",
+     "allowedAdditions": [
+      "subjects"
+     ],
+     "namespaces": [
+      "org.example.ns1.ns2"
+     ]
+    }
+   }
+  },
+  {
+   "policyId": "org.example.ns3.ns4.ns11:policy-4",
+   "entries": {
+    "ENTRY_6": {
+     "subjects": {
+      "issuer1:subject-6": {
+       "type": "generated"
+      }
+     },
+     "resources": {
+      "policy:/": {
+       "grant": [
+        "READ",
+        "WRITE"
+       ],
+       "revoke": []
+      }
+     },
+     "importable": "implicit",
+     "namespaces": [
+      "org.example.ns3.ns4.ns11"
+     ]
+    },
+    "ENTRY_11": {
+     "subjects": {
+      "issuer1:subject-6": {
+       "type": "generated"
+      }
+     },
+     "resources": {
+      "policy:/": {
+       "grant": [],
+       "revoke": [
+        "WRITE"
+       ]
+      }
+     },
+     "importable": "never"
+    },
+    "ENTRY_15": {
+     "subjects": {
+      "issuer1:subject-7": {
+       "type": "generated"
+      },
+      "issuer2:subject-8": {
+       "type": "generated"
+      }
+     },
+     "resources": {
+      "policy:/entries/p43/subjects": {
+       "grant": [
+        "READ",
+        "WRITE"
+       ],
+       "revoke": []
+      }
+     },
+     "importable": "implicit",
+     "namespaces": [
+      "org.example.ns3.ns4.ns11"
+     ]
+    },
+    "ENTRY_16": {
+     "subjects": {
+      "issuer1:subject-7": {
+       "type": "generated"
+      },
+      "issuer2:subject-8": {
+       "type": "generated"
+      }
+     },
+     "resources": {
+      "message:/features/p27/inbox/messages/p28": {
+       "grant": [
+        "WRITE"
+       ],
+       "revoke": []
+      }
+     },
+     "importable": "implicit",
+     "namespaces": [
+      "org.example.ns7"
+     ]
+    },
+    "ENTRY_17": {
+     "subjects": {
+      "issuer1:subject-7": {
+       "type": "generated"
+      },
+      "issuer2:subject-8": {
+       "type": "generated"
+      }
+     },
+     "resources": {
+      "message:/features/p27/inbox/messages/p28": {
+       "grant": [
+        "WRITE"
+       ],
+       "revoke": []
+      }
+     },
+     "importable": "implicit",
+     "namespaces": [
+      "org.example.ns8"
+     ]
+    },
+    "ENTRY_18": {
+     "subjects": {
+      "issuer1:subject-7": {
+       "type": "generated"
+      },
+      "issuer2:subject-8": {
+       "type": "generated"
+      }
+     },
+     "resources": {
+      "message:/features/p44/inbox": {
+       "grant": [
+        "WRITE"
+       ],
+       "revoke": []
+      },
+      "thing:/attributes/p45/p46": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      },
+      "thing:/attributes/p47": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      },
+      "thing:/attributes/p48": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      }
+     },
+     "importable": "implicit",
+     "namespaces": [
+      "org.example.ns1.ns2"
+     ]
+    }
+   }
+  },
+  {
+   "policyId": "org.example.ns12:policy-5",
+   "imports": {
+    "org.example.ns12:policy-2": {},
+    "org.example.ns12:policy-4": {}
+   },
+   "entries": {
+    "ENTRY_19": {
+     "subjects": {
+      "issuer1:subject-9": {
+       "type": "generated"
+      },
+      "issuer3:subject-10": {
+       "type": "generated"
+      }
+     },
+     "resources": {
+      "message:/": {
+       "grant": [
+        "READ",
+        "WRITE"
+       ],
+       "revoke": []
+      },
+      "policy:/": {
+       "grant": [
+        "READ",
+        "WRITE"
+       ],
+       "revoke": []
+      },
+      "thing:/": {
+       "grant": [
+        "READ",
+        "WRITE"
+       ],
+       "revoke": []
+      }
+     },
+     "importable": "implicit"
+    },
+    "ENTRY_20": {
+     "subjects": {
+      "issuer1:subject-9": {
+       "type": "generated"
+      },
+      "issuer3:subject-10": {
+       "type": "generated"
+      }
+     },
+     "resources": {
+      "policy:/": {
+       "grant": [],
+       "revoke": [
+        "WRITE"
+       ]
+      }
+     },
+     "importable": "never"
+    }
+   }
+  },
+  {
+   "policyId": "org.example.ns12:policy-2",
+   "entries": {
+    "ENTRY_21": {
+     "subjects": {
+      "issuer1:subject-11": {
+       "type": "generated"
+      },
+      "issuer1:subject-12": {
+       "type": "generated"
+      }
+     },
+     "resources": {
+      "message:/": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      },
+      "policy:/": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      },
+      "thing:/": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      }
+     },
+     "importable": "implicit",
+     "namespaces": [
+      "org.example.ns12"
+     ]
+    },
+    "ENTRY_22": {
+     "subjects": {
+      "issuer1:subject-13": {
+       "type": "generated"
+      },
+      "issuer1:subject-14": {
+       "type": "generated"
+      }
+     },
+     "resources": {
+      "message:/": {
+       "grant": [
+        "WRITE"
+       ],
+       "revoke": []
+      },
+      "policy:/": {
+       "grant": [
+        "WRITE"
+       ],
+       "revoke": []
+      },
+      "thing:/": {
+       "grant": [
+        "WRITE"
+       ],
+       "revoke": []
+      }
+     },
+     "importable": "implicit",
+     "namespaces": [
+      "org.example.ns12"
+     ]
+    },
+    "ENTRY_19": {
+     "subjects": {
+      "issuer1:subject-15": {
+       "type": "generated"
+      },
+      "issuer1:subject-16": {
+       "type": "generated"
+      },
+      "issuer3:subject-10": {
+       "type": "generated"
+      }
+     },
+     "resources": {
+      "message:/": {
+       "grant": [
+        "READ",
+        "WRITE"
+       ],
+       "revoke": []
+      },
+      "policy:/": {
+       "grant": [
+        "READ",
+        "WRITE"
+       ],
+       "revoke": []
+      },
+      "thing:/": {
+       "grant": [
+        "READ",
+        "WRITE"
+       ],
+       "revoke": []
+      }
+     },
+     "importable": "implicit",
+     "namespaces": [
+      "org.example.ns12"
+     ]
+    },
+    "ENTRY_20": {
+     "subjects": {
+      "issuer1:subject-15": {
+       "type": "generated"
+      },
+      "issuer1:subject-16": {
+       "type": "generated"
+      },
+      "issuer3:subject-10": {
+       "type": "generated"
+      }
+     },
+     "resources": {
+      "policy:/": {
+       "grant": [],
+       "revoke": [
+        "WRITE"
+       ]
+      }
+     },
+     "importable": "never"
+    },
+    "ENTRY_23": {
+     "subjects": {
+      "issuer1:subject-17": {
+       "type": "generated"
+      },
+      "issuer1:subject-18": {
+       "type": "generated"
+      },
+      "issuer3:subject-19": {
+       "type": "generated"
+      }
+     },
+     "resources": {
+      "thing:/": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      }
+     },
+     "importable": "implicit",
+     "namespaces": [
+      "org.example.ns12"
+     ]
+    }
+   }
+  },
+  {
+   "policyId": "org.example.ns12:policy-4",
+   "entries": {
+    "ENTRY_24": {
+     "subjects": {
+      "issuer4:subject-20": {
+       "type": "generated"
+      }
+     },
+     "resources": {
+      "thing:/": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      }
+     },
+     "importable": "implicit",
+     "namespaces": [
+      "org.example.ns12"
+     ]
+    },
+    "ENTRY_19": {
+     "subjects": {
+      "issuer1:subject-15": {
+       "type": "generated"
+      },
+      "issuer3:subject-10": {
+       "type": "generated"
+      }
+     },
+     "resources": {
+      "policy:/": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      }
+     },
+     "importable": "implicit",
+     "namespaces": [
+      "org.example.ns12"
+     ]
+    },
+    "ENTRY_25": {
+     "subjects": {
+      "issuer1:subject-6": {
+       "type": "generated"
+      }
+     },
+     "resources": {
+      "policy:/": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      },
+      "thing:/": {
+       "grant": [
+        "READ",
+        "WRITE"
+       ],
+       "revoke": []
+      }
+     },
+     "importable": "implicit",
+     "namespaces": [
+      "org.example.ns12"
+     ]
+    },
+    "ENTRY_26": {
+     "subjects": {
+      "issuer1:subject-21": {
+       "type": "generated"
+      },
+      "issuer3:subject-22": {
+       "type": "generated"
+      }
+     },
+     "resources": {
+      "thing:/": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      },
+      "thing:/features/p49/properties": {
+       "grant": [
+        "WRITE"
+       ],
+       "revoke": []
+      }
+     },
+     "importable": "implicit",
+     "namespaces": [
+      "org.example.ns12"
+     ]
+    },
+    "ENTRY_27": {
+     "subjects": {
+      "issuer1:subject-23": {
+       "type": "generated"
+      },
+      "issuer3:subject-24": {
+       "type": "generated"
+      }
+     },
+     "resources": {
+      "thing:/": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      }
+     },
+     "importable": "implicit",
+     "namespaces": [
+      "org.example.ns12"
+     ]
+    },
+    "ENTRY_28": {
+     "subjects": {
+      "issuer1:subject-25": {
+       "type": "generated"
+      },
+      "issuer3:subject-26": {
+       "type": "generated"
+      }
+     },
+     "resources": {
+      "thing:/": {
+       "grant": [
+        "READ",
+        "WRITE"
+       ],
+       "revoke": []
+      }
+     },
+     "importable": "implicit",
+     "namespaces": [
+      "org.example.ns12"
+     ]
+    }
+   }
+  },
+  {
+   "policyId": "org.example.ns1.ns13:policy-5",
+   "imports": {
+    "org.example.ns1.ns13:policy-2": {},
+    "org.example.ns1.ns13:policy-4": {}
+   },
+   "entries": {
+    "ENTRY_19": {
+     "subjects": {
+      "issuer1:subject-9": {
+       "type": "generated"
+      },
+      "issuer3:subject-10": {
+       "type": "generated"
+      }
+     },
+     "resources": {
+      "policy:/": {
+       "grant": [
+        "READ",
+        "WRITE"
+       ],
+       "revoke": []
+      },
+      "thing:/": {
+       "grant": [
+        "READ",
+        "WRITE"
+       ],
+       "revoke": []
+      }
+     },
+     "importable": "implicit"
+    },
+    "ENTRY_20": {
+     "subjects": {
+      "issuer1:subject-9": {
+       "type": "generated"
+      },
+      "issuer3:subject-10": {
+       "type": "generated"
+      }
+     },
+     "resources": {
+      "policy:/": {
+       "grant": [],
+       "revoke": [
+        "WRITE"
+       ]
+      }
+     },
+     "importable": "never"
+    }
+   }
+  },
+  {
+   "policyId": "org.example.ns1.ns13:policy-2",
+   "entries": {
+    "ENTRY_29": {
+     "subjects": {
+      "issuer1:subject-27": {
+       "type": "generated"
+      },
+      "issuer1:subject-28": {
+       "type": "generated"
+      }
+     },
+     "resources": {
+      "thing:/attributes": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      },
+      "thing:/definition": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      }
+     },
+     "importable": "implicit",
+     "namespaces": [
+      "org.example.ns1.ns13",
+      "org.example.ns1.ns13.*"
+     ]
+    },
+    "ENTRY_21": {
+     "subjects": {
+      "issuer1:subject-11": {
+       "type": "generated"
+      },
+      "issuer1:subject-12": {
+       "type": "generated"
+      }
+     },
+     "resources": {
+      "message:/": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      },
+      "policy:/": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      },
+      "thing:/": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      }
+     },
+     "importable": "implicit",
+     "namespaces": [
+      "org.example.ns1.ns13",
+      "org.example.ns1.ns13.*"
+     ]
+    },
+    "ENTRY_22": {
+     "subjects": {
+      "issuer1:subject-13": {
+       "type": "generated"
+      },
+      "issuer1:subject-14": {
+       "type": "generated"
+      }
+     },
+     "resources": {
+      "message:/": {
+       "grant": [
+        "WRITE"
+       ],
+       "revoke": []
+      },
+      "policy:/": {
+       "grant": [
+        "WRITE"
+       ],
+       "revoke": []
+      },
+      "thing:/": {
+       "grant": [
+        "WRITE"
+       ],
+       "revoke": []
+      }
+     },
+     "importable": "implicit",
+     "namespaces": [
+      "org.example.ns1.ns13",
+      "org.example.ns1.ns13.*"
+     ]
+    },
+    "ENTRY_30": {
+     "subjects": {
+      "issuer1:subject-29": {
+       "type": "generated"
+      },
+      "issuer1:subject-30": {
+       "type": "generated"
+      }
+     },
+     "resources": {
+      "thing:/": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      }
+     },
+     "importable": "implicit",
+     "namespaces": [
+      "org.example.ns1.ns13",
+      "org.example.ns1.ns13.*"
+     ]
+    },
+    "ENTRY_19": {
+     "subjects": {
+      "issuer1:subject-15": {
+       "type": "generated"
+      },
+      "issuer1:subject-16": {
+       "type": "generated"
+      },
+      "issuer3:subject-10": {
+       "type": "generated"
+      }
+     },
+     "resources": {
+      "message:/": {
+       "grant": [
+        "READ",
+        "WRITE"
+       ],
+       "revoke": []
+      },
+      "policy:/": {
+       "grant": [
+        "READ",
+        "WRITE"
+       ],
+       "revoke": []
+      },
+      "thing:/": {
+       "grant": [
+        "READ",
+        "WRITE"
+       ],
+       "revoke": []
+      }
+     },
+     "importable": "implicit",
+     "namespaces": [
+      "org.example.ns1.ns13",
+      "org.example.ns1.ns13.*"
+     ]
+    },
+    "ENTRY_20": {
+     "subjects": {
+      "issuer1:subject-15": {
+       "type": "generated"
+      },
+      "issuer1:subject-16": {
+       "type": "generated"
+      },
+      "issuer3:subject-10": {
+       "type": "generated"
+      }
+     },
+     "resources": {
+      "policy:/": {
+       "grant": [],
+       "revoke": [
+        "WRITE"
+       ]
+      }
+     },
+     "importable": "never"
+    },
+    "ENTRY_23": {
+     "subjects": {
+      "issuer1:subject-17": {
+       "type": "generated"
+      },
+      "issuer1:subject-18": {
+       "type": "generated"
+      },
+      "issuer3:subject-19": {
+       "type": "generated"
+      }
+     },
+     "resources": {
+      "thing:/": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      }
+     },
+     "importable": "implicit",
+     "namespaces": [
+      "org.example.ns1.ns13",
+      "org.example.ns1.ns13.*"
+     ]
+    }
+   }
+  },
+  {
+   "policyId": "org.example.ns1.ns13:policy-4",
+   "entries": {
+    "ENTRY_31": {
+     "subjects": {
+      "issuer4:subject-31": {
+       "type": "generated"
+      }
+     },
+     "resources": {
+      "thing:/": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      }
+     },
+     "importable": "implicit",
+     "namespaces": [
+      "org.example.ns1.ns13",
+      "org.example.ns1.ns13.*"
+     ]
+    },
+    "ENTRY_24": {
+     "subjects": {
+      "issuer4:subject-20": {
+       "type": "generated"
+      }
+     },
+     "resources": {
+      "thing:/": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      }
+     },
+     "importable": "implicit",
+     "namespaces": [
+      "org.example.ns1.ns13",
+      "org.example.ns1.ns13.*"
+     ]
+    },
+    "ENTRY_32": {
+     "subjects": {
+      "issuer4:subject-32": {
+       "type": "generated"
+      }
+     },
+     "resources": {
+      "message:/features/p49/inbox/messages": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      },
+      "thing:/attributes": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      },
+      "thing:/definition": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      }
+     },
+     "importable": "implicit",
+     "namespaces": [
+      "org.example.ns1.ns13",
+      "org.example.ns1.ns13.*"
+     ]
+    },
+    "ENTRY_33": {
+     "subjects": {
+      "issuer4:subject-33": {
+       "type": "generated"
+      }
+     },
+     "resources": {
+      "thing:/features/p50/properties": {
+       "grant": [
+        "READ",
+        "WRITE"
+       ],
+       "revoke": []
+      },
+      "thing:/features/p51/properties": {
+       "grant": [
+        "READ",
+        "WRITE"
+       ],
+       "revoke": []
+      }
+     },
+     "importable": "implicit",
+     "namespaces": [
+      "org.example.ns1.ns13",
+      "org.example.ns1.ns13.*"
+     ]
+    },
+    "ENTRY_19": {
+     "subjects": {
+      "issuer1:subject-15": {
+       "type": "generated"
+      },
+      "issuer3:subject-10": {
+       "type": "generated"
+      }
+     },
+     "resources": {
+      "policy:/": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      }
+     },
+     "importable": "implicit",
+     "namespaces": [
+      "org.example.ns1.ns13",
+      "org.example.ns1.ns13.*"
+     ]
+    },
+    "ENTRY_25": {
+     "subjects": {
+      "issuer1:subject-6": {
+       "type": "generated"
+      }
+     },
+     "resources": {
+      "policy:/": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      },
+      "thing:/": {
+       "grant": [
+        "READ",
+        "WRITE"
+       ],
+       "revoke": []
+      }
+     },
+     "importable": "implicit",
+     "namespaces": [
+      "org.example.ns1.ns13",
+      "org.example.ns1.ns13.*"
+     ]
+    },
+    "ENTRY_26": {
+     "subjects": {
+      "issuer1:subject-21": {
+       "type": "generated"
+      },
+      "issuer3:subject-22": {
+       "type": "generated"
+      }
+     },
+     "resources": {
+      "thing:/": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      },
+      "thing:/features/p49/properties": {
+       "grant": [
+        "WRITE"
+       ],
+       "revoke": []
+      }
+     },
+     "importable": "implicit",
+     "namespaces": [
+      "org.example.ns1.ns13",
+      "org.example.ns1.ns13.*"
+     ]
+    },
+    "ENTRY_27": {
+     "subjects": {
+      "issuer1:subject-23": {
+       "type": "generated"
+      },
+      "issuer3:subject-24": {
+       "type": "generated"
+      }
+     },
+     "resources": {
+      "thing:/": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      }
+     },
+     "importable": "implicit",
+     "namespaces": [
+      "org.example.ns1.ns13",
+      "org.example.ns1.ns13.*"
+     ]
+    },
+    "ENTRY_28": {
+     "subjects": {
+      "issuer1:subject-25": {
+       "type": "generated"
+      },
+      "issuer3:subject-26": {
+       "type": "generated"
+      }
+     },
+     "resources": {
+      "thing:/": {
+       "grant": [
+        "READ",
+        "WRITE"
+       ],
+       "revoke": []
+      }
+     },
+     "importable": "implicit",
+     "namespaces": [
+      "org.example.ns1.ns13",
+      "org.example.ns1.ns13.*"
+     ]
+    }
+   }
+  },
+  {
+   "policyId": "org.example.ns1.ns2:policy-2",
+   "entries": {
+    "ENTRY_34": {
+     "subjects": {
+      "issuer1:subject-34": {
+       "type": "generated"
+      },
+      "issuer1:subject-35": {
+       "type": "generated"
+      }
+     },
+     "resources": {
+      "thing:/attributes": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      },
+      "thing:/features/p52": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      },
+      "thing:/features/p20": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      }
+     },
+     "importable": "implicit",
+     "namespaces": [
+      "org.example.ns1.ns2",
+      "org.example.ns1.ns2.ns9"
+     ]
+    },
+    "ENTRY_29": {
+     "subjects": {
+      "issuer1:subject-27": {
+       "type": "generated"
+      },
+      "issuer1:subject-28": {
+       "type": "generated"
+      }
+     },
+     "resources": {
+      "thing:/attributes": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      },
+      "thing:/attributes/p53": {
+       "grant": [
+        "WRITE"
+       ],
+       "revoke": []
+      },
+      "thing:/definition": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      }
+     },
+     "importable": "implicit",
+     "namespaces": [
+      "org.example.ns1.ns2",
+      "org.example.ns1.ns2.ns9"
+     ]
+    },
+    "ENTRY_21": {
+     "subjects": {
+      "issuer1:subject-11": {
+       "type": "generated"
+      },
+      "issuer1:subject-12": {
+       "type": "generated"
+      }
+     },
+     "resources": {
+      "message:/": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      },
+      "policy:/": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      },
+      "thing:/": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      }
+     },
+     "importable": "implicit",
+     "namespaces": [
+      "org.example.ns1.ns2",
+      "org.example.ns1.ns2.ns9"
+     ]
+    },
+    "ENTRY_22": {
+     "subjects": {
+      "issuer1:subject-13": {
+       "type": "generated"
+      },
+      "issuer1:subject-14": {
+       "type": "generated"
+      }
+     },
+     "resources": {
+      "message:/": {
+       "grant": [
+        "WRITE"
+       ],
+       "revoke": []
+      },
+      "policy:/": {
+       "grant": [
+        "WRITE"
+       ],
+       "revoke": []
+      },
+      "thing:/": {
+       "grant": [
+        "WRITE"
+       ],
+       "revoke": []
+      }
+     },
+     "importable": "implicit",
+     "namespaces": [
+      "org.example.ns1.ns2",
+      "org.example.ns1.ns2.ns9"
+     ]
+    },
+    "ENTRY_35": {
+     "subjects": {
+      "issuer1:subject-36": {
+       "type": "generated"
+      },
+      "issuer1:subject-37": {
+       "type": "generated"
+      }
+     },
+     "resources": {
+      "thing:/": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      },
+      "thing:/features/p54": {
+       "grant": [],
+       "revoke": [
+        "READ"
+       ]
+      },
+      "thing:/features/p38/properties/p13": {
+       "grant": [],
+       "revoke": [
+        "READ"
+       ]
+      },
+      "thing:/features/p21/properties/p55/p56": {
+       "grant": [],
+       "revoke": [
+        "READ"
+       ]
+      },
+      "thing:/features/p21/properties/p55/p57": {
+       "grant": [],
+       "revoke": [
+        "READ"
+       ]
+      },
+      "thing:/features/p21/properties/p55/p58": {
+       "grant": [],
+       "revoke": [
+        "READ"
+       ]
+      },
+      "thing:/features/p22": {
+       "grant": [],
+       "revoke": [
+        "READ"
+       ]
+      },
+      "thing:/features/p44": {
+       "grant": [],
+       "revoke": [
+        "READ"
+       ]
+      },
+      "thing:/features/p23": {
+       "grant": [],
+       "revoke": [
+        "READ"
+       ]
+      },
+      "thing:/features/p24/properties/p55/p59": {
+       "grant": [],
+       "revoke": [
+        "READ"
+       ]
+      }
+     },
+     "importable": "implicit",
+     "namespaces": [
+      "org.example.ns1.ns2",
+      "org.example.ns1.ns2.ns9"
+     ]
+    },
+    "ENTRY_30": {
+     "subjects": {
+      "issuer1:subject-29": {
+       "type": "generated"
+      },
+      "issuer1:subject-30": {
+       "type": "generated"
+      }
+     },
+     "resources": {
+      "message:/features/p10/inbox/messages/p60": {
+       "grant": [
+        "WRITE"
+       ],
+       "revoke": []
+      },
+      "message:/features/p11/inbox/messages/p61": {
+       "grant": [
+        "WRITE"
+       ],
+       "revoke": []
+      },
+      "message:/features/p11/inbox/messages/p62": {
+       "grant": [
+        "WRITE"
+       ],
+       "revoke": []
+      },
+      "message:/features/p63/inbox/messages/p64": {
+       "grant": [
+        "WRITE"
+       ],
+       "revoke": []
+      },
+      "message:/features/p20/inbox/messages/p65": {
+       "grant": [
+        "WRITE"
+       ],
+       "revoke": []
+      },
+      "message:/features/p66/inbox/messages/p61": {
+       "grant": [
+        "WRITE"
+       ],
+       "revoke": []
+      },
+      "message:/features/p66/inbox/messages/p67": {
+       "grant": [
+        "WRITE"
+       ],
+       "revoke": []
+      },
+      "message:/features/p54/inbox/messages/p68": {
+       "grant": [
+        "WRITE"
+       ],
+       "revoke": []
+      },
+      "message:/features/p54/inbox/messages/p69": {
+       "grant": [
+        "WRITE"
+       ],
+       "revoke": []
+      },
+      "message:/features/p21/inbox/messages/p70": {
+       "grant": [
+        "WRITE"
+       ],
+       "revoke": []
+      },
+      "message:/features/p21/inbox/messages/p71": {
+       "grant": [
+        "WRITE"
+       ],
+       "revoke": []
+      },
+      "message:/features/p21/inbox/messages/p72": {
+       "grant": [
+        "WRITE"
+       ],
+       "revoke": []
+      },
+      "message:/features/p21/inbox/messages/p73": {
+       "grant": [
+        "WRITE"
+       ],
+       "revoke": []
+      },
+      "message:/features/p21/inbox/messages/p74": {
+       "grant": [
+        "WRITE"
+       ],
+       "revoke": []
+      },
+      "message:/features/p23/inbox/messages/p75": {
+       "grant": [
+        "WRITE"
+       ],
+       "revoke": []
+      },
+      "message:/features/p23/inbox/messages/p76": {
+       "grant": [
+        "WRITE"
+       ],
+       "revoke": []
+      },
+      "message:/features/p24/inbox/messages/p61": {
+       "grant": [
+        "WRITE"
+       ],
+       "revoke": []
+      },
+      "message:/features/p24/inbox/messages/p77": {
+       "grant": [
+        "WRITE"
+       ],
+       "revoke": []
+      },
+      "message:/features/p24/inbox/messages/p78": {
+       "grant": [
+        "WRITE"
+       ],
+       "revoke": []
+      },
+      "message:/features/p24/inbox/messages/p79": {
+       "grant": [
+        "WRITE"
+       ],
+       "revoke": []
+      },
+      "message:/features/p24/inbox/messages/p80": {
+       "grant": [
+        "WRITE"
+       ],
+       "revoke": []
+      },
+      "message:/features/p7/inbox/messages/p8": {
+       "grant": [
+        "WRITE"
+       ],
+       "revoke": []
+      },
+      "message:/features/p7/inbox/messages/p81": {
+       "grant": [
+        "WRITE"
+       ],
+       "revoke": []
+      },
+      "message:/features/p7/inbox/messages/p82": {
+       "grant": [
+        "WRITE"
+       ],
+       "revoke": []
+      },
+      "message:/features/p7/inbox/messages/p83": {
+       "grant": [
+        "WRITE"
+       ],
+       "revoke": []
+      },
+      "message:/features/p7/inbox/messages/p84": {
+       "grant": [
+        "WRITE"
+       ],
+       "revoke": []
+      },
+      "message:/features/p7/inbox/messages/p85": {
+       "grant": [
+        "WRITE"
+       ],
+       "revoke": []
+      },
+      "message:/features/p7/inbox/messages/p86": {
+       "grant": [
+        "WRITE"
+       ],
+       "revoke": []
+      },
+      "message:/features/p7/inbox/messages/p87": {
+       "grant": [
+        "WRITE"
+       ],
+       "revoke": []
+      },
+      "message:/features/p7/inbox/messages/p88": {
+       "grant": [
+        "WRITE"
+       ],
+       "revoke": []
+      },
+      "message:/features/p7/inbox/messages/p89": {
+       "grant": [
+        "WRITE"
+       ],
+       "revoke": []
+      },
+      "message:/features/p7/inbox/messages/p90": {
+       "grant": [
+        "WRITE"
+       ],
+       "revoke": []
+      },
+      "message:/features/p7/inbox/messages/p91": {
+       "grant": [
+        "WRITE"
+       ],
+       "revoke": []
+      },
+      "message:/features/p7/inbox/messages/p92": {
+       "grant": [
+        "WRITE"
+       ],
+       "revoke": []
+      },
+      "message:/features/p7/inbox/messages/p93": {
+       "grant": [
+        "WRITE"
+       ],
+       "revoke": []
+      },
+      "message:/features/p7/inbox/messages/p94": {
+       "grant": [
+        "WRITE"
+       ],
+       "revoke": []
+      },
+      "message:/features/p7/inbox/messages/p9": {
+       "grant": [
+        "WRITE"
+       ],
+       "revoke": []
+      },
+      "message:/features/p7/outbox/messages/p95": {
+       "grant": [
+        "WRITE"
+       ],
+       "revoke": []
+      },
+      "message:/inbox/messages/p96": {
+       "grant": [
+        "WRITE"
+       ],
+       "revoke": []
+      },
+      "thing:/": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      }
+     },
+     "importable": "implicit",
+     "namespaces": [
+      "org.example.ns1.ns2",
+      "org.example.ns1.ns2.ns9"
+     ]
+    },
+    "ENTRY_36": {
+     "subjects": {
+      "issuer1:subject-38": {
+       "type": "generated"
+      },
+      "issuer1:subject-39": {
+       "type": "generated"
+      }
+     },
+     "resources": {
+      "message:/features/p11/inbox/messages": {
+       "grant": [
+        "WRITE"
+       ],
+       "revoke": []
+      },
+      "message:/features/p37/inbox/messages": {
+       "grant": [
+        "WRITE"
+       ],
+       "revoke": []
+      },
+      "message:/features/p63/inbox/messages": {
+       "grant": [
+        "WRITE"
+       ],
+       "revoke": []
+      },
+      "message:/features/p18/inbox/messages": {
+       "grant": [
+        "WRITE"
+       ],
+       "revoke": []
+      },
+      "message:/features/p20/inbox/messages": {
+       "grant": [
+        "WRITE"
+       ],
+       "revoke": []
+      },
+      "message:/features/p66/inbox/messages": {
+       "grant": [
+        "WRITE"
+       ],
+       "revoke": []
+      },
+      "message:/features/p97/inbox/messages/p98": {
+       "grant": [
+        "WRITE"
+       ],
+       "revoke": []
+      },
+      "message:/features/p54/inbox/messages/p68": {
+       "grant": [
+        "WRITE"
+       ],
+       "revoke": []
+      },
+      "message:/features/p54/inbox/messages/p69": {
+       "grant": [
+        "WRITE"
+       ],
+       "revoke": []
+      },
+      "message:/features/p38/inbox/messages": {
+       "grant": [
+        "WRITE"
+       ],
+       "revoke": []
+      },
+      "message:/features/p99/inbox/messages": {
+       "grant": [
+        "WRITE"
+       ],
+       "revoke": []
+      },
+      "message:/features/p21/inbox/messages": {
+       "grant": [
+        "WRITE"
+       ],
+       "revoke": []
+      },
+      "message:/features/p39/inbox/messages": {
+       "grant": [
+        "WRITE"
+       ],
+       "revoke": []
+      },
+      "message:/features/p22/inbox/messages": {
+       "grant": [
+        "WRITE"
+       ],
+       "revoke": []
+      },
+      "message:/features/p44/inbox/messages": {
+       "grant": [
+        "WRITE"
+       ],
+       "revoke": []
+      },
+      "message:/features/p23/inbox/messages": {
+       "grant": [
+        "WRITE"
+       ],
+       "revoke": []
+      },
+      "message:/features/p24/inbox/messages": {
+       "grant": [
+        "WRITE"
+       ],
+       "revoke": []
+      },
+      "message:/features/p7/inbox/messages": {
+       "grant": [
+        "WRITE"
+       ],
+       "revoke": []
+      },
+      "message:/features/p7/inbox/messages/p98": {
+       "grant": [
+        "WRITE"
+       ],
+       "revoke": []
+      },
+      "message:/inbox/messages/p96": {
+       "grant": [
+        "WRITE"
+       ],
+       "revoke": []
+      },
+      "thing:/": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      }
+     },
+     "importable": "implicit",
+     "namespaces": [
+      "org.example.ns1.ns2",
+      "org.example.ns1.ns2.ns9"
+     ]
+    },
+    "ENTRY_37": {
+     "subjects": {
+      "issuer1:subject-40": {
+       "type": "generated"
+      },
+      "issuer1:subject-41": {
+       "type": "generated"
+      }
+     },
+     "resources": {
+      "message:/features/p11/inbox/messages/p61": {
+       "grant": [
+        "WRITE"
+       ],
+       "revoke": []
+      },
+      "message:/features/p11/inbox/messages/p62": {
+       "grant": [
+        "WRITE"
+       ],
+       "revoke": []
+      },
+      "message:/features/p97/inbox/messages/p98": {
+       "grant": [
+        "WRITE"
+       ],
+       "revoke": []
+      },
+      "message:/features/p24/inbox/messages/p78": {
+       "grant": [
+        "WRITE"
+       ],
+       "revoke": []
+      },
+      "message:/features/p7/inbox/messages/p8": {
+       "grant": [
+        "WRITE"
+       ],
+       "revoke": []
+      },
+      "message:/features/p7/inbox/messages/p98": {
+       "grant": [
+        "WRITE"
+       ],
+       "revoke": []
+      },
+      "message:/features/p7/inbox/messages/p82": {
+       "grant": [
+        "WRITE"
+       ],
+       "revoke": []
+      },
+      "message:/features/p7/inbox/messages/p9": {
+       "grant": [
+        "WRITE"
+       ],
+       "revoke": []
+      },
+      "thing:/attributes/p100": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      },
+      "thing:/attributes/p101": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      },
+      "thing:/attributes/p102": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      },
+      "thing:/attributes/p45": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      },
+      "thing:/attributes/p47": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      },
+      "thing:/attributes/p48": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      },
+      "thing:/features/p10": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      },
+      "thing:/features/p11": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      },
+      "thing:/features/p12": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      },
+      "thing:/features/p18/properties/p13/p19": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      },
+      "thing:/features/p20": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      },
+      "thing:/features/p54": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      },
+      "thing:/features/p38": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      },
+      "thing:/features/p21": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      },
+      "thing:/features/p23/properties/p13/p103": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      },
+      "thing:/features/p24": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      },
+      "thing:/features/p7": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      }
+     },
+     "importable": "implicit",
+     "namespaces": [
+      "org.example.ns1.ns2",
+      "org.example.ns1.ns2.ns9"
+     ]
+    },
+    "ENTRY_6": {
+     "subjects": {
+      "issuer1:subject-6": {
+       "type": "generated"
+      }
+     },
+     "resources": {
+      "policy:/": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      }
+     },
+     "importable": "never"
+    }
+   }
+  },
+  {
+   "policyId": "org.example.ns1.ns2:policy-4",
+   "entries": {
+    "ENTRY_38": {
+     "subjects": {
+      "issuer4:subject-42": {
+       "type": "generated"
+      }
+     },
+     "resources": {
+      "message:/features/p18/inbox/messages/p104": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      },
+      "message:/features/p97/inbox/messages/p98": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      },
+      "message:/features/p54/inbox/messages/p68": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      },
+      "message:/features/p54/inbox/messages/p69": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      },
+      "message:/features/p44/inbox/messages/p105": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      },
+      "message:/features/p7/inbox/messages/p98": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      }
+     },
+     "importable": "implicit",
+     "namespaces": [
+      "org.example.ns1.ns2",
+      "org.example.ns1.ns2.ns9"
+     ]
+    },
+    "ENTRY_39": {
+     "subjects": {
+      "issuer4:subject-43": {
+       "type": "generated"
+      }
+     },
+     "resources": {
+      "thing:/features/p106": {
+       "grant": [
+        "WRITE"
+       ],
+       "revoke": []
+      },
+      "thing:/features/p7/properties/p107/p108": {
+       "grant": [
+        "WRITE"
+       ],
+       "revoke": []
+      }
+     },
+     "importable": "implicit",
+     "namespaces": [
+      "org.example.ns1.ns2",
+      "org.example.ns1.ns2.ns9"
+     ]
+    },
+    "ENTRY_40": {
+     "subjects": {
+      "issuer4:subject-44": {
+       "type": "generated"
+      }
+     },
+     "resources": {
+      "thing:/": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      }
+     },
+     "importable": "implicit",
+     "namespaces": [
+      "org.example.ns1.ns2",
+      "org.example.ns1.ns2.ns9"
+     ]
+    },
+    "ENTRY_41": {
+     "subjects": {
+      "issuer4:subject-45": {
+       "type": "generated"
+      }
+     },
+     "resources": {
+      "message:/": {
+       "grant": [
+        "WRITE"
+       ],
+       "revoke": []
+      },
+      "thing:/": {
+       "grant": [
+        "READ",
+        "WRITE"
+       ],
+       "revoke": []
+      }
+     },
+     "importable": "implicit",
+     "namespaces": [
+      "org.example.ns1.ns2",
+      "org.example.ns1.ns2.ns9"
+     ]
+    },
+    "ENTRY_42": {
+     "subjects": {
+      "issuer4:subject-46": {
+       "type": "generated"
+      }
+     },
+     "resources": {
+      "message:/": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      },
+      "message:/features/p10/inbox/messages/p60": {
+       "grant": [],
+       "revoke": [
+        "READ"
+       ]
+      },
+      "message:/features/p21/inbox/messages/p74": {
+       "grant": [],
+       "revoke": [
+        "READ"
+       ]
+      },
+      "message:/features/p44/inbox/messages/p105": {
+       "grant": [],
+       "revoke": [
+        "READ"
+       ]
+      },
+      "message:/features/p23/inbox/messages/p75": {
+       "grant": [],
+       "revoke": [
+        "READ"
+       ]
+      },
+      "message:/features/p23/inbox/messages/p76": {
+       "grant": [],
+       "revoke": [
+        "READ"
+       ]
+      },
+      "message:/features/p24/inbox/messages/p79": {
+       "grant": [],
+       "revoke": [
+        "READ"
+       ]
+      },
+      "message:/features/p24/inbox/messages/p80": {
+       "grant": [],
+       "revoke": [
+        "READ"
+       ]
+      },
+      "message:/features/p7/inbox/messages/p109": {
+       "grant": [],
+       "revoke": [
+        "READ"
+       ]
+      },
+      "message:/features/p7/inbox/messages/p83": {
+       "grant": [],
+       "revoke": [
+        "READ"
+       ]
+      },
+      "message:/features/p7/inbox/messages/p84": {
+       "grant": [],
+       "revoke": [
+        "READ"
+       ]
+      },
+      "message:/features/p7/inbox/messages/p85": {
+       "grant": [],
+       "revoke": [
+        "READ"
+       ]
+      },
+      "message:/features/p7/inbox/messages/p86": {
+       "grant": [],
+       "revoke": [
+        "READ"
+       ]
+      },
+      "message:/features/p7/inbox/messages/p87": {
+       "grant": [],
+       "revoke": [
+        "READ"
+       ]
+      },
+      "message:/features/p7/inbox/messages/p88": {
+       "grant": [],
+       "revoke": [
+        "READ"
+       ]
+      },
+      "message:/features/p7/inbox/messages/p89": {
+       "grant": [],
+       "revoke": [
+        "READ"
+       ]
+      },
+      "message:/features/p7/inbox/messages/p110": {
+       "grant": [],
+       "revoke": [
+        "READ"
+       ]
+      },
+      "message:/features/p7/inbox/messages/p111": {
+       "grant": [],
+       "revoke": [
+        "READ"
+       ]
+      },
+      "message:/features/p7/inbox/messages/p90": {
+       "grant": [],
+       "revoke": [
+        "READ"
+       ]
+      },
+      "message:/features/p7/inbox/messages/p91": {
+       "grant": [],
+       "revoke": [
+        "READ"
+       ]
+      },
+      "message:/features/p7/inbox/messages/p92": {
+       "grant": [],
+       "revoke": [
+        "READ"
+       ]
+      },
+      "message:/features/p7/inbox/messages/p93": {
+       "grant": [],
+       "revoke": [
+        "READ"
+       ]
+      },
+      "message:/features/p7/inbox/messages/p94": {
+       "grant": [],
+       "revoke": [
+        "READ"
+       ]
+      },
+      "message:/inbox/messages/p96": {
+       "grant": [],
+       "revoke": [
+        "READ"
+       ]
+      },
+      "thing:/": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      }
+     },
+     "importable": "implicit",
+     "namespaces": [
+      "org.example.ns1.ns2",
+      "org.example.ns1.ns2.ns9"
+     ]
+    },
+    "ENTRY_43": {
+     "subjects": {
+      "issuer4:subject-47": {
+       "type": "generated"
+      }
+     },
+     "resources": {
+      "message:/": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      },
+      "thing:/attributes": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      }
+     },
+     "importable": "implicit",
+     "namespaces": [
+      "org.example.ns1.ns2",
+      "org.example.ns1.ns2.ns9"
+     ]
+    },
+    "ENTRY_44": {
+     "subjects": {
+      "issuer4:subject-48": {
+       "type": "generated"
+      }
+     },
+     "resources": {
+      "thing:/": {
+       "grant": [
+        "READ",
+        "WRITE"
+       ],
+       "revoke": []
+      }
+     },
+     "importable": "implicit",
+     "namespaces": [
+      "org.example.ns1.ns2",
+      "org.example.ns1.ns2.ns9"
+     ]
+    },
+    "ENTRY_45": {
+     "subjects": {
+      "issuer4:subject-49": {
+       "type": "generated"
+      }
+     },
+     "resources": {
+      "thing:/": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      }
+     },
+     "importable": "implicit",
+     "namespaces": [
+      "org.example.ns1.ns2",
+      "org.example.ns1.ns2.ns9"
+     ]
+    },
+    "ENTRY_46": {
+     "subjects": {
+      "issuer4:subject-50": {
+       "type": "generated"
+      }
+     },
+     "resources": {
+      "message:/features/p10/inbox/messages/p60": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      },
+      "message:/features/p21/inbox/messages/p74": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      },
+      "message:/features/p23/inbox/messages/p75": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      },
+      "message:/features/p23/inbox/messages/p76": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      },
+      "message:/features/p24/inbox/messages/p79": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      },
+      "message:/features/p24/inbox/messages/p80": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      },
+      "message:/features/p7/inbox/messages/p109": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      },
+      "message:/features/p7/inbox/messages/p83": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      },
+      "message:/features/p7/inbox/messages/p84": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      },
+      "message:/features/p7/inbox/messages/p85": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      },
+      "message:/features/p7/inbox/messages/p86": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      },
+      "message:/features/p7/inbox/messages/p87": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      },
+      "message:/features/p7/inbox/messages/p88": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      },
+      "message:/features/p7/inbox/messages/p89": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      },
+      "message:/features/p7/inbox/messages/p110": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      },
+      "message:/features/p7/inbox/messages/p111": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      },
+      "message:/features/p7/inbox/messages/p90": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      },
+      "message:/features/p7/inbox/messages/p91": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      },
+      "message:/features/p7/inbox/messages/p92": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      },
+      "message:/features/p7/inbox/messages/p93": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      },
+      "message:/features/p7/inbox/messages/p94": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      },
+      "message:/inbox/messages/p96": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      }
+     },
+     "importable": "implicit",
+     "namespaces": [
+      "org.example.ns1.ns2",
+      "org.example.ns1.ns2.ns9"
+     ]
+    },
+    "ENTRY_47": {
+     "subjects": {
+      "issuer4:subject-51": {
+       "type": "generated"
+      }
+     },
+     "resources": {
+      "thing:/": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      }
+     },
+     "importable": "implicit",
+     "namespaces": [
+      "org.example.ns1.ns2",
+      "org.example.ns1.ns2.ns9"
+     ]
+    },
+    "ENTRY_48": {
+     "subjects": {
+      "issuer4:subject-52": {
+       "type": "generated"
+      }
+     },
+     "resources": {
+      "thing:/": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      }
+     },
+     "importable": "implicit",
+     "namespaces": [
+      "org.example.ns1.ns2",
+      "org.example.ns1.ns2.ns9"
+     ]
+    },
+    "ENTRY_49": {
+     "subjects": {
+      "issuer4:subject-53": {
+       "type": "generated"
+      }
+     },
+     "resources": {
+      "thing:/attributes": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      },
+      "thing:/features/p12": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      },
+      "thing:/features/p112": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      },
+      "thing:/features/p54": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      }
+     },
+     "importable": "implicit",
+     "namespaces": [
+      "org.example.ns1.ns2",
+      "org.example.ns1.ns2.ns9"
+     ]
+    },
+    "ENTRY_50": {
+     "subjects": {
+      "issuer4:subject-54": {
+       "type": "generated"
+      }
+     },
+     "resources": {
+      "thing:/features/p12": {
+       "grant": [
+        "READ",
+        "WRITE"
+       ],
+       "revoke": []
+      },
+      "thing:/features/p54": {
+       "grant": [
+        "WRITE"
+       ],
+       "revoke": []
+      }
+     },
+     "importable": "implicit",
+     "namespaces": [
+      "org.example.ns1.ns2",
+      "org.example.ns1.ns2.ns9"
+     ]
+    },
+    "ENTRY_24": {
+     "subjects": {
+      "issuer4:subject-20": {
+       "type": "generated"
+      }
+     },
+     "resources": {
+      "message:/": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      },
+      "thing:/": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      }
+     },
+     "importable": "implicit",
+     "namespaces": [
+      "org.example.ns1.ns2",
+      "org.example.ns1.ns2.ns9"
+     ]
+    },
+    "ENTRY_51": {
+     "subjects": {
+      "issuer1:subject-55": {
+       "type": "generated"
+      }
+     },
+     "resources": {
+      "policy:/": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      },
+      "thing:/": {
+       "grant": [
+        "WRITE"
+       ],
+       "revoke": []
+      }
+     },
+     "importable": "implicit",
+     "namespaces": [
+      "org.example.ns1.ns2",
+      "org.example.ns1.ns2.ns9"
+     ]
+    },
+    "ENTRY_52": {
+     "subjects": {
+      "issuer1:subject-6": {
+       "type": "generated"
+      }
+     },
+     "resources": {
+      "policy:/": {
+       "grant": [
+        "READ",
+        "WRITE"
+       ],
+       "revoke": []
+      },
+      "thing:/attributes": {
+       "grant": [
+        "READ",
+        "WRITE"
+       ],
+       "revoke": []
+      },
+      "thing:/policyId": {
+       "grant": [
+        "READ",
+        "WRITE"
+       ],
+       "revoke": []
+      }
+     },
+     "importable": "implicit",
+     "namespaces": [
+      "org.example.ns1.ns2",
+      "org.example.ns1.ns2.ns9"
+     ]
+    },
+    "ENTRY_53": {
+     "subjects": {
+      "issuer1:subject-6": {
+       "type": "generated"
+      }
+     },
+     "resources": {
+      "policy:/": {
+       "grant": [],
+       "revoke": [
+        "WRITE"
+       ]
+      }
+     },
+     "importable": "never"
+    },
+    "ENTRY_54": {
+     "subjects": {
+      "issuer1:subject-56": {
+       "type": "generated"
+      },
+      "issuer5:subject-57": {
+       "type": "generated"
+      }
+     },
+     "resources": {
+      "message:/features/p63/inbox/messages/p64": {
+       "grant": [
+        "WRITE"
+       ],
+       "revoke": []
+      },
+      "thing:/attributes/p101": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      },
+      "thing:/attributes/p47": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      },
+      "thing:/attributes/p48": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      },
+      "thing:/features/p12": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      },
+      "thing:/features/p63": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      },
+      "thing:/features/p20": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      }
+     },
+     "importable": "implicit",
+     "namespaces": [
+      "org.example.ns1.ns2",
+      "org.example.ns1.ns2.ns9"
+     ]
+    },
+    "ENTRY_55": {
+     "subjects": {
+      "issuer1:subject-58": {
+       "type": "generated"
+      }
+     },
+     "resources": {
+      "thing:/attributes/p47": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      },
+      "thing:/features/p112": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      },
+      "thing:/features/p112/properties": {
+       "grant": [
+        "WRITE"
+       ],
+       "revoke": []
+      }
+     },
+     "importable": "implicit",
+     "namespaces": [
+      "org.example.ns1.ns2",
+      "org.example.ns1.ns2.ns9"
+     ]
+    },
+    "ENTRY_56": {
+     "subjects": {
+      "issuer1:subject-59": {
+       "type": "generated"
+      }
+     },
+     "resources": {
+      "message:/": {
+       "grant": [
+        "WRITE"
+       ],
+       "revoke": []
+      }
+     },
+     "importable": "implicit",
+     "namespaces": [
+      "org.example.ns1.ns2",
+      "org.example.ns1.ns2.ns9"
+     ]
+    },
+    "ENTRY_57": {
+     "subjects": {
+      "issuer1:subject-60": {
+       "type": "generated"
+      }
+     },
+     "resources": {
+      "policy:/": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      }
+     },
+     "importable": "implicit",
+     "namespaces": [
+      "org.example.ns1.ns2",
+      "org.example.ns1.ns2.ns9"
+     ]
+    },
+    "ENTRY_58": {
+     "subjects": {
+      "issuer1:subject-61": {
+       "type": "generated"
+      }
+     },
+     "resources": {
+      "policy:/": {
+       "grant": [
+        "WRITE"
+       ],
+       "revoke": []
+      }
+     },
+     "importable": "implicit",
+     "namespaces": [
+      "org.example.ns1.ns2",
+      "org.example.ns1.ns2.ns9"
+     ]
+    },
+    "ENTRY_59": {
+     "subjects": {
+      "issuer1:subject-62": {
+       "type": "generated"
+      }
+     },
+     "resources": {
+      "thing:/": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      }
+     },
+     "importable": "implicit",
+     "namespaces": [
+      "org.example.ns1.ns2",
+      "org.example.ns1.ns2.ns9"
+     ]
+    },
+    "ENTRY_60": {
+     "subjects": {
+      "issuer1:subject-63": {
+       "type": "generated"
+      }
+     },
+     "resources": {
+      "thing:/": {
+       "grant": [
+        "WRITE"
+       ],
+       "revoke": []
+      }
+     },
+     "importable": "implicit",
+     "namespaces": [
+      "org.example.ns1.ns2",
+      "org.example.ns1.ns2.ns9"
+     ]
+    }
+   }
+  },
+  {
+   "policyId": "org.example.ns14:policy-5",
+   "imports": {
+    "org.example.ns14:policy-2": {},
+    "org.example.ns14:policy-4": {}
+   },
+   "entries": {}
+  },
+  {
+   "policyId": "org.example.ns14:policy-2",
+   "entries": {
+    "ENTRY_29": {
+     "subjects": {
+      "issuer1:subject-27": {
+       "type": "generated"
+      },
+      "issuer1:subject-28": {
+       "type": "generated"
+      }
+     },
+     "resources": {
+      "thing:/attributes": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      },
+      "thing:/definition": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      }
+     },
+     "importable": "implicit",
+     "namespaces": [
+      "org.example.ns14.*"
+     ]
+    },
+    "ENTRY_61": {
+     "subjects": {
+      "issuer1:subject-64": {
+       "type": "generated"
+      },
+      "issuer1:subject-65": {
+       "type": "generated"
+      }
+     },
+     "resources": {
+      "message:/": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      },
+      "policy:/": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      },
+      "thing:/": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      }
+     },
+     "importable": "implicit",
+     "namespaces": [
+      "org.example.ns14.*"
+     ]
+    },
+    "ENTRY_62": {
+     "subjects": {
+      "issuer1:subject-66": {
+       "type": "generated"
+      },
+      "issuer1:subject-67": {
+       "type": "generated"
+      }
+     },
+     "resources": {
+      "message:/": {
+       "grant": [
+        "WRITE"
+       ],
+       "revoke": []
+      },
+      "policy:/": {
+       "grant": [
+        "WRITE"
+       ],
+       "revoke": []
+      },
+      "thing:/": {
+       "grant": [
+        "WRITE"
+       ],
+       "revoke": []
+      }
+     },
+     "importable": "implicit",
+     "namespaces": [
+      "org.example.ns14.*"
+     ]
+    },
+    "ENTRY_63": {
+     "subjects": {
+      "issuer1:subject-68": {
+       "type": "generated"
+      },
+      "issuer1:subject-69": {
+       "type": "generated"
+      }
+     },
+     "resources": {
+      "thing:/": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      }
+     },
+     "importable": "implicit",
+     "namespaces": [
+      "org.example.ns14.*"
+     ]
+    },
+    "ENTRY_64": {
+     "subjects": {
+      "issuer1:subject-70": {
+       "type": "generated"
+      },
+      "issuer1:subject-71": {
+       "type": "generated"
+      }
+     },
+     "resources": {
+      "message:/features/p54/inbox/messages/p68": {
+       "grant": [
+        "WRITE"
+       ],
+       "revoke": []
+      },
+      "message:/features/p54/inbox/messages/p69": {
+       "grant": [
+        "WRITE"
+       ],
+       "revoke": []
+      },
+      "message:/inbox/messages/p113": {
+       "grant": [
+        "WRITE"
+       ],
+       "revoke": []
+      },
+      "thing:/": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      },
+      "thing:/attributes/p53": {
+       "grant": [
+        "WRITE"
+       ],
+       "revoke": []
+      }
+     },
+     "importable": "implicit",
+     "namespaces": [
+      "org.example.ns14.*"
+     ]
+    },
+    "ENTRY_65": {
+     "subjects": {
+      "issuer1:subject-72": {
+       "type": "generated"
+      },
+      "issuer1:subject-73": {
+       "type": "generated"
+      }
+     },
+     "resources": {
+      "message:/features/p54/inbox/messages/p68": {
+       "grant": [
+        "WRITE"
+       ],
+       "revoke": []
+      },
+      "message:/features/p54/inbox/messages/p69": {
+       "grant": [
+        "WRITE"
+       ],
+       "revoke": []
+      },
+      "message:/inbox/messages/p113": {
+       "grant": [
+        "WRITE"
+       ],
+       "revoke": []
+      },
+      "thing:/": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      },
+      "thing:/attributes/p53": {
+       "grant": [
+        "WRITE"
+       ],
+       "revoke": []
+      }
+     },
+     "importable": "implicit",
+     "namespaces": [
+      "org.example.ns14.*"
+     ]
+    },
+    "ENTRY_19": {
+     "subjects": {
+      "issuer1:subject-15": {
+       "type": "generated"
+      },
+      "issuer1:subject-16": {
+       "type": "generated"
+      },
+      "issuer3:subject-10": {
+       "type": "generated"
+      }
+     },
+     "resources": {
+      "thing:/": {
+       "grant": [
+        "READ",
+        "WRITE"
+       ],
+       "revoke": []
+      }
+     },
+     "importable": "implicit",
+     "namespaces": [
+      "org.example.ns14.ns15"
+     ]
+    },
+    "ENTRY_66": {
+     "subjects": {
+      "issuer1:subject-17": {
+       "type": "generated"
+      },
+      "issuer1:subject-18": {
+       "type": "generated"
+      },
+      "issuer3:subject-19": {
+       "type": "generated"
+      }
+     },
+     "resources": {
+      "thing:/": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      }
+     },
+     "importable": "implicit",
+     "namespaces": [
+      "org.example.ns14.ns15"
+     ]
+    }
+   }
+  },
+  {
+   "policyId": "org.example.ns14:policy-4",
+   "entries": {
+    "ENTRY_45": {
+     "subjects": {
+      "issuer4:subject-49": {
+       "type": "generated"
+      }
+     },
+     "resources": {
+      "thing:/": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      }
+     },
+     "importable": "implicit",
+     "namespaces": [
+      "org.example.ns14.*"
+     ]
+    },
+    "ENTRY_49": {
+     "subjects": {
+      "issuer4:subject-53": {
+       "type": "generated"
+      }
+     },
+     "resources": {
+      "thing:/attributes": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      },
+      "thing:/features/p12": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      },
+      "thing:/features/p112": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      },
+      "thing:/features/p54": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      }
+     },
+     "importable": "implicit",
+     "namespaces": [
+      "org.example.ns14.*"
+     ]
+    },
+    "ENTRY_50": {
+     "subjects": {
+      "issuer4:subject-54": {
+       "type": "generated"
+      }
+     },
+     "resources": {
+      "thing:/features/p12": {
+       "grant": [
+        "READ",
+        "WRITE"
+       ],
+       "revoke": []
+      },
+      "thing:/features/p54": {
+       "grant": [
+        "WRITE"
+       ],
+       "revoke": []
+      }
+     },
+     "importable": "implicit",
+     "namespaces": [
+      "org.example.ns14.*"
+     ]
+    },
+    "ENTRY_67": {
+     "subjects": {
+      "issuer4:subject-74": {
+       "type": "generated"
+      }
+     },
+     "resources": {
+      "policy:/": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      },
+      "thing:/": {
+       "grant": [
+        "WRITE"
+       ],
+       "revoke": []
+      }
+     },
+     "importable": "implicit",
+     "namespaces": [
+      "org.example.ns14.*"
+     ]
+    },
+    "ENTRY_68": {
+     "subjects": {
+      "issuer4:subject-75": {
+       "type": "generated"
+      }
+     },
+     "resources": {
+      "message:/inbox/messages/p114": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      },
+      "thing:/attributes": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      }
+     },
+     "importable": "implicit",
+     "namespaces": [
+      "org.example.ns14.*"
+     ]
+    },
+    "ENTRY_69": {
+     "subjects": {
+      "issuer4:subject-76": {
+       "type": "generated"
+      }
+     },
+     "resources": {
+      "message:/features/p54/inbox/messages/p68": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      },
+      "message:/features/p54/inbox/messages/p69": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      }
+     },
+     "importable": "implicit",
+     "namespaces": [
+      "org.example.ns14.*"
+     ]
+    },
+    "ENTRY_70": {
+     "subjects": {
+      "issuer4:subject-77": {
+       "type": "generated"
+      }
+     },
+     "resources": {
+      "message:/outbox/messages/p115": {
+       "grant": [
+        "WRITE"
+       ],
+       "revoke": []
+      },
+      "policy:/": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      },
+      "thing:/": {
+       "grant": [
+        "READ",
+        "WRITE"
+       ],
+       "revoke": []
+      }
+     },
+     "importable": "implicit",
+     "namespaces": [
+      "org.example.ns14.*"
+     ]
+    },
+    "ENTRY_71": {
+     "subjects": {
+      "issuer4:subject-78": {
+       "type": "generated"
+      }
+     },
+     "resources": {
+      "message:/inbox/messages/p113": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      }
+     },
+     "importable": "implicit",
+     "namespaces": [
+      "org.example.ns14.*"
+     ]
+    },
+    "ENTRY_72": {
+     "subjects": {
+      "issuer4:subject-79": {
+       "type": "generated"
+      }
+     },
+     "resources": {
+      "message:/outbox/messages/p115": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      },
+      "thing:/": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      }
+     },
+     "importable": "implicit",
+     "namespaces": [
+      "org.example.ns14.*"
+     ]
+    },
+    "ENTRY_73": {
+     "subjects": {
+      "issuer4:subject-80": {
+       "type": "generated"
+      }
+     },
+     "resources": {
+      "thing:/": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      }
+     },
+     "importable": "implicit",
+     "namespaces": [
+      "org.example.ns14.*"
+     ]
+    },
+    "ENTRY_74": {
+     "subjects": {
+      "issuer4:subject-81": {
+       "type": "generated"
+      }
+     },
+     "resources": {
+      "message:/": {
+       "grant": [
+        "WRITE"
+       ],
+       "revoke": []
+      },
+      "thing:/": {
+       "grant": [
+        "READ",
+        "WRITE"
+       ],
+       "revoke": []
+      }
+     },
+     "importable": "implicit",
+     "namespaces": [
+      "org.example.ns14.ns15"
+     ]
+    },
+    "ENTRY_75": {
+     "subjects": {
+      "issuer4:subject-82": {
+       "type": "generated"
+      }
+     },
+     "resources": {
+      "thing:/": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      }
+     },
+     "importable": "implicit",
+     "namespaces": [
+      "org.example.ns14.*"
+     ]
+    },
+    "ENTRY_52": {
+     "subjects": {
+      "issuer1:subject-6": {
+       "type": "generated"
+      }
+     },
+     "resources": {
+      "thing:/attributes": {
+       "grant": [
+        "READ",
+        "WRITE"
+       ],
+       "revoke": []
+      }
+     },
+     "importable": "implicit",
+     "namespaces": [
+      "org.example.ns14.*"
+     ]
+    },
+    "ENTRY_25": {
+     "subjects": {
+      "issuer1:subject-6": {
+       "type": "generated"
+      }
+     },
+     "resources": {
+      "policy:/": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      },
+      "thing:/": {
+       "grant": [
+        "READ",
+        "WRITE"
+       ],
+       "revoke": []
+      }
+     },
+     "importable": "implicit",
+     "namespaces": [
+      "org.example.ns14.ns15",
+      "org.example.ns14.ns16",
+      "org.example.ns14.ns17",
+      "org.example.ns14.ns18",
+      "org.example.ns14.ns19",
+      "org.example.ns14.ns20",
+      "org.example.ns14.ns21"
+     ]
+    },
+    "ENTRY_27": {
+     "subjects": {
+      "issuer1:subject-21": {
+       "type": "generated"
+      },
+      "issuer1:subject-23": {
+       "type": "generated"
+      },
+      "issuer3:subject-22": {
+       "type": "generated"
+      },
+      "issuer3:subject-24": {
+       "type": "generated"
+      }
+     },
+     "resources": {
+      "thing:/": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      }
+     },
+     "importable": "implicit",
+     "namespaces": [
+      "org.example.ns14.ns15"
+     ]
+    },
+    "ENTRY_28": {
+     "subjects": {
+      "issuer1:subject-25": {
+       "type": "generated"
+      },
+      "issuer3:subject-26": {
+       "type": "generated"
+      }
+     },
+     "resources": {
+      "thing:/": {
+       "grant": [
+        "READ",
+        "WRITE"
+       ],
+       "revoke": []
+      }
+     },
+     "importable": "implicit",
+     "namespaces": [
+      "org.example.ns14.ns15"
+     ]
+    },
+    "ENTRY_76": {
+     "subjects": {
+      "issuer1:subject-56": {
+       "type": "generated"
+      },
+      "issuer5:subject-57": {
+       "type": "generated"
+      }
+     },
+     "resources": {
+      "message:/inbox/messages/p114": {
+       "grant": [
+        "WRITE"
+       ],
+       "revoke": []
+      },
+      "thing:/attributes/p47": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      }
+     },
+     "importable": "implicit",
+     "namespaces": [
+      "org.example.ns14.*"
+     ]
+    },
+    "ENTRY_77": {
+     "subjects": {
+      "issuer1:subject-83": {
+       "type": "generated"
+      }
+     },
+     "resources": {
+      "thing:/features/p12": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      },
+      "thing:/features/p112": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      },
+      "thing:/features/p54": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      }
+     },
+     "importable": "implicit",
+     "namespaces": [
+      "org.example.ns14.*"
+     ]
+    },
+    "ENTRY_55": {
+     "subjects": {
+      "issuer1:subject-58": {
+       "type": "generated"
+      }
+     },
+     "resources": {
+      "thing:/attributes/p47": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      },
+      "thing:/features/p112": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      },
+      "thing:/features/p112/properties": {
+       "grant": [
+        "WRITE"
+       ],
+       "revoke": []
+      }
+     },
+     "importable": "implicit",
+     "namespaces": [
+      "org.example.ns14.*"
+     ]
+    },
+    "ENTRY_78": {
+     "subjects": {
+      "issuer1:subject-84": {
+       "type": "generated"
+      }
+     },
+     "resources": {
+      "message:/": {
+       "grant": [
+        "READ",
+        "WRITE"
+       ],
+       "revoke": []
+      },
+      "thing:/": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      },
+      "thing:/attributes/p53": {
+       "grant": [
+        "READ",
+        "WRITE"
+       ],
+       "revoke": []
+      },
+      "thing:/features/p116": {
+       "grant": [
+        "READ",
+        "WRITE"
+       ],
+       "revoke": []
+      }
+     },
+     "importable": "implicit",
+     "namespaces": [
+      "org.example.ns14.ns15"
+     ]
+    },
+    "ENTRY_79": {
+     "subjects": {
+      "issuer1:subject-85": {
+       "type": "generated"
+      }
+     },
+     "resources": {
+      "message:/": {
+       "grant": [
+        "WRITE"
+       ],
+       "revoke": []
+      }
+     },
+     "importable": "implicit",
+     "namespaces": [
+      "org.example.ns14.*"
+     ]
+    },
+    "ENTRY_80": {
+     "subjects": {
+      "issuer1:subject-86": {
+       "type": "generated"
+      }
+     },
+     "resources": {
+      "thing:/features/p54/properties": {
+       "grant": [
+        "READ",
+        "WRITE"
+       ],
+       "revoke": []
+      }
+     },
+     "importable": "implicit",
+     "namespaces": [
+      "org.example.ns14.*"
+     ]
+    },
+    "ENTRY_81": {
+     "subjects": {
+      "issuer1:subject-87": {
+       "type": "generated"
+      }
+     },
+     "resources": {
+      "thing:/attributes/p117": {
+       "grant": [
+        "WRITE"
+       ],
+       "revoke": []
+      }
+     },
+     "importable": "implicit",
+     "namespaces": [
+      "org.example.ns14.*"
+     ]
+    },
+    "ENTRY_82": {
+     "subjects": {
+      "issuer1:subject-88": {
+       "type": "generated"
+      }
+     },
+     "resources": {
+      "thing:/": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      }
+     },
+     "importable": "implicit",
+     "namespaces": [
+      "org.example.ns14.*"
+     ]
+    }
+   }
+  },
+  {
+   "policyId": "org.example:policy-1",
+   "entries": {
+    "ENTRY_83": {
+     "subjects": {
+      "issuer1:subject-6": {
+       "type": "generated"
+      },
+      "issuer1:subject-9": {
+       "type": "generated"
+      },
+      "issuer3:subject-10": {
+       "type": "generated"
+      }
+     },
+     "resources": {
+      "policy:/": {
+       "grant": [
+        "READ"
+       ],
+       "revoke": []
+      }
+     },
+     "importable": "never"
+    }
+   }
+  }
+ ],
+ "templates": {
+  "thing": {
+   "policyId": "{{THING_ID}}",
+   "imports": {
+    "{{ROOT}}.ns3.ns4.ns5:policy-2": {},
+    "{{ROOT}}.ns3.ns4.ns5:policy-4": {},
+    "{{ROOT}}.ns3.ns4.ns5:{{GROUP_A_ID}}": {
+     "transitiveImports": [
+      "{{ROOT}}.ns3.ns4.ns5:policy-3"
+     ]
+    },
+    "{{ROOT}}.ns3.ns4.ns10:{{GROUP_A_ID}}": {
+     "transitiveImports": [
+      "{{ROOT}}.ns3.ns4.ns10:policy-3"
+     ]
+    },
+    "{{ROOT}}.ns3.ns4.ns11:policy-4": {},
+    "{{ROOT}}.ns3.ns4.ns11:{{GROUP_B_ID}}": {
+     "transitiveImports": [
+      "{{ROOT}}.ns3.ns4.ns11:policy-3"
+     ]
+    },
+    "{{ROOT}}.ns1.ns2:policy-2": {},
+    "{{ROOT}}.ns1.ns2:policy-4": {}
+   },
+   "entries": {}
+  },
+  "groupA": {
+   "policyId": "{{ROOT}}.ns3.ns4.ns10:{{GROUP_A_ID}}",
+   "imports": {
+    "{{ROOT}}.ns3.ns4.ns10:policy-2": {},
+    "{{ROOT}}.ns3.ns4.ns10:policy-3": {},
+    "{{ROOT}}.ns3.ns4.ns10:policy-4": {},
+    "{{ROOT}}.ns12:policy-5": {
+     "transitiveImports": [
+      "{{ROOT}}.ns12:policy-2",
+      "{{ROOT}}.ns12:policy-4"
+     ]
+    },
+    "{{ROOT}}.ns1.ns13:policy-5": {
+     "transitiveImports": [
+      "{{ROOT}}.ns1.ns13:policy-2",
+      "{{ROOT}}.ns1.ns13:policy-4"
+     ]
+    },
+    "{{ROOT}}.ns14:policy-5": {
+     "transitiveImports": [
+      "{{ROOT}}.ns14:policy-2",
+      "{{ROOT}}.ns14:policy-4"
+     ]
+    }
+   },
+   "entries": {
+    "ENTRY_84": {
+     "subjects": {},
+     "importable": "explicit"
+    },
+    "ENTRY_7": {
+     "references": [
+      {
+       "entry": "ENTRY_84"
+      },
+      {
+       "import": "{{ROOT}}.ns3.ns4.ns10:policy-3",
+       "entry": "ENTRY_7"
+      }
+     ],
+     "importable": "implicit"
+    },
+    "ENTRY_8": {
+     "references": [
+      {
+       "entry": "ENTRY_84"
+      },
+      {
+       "import": "{{ROOT}}.ns3.ns4.ns10:policy-3",
+       "entry": "ENTRY_8"
+      }
+     ],
+     "importable": "implicit"
+    },
+    "ENTRY_9": {
+     "references": [
+      {
+       "entry": "ENTRY_84"
+      },
+      {
+       "import": "{{ROOT}}.ns3.ns4.ns10:policy-3",
+       "entry": "ENTRY_9"
+      }
+     ],
+     "importable": "implicit"
+    },
+    "ENTRY_10": {
+     "references": [
+      {
+       "entry": "ENTRY_84"
+      },
+      {
+       "import": "{{ROOT}}.ns3.ns4.ns10:policy-3",
+       "entry": "ENTRY_10"
+      }
+     ],
+     "importable": "implicit"
+    }
+   }
+  },
+  "groupA2": {
+   "policyId": "{{ROOT}}.ns3.ns4.ns5:{{GROUP_A_ID}}",
+   "imports": {
+    "{{ROOT}}.ns3.ns4.ns5:policy-2": {},
+    "{{ROOT}}.ns3.ns4.ns5:policy-3": {},
+    "{{ROOT}}.ns3.ns4.ns5:policy-4": {},
+    "{{ROOT}}.ns12:policy-5": {
+     "transitiveImports": [
+      "{{ROOT}}.ns12:policy-2",
+      "{{ROOT}}.ns12:policy-4"
+     ]
+    },
+    "{{ROOT}}.ns1.ns13:policy-5": {
+     "transitiveImports": [
+      "{{ROOT}}.ns1.ns13:policy-2",
+      "{{ROOT}}.ns1.ns13:policy-4"
+     ]
+    },
+    "{{ROOT}}.ns14:policy-5": {
+     "transitiveImports": [
+      "{{ROOT}}.ns14:policy-2",
+      "{{ROOT}}.ns14:policy-4"
+     ]
+    }
+   },
+   "entries": {
+    "ENTRY_84": {
+     "subjects": {},
+     "importable": "explicit"
+    },
+    "ENTRY_7": {
+     "references": [
+      {
+       "entry": "ENTRY_84"
+      },
+      {
+       "import": "{{ROOT}}.ns3.ns4.ns5:policy-3",
+       "entry": "ENTRY_7"
+      }
+     ],
+     "importable": "implicit"
+    },
+    "ENTRY_8": {
+     "references": [
+      {
+       "entry": "ENTRY_84"
+      },
+      {
+       "import": "{{ROOT}}.ns3.ns4.ns5:policy-3",
+       "entry": "ENTRY_8"
+      }
+     ],
+     "importable": "implicit"
+    },
+    "ENTRY_9": {
+     "references": [
+      {
+       "entry": "ENTRY_84"
+      },
+      {
+       "import": "{{ROOT}}.ns3.ns4.ns5:policy-3",
+       "entry": "ENTRY_9"
+      }
+     ],
+     "importable": "implicit"
+    },
+    "ENTRY_10": {
+     "references": [
+      {
+       "entry": "ENTRY_84"
+      },
+      {
+       "import": "{{ROOT}}.ns3.ns4.ns5:policy-3",
+       "entry": "ENTRY_10"
+      }
+     ],
+     "importable": "implicit"
+    }
+   }
+  },
+  "groupB": {
+   "policyId": "{{ROOT}}.ns3.ns4.ns11:{{GROUP_B_ID}}",
+   "imports": {
+    "{{ROOT}}.ns3.ns4.ns11:policy-3": {},
+    "{{ROOT}}.ns3.ns4.ns11:policy-4": {}
+   },
+   "entries": {
+    "ENTRY_12": {
+     "references": [
+      {
+       "entry": "ENTRY_85"
+      },
+      {
+       "import": "{{ROOT}}.ns3.ns4.ns11:policy-3",
+       "entry": "ENTRY_12"
+      }
+     ],
+     "importable": "implicit"
+    },
+    "ENTRY_13": {
+     "references": [
+      {
+       "entry": "ENTRY_85"
+      },
+      {
+       "import": "{{ROOT}}.ns3.ns4.ns11:policy-3",
+       "entry": "ENTRY_13"
+      }
+     ],
+     "importable": "implicit"
+    },
+    "ENTRY_14": {
+     "references": [
+      {
+       "entry": "ENTRY_85"
+      },
+      {
+       "import": "{{ROOT}}.ns3.ns4.ns11:policy-3",
+       "entry": "ENTRY_14"
+      }
+     ],
+     "importable": "implicit"
+    },
+    "ENTRY_85": {
+     "subjects": {},
+     "importable": "explicit"
+    }
+   }
+  }
+ }
+}
